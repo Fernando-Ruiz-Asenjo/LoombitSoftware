@@ -16,7 +16,7 @@ from __future__ import annotations
 import logging
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Body, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Body, HTTPException, Query
 from pydantic import BaseModel
 
 from ..agent import AgentLoop, AgentRun, AgentStatus
@@ -106,16 +106,17 @@ class RunDetailResponse(RunResponse):
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
 @router.post("/run", response_model=RunResponse, summary="Lanzar una tarea al agente")
-async def start_run(body: RunRequest) -> RunResponse:
+async def start_run(body: RunRequest, background_tasks: BackgroundTasks) -> RunResponse:
     """
-    Lanza el agente con la tarea dada.
-    Bloquea hasta que el agente completa, falla o necesita aprobación.
+    Crea el run inmediatamente (status=running) y ejecuta el agente en background.
+    Usar GET /agent/runs/{id} para seguir el estado (polling).
     """
     loop = _get_loop()
     try:
-        run = loop.run(body.task)
+        run = loop.create(body.task, max_steps=body.max_steps, profile=body.profile)
+        background_tasks.add_task(loop.execute_run, run.id)
     except Exception as exc:
-        logger.exception("Error lanzando agente: %s", exc)
+        logger.exception("Error creando run: %s", exc)
         raise HTTPException(status_code=500, detail=f"Error interno del agente: {exc}") from exc
     return RunResponse.from_run(run)
 
@@ -156,10 +157,14 @@ async def get_run(run_id: str) -> RunDetailResponse:
     response_model=RunResponse,
     summary="Aprobar acción pendiente y reanudar",
 )
-async def approve_run(run_id: str, body: ApproveRequest = Body(default=ApproveRequest())) -> RunResponse:
+async def approve_run(
+    run_id: str,
+    background_tasks: BackgroundTasks,
+    body: ApproveRequest = Body(default=ApproveRequest()),
+) -> RunResponse:
     """
-    Aprueba la acción que está esperando confirmación humana y reanuda el agente.
-    Solo funciona si el run está en status 'pending_approval'.
+    Aprueba la acción pendiente y reanuda el agente en background.
+    Usar GET /agent/runs/{id} para seguir el estado (polling).
     """
     loop = _get_loop()
     store = _get_store()
@@ -176,19 +181,15 @@ async def approve_run(run_id: str, body: ApproveRequest = Body(default=ApproveRe
         )
 
     if body.comment:
-        # Añadir comentario del humano al historial para que el LLM lo vea
         run.messages.append({
             "role": "user",
             "content": f"[Aprobación concedida] {body.comment}",
         })
         store.save_run(run)
 
-    try:
-        run = loop.resume(run_id)
-    except Exception as exc:
-        logger.exception("Error reanudando agente run=%s: %s", run_id, exc)
-        raise HTTPException(status_code=500, detail=f"Error al reanudar: {exc}") from exc
-
+    run.approve()
+    store.save_run(run)
+    background_tasks.add_task(loop.execute_run, run_id)
     return RunResponse.from_run(run)
 
 

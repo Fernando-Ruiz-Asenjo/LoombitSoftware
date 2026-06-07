@@ -62,6 +62,87 @@ def python_env() -> dict:
     }
 
 
+@router.get("/health/llm-debug")
+def llm_debug() -> dict:
+    """Prueba la llamada al LLM con y sin tools; devuelve el error exacto."""
+    import httpx
+    from ..tools import tool_registry
+
+    base_url = "http://localhost:1234/v1"
+    model    = "qwen2.5-7b-instruct-1m"
+    msgs     = [{"role": "user", "content": "di hola en una palabra"}]
+
+    results = {}
+    with httpx.Client(timeout=15) as client:
+        # Test 1: sin tools
+        try:
+            r = client.post(f"{base_url}/chat/completions", json={
+                "model": model, "messages": msgs, "max_tokens": 20, "temperature": 0.1,
+            })
+            results["no_tools"] = {"status": r.status_code, "body": r.text[:500]}
+        except Exception as e:
+            results["no_tools"] = {"error": str(e)}
+
+        # Test 2: con tools (primeras 3)
+        tools3 = tool_registry.to_openai()[:3]
+        try:
+            r = client.post(f"{base_url}/chat/completions", json={
+                "model": model, "messages": msgs, "max_tokens": 50,
+                "temperature": 0.1, "tools": tools3, "tool_choice": "auto",
+            })
+            results["with_3_tools"] = {"status": r.status_code, "body": r.text[:500]}
+        except Exception as e:
+            results["with_3_tools"] = {"error": str(e)}
+
+        # Test 3: con TODAS las tools
+        all_tools = tool_registry.to_openai()
+        try:
+            r = client.post(f"{base_url}/chat/completions", json={
+                "model": model, "messages": msgs, "max_tokens": 512,
+                "temperature": 0.1, "tools": all_tools, "tool_choice": "auto",
+            })
+            results["with_all_tools"] = {"status": r.status_code, "body": r.text[:500]}
+        except Exception as e:
+            results["with_all_tools"] = {"error": str(e)}
+
+        # Test 4: con system prompt real del agente + tools
+        from ..agent.prompts import build_system_prompt
+        sys_prompt = build_system_prompt("administrativo")
+        real_msgs = [
+            {"role": "system", "content": sys_prompt},
+            {"role": "user", "content": "hola"},
+        ]
+        try:
+            r = client.post(f"{base_url}/chat/completions", json={
+                "model": model, "messages": real_msgs, "max_tokens": 512,
+                "temperature": 0.2, "tools": all_tools, "tool_choice": "auto",
+            })
+            results["real_agent_call"] = {
+                "status": r.status_code,
+                "sys_prompt_len": len(sys_prompt),
+                "body": r.text[:800],
+            }
+        except Exception as e:
+            results["real_agent_call"] = {"error": str(e)}
+
+    return results
+
+
+@router.post("/health/lmstudio-load")
+def lmstudio_load_model(model_id: str = "qwen2.5-7b-instruct-1m", context_length: int = 16384) -> dict:
+    """Carga un modelo en LM Studio con el contexto especificado vía REST API."""
+    import httpx
+    try:
+        r = httpx.post(
+            "http://localhost:1234/api/v0/models/load",
+            json={"identifier": model_id, "config": {"contextLength": context_length}},
+            timeout=60,
+        )
+        return {"status": r.status_code, "body": r.text[:1000]}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @router.post("/health/git-commit-push")
 def git_commit_push(message: str = "chore: auto-commit from server") -> dict:
     """Hace git add -A, commit y push desde el proceso del servidor."""

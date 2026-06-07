@@ -64,6 +64,22 @@ class AgentLoop:
         agent_run = self.store.create(task, max_steps=self.max_steps)
         return self._execute(agent_run)
 
+    def create(self, task: str, max_steps: int | None = None, profile: str = "administrativo") -> AgentRun:
+        """Crea un AgentRun sin ejecutarlo — para lanzar en background."""
+        run = self.store.create(task, max_steps=max_steps or self.max_steps)
+        # Inicializar mensajes con el system prompt del perfil
+        run.messages = [
+            {"role": "system", "content": build_system_prompt(profile)},
+            {"role": "user",   "content": task},
+        ]
+        self.store.save_run(run)
+        return run
+
+    def execute_run(self, run_id: str) -> AgentRun:
+        """Ejecuta un run ya creado — seguro para llamar desde un thread."""
+        run = self.store.get(run_id)
+        return self._execute(run)
+
     def resume(self, run_id: str) -> AgentRun:
         """Reanuda un AgentRun en pending_approval tras recibir aprobación humana."""
         agent_run = self.store.get(run_id)

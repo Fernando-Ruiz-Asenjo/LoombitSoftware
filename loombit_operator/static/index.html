@@ -974,18 +974,50 @@ async function sendMessage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ task: text, max_steps: 20, profile: SKILLS[activeSkill].profile }),
     });
-    removeThinking();
     if (!res.ok) {
+      removeThinking();
       const err = await res.json().catch(() => ({}));
       addMsg('error', `Error ${res.status}: ${err.detail || res.statusText}`);
-    } else {
-      renderRun(await res.json());
+      setBusy(false);
+      return;
     }
+    const run = await res.json();
+    // Si ya completó sincrónicamente (test/legacy), renderizar directo
+    if (run.status === 'completed' || run.status === 'failed' || run.status === 'pending_approval') {
+      removeThinking();
+      renderRun(run);
+      setBusy(false);
+      return;
+    }
+    // Async: polling hasta completar
+    await pollRun(run.id);
   } catch(e) {
     removeThinking();
     addMsg('error', `No se pudo conectar con el operador:\n${e.message}`);
     setLLMStatus('offline');
+    setBusy(false);
   }
+}
+
+async function pollRun(runId) {
+  const INTERVAL = 1500; // ms entre polls
+  const MAX_POLLS = 200; // 5 min máx
+  for (let i = 0; i < MAX_POLLS; i++) {
+    await new Promise(r => setTimeout(r, INTERVAL));
+    try {
+      const res = await fetch(`${API}/agent/runs/${runId}`);
+      if (!res.ok) continue;
+      const run = await res.json();
+      if (run.status === 'completed' || run.status === 'failed' || run.status === 'pending_approval') {
+        removeThinking();
+        renderRun(run);
+        setBusy(false);
+        return;
+      }
+    } catch(e) { /* red inestable, seguir intentando */ }
+  }
+  removeThinking();
+  addMsg('error', 'Tiempo de espera agotado esperando respuesta del agente.');
   setBusy(false);
 }
 
