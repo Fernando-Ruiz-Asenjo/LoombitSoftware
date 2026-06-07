@@ -15,7 +15,7 @@
 | Fase | Objetivo | Estado | Qué falta para cerrarla |
 |---|---|---|---|
 | 0 · Fundación limpia | Repo, CI, estructura | ✅ Cerrada | — |
-| 1 · Verdad de conectores | OAuth real Google + 1 correo + 1 evento reales | 🔴 Bloqueada (#28) | Crear cliente "App de escritorio" en Google Console (Fernando) + piloto real con recibo |
+| 1 · Verdad de conectores | OAuth real Google + 1 correo + 1 evento reales | 🟠 OAuth 🟢 conectado | #28 resuelto. Falta: enviar 1 correo real + crear 1 evento real (con recibo) |
 | 2 · Percepción real (Morning Brief) | Brief diario con datos reales | 🟠 En curso | Store de cuentas a cobrar + servicio de brief (las 3 piezas base ya están) |
 | 3 · Bucle e2e cuña 1 (cobros) | Flujo cobros completo ×5 sin intervención | 🟠 Cerebro listo | Orquestación e2e + recibos 🟢 |
 | 4 · UI humana | Dashboard no técnico | 🟠 Parcial | Home + botón Conectar Google hechos; falta dashboard |
@@ -27,8 +27,8 @@
 
 | Conector | Estado |
 |---|---|
-| OAuth Google (flujo escritorio: PKCE, auto-refresh, token cifrado, botón home) | 🟡 código; 🟢 cifrado verificado en Windows |
-| Gmail send / Calendar create | 🟡 (pendiente piloto real → Fase 1) |
+| OAuth Google (escritorio: PKCE, auto-refresh, token cifrado, botón home) | 🟢 **CONECTADO con cuenta real (2026-06-08)**; token cifrado en disco; refresh presente |
+| Gmail send / Calendar create | 🟡 (ya conectado; falta el primer envío/evento real con recibo) |
 | Outbox local (.eml) / Calendario local (.ics) | 🟢 |
 
 ## Adopción de tendencias IA 2025-2026 (ver `ROADMAP_TENDENCIAS_IA.md`)
@@ -62,5 +62,11 @@
 5. Convertir el banco de supuestos S-01…S-15 en **tests de comportamiento**.
 
 ## Bloqueadores / dependen de Fernando
-- **#28**: crear el cliente OAuth "App de escritorio" en Google Console y pasar el `client_id`.
-- **LM Studio** corriendo para probar el agente de punta a punta.
+- ~~**#28**: crear el cliente OAuth "App de escritorio"~~ → ✅ **RESUELTO** el 2026-06-08
+  (creado vía Pilot/navegador; cuenta real conectada, token cifrado).
+- **LM Studio** corriendo para probar el agente de punta a punta (en marcha).
+
+> Aprendizaje clave: el alta del cliente OAuth + la conexión se hicieron conduciendo el
+> navegador con los gates intactos (humano da el consentimiento, el operador no toca
+> credenciales). Es el patrón que el **adaptador de navegador (Playwright/CDP)** debe
+> replicar dentro del propio Pilot para webs (vuelos, banca, AEAT…).
