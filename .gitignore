@@ -1,23 +1,44 @@
-# Python
+# ---- Python ----
 __pycache__/
 *.py[cod]
+*$py.class
 .venv/
 venv/
+env/
 *.egg-info/
+.eggs/
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
-# Local runtime (NEVER commit — datos privados de cliente)
+# ---- Build / packaging artifacts ----
+build/
+dist/
+*.manifest
+
+# ---- Local runtime (NEVER commit — datos privados de cliente) ----
 .env
+.env.local
 runtime/local/
 logs/
+*.eml
+*.ics
 .pytest-tmp/
 .ptmp*/
 
-# Secretos / tokens
+# ---- Secretos / tokens ----
 *oauth*tokens*.json
 *oauth*config*.json
+*.pem
+*.key
 
-# OS
+# ---- Editor / OS ----
+.vscode/
+.idea/
 .DS_Store
 Thumbs.db
+
+# ---- Misc dev artifacts ----
+.write_probe
