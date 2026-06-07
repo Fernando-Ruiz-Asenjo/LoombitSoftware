@@ -136,6 +136,22 @@ def _desktop_batch(actions: list) -> str:
     return _cu_post("batch", {"actions": actions})
 
 
+def _desktop_wait_for_window(title: str, timeout: float = 10.0) -> str:
+    return _cu_post("wait_for_window", {"title": title, "timeout": timeout})
+
+
+def _desktop_click_accessibility(
+    name: str = "", automation_id: str = "", window_title: str = ""
+) -> str:
+    return _cu_post("click_accessibility", {
+        "name": name, "automation_id": automation_id, "window_title": window_title,
+    })
+
+
+def _desktop_screen_changed(threshold: float = 0.02) -> str:
+    return _cu_post("screen_changed", {"threshold": threshold})
+
+
 def _desktop_type(text: str) -> str:
     return _cu_post("type", {"text": text})
 
@@ -156,10 +172,7 @@ def _desktop_navigate(url: str) -> str:
 
 tool_registry.register(ToolDefinition(
     name="desktop_screenshot",
-    description=(
-        "Captura el escritorio. Devuelve dimensiones, ruta de imagen y controles UI visibles. "
-        "Usala al inicio de una tarea o para verificar el resultado de una accion."
-    ),
+    description="Captura el escritorio y lista controles visibles. Usar al inicio y para verificar.",
     parameters={"type": "object", "properties": {}},
     fn=_desktop_screenshot,
     category="pilot",
@@ -167,18 +180,11 @@ tool_registry.register(ToolDefinition(
 
 tool_registry.register(ToolDefinition(
     name="desktop_read_screen",
-    description=(
-        "Lee la estructura de controles accesibles (botones, campos, menus) de la ventana activa. "
-        "Devuelve tipos, nombres y posiciones. Mas preciso que screenshot para planear clics."
-    ),
+    description="Lee controles accesibles (botones, campos) de la ventana activa. Mas preciso que screenshot.",
     parameters={
         "type": "object",
         "properties": {
-            "window_title": {
-                "type": "string",
-                "description": "Titulo parcial de la ventana. Vacio = ventana activa.",
-                "default": "",
-            },
+            "window_title": {"type": "string", "description": "Titulo parcial. Vacio=activa.", "default": ""},
         },
     },
     fn=_desktop_read_screen,
@@ -187,15 +193,10 @@ tool_registry.register(ToolDefinition(
 
 tool_registry.register(ToolDefinition(
     name="desktop_find",
-    description=(
-        "Busca un elemento en pantalla por nombre/descripcion en lenguaje natural. "
-        "Devuelve coordenadas del centro para usar con desktop_click."
-    ),
+    description="Busca elemento por descripcion en lenguaje natural. Devuelve coordenadas para desktop_click.",
     parameters={
         "type": "object",
-        "properties": {
-            "query": {"type": "string", "description": "Descripcion del elemento a encontrar."},
-        },
+        "properties": {"query": {"type": "string"}},
         "required": ["query"],
     },
     fn=_desktop_find,
@@ -204,12 +205,12 @@ tool_registry.register(ToolDefinition(
 
 tool_registry.register(ToolDefinition(
     name="desktop_click",
-    description="Hace clic en coordenadas absolutas de pantalla (pixeles). button: 'left' o 'right'.",
+    description="Clic en coordenadas absolutas (pixeles). button: left|right.",
     parameters={
         "type": "object",
         "properties": {
-            "x": {"type": "integer", "description": "Coordenada X en pixeles."},
-            "y": {"type": "integer", "description": "Coordenada Y en pixeles."},
+            "x": {"type": "integer"},
+            "y": {"type": "integer"},
             "button": {"type": "string", "enum": ["left", "right"], "default": "left"},
         },
         "required": ["x", "y"],
@@ -275,31 +276,25 @@ tool_registry.register(ToolDefinition(
 
 tool_registry.register(ToolDefinition(
     name="desktop_type",
-    description=(
-        "Escribe texto con el teclado en el campo con foco. "
-        "Da foco primero con desktop_click. Confirmar con desktop_hotkey('enter')."
-    ),
+    description="Escribe texto en el campo con foco. Da foco con desktop_click primero.",
     parameters={"type": "object", "properties": {
-        "text": {"type": "string", "description": "Texto a escribir."},
+        "text": {"type": "string"},
     }, "required": ["text"]},
     fn=_desktop_type, category="pilot",
 ))
 
 tool_registry.register(ToolDefinition(
     name="desktop_hotkey",
-    description=(
-        "Ejecuta combinacion de teclas. Ejemplos: 'enter', 'escape', 'ctrl+c', 'ctrl+v', "
-        "'ctrl+a', 'win+r', 'alt+f4', 'win+d', 'ctrl+shift+esc'."
-    ),
+    description="Tecla o combinacion: 'enter','ctrl+c','win+r','alt+f4'. Usa + para combinar.",
     parameters={"type": "object", "properties": {
-        "keys": {"type": "string", "description": "Tecla o combinacion. Usa + para combinar."},
+        "keys": {"type": "string"},
     }, "required": ["keys"]},
     fn=_desktop_hotkey, category="pilot",
 ))
 
 tool_registry.register(ToolDefinition(
     name="desktop_scroll",
-    description="Scroll del raton en (x,y). direction: 'down' o 'up'. amount: 1-10 (default 3).",
+    description="Scroll en (x,y). direction: up|down. amount: 1-10.",
     parameters={"type": "object", "properties": {
         "direction": {"type": "string", "enum": ["up", "down"], "default": "down"},
         "amount": {"type": "integer", "default": 3},
@@ -311,16 +306,16 @@ tool_registry.register(ToolDefinition(
 
 tool_registry.register(ToolDefinition(
     name="desktop_navigate",
-    description="Abre una URL en el navegador predeterminado del sistema.",
+    description="Abre URL en el navegador del sistema.",
     parameters={"type": "object", "properties": {
-        "url": {"type": "string", "description": "URL completa (https://...)."},
+        "url": {"type": "string"},
     }, "required": ["url"]},
     fn=_desktop_navigate, category="pilot",
 ))
 
 tool_registry.register(ToolDefinition(
     name="desktop_wait",
-    description="Espera N segundos (maximo 10). Para cargas de pagina o animaciones.",
+    description="Espera N segundos (max 10). Para cargas o animaciones.",
     parameters={"type": "object", "properties": {
         "seconds": {"type": "number", "default": 1.0},
     }},
@@ -329,10 +324,7 @@ tool_registry.register(ToolDefinition(
 
 tool_registry.register(ToolDefinition(
     name="desktop_zoom",
-    description=(
-        "Captura region rectangular (x0,y0)-(x1,y1) en detalle. "
-        "Para leer texto pequenyo, inspeccionar botones o iconos."
-    ),
+    description="Captura region (x0,y0)-(x1,y1) en detalle. Para leer texto pequeno.",
     parameters={"type": "object", "properties": {
         "x0": {"type": "integer"}, "y0": {"type": "integer"},
         "x1": {"type": "integer"}, "y1": {"type": "integer"},
@@ -349,14 +341,14 @@ tool_registry.register(ToolDefinition(
 
 tool_registry.register(ToolDefinition(
     name="desktop_clipboard_read",
-    description="Lee el texto del portapapeles. Util tras Ctrl+C.",
+    description="Lee texto del portapapeles.",
     parameters={"type": "object", "properties": {}},
     fn=_desktop_clipboard_read, category="pilot",
 ))
 
 tool_registry.register(ToolDefinition(
     name="desktop_clipboard_write",
-    description="Escribe texto en el portapapeles. Despues usa desktop_hotkey('ctrl+v') para pegar.",
+    description="Escribe texto en el portapapeles. Pegar con desktop_hotkey('ctrl+v').",
     parameters={"type": "object", "properties": {
         "text": {"type": "string"},
     }, "required": ["text"]},
@@ -365,10 +357,7 @@ tool_registry.register(ToolDefinition(
 
 tool_registry.register(ToolDefinition(
     name="desktop_open_app",
-    description=(
-        "Lanza una aplicacion de Windows: 'notepad', 'calc', 'chrome', 'explorer', 'code', etc. "
-        "Despues usa desktop_screenshot para confirmar."
-    ),
+    description="Lanza app Windows: 'notepad','chrome','explorer','code', etc.",
     parameters={"type": "object", "properties": {
         "app_name": {"type": "string"},
     }, "required": ["app_name"]},
@@ -377,23 +366,116 @@ tool_registry.register(ToolDefinition(
 
 tool_registry.register(ToolDefinition(
     name="desktop_batch",
-    description=(
-        "Ejecuta una secuencia de acciones en un solo llamado sin round-trips extra. "
-        "actions: lista de {action, params}. Se detiene en el primer error. "
-        'Ejemplo: [{"action":"click","params":{"x":100,"y":200}},{"action":"type","params":{"text":"hola"}}]'
-    ),
+    description="Secuencia de acciones en un llamado. actions: [{action, params}]. Para en el primer error.",
     parameters={"type": "object", "properties": {
         "actions": {
             "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "action": {"type": "string"},
-                    "params": {"type": "object"},
-                },
-                "required": ["action"],
-            },
+            "items": {"type": "object", "properties": {
+                "action": {"type": "string"}, "params": {"type": "object"},
+            }, "required": ["action"]},
         },
     }, "required": ["actions"]},
     fn=_desktop_batch, category="pilot",
+))
+
+tool_registry.register(ToolDefinition(
+    name="desktop_wait_for_window",
+    description="Espera (polling) hasta que aparezca ventana con titulo dado. timeout en segundos.",
+    parameters={"type": "object", "properties": {
+        "title": {"type": "string"},
+        "timeout": {"type": "number", "default": 10.0},
+    }, "required": ["title"]},
+    fn=_desktop_wait_for_window, category="pilot",
+))
+
+tool_registry.register(ToolDefinition(
+    name="desktop_click_accessibility",
+    description="Clic por arbol de accesibilidad (mas estable que coordenadas). name o automation_id del control.",
+    parameters={"type": "object", "properties": {
+        "name": {"type": "string", "default": ""},
+        "automation_id": {"type": "string", "default": ""},
+        "window_title": {"type": "string", "default": ""},
+    }},
+    fn=_desktop_click_accessibility, category="pilot",
+))
+
+tool_registry.register(ToolDefinition(
+    name="desktop_screen_changed",
+    description="Compara pantalla actual con la anterior. Devuelve changed=True si diff > threshold. Usar para verificar que una accion tuvo efecto.",
+    parameters={"type": "object", "properties": {
+        "threshold": {"type": "number", "default": 0.02},
+    }},
+    fn=_desktop_screen_changed, category="pilot",
+))
+
+
+def _save_screenshot_to_file(filename: str = "") -> str:
+    """
+    Captura la pantalla completa y la guarda como fichero PNG.
+    Devuelve la ruta absoluta del fichero guardado.
+    Usar cuando se necesita adjuntar una captura de pantalla a un correo u otro documento.
+    """
+    try:
+        r = httpx.post(f"{_BASE}/computer-use/screenshot", json={}, timeout=_TIMEOUT)
+        r.raise_for_status()
+        data = r.json()
+
+        saved_path = data.get("saved_path", "")
+        if saved_path:
+            # Si el usuario pidió un nombre específico, renombrar el fichero
+            if filename:
+                from pathlib import Path
+                p = Path(saved_path)
+                new_path = p.parent / filename
+                if not new_path.suffix:
+                    new_path = new_path.with_suffix(".png")
+                p.rename(new_path)
+                saved_path = str(new_path)
+
+            return json.dumps({
+                "ok": True,
+                "path": saved_path,
+                "width": data.get("width"),
+                "height": data.get("height"),
+                "message": f"Captura guardada en: {saved_path}",
+            }, ensure_ascii=False)
+
+        # Fallback: guardar base64 manualmente si el endpoint no devuelve saved_path
+        b64 = data.get("base64", "")
+        if b64:
+            import base64
+            from pathlib import Path
+            from datetime import datetime
+            save_dir = Path("runtime/local/skill_pilot")
+            save_dir.mkdir(parents=True, exist_ok=True)
+            fname = filename or f"screenshot_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+            if not fname.endswith(".png"):
+                fname += ".png"
+            out = save_dir / fname
+            out.write_bytes(base64.b64decode(b64))
+            return json.dumps({
+                "ok": True,
+                "path": str(out),
+                "message": f"Captura guardada en: {out}",
+            }, ensure_ascii=False)
+
+        return json.dumps({"ok": False, "error": "El backend no devolvió ruta ni imagen"}, ensure_ascii=False)
+    except Exception as exc:
+        return json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False)
+
+
+tool_registry.register(ToolDefinition(
+    name="save_screenshot_to_file",
+    description=(
+        "Captura la pantalla completa y guarda el PNG en disco. "
+        "Devuelve la ruta del fichero para poder adjuntarlo a un correo (gmail_send attachment_path). "
+        "Usar siempre que el usuario pida adjuntar una captura de pantalla a un correo. "
+        "NUNCA pedir al usuario que tome la captura manualmente."
+    ),
+    parameters={"type": "object", "properties": {
+        "filename": {"type": "string", "default": "",
+            "description": "Nombre del fichero (opcional). Si no se indica, se genera con timestamp."},
+    }},
+    fn=_save_screenshot_to_file,
+    category="pilot",
 ))

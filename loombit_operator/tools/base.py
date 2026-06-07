@@ -134,127 +134,62 @@ def _task_done(summary: str) -> str:
 
 def _request_approval(reason: str, proposed_action: str) -> str:
     """Señal especial — el loop la detecta y pausa esperando confirmación."""
-    payload = json.dumps({"reason": reason, "proposed_action": proposed_action})
+    payload = json.dumps({"reason": reason, "proposed_action": proposed_action}, ensure_ascii=False)
     return f"PENDING_APPROVAL:{payload}"
+
+
+def _ask_user(question: str) -> str:
+    """Hace una pregunta al usuario en el chat. El loop pausa y espera la respuesta."""
+    payload = json.dumps({"question": question}, ensure_ascii=False)
+    return f"PENDING_QUESTION:{payload}"
 
 
 # ── Registrar en el registry global ──────────────────────────────────────────
 
 tool_registry.register(ToolDefinition(
     name="read_file",
-    description=(
-        "Lee el contenido de un fichero del sistema de archivos local. "
-        "Útil para leer facturas, contratos, informes, configuraciones, código, etc. "
-        "Devuelve el texto del fichero (máx. 8000 caracteres)."
-    ),
-    parameters={
-        "type": "object",
-        "properties": {
-            "path": {
-                "type": "string",
-                "description": "Ruta absoluta o relativa al fichero a leer.",
-            },
-        },
-        "required": ["path"],
-    },
+    description="Lee fichero local. Devuelve texto (max 8000 chars).",
+    parameters={"type": "object", "properties": {"path": {"type": "string"}}, "required": ["path"]},
     fn=_read_file,
     category="file",
 ))
 
 tool_registry.register(ToolDefinition(
     name="write_file",
-    description=(
-        "Crea o sobreescribe un fichero con el contenido dado. "
-        "Crea los directorios intermedios si no existen. "
-        "Úsalo para guardar informes, borradores, datos procesados, etc."
-    ),
-    parameters={
-        "type": "object",
-        "properties": {
-            "path": {
-                "type": "string",
-                "description": "Ruta del fichero a crear/sobreescribir.",
-            },
-            "content": {
-                "type": "string",
-                "description": "Contenido a escribir en el fichero.",
-            },
-        },
-        "required": ["path", "content"],
-    },
+    description="Crea o sobreescribe un fichero. Crea directorios si no existen.",
+    parameters={"type": "object", "properties": {
+        "path": {"type": "string"}, "content": {"type": "string"},
+    }, "required": ["path", "content"]},
     fn=_write_file,
     category="file",
 ))
 
 tool_registry.register(ToolDefinition(
     name="list_directory",
-    description=(
-        "Lista los ficheros y subdirectorios de una carpeta. "
-        "Acepta patrones glob (ej. '*.pdf', '*.xlsx'). "
-        "Útil para explorar dónde están los documentos."
-    ),
-    parameters={
-        "type": "object",
-        "properties": {
-            "path": {
-                "type": "string",
-                "description": "Ruta del directorio a listar.",
-            },
-            "pattern": {
-                "type": "string",
-                "description": "Patrón glob para filtrar (por defecto '*' = todo).",
-                "default": "*",
-            },
-        },
-        "required": ["path"],
-    },
+    description="Lista carpeta. pattern: glob como '*.pdf' (default '*').",
+    parameters={"type": "object", "properties": {
+        "path": {"type": "string"},
+        "pattern": {"type": "string", "default": "*"},
+    }, "required": ["path"]},
     fn=_list_directory,
     category="file",
 ))
 
 tool_registry.register(ToolDefinition(
     name="web_fetch",
-    description=(
-        "Obtiene el contenido de una URL (página web, API JSON, etc.). "
-        "Devuelve el texto limpio de la página (sin HTML). "
-        "Úsalo para buscar información, verificar datos, consultar APIs públicas."
-    ),
-    parameters={
-        "type": "object",
-        "properties": {
-            "url": {
-                "type": "string",
-                "description": "URL completa a obtener (https://...).",
-            },
-        },
-        "required": ["url"],
-    },
+    description="Obtiene contenido de URL. Devuelve texto limpio sin HTML.",
+    parameters={"type": "object", "properties": {"url": {"type": "string"}}, "required": ["url"]},
     fn=_web_fetch,
     category="web",
 ))
 
 tool_registry.register(ToolDefinition(
     name="run_shell",
-    description=(
-        "Ejecuta un comando de shell en el sistema operativo. "
-        "IMPORTANTE: esta tool siempre requiere aprobación humana antes de ejecutarse. "
-        "Úsala cuando ninguna otra tool cubra la necesidad."
-    ),
-    parameters={
-        "type": "object",
-        "properties": {
-            "command": {
-                "type": "string",
-                "description": "Comando shell a ejecutar.",
-            },
-            "timeout": {
-                "type": "integer",
-                "description": "Timeout en segundos (por defecto 30).",
-                "default": 30,
-            },
-        },
-        "required": ["command"],
-    },
+    description="Ejecuta comando shell. Requiere aprobacion humana siempre.",
+    parameters={"type": "object", "properties": {
+        "command": {"type": "string"},
+        "timeout": {"type": "integer", "default": 30},
+    }, "required": ["command"]},
     fn=_run_shell,
     requires_approval=True,
     safety_class="safety_sensitive",
@@ -263,48 +198,84 @@ tool_registry.register(ToolDefinition(
 
 tool_registry.register(ToolDefinition(
     name="task_done",
-    description=(
-        "Marca la tarea como completada. Llama a esta tool cuando hayas terminado "
-        "todo el trabajo y tengas un resultado o resumen para el usuario. "
-        "El parámetro 'summary' debe describir qué hiciste y qué resultado obtuviste."
-    ),
-    parameters={
-        "type": "object",
-        "properties": {
-            "summary": {
-                "type": "string",
-                "description": "Resumen de lo que se hizo y el resultado obtenido.",
-            },
-        },
-        "required": ["summary"],
-    },
+    description="Marca tarea completada. Llamar SIEMPRE al terminar con resumen del resultado.",
+    parameters={"type": "object", "properties": {"summary": {"type": "string"}}, "required": ["summary"]},
     fn=_task_done,
     category="base",
 ))
 
 tool_registry.register(ToolDefinition(
     name="request_approval",
-    description=(
-        "Pausa la ejecución y solicita aprobación humana antes de continuar. "
-        "Úsala cuando vayas a realizar una acción irreversible o de alto impacto "
-        "(enviar un email real, borrar ficheros, hacer pagos, etc.)."
-    ),
-    parameters={
-        "type": "object",
-        "properties": {
-            "reason": {
-                "type": "string",
-                "description": "Por qué necesitas aprobación.",
-            },
-            "proposed_action": {
-                "type": "string",
-                "description": "Descripción exacta de lo que harás si se aprueba.",
-            },
-        },
-        "required": ["reason", "proposed_action"],
-    },
+    description="Pausa y pide aprobacion humana. Usar antes de enviar email, borrar ficheros, etc.",
+    parameters={"type": "object", "properties": {
+        "reason": {"type": "string"},
+        "proposed_action": {"type": "string"},
+    }, "required": ["reason", "proposed_action"]},
     fn=_request_approval,
     requires_approval=True,
     safety_class="assisted",
+    category="base",
+))
+
+tool_registry.register(ToolDefinition(
+    name="ask_user",
+    description="Pregunta algo al usuario en el chat y espera su respuesta. Usar cuando falta informacion para continuar (asunto de correo, fecha, destinatario, etc).",
+    parameters={"type": "object", "properties": {
+        "question": {"type": "string"},
+    }, "required": ["question"]},
+    fn=_ask_user,
+    category="base",
+))
+
+
+def _propose_improvement(issue: str, suggestion: str, category: str = "general") -> str:
+    """
+    El agente registra en memoria una carencia o mejora que ha detectado
+    durante la ejecución de una tarea. No interrumpe el flujo.
+
+    Categorías válidas: tool_missing | behavior | memory | ui | integration | general
+    """
+    try:
+        from ..agent.memory import get_memory
+        import inspect
+        # Obtener el run_id del frame de llamada (best-effort)
+        run_id = ""
+        for frame_info in inspect.stack():
+            local_run = frame_info.frame.f_locals.get("run")
+            if local_run and hasattr(local_run, "id"):
+                run_id = local_run.id
+                break
+        get_memory().add_proposal(
+            issue=issue,
+            suggestion=suggestion,
+            category=category,
+            run_id=run_id,
+        )
+        return json.dumps({
+            "ok": True,
+            "message": f"Propuesta registrada: [{category}] {issue[:80]}",
+        }, ensure_ascii=False)
+    except Exception as exc:
+        return json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False)
+
+
+tool_registry.register(ToolDefinition(
+    name="propose_improvement",
+    description=(
+        "Registra una carencia o mejora detectada durante la ejecucion de la tarea. "
+        "Usar cuando el agente no puede completar algo por falta de una tool, "
+        "comportamiento incorrecto, limitacion de memoria u otro problema. "
+        "Categorias: tool_missing | behavior | memory | ui | integration | general."
+    ),
+    parameters={"type": "object", "properties": {
+        "issue":      {"type": "string", "description": "Descripcion concisa de la carencia o problema"},
+        "suggestion": {"type": "string", "description": "Sugerencia de mejora o feature a implementar"},
+        "category":   {
+            "type": "string",
+            "enum": ["tool_missing", "behavior", "memory", "ui", "integration", "general"],
+            "default": "general",
+        },
+    }, "required": ["issue", "suggestion"]},
+    fn=_propose_improvement,
     category="base",
 ))
