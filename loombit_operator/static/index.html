@@ -950,6 +950,50 @@ function addApproval(runId, reason, action) {
     </div>`;
 }
 
+function addQuestion(runId, question) {
+  const row = addMsg('agent', '');
+  const bubble = row.querySelector('.msg-bubble');
+  const inputId = 'q_' + runId.slice(0, 8);
+  bubble.innerHTML = `
+    <div>${esc(question)}</div>
+    <div class="ap-btns" style="margin-top:10px;display:flex;gap:6px">
+      <input id="${inputId}" type="text" placeholder="Tu respuesta…"
+             style="flex:1;padding:7px 10px;border:1px solid var(--lb-border2,#333);border-radius:8px;background:var(--lb-bg2,#1c1c1c);color:inherit;font-size:13px"
+             onkeydown="if(event.key==='Enter'){answerRun('${runId}', this)}">
+      <button class="ap-btn ok" onclick="answerRun('${runId}', document.getElementById('${inputId}'))">Responder</button>
+    </div>`;
+  document.getElementById(inputId)?.focus();
+}
+
+async function answerRun(runId, inputEl) {
+  const text = (inputEl.value || '').trim();
+  if (!text) return;
+  inputEl.disabled = true;
+  addMsg('user', text);
+  setBusy(true);
+  addMsg('thinking');
+  try {
+    const res = await fetch(`${API}/agent/runs/${runId}/answer`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answer: text }),
+    });
+    removeThinking();
+    if (!res.ok) {
+      addMsg('error', `Error al responder: ${(await res.json().catch(() => ({}))).detail || res.statusText}`);
+      setBusy(false);
+      return;
+    }
+    const run = await res.json();
+    if (run.status === 'running') { await pollRun(runId); }
+    else { renderRun(run); setBusy(false); }
+  } catch (e) {
+    removeThinking();
+    addMsg('error', `Error de red: ${e.message}`);
+    setBusy(false);
+  }
+}
+
 function scrollBottom() {
   const b = document.getElementById('chat-body');
   b.scrollTop = b.scrollHeight;
@@ -1021,7 +1065,8 @@ async function pollRun(runId) {
       const res = await fetch(`${API}/agent/runs/${runId}`);
       if (!res.ok) continue;
       const run = await res.json();
-      if (run.status === 'completed' || run.status === 'failed' || run.status === 'pending_approval') {
+      if (run.status === 'completed' || run.status === 'failed'
+          || run.status === 'pending_approval' || run.status === 'pending_question') {
         removeThinking();
         renderRun(run);
         setBusy(false);
@@ -1042,6 +1087,9 @@ function renderRun(run) {
   } else if (run.status === 'pending_approval') {
     const pa = run.pending_approval || {};
     addApproval(run.id, pa.reason || '', pa.proposed_action || '');
+  } else if (run.status === 'pending_question') {
+    const pq = run.pending_question || {};
+    addQuestion(run.id, pq.question || '¿Puedes darme un dato más?');
   } else {
     addMsg('agent', `Estado: ${run.status}`);
   }
