@@ -1,13 +1,7 @@
 """
-input_control.py — ratón y teclado via pynput.
+input_control.py - raton y teclado via pynput.
 
-Proporciona primitivas de bajo nivel:
-  mouse_move, mouse_click, mouse_double_click, mouse_scroll
-  keyboard_type, keyboard_press, keyboard_hotkey
-
-Todas las funciones son síncronas. El executor las llama desde asyncio
-mediante run_in_executor si fuera necesario (actualmente el GIL no bloquea).
-
+Primitivas de bajo nivel: mouse y teclado completos.
 Requiere: pynput>=1.7.6
 """
 from __future__ import annotations
@@ -18,17 +12,13 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-# ── Importación defensiva ─────────────────────────────────────────────────────
-
 try:
     from pynput.mouse import Button, Controller as _MouseCtrl  # type: ignore
     from pynput.keyboard import Controller as _KbCtrl, Key, KeyCode  # type: ignore
     _PYNPUT_OK = True
 except ImportError:
     _PYNPUT_OK = False
-    logger.warning("pynput no instalado — input_control en modo stub")
-
-# ── Mapa de teclas especiales ─────────────────────────────────────────────────
+    logger.warning("pynput no instalado - input_control en modo stub")
 
 _KEY_MAP: dict[str, Any] = {}
 
@@ -64,15 +54,13 @@ _build_key_map()
 
 
 def _resolve_key(part: str) -> Any:
-    """Convierte un string de tecla a un objeto pynput Key o KeyCode."""
     lo = part.lower().strip()
     if lo in _KEY_MAP:
         return _KEY_MAP[lo]
-    # Tecla de carácter normal
     return KeyCode.from_char(part)
 
 
-# ── Ratón ─────────────────────────────────────────────────────────────────────
+# Mouse
 
 def mouse_move(x: int, y: int) -> dict[str, Any]:
     if not _PYNPUT_OK:
@@ -82,11 +70,9 @@ def mouse_move(x: int, y: int) -> dict[str, Any]:
     return {"moved_to": [x, y]}
 
 
-def mouse_click(
-    x: int, y: int, button: str = "left", count: int = 1
-) -> dict[str, Any]:
+def mouse_click(x: int, y: int, button: str = "left", count: int = 1) -> dict[str, Any]:
     if not _PYNPUT_OK:
-        return {"stub": True, "action": "click", "x": x, "y": y, "button": button}
+        return {"stub": True, "action": "click", "x": x, "y": y}
     m = _MouseCtrl()
     m.position = (x, y)
     time.sleep(0.05)
@@ -99,11 +85,9 @@ def mouse_double_click(x: int, y: int, button: str = "left") -> dict[str, Any]:
     return mouse_click(x, y, button=button, count=2)
 
 
-def mouse_scroll(
-    x: int, y: int, direction: str = "down", amount: int = 3
-) -> dict[str, Any]:
+def mouse_scroll(x: int, y: int, direction: str = "down", amount: int = 3) -> dict[str, Any]:
     if not _PYNPUT_OK:
-        return {"stub": True, "action": "scroll", "direction": direction, "amount": amount}
+        return {"stub": True, "action": "scroll"}
     m = _MouseCtrl()
     m.position = (x, y)
     dy = -amount if direction == "down" else amount
@@ -111,19 +95,64 @@ def mouse_scroll(
     return {"scrolled": direction, "amount": amount, "at": [x, y]}
 
 
-# ── Teclado ───────────────────────────────────────────────────────────────────
+def mouse_drag(x1: int, y1: int, x2: int, y2: int, button: str = "left", duration: float = 0.3) -> dict[str, Any]:
+    if not _PYNPUT_OK:
+        return {"stub": True, "action": "drag"}
+    import math
+    m = _MouseCtrl()
+    btn = Button.left if button in ("left", "izquierdo") else Button.right
+    m.position = (x1, y1)
+    time.sleep(0.05)
+    m.press(btn)
+    steps = max(10, int(math.hypot(x2 - x1, y2 - y1) / 10))
+    delay = duration / steps
+    for i in range(1, steps + 1):
+        t = i / steps
+        m.position = (int(x1 + (x2 - x1) * t), int(y1 + (y2 - y1) * t))
+        time.sleep(delay)
+    m.release(btn)
+    return {"dragged": {"from": [x1, y1], "to": [x2, y2]}}
+
+
+def mouse_button_down(x: int, y: int, button: str = "left") -> dict[str, Any]:
+    if not _PYNPUT_OK:
+        return {"stub": True, "action": "mouse_down"}
+    m = _MouseCtrl()
+    m.position = (x, y)
+    btn = Button.left if button in ("left", "izquierdo") else Button.right
+    m.press(btn)
+    return {"mouse_down": [x, y], "button": button}
+
+
+def mouse_button_up(x: int, y: int, button: str = "left") -> dict[str, Any]:
+    if not _PYNPUT_OK:
+        return {"stub": True, "action": "mouse_up"}
+    m = _MouseCtrl()
+    m.position = (x, y)
+    btn = Button.left if button in ("left", "izquierdo") else Button.right
+    m.release(btn)
+    return {"mouse_up": [x, y], "button": button}
+
+
+def cursor_position() -> dict[str, Any]:
+    if not _PYNPUT_OK:
+        return {"stub": True, "x": 0, "y": 0}
+    m = _MouseCtrl()
+    x, y = m.position
+    return {"x": x, "y": y}
+
+
+# Teclado
 
 def keyboard_type(text: str) -> dict[str, Any]:
-    """Escribe texto tal cual, carácter a carácter."""
     if not _PYNPUT_OK:
         return {"stub": True, "action": "type", "chars": len(text)}
     kb = _KbCtrl()
     kb.type(text)
-    return {"typed_chars": len(text), "preview": text[:40] + ("…" if len(text) > 40 else "")}
+    return {"typed_chars": len(text), "preview": text[:40]}
 
 
 def keyboard_press(key: str) -> dict[str, Any]:
-    """Pulsa y suelta una tecla simple: 'enter', 'tab', 'escape', 'f5'…"""
     if not _PYNPUT_OK:
         return {"stub": True, "action": "press", "key": key}
     kb = _KbCtrl()
@@ -134,10 +163,6 @@ def keyboard_press(key: str) -> dict[str, Any]:
 
 
 def keyboard_hotkey(keys: str) -> dict[str, Any]:
-    """
-    Pulsa una combinación de teclas: 'ctrl+a', 'ctrl+shift+t', 'alt+f4', etc.
-    Las teclas se separan por '+'.
-    """
     if not _PYNPUT_OK:
         return {"stub": True, "action": "hotkey", "keys": keys}
     kb = _KbCtrl()
@@ -151,3 +176,71 @@ def keyboard_hotkey(keys: str) -> dict[str, Any]:
         for k in reversed(resolved):
             kb.release(k)
     return {"hotkey": keys}
+
+
+def keyboard_hold_press(key: str) -> dict[str, Any]:
+    if not _PYNPUT_OK:
+        return {"stub": True, "action": "hold_press", "key": key}
+    _KbCtrl().press(_resolve_key(key))
+    return {"holding": key}
+
+
+def keyboard_hold_release(key: str) -> dict[str, Any]:
+    if not _PYNPUT_OK:
+        return {"stub": True, "action": "hold_release", "key": key}
+    _KbCtrl().release(_resolve_key(key))
+    return {"released": key}
+
+
+# Portapapeles
+
+def clipboard_read() -> dict[str, Any]:
+    try:
+        import pyperclip  # type: ignore
+        text = pyperclip.paste()
+        return {"clipboard": text, "length": len(text)}
+    except ImportError:
+        pass
+    try:
+        import win32clipboard  # type: ignore
+        win32clipboard.OpenClipboard()
+        try:
+            text = win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
+        except Exception:
+            text = ""
+        finally:
+            win32clipboard.CloseClipboard()
+        return {"clipboard": text, "length": len(text)}
+    except Exception as exc:
+        return {"error": f"clipboard read failed: {exc}"}
+
+
+def clipboard_write(text: str) -> dict[str, Any]:
+    try:
+        import pyperclip  # type: ignore
+        pyperclip.copy(text)
+        return {"written": len(text)}
+    except ImportError:
+        pass
+    try:
+        import win32clipboard  # type: ignore
+        win32clipboard.OpenClipboard()
+        try:
+            win32clipboard.EmptyClipboard()
+            win32clipboard.SetClipboardData(win32clipboard.CF_UNICODETEXT, text)
+        finally:
+            win32clipboard.CloseClipboard()
+        return {"written": len(text)}
+    except Exception as exc:
+        return {"error": f"clipboard write failed: {exc}"}
+
+
+# Aplicaciones
+
+def open_application(app_name: str) -> dict[str, Any]:
+    import subprocess
+    try:
+        subprocess.Popen(app_name, shell=True)
+        return {"launched": app_name}
+    except Exception as exc:
+        return {"error": f"launch failed: {exc}"}
