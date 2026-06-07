@@ -390,3 +390,148 @@ def wait_for_window(
             }
         time.sleep(poll_interval)
         waited += poll_interval
+
+
+# ── Snapshot de accesibilidad (UIA) — accesibilidad-primero ───────────────────
+
+# Tipos de control accionables (clic/edición). El agente debe preferir actuar
+# sobre estos por name/automation_id (click_accessibility) antes que por píxeles.
+_INTERACTIVE_TYPES = {
+    "Button",
+    "SplitButton",
+    "Edit",
+    "CheckBox",
+    "RadioButton",
+    "ComboBox",
+    "ListItem",
+    "MenuItem",
+    "Hyperlink",
+    "Tab",
+    "TabItem",
+    "TreeItem",
+    "Slider",
+    "Spinner",
+}
+
+
+def _control_value(ctrl: Any) -> str:
+    """Extrae el valor textual de un control (campos, combos) de forma tolerante."""
+    for getter in ("get_value", "get_line"):
+        try:
+            fn = getattr(ctrl, getter, None)
+            if callable(fn):
+                val = fn()
+                if val:
+                    return str(val)
+        except Exception:
+            pass
+    try:
+        legacy = ctrl.legacy_properties()  # type: ignore[attr-defined]
+        if isinstance(legacy, dict) and legacy.get("Value"):
+            return str(legacy["Value"])
+    except Exception:
+        pass
+    return ""
+
+
+def _describe_control(ctrl: Any) -> dict[str, Any] | None:
+    """
+    Describe un control UIA en forma compacta y accionable para el agente:
+    {name, control_type, automation_id, center:[x,y], enabled, offscreen, value?}.
+
+    Devuelve None si el control no puede leerse.
+    """
+    try:
+        info = ctrl.element_info
+        name = (ctrl.window_text() or "")[:80]
+        ctype = str(info.control_type or "")
+        aid = str(info.automation_id or "")[:40]
+        rect = ctrl.rectangle()
+        width = rect.right - rect.left
+        height = rect.bottom - rect.top
+        item: dict[str, Any] = {
+            "name": name,
+            "control_type": ctype,
+            "automation_id": aid,
+            "center": [(rect.left + rect.right) // 2, (rect.top + rect.bottom) // 2],
+            "enabled": bool(getattr(info, "enabled", True)),
+            "offscreen": width <= 0 or height <= 0,
+        }
+        value = _control_value(ctrl)
+        if value:
+            item["value"] = value[:120]
+        return item
+    except Exception:
+        return None
+
+
+def _is_actionable(desc: dict[str, Any]) -> bool:
+    """True si el control es de un tipo accionable (clic/edición)."""
+    return desc.get("control_type") in _INTERACTIVE_TYPES
+
+
+def _find_uia_window(process_name: str, title: str) -> Any:
+    """Primera ventana UIA que casa por título y/o proceso. Requiere pywinauto."""
+    from pywinauto import Desktop  # type: ignore
+
+    for w in Desktop(backend="uia").windows():
+        try:
+            wt = w.window_text()
+            if title and title.lower() not in wt.lower():
+                continue
+            if process_name:
+                import psutil  # type: ignore
+
+                pname = psutil.Process(w.process_id()).name().lower()
+                if process_name.lower() not in pname:
+                    continue
+            return w
+        except Exception:
+            continue
+    return None
+
+
+def ui_snapshot(
+    process_name: str = "",
+    title: str = "",
+    limit: int = 80,
+    interactive_only: bool = True,
+) -> dict[str, Any]:
+    """
+    Lee el árbol de accesibilidad (UIA) de la ventana objetivo y devuelve una
+    lista compacta de controles **accionables** (con su centro para clic de
+    respaldo). Es la vía preferente: más fiable que los píxeles y sin alucinar.
+
+    Si pywinauto no está disponible, lo indica para que el agente caiga a la
+    captura + coordenadas.
+    """
+    if not _PYWINAUTO_OK:
+        return {
+            "controls": [],
+            "error": "pywinauto no instalado",
+            "hint": "Sin UIA: usa screenshot + click por coordenadas.",
+        }
+    try:
+        target = _find_uia_window(process_name, title)
+        if target is None:
+            return {"controls": [], "error": "Ventana no encontrada"}
+
+        controls: list[dict[str, Any]] = []
+        for ctrl in target.descendants():
+            desc = _describe_control(ctrl)
+            if desc is None:
+                continue
+            if interactive_only and not _is_actionable(desc):
+                continue
+            controls.append(desc)
+            if len(controls) >= limit:
+                break
+
+        return {
+            "controls": controls,
+            "total": len(controls),
+            "window_title": target.window_text(),
+            "interactive_only": interactive_only,
+        }
+    except Exception as exc:
+        return {"controls": [], "error": str(exc)}

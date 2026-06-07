@@ -48,6 +48,7 @@ from .windows_control import (
     click_control,
     click_accessibility,
     wait_for_window,
+    ui_snapshot,
 )
 
 logger = logging.getLogger(__name__)
@@ -57,6 +58,7 @@ SUPPORTED_STEPS = [
     "focus_window",
     "wait_for_window",
     "inspect_controls",
+    "ui_snapshot",
     "screenshot",
     "click",
     "double_click",
@@ -198,6 +200,14 @@ async def _execute_step(step: dict[str, Any]) -> dict[str, Any]:
             process_name=step.get("process_name", ""),
             title=step.get("title", ""),
             limit=int(step.get("limit", 40)),
+        )
+
+    elif step_type == "ui_snapshot":
+        return ui_snapshot(
+            process_name=step.get("process_name", ""),
+            title=step.get("title", ""),
+            limit=int(step.get("limit", 80)),
+            interactive_only=bool(step.get("interactive_only", True)),
         )
 
     elif step_type == "screenshot":

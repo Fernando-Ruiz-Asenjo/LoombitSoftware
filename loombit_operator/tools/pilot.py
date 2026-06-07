@@ -158,6 +158,19 @@ def _desktop_screen_changed(threshold: float = 0.02) -> str:
     return _cu_post("screen_changed", {"threshold": threshold})
 
 
+def _desktop_ui_snapshot(
+    process_name: str = "", title: str = "", interactive_only: bool = True
+) -> str:
+    return _cu_post(
+        "ui_snapshot",
+        {
+            "process_name": process_name,
+            "title": title,
+            "interactive_only": interactive_only,
+        },
+    )
+
+
 def _desktop_type(text: str) -> str:
     return _cu_post("type", {"text": text})
 
@@ -564,6 +577,28 @@ tool_registry.register(
             },
         },
         fn=_desktop_screen_changed,
+        category="pilot",
+    )
+)
+
+tool_registry.register(
+    ToolDefinition(
+        name="desktop_ui_snapshot",
+        description=(
+            "VIA PREFERENTE: lee el arbol de accesibilidad (UIA) de la ventana y "
+            "devuelve los controles accionables (name, automation_id, valor, centro). "
+            "Usar ANTES que screenshot+coordenadas; luego actuar con "
+            "desktop_click_accessibility por name/automation_id."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "process_name": {"type": "string", "default": ""},
+                "title": {"type": "string", "default": ""},
+                "interactive_only": {"type": "boolean", "default": True},
+            },
+        },
+        fn=_desktop_ui_snapshot,
         category="pilot",
     )
 )

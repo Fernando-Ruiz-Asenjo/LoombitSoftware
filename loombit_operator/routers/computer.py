@@ -32,6 +32,7 @@ Endpoints:
   POST /computer-use/wait_for_window
   POST /computer-use/click_accessibility
   POST /computer-use/screen_changed
+  POST /computer-use/ui_snapshot
   POST /computer-use/batch
 """
 
@@ -152,6 +153,13 @@ class ClickAccessibilityRequest(BaseModel):
 class ScreenChangedRequest(BaseModel):
     threshold: float = 0.02
     interval: float = 0.5
+
+
+class UiSnapshotRequest(BaseModel):
+    process_name: str = ""
+    title: str = ""
+    limit: int = 80
+    interactive_only: bool = True
 
 
 # Status
@@ -497,6 +505,39 @@ async def screen_changed_endpoint(body: ScreenChangedRequest) -> dict:
     pct = result["fraction"] * 100
     verbo = "cambió" if result["changed"] else "sin cambios"
     return {"result": f"Pantalla {verbo} ({pct:.2f}% de píxeles).", **result}
+
+
+# UI snapshot (accesibilidad-primero)
+
+
+@router.post("/ui_snapshot")
+async def ui_snapshot_endpoint(body: UiSnapshotRequest) -> dict:
+    from loombit_operator.pilot.windows_control import ui_snapshot
+
+    result = ui_snapshot(
+        process_name=body.process_name,
+        title=body.title,
+        limit=body.limit,
+        interactive_only=body.interactive_only,
+    )
+    if result.get("error"):
+        return {"result": f"ERROR: {result['error']}", **result}
+
+    controls = result.get("controls", [])
+    lines = []
+    for c in controls[:50]:
+        val = f" = {c['value']!r}" if c.get("value") else ""
+        state = "" if c.get("enabled", True) else " (deshabilitado)"
+        lines.append(
+            f"[{c['control_type']}] {c['name']!r} aid={c['automation_id']!r} "
+            f"@{c['center']}{val}{state}"
+        )
+    return {
+        "result": "\n".join(lines) or "(sin controles accionables)",
+        "controls": controls,
+        "count": result.get("total", len(controls)),
+        "window_title": result.get("window_title", ""),
+    }
 
 
 # Cursor position
