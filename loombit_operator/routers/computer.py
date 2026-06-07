@@ -162,4 +162,75 @@ async def type_text(body: TypeRequest) -> dict:
     return {"result": result}
 
 
-# ── Key ──────────────────────────────────────────────�
+# ── Key ───────────────────────────────────────────────────────────────────────
+
+@router.post("/key")
+async def press_key(body: KeyRequest) -> dict:
+    from loombit_operator.pilot.input_control import keyboard_hotkey, keyboard_press
+    if "+" in body.key:
+        result = keyboard_hotkey(body.key)
+    else:
+        result = keyboard_press(body.key)
+    return {"result": result}
+
+
+# ── Scroll ────────────────────────────────────────────────────────────────────
+
+@router.post("/scroll")
+async def scroll(body: ScrollRequest) -> dict:
+    from loombit_operator.pilot.input_control import mouse_scroll
+    result = mouse_scroll(body.x, body.y, direction=body.direction, amount=body.amount)
+    return {"result": result}
+
+
+# ── Read page ─────────────────────────────────────────────────────────────────
+
+@router.post("/read_page")
+async def read_page() -> dict:
+    from loombit_operator.pilot.windows_control import inspect_controls
+    result = inspect_controls(limit=60)
+    if result.get("error"):
+        return {"result": f"ERROR: {result['error']}"}
+    controls = result.get("controls", [])
+    lines = [f"[{c['control_type']}] {c['name']!r}" for c in controls if c.get("name")]
+    text = "\n".join(lines[:50])
+    return {
+        "result": text or "(sin controles con nombre visibles)",
+        "controls_count": len(controls),
+        "window_title": result.get("window_title", ""),
+    }
+
+
+# ── Find ──────────────────────────────────────────────────────────────────────
+
+@router.post("/find")
+async def find(body: FindRequest) -> dict:
+    from loombit_operator.pilot.windows_control import inspect_controls
+    result = inspect_controls(limit=100)
+    if result.get("error"):
+        return {"result": f"ERROR: {result['error']}"}
+
+    query_lo = body.query.lower()
+    matches = [
+        c for c in result.get("controls", [])
+        if query_lo in (c.get("name") or "").lower()
+        or query_lo in (c.get("automation_id") or "").lower()
+    ]
+
+    if not matches:
+        return {"result": f"No se encontró ningún control que coincida con: '{body.query}'"}
+
+    best = matches[0]
+    rect = best.get("rect", {})
+    center_x = (rect.get("left", 0) + rect.get("right", 0)) // 2
+    center_y = (rect.get("top", 0) + rect.get("bottom", 0)) // 2
+    return {
+        "result": (
+            f"Encontrado: [{best['control_type']}] '{best['name']}' "
+            f"en ({center_x}, {center_y}). "
+            f"Usa click con x={center_x}, y={center_y}."
+        ),
+        "control": best,
+        "center_x": center_x,
+        "center_y": center_y,
+    }

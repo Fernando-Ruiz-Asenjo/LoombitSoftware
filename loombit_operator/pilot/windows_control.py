@@ -272,4 +272,3 @@ def click_control(
         return {"clicked": True, "control_name": name or automation_id}
     except Exception as exc:
         return {"clicked": False, "error": str(exc)}
-  
