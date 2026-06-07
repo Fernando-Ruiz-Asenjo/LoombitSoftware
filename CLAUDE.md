@@ -16,7 +16,11 @@ skills y el hardware instalados.
 
 - Desarrollo: Windows + WSL + Docker.
 - Despliegue objetivo: NVIDIA Jetson Orin NX 16GB.
-- LLM local: Qwen2.5-7B-Instruct (rol `instructor`) + Qwen2.5-Coder-7B (rol `coder`) vía LM Studio / llama.cpp.
+- LLM local: Qwen2.5-7B-Instruct-1M (rol `instructor`) + Qwen2.5-Coder-7B (rol `coder`)
+  vía LM Studio en `http://localhost:1234/v1`.
+- Servidor: FastAPI en `http://127.0.0.1:8787`. UI single-page en `loombit_operator/static/index.html`.
+- Arranque: `python -m loombit_operator.launcher` (si el puerto 8787 está ocupado por una
+  instancia vieja, matarla primero: `netstat -ano | findstr :8787` → `taskkill /PID <pid> /F`).
 
 ---
 
@@ -49,10 +53,38 @@ Estamos en la **Fase 1**. La Fase 0 (fundación limpia) ya está cerrada.
 **La Fase 1 está cerrada cuando existen recibos 🟢 de envío de correo y creación
 de evento contra cuenta real, y la ruta de fallo bloquea limpio.**
 
+> **🔴 Bloqueador activo (#28):** falta el OAuth Client Secret de Google. Fernando debe
+> crear la app en Google Cloud Console con scopes `gmail.send`, `calendar.events`,
+> `contacts.readonly`, y añadir `client_id` + `client_secret` al `.env`. Hasta entonces el
+> flujo OAuth real no se puede probar y Gmail send / Calendar create siguen en 🟡.
+
 ### Qué NO tocar ahora
 - Industrial, inspección, rover, acuático, deportes → están en `docs/PARKED.md`.
 - Fine-tuning de pesos de modelos → fuera de alcance, el aprendizaje es memoria operativa.
 - Jetson benchmark → requiere comprar hardware; no bloquea el resto.
+
+---
+
+## Cuña de mercado activa
+
+- **Mercado:** PYMES y autónomos en España.
+- **Skill principal:** `Skill D Skill Blanca Administration` — Trabajo Administrativo General.
+- **Primer flujo vertical (decide Fernando):** seguimiento de cobros **ó** intake de facturas.
+- **Criterio de cierre:** operatividad y autonomía al 100 % en ese flujo antes de abrir la cuña 2.
+
+Camino crítico sin dispersión: **Fase 1 → 2 → 3 → 4**.
+
+## Estado real del repo (snapshot 2026-06-07)
+
+Verificado contra el código, no contra notas previas:
+
+- ✅ Repo limpio: historial profesional, LICENSE propietaria, CI verde
+  (`black --check` + `ruff check` + `pytest`, 34 tests). Árbol sin cambios pendientes.
+- 🟠 **Tarea #4 (pilot) parcial:** los wrappers de tool `desktop_wait_for_window`,
+  `desktop_click_accessibility`, `desktop_screen_changed` existen en `tools/pilot.py` y
+  hacen `_cu_post(...)`, pero **falta** el endpoint en `routers/computer.py` y la lógica
+  en `pilot/windows_control.py`. Hoy esas 3 tools darían 404.
+- ❌ `lm_jobs.py` y `skill_loader.py` **no están migrados** todavía (ver tabla más abajo).
 
 ---
 
@@ -78,10 +110,11 @@ loombit_operator/
 
 | Capa | Tecnología |
 |---|---|
-| Runtime | FastAPI + Python 3.10+ |
+| Runtime | FastAPI + uvicorn + httpx, Python 3.10+ |
+| Servidor / UI | `http://127.0.0.1:8787` + single-page `static/index.html` |
 | Settings | Pydantic Settings |
-| LLM local (instructor) | Qwen2.5-7B-Instruct-1M vía LM Studio |
-| LLM local (coder) | Qwen2.5-Coder-7B-Instruct vía LM Studio |
+| LLM local (instructor) | Qwen2.5-7B-Instruct-1M vía LM Studio (`http://localhost:1234/v1`) |
+| LLM local (coder) | Qwen2.5-Coder-7B-Instruct vía LM Studio (`http://localhost:1234/v1`) |
 | Conectores cloud | Google OAuth2 (Gmail, Calendar, Drive, People) |
 | Conectores cloud | Microsoft Graph (Outlook, Calendar) |
 | Outbox local | `.eml` + `.ics` (sin credenciales cloud) |
@@ -173,17 +206,25 @@ Reglas:
 
 ## Skill D Skill Blanca Administration — estado actual
 
-Es la skill de dominio principal activa. Su backend está completo (checkpoint 75 en el
-repo anterior). Los módulos clave que ya existen:
+Es la skill de dominio principal activa. Su backend estaba completo (checkpoint 75) en el
+**repo anterior** `jetson-ai-operator`. Estado real de los módulos clave **en `loombit-new`**:
 
-- `skill_blanca_connector_execution.py` — ejecución de conectores controlada.
-- `skill_blanca_oauth.py` — OAuth local Google/Microsoft.
-- `skill_blanca_operational_config.py` — config operativa.
-- `lm_jobs.py` / `llm.py` — cola de LM jobs y cliente LLM.
-- `skill_loader.py` — cargador de manifests.
+| Módulo | En loombit-new | Nota |
+|---|---|---|
+| `skill_blanca_oauth.py` | ✅ presente | OAuth local Google/Microsoft |
+| `skill_blanca_gmail.py` | ✅ presente | Gmail send (🟡) |
+| `skill_blanca_calendar.py` | ✅ presente | Calendar create (🟡) |
+| `llm.py` | ✅ presente | Cliente LLM |
+| `agent/memory.py` | ✅ presente | Memoria persistente entre sesiones |
+| `lm_jobs.py` | ❌ pendiente migrar | Cola de LM jobs (en `jetson-ai-operator`) |
+| `skill_loader.py` | ❌ pendiente migrar | Cargador de manifests (en `jetson-ai-operator`) |
+| `skill_blanca_connector_execution.py` | ❌ pendiente migrar | Ejecución de conectores controlada |
+| `skill_blanca_operational_config.py` | ❌ pendiente migrar | Config operativa |
 
 Al migrar código del repo anterior, marcar siempre el estado real (🟡/🟠/🟢).
 No migrar el `main.py` monolítico (2674 líneas): repartir en `routers/` por dominio.
+Fuente de migración más reciente:
+`C:\Users\fernando\Documents\Codex\2026-06-06\proyecto-jetson\jetson-ai-operator\jetson_operator\`.
 
 ---
 
