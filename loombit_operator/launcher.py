@@ -8,6 +8,7 @@ Uso:
     python -m loombit_operator.launcher
     (o desde el exe compilado con PyInstaller)
 """
+
 from __future__ import annotations
 
 import logging
@@ -19,11 +20,10 @@ import time
 import webbrowser
 from pathlib import Path
 
-
 # ── Constantes ────────────────────────────────────────────────────────────────
-HOST    = "127.0.0.1"
-PORT    = 8787
-UI_URL  = f"http://{HOST}:{PORT}"
+HOST = "127.0.0.1"
+PORT = 8787
+UI_URL = f"http://{HOST}:{PORT}"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -33,6 +33,7 @@ logger = logging.getLogger("loombit.launcher")
 
 
 # ── Rutas (funciona tanto en desarrollo como en exe congelado) ────────────────
+
 
 def _base_dir() -> Path:
     """Directorio base del exe/proceso."""
@@ -51,6 +52,7 @@ def _asset(name: str) -> Path:
 
 
 # ── Comprobación de puerto libre ──────────────────────────────────────────────
+
 
 def _port_free(port: int) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -100,10 +102,12 @@ def _start_server(base_dir: Path) -> None:
 
 # ── Icono de la bandeja ───────────────────────────────────────────────────────
 
+
 def _load_tray_icon():
     """Carga el icono desde assets/ o genera uno mínimo si no existe."""
     try:
         from PIL import Image
+
         ico_path = _asset("loombit.ico")
         if ico_path.exists():
             return Image.open(ico_path)
@@ -112,6 +116,7 @@ def _load_tray_icon():
         return img
     except Exception:
         from PIL import Image
+
         return Image.new("RGB", (64, 64), (0, 210, 175))
 
 
@@ -151,6 +156,7 @@ def _make_tray_menu(icon_ref: list):
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
+
 
 def main() -> None:
     base_dir = _base_dir()

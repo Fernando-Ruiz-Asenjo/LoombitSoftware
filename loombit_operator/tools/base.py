@@ -19,12 +19,12 @@ Con estas 7 herramientas Loombit puede:
 
 Estado: 🟡 — implementadas, pendiente prueba en bucle real.
 """
+
 from __future__ import annotations
 
 import json
 import subprocess
 from pathlib import Path
-from typing import Any
 
 import httpx
 
@@ -34,6 +34,7 @@ from .registry import ToolDefinition, tool_registry
 _WORKSPACE_ROOT = Path.cwd()
 
 # ── Implementaciones ──────────────────────────────────────────────────────────
+
 
 def _read_file(path: str, max_chars: int = 8000) -> str:
     p = Path(path).expanduser()
@@ -90,6 +91,7 @@ def _web_fetch(url: str, max_chars: int = 6000) -> str:
         text = resp.text
         # Quitar etiquetas HTML básicas para ahorrar tokens
         import re
+
         text = re.sub(r"<style[^>]*>.*?</style>", "", text, flags=re.DOTALL)
         text = re.sub(r"<script[^>]*>.*?</script>", "", text, flags=re.DOTALL)
         text = re.sub(r"<[^>]+>", " ", text)
@@ -146,86 +148,135 @@ def _ask_user(question: str) -> str:
 
 # ── Registrar en el registry global ──────────────────────────────────────────
 
-tool_registry.register(ToolDefinition(
-    name="read_file",
-    description="Lee fichero local. Devuelve texto (max 8000 chars).",
-    parameters={"type": "object", "properties": {"path": {"type": "string"}}, "required": ["path"]},
-    fn=_read_file,
-    category="file",
-))
+tool_registry.register(
+    ToolDefinition(
+        name="read_file",
+        description="Lee fichero local. Devuelve texto (max 8000 chars).",
+        parameters={
+            "type": "object",
+            "properties": {"path": {"type": "string"}},
+            "required": ["path"],
+        },
+        fn=_read_file,
+        category="file",
+    )
+)
 
-tool_registry.register(ToolDefinition(
-    name="write_file",
-    description="Crea o sobreescribe un fichero. Crea directorios si no existen.",
-    parameters={"type": "object", "properties": {
-        "path": {"type": "string"}, "content": {"type": "string"},
-    }, "required": ["path", "content"]},
-    fn=_write_file,
-    category="file",
-))
+tool_registry.register(
+    ToolDefinition(
+        name="write_file",
+        description="Crea o sobreescribe un fichero. Crea directorios si no existen.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "path": {"type": "string"},
+                "content": {"type": "string"},
+            },
+            "required": ["path", "content"],
+        },
+        fn=_write_file,
+        category="file",
+    )
+)
 
-tool_registry.register(ToolDefinition(
-    name="list_directory",
-    description="Lista carpeta. pattern: glob como '*.pdf' (default '*').",
-    parameters={"type": "object", "properties": {
-        "path": {"type": "string"},
-        "pattern": {"type": "string", "default": "*"},
-    }, "required": ["path"]},
-    fn=_list_directory,
-    category="file",
-))
+tool_registry.register(
+    ToolDefinition(
+        name="list_directory",
+        description="Lista carpeta. pattern: glob como '*.pdf' (default '*').",
+        parameters={
+            "type": "object",
+            "properties": {
+                "path": {"type": "string"},
+                "pattern": {"type": "string", "default": "*"},
+            },
+            "required": ["path"],
+        },
+        fn=_list_directory,
+        category="file",
+    )
+)
 
-tool_registry.register(ToolDefinition(
-    name="web_fetch",
-    description="Obtiene contenido de URL. Devuelve texto limpio sin HTML.",
-    parameters={"type": "object", "properties": {"url": {"type": "string"}}, "required": ["url"]},
-    fn=_web_fetch,
-    category="web",
-))
+tool_registry.register(
+    ToolDefinition(
+        name="web_fetch",
+        description="Obtiene contenido de URL. Devuelve texto limpio sin HTML.",
+        parameters={
+            "type": "object",
+            "properties": {"url": {"type": "string"}},
+            "required": ["url"],
+        },
+        fn=_web_fetch,
+        category="web",
+    )
+)
 
-tool_registry.register(ToolDefinition(
-    name="run_shell",
-    description="Ejecuta comando shell. Requiere aprobacion humana siempre.",
-    parameters={"type": "object", "properties": {
-        "command": {"type": "string"},
-        "timeout": {"type": "integer", "default": 30},
-    }, "required": ["command"]},
-    fn=_run_shell,
-    requires_approval=True,
-    safety_class="safety_sensitive",
-    category="shell",
-))
+tool_registry.register(
+    ToolDefinition(
+        name="run_shell",
+        description="Ejecuta comando shell. Requiere aprobacion humana siempre.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "command": {"type": "string"},
+                "timeout": {"type": "integer", "default": 30},
+            },
+            "required": ["command"],
+        },
+        fn=_run_shell,
+        requires_approval=True,
+        safety_class="safety_sensitive",
+        category="shell",
+    )
+)
 
-tool_registry.register(ToolDefinition(
-    name="task_done",
-    description="Marca tarea completada. Llamar SIEMPRE al terminar con resumen del resultado.",
-    parameters={"type": "object", "properties": {"summary": {"type": "string"}}, "required": ["summary"]},
-    fn=_task_done,
-    category="base",
-))
+tool_registry.register(
+    ToolDefinition(
+        name="task_done",
+        description="Marca tarea completada. Llamar SIEMPRE al terminar con resumen del resultado.",
+        parameters={
+            "type": "object",
+            "properties": {"summary": {"type": "string"}},
+            "required": ["summary"],
+        },
+        fn=_task_done,
+        category="base",
+    )
+)
 
-tool_registry.register(ToolDefinition(
-    name="request_approval",
-    description="Pausa y pide aprobacion humana. Usar antes de enviar email, borrar ficheros, etc.",
-    parameters={"type": "object", "properties": {
-        "reason": {"type": "string"},
-        "proposed_action": {"type": "string"},
-    }, "required": ["reason", "proposed_action"]},
-    fn=_request_approval,
-    requires_approval=True,
-    safety_class="assisted",
-    category="base",
-))
+tool_registry.register(
+    ToolDefinition(
+        name="request_approval",
+        description="Pausa y pide aprobacion humana. Usar antes de enviar email, borrar ficheros, etc.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "reason": {"type": "string"},
+                "proposed_action": {"type": "string"},
+            },
+            "required": ["reason", "proposed_action"],
+        },
+        fn=_request_approval,
+        requires_approval=True,
+        safety_class="assisted",
+        category="base",
+    )
+)
 
-tool_registry.register(ToolDefinition(
-    name="ask_user",
-    description="Pregunta algo al usuario en el chat y espera su respuesta. Usar cuando falta informacion para continuar (asunto de correo, fecha, destinatario, etc).",
-    parameters={"type": "object", "properties": {
-        "question": {"type": "string"},
-    }, "required": ["question"]},
-    fn=_ask_user,
-    category="base",
-))
+tool_registry.register(
+    ToolDefinition(
+        name="ask_user",
+        description="Pregunta algo al usuario en el chat y espera su respuesta. Usar cuando falta informacion para continuar (asunto de correo, fecha, destinatario, etc).",
+        parameters={
+            "type": "object",
+            "properties": {
+                "question": {"type": "string"},
+            },
+            "required": ["question"],
+        },
+        fn=_ask_user,
+        category="base",
+    )
+)
 
 
 def _propose_improvement(issue: str, suggestion: str, category: str = "general") -> str:
@@ -238,6 +289,7 @@ def _propose_improvement(issue: str, suggestion: str, category: str = "general")
     try:
         from ..agent.memory import get_memory
         import inspect
+
         # Obtener el run_id del frame de llamada (best-effort)
         run_id = ""
         for frame_info in inspect.stack():
@@ -251,31 +303,46 @@ def _propose_improvement(issue: str, suggestion: str, category: str = "general")
             category=category,
             run_id=run_id,
         )
-        return json.dumps({
-            "ok": True,
-            "message": f"Propuesta registrada: [{category}] {issue[:80]}",
-        }, ensure_ascii=False)
+        return json.dumps(
+            {
+                "ok": True,
+                "message": f"Propuesta registrada: [{category}] {issue[:80]}",
+            },
+            ensure_ascii=False,
+        )
     except Exception as exc:
         return json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False)
 
 
-tool_registry.register(ToolDefinition(
-    name="propose_improvement",
-    description=(
-        "Registra una carencia o mejora detectada durante la ejecucion de la tarea. "
-        "Usar cuando el agente no puede completar algo por falta de una tool, "
-        "comportamiento incorrecto, limitacion de memoria u otro problema. "
-        "Categorias: tool_missing | behavior | memory | ui | integration | general."
-    ),
-    parameters={"type": "object", "properties": {
-        "issue":      {"type": "string", "description": "Descripcion concisa de la carencia o problema"},
-        "suggestion": {"type": "string", "description": "Sugerencia de mejora o feature a implementar"},
-        "category":   {
-            "type": "string",
-            "enum": ["tool_missing", "behavior", "memory", "ui", "integration", "general"],
-            "default": "general",
+tool_registry.register(
+    ToolDefinition(
+        name="propose_improvement",
+        description=(
+            "Registra una carencia o mejora detectada durante la ejecucion de la tarea. "
+            "Usar cuando el agente no puede completar algo por falta de una tool, "
+            "comportamiento incorrecto, limitacion de memoria u otro problema. "
+            "Categorias: tool_missing | behavior | memory | ui | integration | general."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "issue": {
+                    "type": "string",
+                    "description": "Descripcion concisa de la carencia o problema",
+                },
+                "suggestion": {
+                    "type": "string",
+                    "description": "Sugerencia de mejora o feature a implementar",
+                },
+                "category": {
+                    "type": "string",
+                    "enum": ["tool_missing", "behavior", "memory", "ui", "integration", "general"],
+                    "default": "general",
+                },
+            },
+            "required": ["issue", "suggestion"],
         },
-    }, "required": ["issue", "suggestion"]},
-    fn=_propose_improvement,
-    category="base",
-))
+        fn=_propose_improvement,
+        category="base",
+    )
+)

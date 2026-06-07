@@ -3,6 +3,7 @@ Skill A — OAuth local para Google y Microsoft.
 Flujo: authorization-url → callback → token store → refresh → disconnect.
 🟡 Estado: fake-tested. Pendiente piloto real contra cuenta de prueba (Fase 1).
 """
+
 from __future__ import annotations
 
 import json
@@ -15,18 +16,14 @@ from uuid import uuid4
 
 import httpx
 
-from .config import AppSettings, get_settings
-
+from .config import AppSettings
+from .config import get_settings  # noqa: F401  (objetivo de patch en tests)
 
 SUPPORTED_PROVIDERS = {"google", "microsoft"}
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
-MICROSOFT_AUTH_URL_TEMPLATE = (
-    "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize"
-)
-MICROSOFT_TOKEN_URL_TEMPLATE = (
-    "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token"
-)
+MICROSOFT_AUTH_URL_TEMPLATE = "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize"
+MICROSOFT_TOKEN_URL_TEMPLATE = "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token"
 
 
 @dataclass(frozen=True)
@@ -145,12 +142,11 @@ class OAuthTokenStore:
 
     def _save(self, data: dict[str, Any]) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.path.write_text(
-            json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
+        self.path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
 # ── Funciones públicas ────────────────────────────────────────────────────────
+
 
 def oauth_configs_from_settings(settings: AppSettings) -> dict[str, OAuthProviderConfig]:
     store_path = settings.skill_blanca_oauth_token_store_path
@@ -194,9 +190,7 @@ def oauth_readiness(settings: AppSettings) -> dict[str, Any]:
     }
 
 
-def build_authorization_url(
-    config: OAuthProviderConfig, *, state: str = ""
-) -> dict[str, Any]:
+def build_authorization_url(config: OAuthProviderConfig, *, state: str = "") -> dict[str, Any]:
     _ensure(config.provider)
     if not config.enabled:
         raise ValueError("oauth_provider_disabled")
@@ -318,6 +312,7 @@ def load_access_token(token_store_path: Path, provider: str) -> str:
 
 # ── Helpers privados ──────────────────────────────────────────────────────────
 
+
 def _ensure(provider: str) -> None:
     if provider not in SUPPORTED_PROVIDERS:
         raise ValueError(f"unsupported_oauth_provider:{provider}")
@@ -362,9 +357,7 @@ def _pending_snapshot(raw: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _provider_readiness(
-    config: OAuthProviderConfig, store_snap: dict[str, Any]
-) -> dict[str, Any]:
+def _provider_readiness(config: OAuthProviderConfig, store_snap: dict[str, Any]) -> dict[str, Any]:
     token = store_snap.get("providers", {}).get(config.provider, {})
     missing = []
     if not config.enabled:

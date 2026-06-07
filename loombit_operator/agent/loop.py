@@ -17,6 +17,7 @@ El loop nunca llama directamente a tools externas; siempre va a través de
 ToolRegistry.get(name).execute(**kwargs) para que los guards de aprobación
 queden centralizados en la definición de la tool.
 """
+
 from __future__ import annotations
 
 import json
@@ -32,7 +33,7 @@ from .run import AgentRun, AgentStatus, AgentStep, AgentStore
 
 logger = logging.getLogger(__name__)
 
-_SENTINEL_DONE     = "TASK_DONE:"
+_SENTINEL_DONE = "TASK_DONE:"
 _SENTINEL_APPROVAL = "PENDING_APPROVAL:"
 _SENTINEL_QUESTION = "PENDING_QUESTION:"
 
@@ -54,9 +55,9 @@ class AgentLoop:
         store: AgentStore | None = None,
         max_steps: int = 20,
     ) -> None:
-        self.llm      = llm      or LLMClient()
+        self.llm = llm or LLMClient()
         self.registry = registry or tool_registry
-        self.store    = store    or AgentStore()
+        self.store = store or AgentStore()
         self.max_steps = max_steps
 
     # ── API pública ───────────────────────────────────────────────────────────
@@ -66,7 +67,9 @@ class AgentLoop:
         agent_run = self.store.create(task, max_steps=self.max_steps)
         return self._execute(agent_run)
 
-    def create(self, task: str, max_steps: int | None = None, profile: str = "administrativo") -> AgentRun:
+    def create(
+        self, task: str, max_steps: int | None = None, profile: str = "administrativo"
+    ) -> AgentRun:
         """Crea un AgentRun sin ejecutarlo — para lanzar en background."""
         run = self.store.create(task, max_steps=max_steps or self.max_steps)
         run.profile = profile
@@ -74,7 +77,7 @@ class AgentLoop:
         memory_block = get_memory().to_context_block(task_hint=task)
         run.messages = [
             {"role": "system", "content": build_system_prompt(profile, memory_block)},
-            {"role": "user",   "content": task},
+            {"role": "user", "content": task},
         ]
         self.store.save_run(run)
         return run
@@ -92,19 +95,18 @@ class AgentLoop:
         """
         run = self.store.get(run_id)
         if run.status != AgentStatus.PENDING_APPROVAL:
-            raise ValueError(
-                f"El run {run_id} no está en pending_approval (status={run.status})"
-            )
+            raise ValueError(f"El run {run_id} no está en pending_approval (status={run.status})")
 
         # Ejecutar TODOS los steps que están esperando aprobación
         pending_steps = [
-            s for s in run.steps
-            if s.requires_approval and s.result.startswith(_SENTINEL_APPROVAL)
+            s for s in run.steps if s.requires_approval and s.result.startswith(_SENTINEL_APPROVAL)
         ]
         for pending_step in pending_steps:
             logger.info(
                 "Resume: ejecutando tool aprobada '%s' (step %d) run=%s",
-                pending_step.tool_name, pending_step.step, run_id,
+                pending_step.tool_name,
+                pending_step.step,
+                run_id,
             )
             try:
                 tool_def = self.registry.get(pending_step.tool_name)
@@ -131,9 +133,7 @@ class AgentLoop:
         """Inyecta la respuesta del usuario a una pregunta y reanuda el agente."""
         run = self.store.get(run_id)
         if run.status != AgentStatus.PENDING_QUESTION:
-            raise ValueError(
-                f"El run {run_id} no está en pending_question (status={run.status})"
-            )
+            raise ValueError(f"El run {run_id} no está en pending_question (status={run.status})")
 
         # Reemplazar el resultado PENDING_QUESTION en el historial por la respuesta real
         tc_id = run.pending_question.get("tool_call_id", "")
@@ -170,7 +170,7 @@ class AgentLoop:
         if not run.messages:
             run.messages = [
                 {"role": "system", "content": build_system_prompt()},
-                {"role": "user",   "content": run.task},
+                {"role": "user", "content": run.task},
             ]
 
         tools_schema = self.registry.to_openai(profile=run.profile)
@@ -193,7 +193,9 @@ class AgentLoop:
                 # ── Llamar al LLM ──────────────────────────────────────────────
                 logger.debug(
                     "AgentLoop step=%d run=%s messages=%d",
-                    run.step_count, run.id, len(run.messages),
+                    run.step_count,
+                    run.id,
+                    len(run.messages),
                 )
                 response: ChatResponse = self.llm.chat(
                     messages=run.messages,
@@ -264,20 +266,20 @@ class AgentLoop:
 
                     if needs_stop:
                         # Placeholders para tool calls no procesadas
-                        for remaining_tc in response.tool_calls[idx + 1:]:
+                        for remaining_tc in response.tool_calls[idx + 1 :]:
                             tool_results.append(
                                 tool_result_message(remaining_tc.id, "Accion pospuesta.")
                             )
                         if not result_text.startswith(_SENTINEL_QUESTION):
                             parsed = _parse_approval_json(
-                                result_text[len(_SENTINEL_APPROVAL):]
+                                result_text[len(_SENTINEL_APPROVAL) :]
                                 if result_text.startswith(_SENTINEL_APPROVAL)
                                 else result_text
                             )
                             pending_approval = {
-                                "reason":          parsed.get("reason", "Aprobacion requerida"),
+                                "reason": parsed.get("reason", "Aprobacion requerida"),
                                 "proposed_action": parsed.get("proposed_action", result_text),
-                                "tool_call_id":    tc.id,
+                                "tool_call_id": tc.id,
                             }
                         break
 
@@ -307,15 +309,20 @@ class AgentLoop:
                 if question_payload is not None:
                     parsed = _parse_approval_json(question_payload)
                     question_tc_id = next(
-                        (tr.get("tool_call_id", "") for tr in tool_results
-                         if _SENTINEL_QUESTION in tr.get("content", "")),
+                        (
+                            tr.get("tool_call_id", "")
+                            for tr in tool_results
+                            if _SENTINEL_QUESTION in tr.get("content", "")
+                        ),
                         "",
                     )
                     run.mark_pending_question(
                         question=parsed.get("question", question_payload),
                         tool_call_id=question_tc_id,
                     )
-                    _log_conversation_event(run, "agent_question", parsed.get("question", question_payload))
+                    _log_conversation_event(
+                        run, "agent_question", parsed.get("question", question_payload)
+                    )
                     self.store.save_run(run)
                     return run
 
@@ -334,10 +341,12 @@ class AgentLoop:
             return f"ERROR: tool desconocida '{tc.tool_name}'", False
 
         if tool_def.requires_approval:
-            payload = json.dumps({
-                "reason": f"La tool '{tc.tool_name}' requiere aprobacion antes de ejecutarse.",
-                "proposed_action": f"Ejecutar {tc.tool_name} con: {json.dumps(tc.arguments, ensure_ascii=False)}",
-            })
+            payload = json.dumps(
+                {
+                    "reason": f"La tool '{tc.tool_name}' requiere aprobacion antes de ejecutarse.",
+                    "proposed_action": f"Ejecutar {tc.tool_name} con: {json.dumps(tc.arguments, ensure_ascii=False)}",
+                }
+            )
             return f"{_SENTINEL_APPROVAL}{payload}", True
 
         logger.info("Ejecutando tool '%s' step=%d run=%s", tc.tool_name, step_num, run.id)
@@ -373,9 +382,10 @@ class AgentLoop:
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def _extract_sentinel(text: str, prefix: str) -> str | None:
     if text.startswith(prefix):
-        return text[len(prefix):]
+        return text[len(prefix) :]
     return None
 
 
@@ -398,15 +408,22 @@ def _log_conversation_event(run: "AgentRun", event_type: str, content: str) -> N
     try:
         from pathlib import Path
         from datetime import UTC, datetime
+
         ts = datetime.now(UTC)
         date_str = ts.strftime("%Y-%m-%d")
         conv_dir = Path("runtime/local/conversations")
         conv_dir.mkdir(parents=True, exist_ok=True)
         filename = f"{date_str}_{run.id[:8]}.jsonl"
-        event = json.dumps({
-            "ts": ts.isoformat(), "run_id": run.id,
-            "task": run.task[:120], "event": event_type, "content": content,
-        }, ensure_ascii=False)
+        event = json.dumps(
+            {
+                "ts": ts.isoformat(),
+                "run_id": run.id,
+                "task": run.task[:120],
+                "event": event_type,
+                "content": content,
+            },
+            ensure_ascii=False,
+        )
         with open(conv_dir / filename, "a", encoding="utf-8") as f:
             f.write(event + "\n")
     except Exception:

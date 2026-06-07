@@ -31,11 +31,11 @@ Endpoints:
   POST /computer-use/wait
   POST /computer-use/batch
 """
+
 from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -46,8 +46,10 @@ router = APIRouter(prefix="/computer-use", tags=["computer-use"])
 
 # Models
 
+
 class NavigateRequest(BaseModel):
     url: str
+
 
 class ClickRequest(BaseModel):
     selector: str = ""
@@ -55,11 +57,14 @@ class ClickRequest(BaseModel):
     y: int = 0
     button: str = "left"
 
+
 class TypeRequest(BaseModel):
     text: str
 
+
 class KeyRequest(BaseModel):
     key: str
+
 
 class ScrollRequest(BaseModel):
     x: int = 0
@@ -67,8 +72,10 @@ class ScrollRequest(BaseModel):
     direction: str = "down"
     amount: int = 3
 
+
 class FindRequest(BaseModel):
     query: str
+
 
 class DragRequest(BaseModel):
     x1: int
@@ -78,25 +85,31 @@ class DragRequest(BaseModel):
     button: str = "left"
     duration: float = 0.3
 
+
 class MouseDownRequest(BaseModel):
     x: int
     y: int
     button: str = "left"
+
 
 class MouseUpRequest(BaseModel):
     x: int
     y: int
     button: str = "left"
 
+
 class MoveRequest(BaseModel):
     x: int
     y: int
 
+
 class HoldKeyRequest(BaseModel):
     key: str
 
+
 class WaitRequest(BaseModel):
     seconds: float = 1.0
+
 
 class ZoomRequest(BaseModel):
     x0: int
@@ -104,15 +117,19 @@ class ZoomRequest(BaseModel):
     x1: int
     y1: int
 
+
 class ClipboardWriteRequest(BaseModel):
     text: str
+
 
 class OpenAppRequest(BaseModel):
     app_name: str
 
+
 class BatchAction(BaseModel):
     action: str
     params: dict = {}
+
 
 class BatchRequest(BaseModel):
     actions: list[BatchAction]
@@ -120,10 +137,12 @@ class BatchRequest(BaseModel):
 
 # Status
 
+
 @router.get("/status")
 async def computer_status() -> dict:
     try:
         import pynput  # noqa: F401
+
         pynput_ok = True
     except ImportError:
         pynput_ok = False
@@ -131,6 +150,7 @@ async def computer_status() -> dict:
     pywinauto_error = ""
     try:
         import pywinauto  # noqa: F401
+
         pywinauto_ok = True
     except Exception as _e:
         pywinauto_ok = False
@@ -168,20 +188,25 @@ async def computer_status() -> dict:
 
 # Navigate
 
+
 @router.post("/navigate")
 async def navigate(body: NavigateRequest) -> dict:
     from loombit_operator.pilot.windows_control import open_url
+
     result = open_url(body.url)
     return {"result": result}
 
 
 # Screenshot
 
+
 @router.post("/screenshot")
 async def screenshot() -> dict:
     from loombit_operator.pilot.screen import take_screenshot
+
     try:
         from loombit_operator.config import get_settings
+
         settings = get_settings()
         save_dir = Path(settings.agent_run_store_path).parent / "skill_pilot"
     except Exception:
@@ -205,9 +230,11 @@ async def screenshot() -> dict:
 
 # Click
 
+
 @router.post("/click")
 async def click(body: ClickRequest) -> dict:
     from loombit_operator.pilot.input_control import mouse_click
+
     if body.selector:
         logger.warning("click: selector ignorado — usa coordenadas x,y")
     result = mouse_click(body.x, body.y, button=body.button)
@@ -216,9 +243,11 @@ async def click(body: ClickRequest) -> dict:
 
 # Double / Triple click
 
+
 @router.post("/double_click")
 async def double_click(body: ClickRequest) -> dict:
     from loombit_operator.pilot.input_control import mouse_click
+
     result = mouse_click(body.x, body.y, button=body.button, count=2)
     return {"result": result}
 
@@ -226,57 +255,70 @@ async def double_click(body: ClickRequest) -> dict:
 @router.post("/triple_click")
 async def triple_click(body: ClickRequest) -> dict:
     from loombit_operator.pilot.input_control import mouse_click
+
     result = mouse_click(body.x, body.y, button=body.button, count=3)
     return {"result": result}
 
 
 # Mouse move
 
+
 @router.post("/mouse_move")
 async def mouse_move_endpoint(body: MoveRequest) -> dict:
     from loombit_operator.pilot.input_control import mouse_move as _move
+
     result = _move(body.x, body.y)
     return {"result": result}
 
 
 # Drag
 
+
 @router.post("/drag")
 async def drag(body: DragRequest) -> dict:
     from loombit_operator.pilot.input_control import mouse_drag
-    result = mouse_drag(body.x1, body.y1, body.x2, body.y2,
-                        button=body.button, duration=body.duration)
+
+    result = mouse_drag(
+        body.x1, body.y1, body.x2, body.y2, button=body.button, duration=body.duration
+    )
     return {"result": result}
 
 
 # Mouse down / up
 
+
 @router.post("/mouse_down")
 async def mouse_down(body: MouseDownRequest) -> dict:
     from loombit_operator.pilot.input_control import mouse_button_down
+
     return {"result": mouse_button_down(body.x, body.y, button=body.button)}
 
 
 @router.post("/mouse_up")
 async def mouse_up(body: MouseUpRequest) -> dict:
     from loombit_operator.pilot.input_control import mouse_button_up
+
     return {"result": mouse_button_up(body.x, body.y, button=body.button)}
 
 
 # Type
 
+
 @router.post("/type")
 async def type_text(body: TypeRequest) -> dict:
     from loombit_operator.pilot.input_control import keyboard_type
+
     result = keyboard_type(body.text)
     return {"result": result}
 
 
 # Key
 
+
 @router.post("/key")
 async def press_key(body: KeyRequest) -> dict:
     from loombit_operator.pilot.input_control import keyboard_hotkey, keyboard_press
+
     if "+" in body.key:
         result = keyboard_hotkey(body.key)
     else:
@@ -286,32 +328,39 @@ async def press_key(body: KeyRequest) -> dict:
 
 # Hold key
 
+
 @router.post("/hold_key_press")
 async def hold_key_press(body: HoldKeyRequest) -> dict:
     from loombit_operator.pilot.input_control import keyboard_hold_press
+
     return {"result": keyboard_hold_press(body.key)}
 
 
 @router.post("/hold_key_release")
 async def hold_key_release(body: HoldKeyRequest) -> dict:
     from loombit_operator.pilot.input_control import keyboard_hold_release
+
     return {"result": keyboard_hold_release(body.key)}
 
 
 # Scroll
 
+
 @router.post("/scroll")
 async def scroll(body: ScrollRequest) -> dict:
     from loombit_operator.pilot.input_control import mouse_scroll
+
     result = mouse_scroll(body.x, body.y, direction=body.direction, amount=body.amount)
     return {"result": result}
 
 
 # Read page
 
+
 @router.post("/read_page")
 async def read_page() -> dict:
     from loombit_operator.pilot.windows_control import inspect_controls
+
     result = inspect_controls(limit=60)
     if result.get("error"):
         return {"result": f"ERROR: {result['error']}"}
@@ -327,16 +376,19 @@ async def read_page() -> dict:
 
 # Find
 
+
 @router.post("/find")
 async def find(body: FindRequest) -> dict:
     from loombit_operator.pilot.windows_control import inspect_controls
+
     result = inspect_controls(limit=100)
     if result.get("error"):
         return {"result": f"ERROR: {result['error']}"}
 
     query_lo = body.query.lower()
     matches = [
-        c for c in result.get("controls", [])
+        c
+        for c in result.get("controls", [])
         if query_lo in (c.get("name") or "").lower()
         or query_lo in (c.get("automation_id") or "").lower()
     ]
@@ -361,9 +413,11 @@ async def find(body: FindRequest) -> dict:
 
 # Zoom (screenshot de region)
 
+
 @router.post("/zoom")
 async def zoom(body: ZoomRequest) -> dict:
     from loombit_operator.pilot.screen import take_screenshot
+
     region = (body.x0, body.y0, body.x1, body.y1)
     result = take_screenshot(include_base64=True, region=region)
     if "error" in result:
@@ -378,40 +432,49 @@ async def zoom(body: ZoomRequest) -> dict:
 
 # Cursor position
 
+
 @router.get("/cursor_position")
 async def get_cursor_position() -> dict:
     from loombit_operator.pilot.input_control import cursor_position
+
     result = cursor_position()
     return {"result": result}
 
 
 # Clipboard
 
+
 @router.get("/clipboard")
 async def clipboard_get() -> dict:
     from loombit_operator.pilot.input_control import clipboard_read
+
     return {"result": clipboard_read()}
 
 
 @router.post("/clipboard")
 async def clipboard_set(body: ClipboardWriteRequest) -> dict:
     from loombit_operator.pilot.input_control import clipboard_write
+
     return {"result": clipboard_write(body.text)}
 
 
 # Open application
 
+
 @router.post("/open_application")
 async def open_app(body: OpenAppRequest) -> dict:
     from loombit_operator.pilot.input_control import open_application
+
     return {"result": open_application(body.app_name)}
 
 
 # Wait
 
+
 @router.post("/wait")
 async def wait_action(body: WaitRequest) -> dict:
     import asyncio
+
     secs = max(0.1, min(body.seconds, 10.0))
     await asyncio.sleep(secs)
     return {"result": f"Esperado {secs}s"}
@@ -419,13 +482,13 @@ async def wait_action(body: WaitRequest) -> dict:
 
 # Batch
 
+
 @router.post("/batch")
 async def batch(body: BatchRequest) -> dict:
     """
     Ejecuta una secuencia de acciones sin round-trips.
     Equivalente a computer_batch de Claude Computer Use.
     """
-    import asyncio
     import httpx
 
     results = []

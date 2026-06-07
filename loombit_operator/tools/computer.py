@@ -28,12 +28,11 @@ Eso nos permite:
   2. Reusar la extensión Claude-in-Chrome ya instalada
   3. Tener un log centralizado de todas las acciones
 """
+
 from __future__ import annotations
 
 import json
 import os
-import time
-from typing import Any
 
 import httpx
 
@@ -55,7 +54,9 @@ def _cu_post(endpoint: str, payload: dict) -> str:
         data = r.json()
         return data.get("result", json.dumps(data))
     except httpx.ConnectError:
-        return "ERROR: no se pudo conectar con el operador Loombit. ¿Está corriendo en el puerto 8787?"
+        return (
+            "ERROR: no se pudo conectar con el operador Loombit. ¿Está corriendo en el puerto 8787?"
+        )
     except httpx.HTTPStatusError as e:
         return f"ERROR HTTP {e.response.status_code}: {e.response.text[:300]}"
     except Exception as e:
@@ -63,6 +64,7 @@ def _cu_post(endpoint: str, payload: dict) -> str:
 
 
 # ── Implementaciones ──────────────────────────────────────────────────────────
+
 
 def _browser_navigate(url: str) -> str:
     return _cu_post("navigate", {"url": url})
@@ -100,138 +102,179 @@ def _browser_find(query: str) -> str:
 
 # ── Registro en tool_registry ─────────────────────────────────────────────────
 
-tool_registry.register(ToolDefinition(
-    name="browser_navigate",
-    description=(
-        "Navega a una URL en el navegador Chrome. "
-        "Úsala para abrir páginas web, Google, Gmail, portales, etc. "
-        "Espera a que la página cargue antes de interactuar con ella."
-    ),
-    parameters={
-        "type": "object",
-        "properties": {
-            "url": {"type": "string", "description": "URL completa a la que navegar (https://...)."},
+tool_registry.register(
+    ToolDefinition(
+        name="browser_navigate",
+        description=(
+            "Navega a una URL en el navegador Chrome. "
+            "Úsala para abrir páginas web, Google, Gmail, portales, etc. "
+            "Espera a que la página cargue antes de interactuar con ella."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "description": "URL completa a la que navegar (https://...).",
+                },
+            },
+            "required": ["url"],
         },
-        "required": ["url"],
-    },
-    fn=_browser_navigate,
-    category="computer",
-))
+        fn=_browser_navigate,
+        category="computer",
+    )
+)
 
-tool_registry.register(ToolDefinition(
-    name="browser_click",
-    description=(
-        "Hace clic en un elemento de la página. "
-        "Puedes indicar el elemento con un selector CSS (ej. 'button[type=submit]', '#login-btn') "
-        "o con coordenadas de pantalla (x, y). "
-        "Usa browser_find primero si no sabes el selector exacto."
-    ),
-    parameters={
-        "type": "object",
-        "properties": {
-            "selector": {"type": "string", "description": "Selector CSS del elemento. Dejar vacío si usas coordenadas.", "default": ""},
-            "x": {"type": "integer", "description": "Coordenada X en píxeles. Solo si no hay selector.", "default": 0},
-            "y": {"type": "integer", "description": "Coordenada Y en píxeles. Solo si no hay selector.", "default": 0},
+tool_registry.register(
+    ToolDefinition(
+        name="browser_click",
+        description=(
+            "Hace clic en un elemento de la página. "
+            "Puedes indicar el elemento con un selector CSS (ej. 'button[type=submit]', '#login-btn') "
+            "o con coordenadas de pantalla (x, y). "
+            "Usa browser_find primero si no sabes el selector exacto."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "selector": {
+                    "type": "string",
+                    "description": "Selector CSS del elemento. Dejar vacío si usas coordenadas.",
+                    "default": "",
+                },
+                "x": {
+                    "type": "integer",
+                    "description": "Coordenada X en píxeles. Solo si no hay selector.",
+                    "default": 0,
+                },
+                "y": {
+                    "type": "integer",
+                    "description": "Coordenada Y en píxeles. Solo si no hay selector.",
+                    "default": 0,
+                },
+            },
         },
-    },
-    fn=_browser_click,
-    category="computer",
-))
+        fn=_browser_click,
+        category="computer",
+    )
+)
 
-tool_registry.register(ToolDefinition(
-    name="browser_type",
-    description=(
-        "Escribe texto en el campo de entrada que tiene el foco. "
-        "Primero haz clic en el campo con browser_click, luego llama a browser_type. "
-        "Úsala para rellenar formularios, buscadores, asuntos de correo, etc."
-    ),
-    parameters={
-        "type": "object",
-        "properties": {
-            "text": {"type": "string", "description": "Texto a escribir."},
+tool_registry.register(
+    ToolDefinition(
+        name="browser_type",
+        description=(
+            "Escribe texto en el campo de entrada que tiene el foco. "
+            "Primero haz clic en el campo con browser_click, luego llama a browser_type. "
+            "Úsala para rellenar formularios, buscadores, asuntos de correo, etc."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "text": {"type": "string", "description": "Texto a escribir."},
+            },
+            "required": ["text"],
         },
-        "required": ["text"],
-    },
-    fn=_browser_type,
-    category="computer",
-))
+        fn=_browser_type,
+        category="computer",
+    )
+)
 
-tool_registry.register(ToolDefinition(
-    name="browser_key",
-    description=(
-        "Pulsa una tecla o combinación de teclado en el navegador. "
-        "Ejemplos: 'Enter' (confirmar), 'Tab' (siguiente campo), 'Escape' (cerrar), "
-        "'ctrl+a' (seleccionar todo), 'ctrl+c' (copiar), 'Backspace' (borrar). "
-        "Úsala después de browser_type para enviar un formulario."
-    ),
-    parameters={
-        "type": "object",
-        "properties": {
-            "key": {"type": "string", "description": "Tecla o combinación (Enter, Tab, ctrl+a, etc.)."},
+tool_registry.register(
+    ToolDefinition(
+        name="browser_key",
+        description=(
+            "Pulsa una tecla o combinación de teclado en el navegador. "
+            "Ejemplos: 'Enter' (confirmar), 'Tab' (siguiente campo), 'Escape' (cerrar), "
+            "'ctrl+a' (seleccionar todo), 'ctrl+c' (copiar), 'Backspace' (borrar). "
+            "Úsala después de browser_type para enviar un formulario."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "key": {
+                    "type": "string",
+                    "description": "Tecla o combinación (Enter, Tab, ctrl+a, etc.).",
+                },
+            },
+            "required": ["key"],
         },
-        "required": ["key"],
-    },
-    fn=_browser_key,
-    category="computer",
-))
+        fn=_browser_key,
+        category="computer",
+    )
+)
 
-tool_registry.register(ToolDefinition(
-    name="browser_scroll",
-    description=(
-        "Hace scroll en la página del navegador. "
-        "direction puede ser 'up' o 'down'. "
-        "amount es el número de ticks de scroll (1-10)."
-    ),
-    parameters={
-        "type": "object",
-        "properties": {
-            "direction": {"type": "string", "enum": ["up", "down"], "default": "down"},
-            "amount":    {"type": "integer", "description": "Ticks de scroll (1-10).", "default": 3},
+tool_registry.register(
+    ToolDefinition(
+        name="browser_scroll",
+        description=(
+            "Hace scroll en la página del navegador. "
+            "direction puede ser 'up' o 'down'. "
+            "amount es el número de ticks de scroll (1-10)."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "direction": {"type": "string", "enum": ["up", "down"], "default": "down"},
+                "amount": {
+                    "type": "integer",
+                    "description": "Ticks de scroll (1-10).",
+                    "default": 3,
+                },
+            },
         },
-    },
-    fn=_browser_scroll,
-    category="computer",
-))
+        fn=_browser_scroll,
+        category="computer",
+    )
+)
 
-tool_registry.register(ToolDefinition(
-    name="browser_screenshot",
-    description=(
-        "Captura una imagen de la pantalla actual del navegador y devuelve "
-        "una descripción del contenido visible. "
-        "Úsala para entender qué hay en pantalla antes de hacer clic."
-    ),
-    parameters={"type": "object", "properties": {}},
-    fn=_browser_screenshot,
-    category="computer",
-))
+tool_registry.register(
+    ToolDefinition(
+        name="browser_screenshot",
+        description=(
+            "Captura una imagen de la pantalla actual del navegador y devuelve "
+            "una descripción del contenido visible. "
+            "Úsala para entender qué hay en pantalla antes de hacer clic."
+        ),
+        parameters={"type": "object", "properties": {}},
+        fn=_browser_screenshot,
+        category="computer",
+    )
+)
 
-tool_registry.register(ToolDefinition(
-    name="browser_read_page",
-    description=(
-        "Lee y devuelve el texto visible de la página actual del navegador. "
-        "Útil para extraer contenido sin necesidad de captura de pantalla. "
-        "Devuelve el texto limpio (sin HTML). Máx. 6000 caracteres."
-    ),
-    parameters={"type": "object", "properties": {}},
-    fn=_browser_read_page,
-    category="computer",
-))
+tool_registry.register(
+    ToolDefinition(
+        name="browser_read_page",
+        description=(
+            "Lee y devuelve el texto visible de la página actual del navegador. "
+            "Útil para extraer contenido sin necesidad de captura de pantalla. "
+            "Devuelve el texto limpio (sin HTML). Máx. 6000 caracteres."
+        ),
+        parameters={"type": "object", "properties": {}},
+        fn=_browser_read_page,
+        category="computer",
+    )
+)
 
-tool_registry.register(ToolDefinition(
-    name="browser_find",
-    description=(
-        "Busca un elemento en la página actual por descripción o texto visible. "
-        "Devuelve el selector CSS del elemento encontrado o un mensaje de error. "
-        "Úsala antes de browser_click cuando no conoces el selector exacto. "
-        "Ejemplos de query: 'botón de búsqueda', 'campo de email', 'enlace Iniciar sesión'."
-    ),
-    parameters={
-        "type": "object",
-        "properties": {
-            "query": {"type": "string", "description": "Descripción en lenguaje natural del elemento a encontrar."},
+tool_registry.register(
+    ToolDefinition(
+        name="browser_find",
+        description=(
+            "Busca un elemento en la página actual por descripción o texto visible. "
+            "Devuelve el selector CSS del elemento encontrado o un mensaje de error. "
+            "Úsala antes de browser_click cuando no conoces el selector exacto. "
+            "Ejemplos de query: 'botón de búsqueda', 'campo de email', 'enlace Iniciar sesión'."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Descripción en lenguaje natural del elemento a encontrar.",
+                },
+            },
+            "required": ["query"],
         },
-        "required": ["query"],
-    },
-    fn=_browser_find,
-    category="computer",
-))
+        fn=_browser_find,
+        category="computer",
+    )
+)

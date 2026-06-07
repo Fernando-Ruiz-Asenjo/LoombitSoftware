@@ -22,6 +22,7 @@ Contrato de seguridad:
   - El texto escrito se resume por longitud, no se vuelca completo.
   - Los recibos se guardan localmente, nunca se suben a la nube.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -38,7 +39,6 @@ from .input_control import (
     mouse_double_click,
     mouse_scroll,
     keyboard_type,
-    keyboard_press,
     keyboard_hotkey,
 )
 from .windows_control import (
@@ -76,6 +76,7 @@ SAFETY_CONTRACT = {
 
 
 # ── Executor principal ────────────────────────────────────────────────────────
+
 
 async def execute_sequence(
     objective: str,
@@ -167,6 +168,7 @@ async def execute_sequence(
 
 # ── Dispatcher de pasos ───────────────────────────────────────────────────────
 
+
 async def _execute_step(step: dict[str, Any]) -> dict[str, Any]:
     step_type = step["type"]
 
@@ -190,6 +192,7 @@ async def _execute_step(step: dict[str, Any]) -> dict[str, Any]:
     elif step_type == "screenshot":
         # El base64 puede ser grande; guardamos en disco y devolvemos la ruta
         from loombit_operator.config import get_settings  # evitar import circular
+
         settings = get_settings()
         save_dir = Path(settings.agent_run_store_path).parent / "skill_pilot"
         result = take_screenshot(save_dir=save_dir, include_base64=False)
@@ -210,7 +213,8 @@ async def _execute_step(step: dict[str, Any]) -> dict[str, Any]:
         x = int(step.get("x", 0))
         y = int(step.get("y", 0))
         return mouse_scroll(
-            x, y,
+            x,
+            y,
             direction=step.get("direction", "down"),
             amount=int(step.get("amount", 3)),
         )

@@ -2,6 +2,7 @@
 LLM client con soporte de roles y function calling (tool use).
 Compatible con cualquier endpoint OpenAI-like: LM Studio, Ollama, llama.cpp...
 """
+
 from __future__ import annotations
 
 import json
@@ -53,7 +54,9 @@ class ChatResponse:
         content = str(msg.get("content") or "")
         raw_calls = msg.get("tool_calls") or []
         tool_calls = [ToolCall.from_api(tc) for tc in raw_calls if isinstance(tc, dict)]
-        return cls(content=content, tool_calls=tool_calls, finish_reason=finish_reason, raw=response)
+        return cls(
+            content=content, tool_calls=tool_calls, finish_reason=finish_reason, raw=response
+        )
 
     def to_message(self) -> dict[str, Any]:
         msg: dict[str, Any] = {"role": "assistant", "content": self.content or None}
@@ -99,7 +102,12 @@ class LLMClient:
         return self._role_str("model_name", self.settings.llm_model_name)
 
     def config_snapshot(self) -> dict[str, Any]:
-        return {"role": self.role, "provider": self.provider, "base_url": self.base_url, "model": self.model_name}
+        return {
+            "role": self.role,
+            "provider": self.provider,
+            "base_url": self.base_url,
+            "model": self.model_name,
+        }
 
     def health(self) -> dict[str, Any]:
         snapshot = self.config_snapshot()
@@ -126,7 +134,9 @@ class LLMClient:
         payload: dict[str, Any] = {
             "model": self.model_name,
             "messages": messages,
-            "temperature": temperature if temperature is not None else self.settings.llm_temperature,
+            "temperature": (
+                temperature if temperature is not None else self.settings.llm_temperature
+            ),
             "max_tokens": max_tokens if max_tokens is not None else self.settings.llm_max_tokens,
         }
         if tools:
@@ -136,7 +146,12 @@ class LLMClient:
         response.raise_for_status()
         return ChatResponse.from_api(response.json())
 
-    def chat_raw(self, messages: list[dict[str, Any]], temperature: float | None = None, max_tokens: int | None = None) -> dict[str, Any]:
+    def chat_raw(
+        self,
+        messages: list[dict[str, Any]],
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+    ) -> dict[str, Any]:
         return self.chat(messages, temperature=temperature, max_tokens=max_tokens).raw
 
     def _url(self, path: str) -> str:

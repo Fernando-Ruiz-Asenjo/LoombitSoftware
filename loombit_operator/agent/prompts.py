@@ -3,6 +3,7 @@ Prompts del sistema para el agente autónomo de Loombit.
 
 build_system_prompt() → prompt base.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime

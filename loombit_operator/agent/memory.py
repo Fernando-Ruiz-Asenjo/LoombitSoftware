@@ -16,6 +16,7 @@ Secciones:
   proposals   → carencias detectadas por el propio agente, con sugerencias
   history     → todas las ejecuciones completadas — SIN LÍMITE
 """
+
 from __future__ import annotations
 
 import json
@@ -37,21 +38,22 @@ _DEFAULT_MEMORY: dict[str, Any] = {
         "language": "es",
         "timezone": "Europe/Madrid",
     },
-    "contacts": [],     # ContactEntry[] — sin límite, deduplicado por email
+    "contacts": [],  # ContactEntry[] — sin límite, deduplicado por email
     "preferences": {
         "email_tone": "profesional",
         "calendar_default_duration_min": 60,
         "always_cc": [],
         "notes": "",
     },
-    "tasks": [],        # tareas recurrentes conocidas (strings)
-    "procedures": {},   # {tipo_tarea: ProcedureEntry} — cómo hacerlo
-    "proposals": [],    # ProposalEntry[] — carencias del agente
-    "history": [],      # HistoryEntry[] — SIN LÍMITE
+    "tasks": [],  # tareas recurrentes conocidas (strings)
+    "procedures": {},  # {tipo_tarea: ProcedureEntry} — cómo hacerlo
+    "proposals": [],  # ProposalEntry[] — carencias del agente
+    "history": [],  # HistoryEntry[] — SIN LÍMITE
 }
 
 
 # ── Tipos de datos ────────────────────────────────────────────────────────────
+
 
 class ContactEntry:
     """Contacto conocido por el agente."""
@@ -162,8 +164,8 @@ class ProcedureEntry:
         last_used: str = "",
     ) -> None:
         self.task_type = task_type
-        self.steps = steps          # pasos en lenguaje natural
-        self.tools = tools          # tools que se usaron
+        self.steps = steps  # pasos en lenguaje natural
+        self.tools = tools  # tools que se usaron
         self.notes = notes
         self.success_count = success_count
         self.last_used = last_used or datetime.now(UTC).isoformat()
@@ -190,9 +192,8 @@ class ProcedureEntry:
         )
 
     def __str__(self) -> str:
-        return (
-            f"{self.task_type} (×{self.success_count}):\n"
-            + "\n".join(f"  {i+1}. {s}" for i, s in enumerate(self.steps[:6]))
+        return f"{self.task_type} (×{self.success_count}):\n" + "\n".join(
+            f"  {i+1}. {s}" for i, s in enumerate(self.steps[:6])
         )
 
 
@@ -209,7 +210,7 @@ class ProposalEntry:
     ) -> None:
         self.issue = issue[:300]
         self.suggestion = suggestion[:400]
-        self.category = category    # tool_missing | behavior | memory | ui | integration
+        self.category = category  # tool_missing | behavior | memory | ui | integration
         self.date = date or datetime.now(UTC).strftime("%Y-%m-%d")
         self.run_id = run_id
 
@@ -237,6 +238,7 @@ class ProposalEntry:
 
 
 # ── AgentMemory ───────────────────────────────────────────────────────────────
+
 
 class AgentMemory:
     """
@@ -316,7 +318,8 @@ class AgentMemory:
         """Busca contactos por nombre, email o empresa (case-insensitive)."""
         q = query.lower()
         return [
-            c for c in self.contacts
+            c
+            for c in self.contacts
             if q in c.name.lower() or q in c.email.lower() or q in c.company.lower()
         ]
 
@@ -351,7 +354,7 @@ class AgentMemory:
         key = task_type.lower().replace(" ", "_")
         if key in procs:
             procs[key]["success_count"] = procs[key].get("success_count", 1) + 1
-            procs[key]["steps"] = steps      # actualizar con la versión más reciente
+            procs[key]["steps"] = steps  # actualizar con la versión más reciente
             procs[key]["tools"] = tools
             procs[key]["notes"] = notes or procs[key].get("notes", "")
             procs[key]["last_used"] = datetime.now(UTC).isoformat()
@@ -401,10 +404,20 @@ class AgentMemory:
         o = self.owner
         if o.get("name"):
             lines.append(
-                "Trabajas para: " + o["name"] + " (" + o.get("email", "") + ")"
-                + " — " + o.get("company", "") + "."
-                + " Idioma: " + o.get("language", "es") + "."
-                + " TZ: " + o.get("timezone", "Europe/Madrid") + "."
+                "Trabajas para: "
+                + o["name"]
+                + " ("
+                + o.get("email", "")
+                + ")"
+                + " — "
+                + o.get("company", "")
+                + "."
+                + " Idioma: "
+                + o.get("language", "es")
+                + "."
+                + " TZ: "
+                + o.get("timezone", "Europe/Madrid")
+                + "."
             )
         prefs = self.preferences
         if prefs.get("email_tone"):
@@ -530,17 +543,19 @@ class AgentMemory:
 
 # ── Helpers internos ──────────────────────────────────────────────────────────
 
+
 def _deep_copy_default() -> dict[str, Any]:
     import copy
+
     return copy.deepcopy(_DEFAULT_MEMORY)
 
 
 _TASK_PATTERNS: list[tuple[list[str], str]] = [
-    (["gmail_send"],                       "enviar_correo"),
-    (["calendar_create"],                  "crear_evento_calendario"),
-    (["contacts_find", "gmail_send"],      "buscar_contacto_y_enviar_correo"),
-    (["gmail_search"],                     "buscar_correos"),
-    (["task_done"],                        "completar_tarea_simple"),
+    (["gmail_send"], "enviar_correo"),
+    (["calendar_create"], "crear_evento_calendario"),
+    (["contacts_find", "gmail_send"], "buscar_contacto_y_enviar_correo"),
+    (["gmail_search"], "buscar_correos"),
+    (["task_done"], "completar_tarea_simple"),
 ]
 
 

@@ -13,16 +13,16 @@ Verifican que la memoria:
 
 Estado: 🟡 — tests unitarios con store temporal. No requieren servicio externo.
 """
+
 from __future__ import annotations
 
 import json
-import tempfile
 from pathlib import Path
 
 import pytest
 
-
 # ── Fixtures ──────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def tmp_store(tmp_path: Path):
@@ -34,10 +34,12 @@ def tmp_store(tmp_path: Path):
 def mem(tmp_store: Path):
     """Instancia de AgentMemory con store temporal (no contamina runtime/local/)."""
     from loombit_operator.agent.memory import AgentMemory
+
     return AgentMemory(store_path=tmp_store)
 
 
 # ── 1. Creación desde cero ────────────────────────────────────────────────────
+
 
 def test_memory_creates_default_owner(mem):
     assert mem.owner["name"] == "Fernando"
@@ -53,6 +55,7 @@ def test_memory_starts_empty(mem):
 
 
 # ── 2. Contactos sin duplicados ───────────────────────────────────────────────
+
 
 def test_add_contact(mem):
     mem.add_contact("Jana Wall", "jana@acme.com", company="Acme", role="CEO")
@@ -90,6 +93,7 @@ def test_find_contact_by_company(mem):
 
 # ── 3. Historial sin límite ───────────────────────────────────────────────────
 
+
 def test_history_no_limit(mem):
     """El historial no tiene tope — crece indefinidamente."""
     for i in range(200):
@@ -115,6 +119,7 @@ def test_history_stores_run_id(mem):
 
 
 # ── 4. Procedimientos aprendidos ──────────────────────────────────────────────
+
 
 def test_add_procedure(mem):
     mem.add_procedure(
@@ -146,6 +151,7 @@ def test_find_procedure_by_keyword(mem):
 
 # ── 5. Propuestas del agente ──────────────────────────────────────────────────
 
+
 def test_add_proposal(mem):
     mem.add_proposal(
         issue="No puedo leer adjuntos de email",
@@ -167,6 +173,7 @@ def test_multiple_proposals(mem):
 
 
 # ── 6. Persistencia real en disco ─────────────────────────────────────────────
+
 
 def test_persistence_across_instances(tmp_store: Path):
     """
@@ -204,6 +211,7 @@ def test_persistence_across_instances(tmp_store: Path):
 
 # ── 7. Bloque de contexto para el LLM ────────────────────────────────────────
 
+
 def test_context_block_includes_owner(mem):
     block = mem.to_context_block()
     assert "Fernando" in block
@@ -232,6 +240,7 @@ def test_context_block_includes_procedure_hint(mem):
 def test_context_block_empty_when_no_data(tmp_store: Path):
     """Si no hay datos relevantes, el bloque sólo tiene la cabecera del owner."""
     from loombit_operator.agent.memory import AgentMemory
+
     m = AgentMemory(store_path=tmp_store)
     # Limpiar el owner para que no haya nada
     m._data["owner"] = {}
@@ -241,6 +250,7 @@ def test_context_block_empty_when_no_data(tmp_store: Path):
 
 
 # ── 8. Snapshot para el endpoint /agent/memory ───────────────────────────────
+
 
 def test_snapshot_structure(mem):
     mem.add_contact("Jana Wall", "jana@acme.com")
@@ -267,6 +277,7 @@ def test_snapshot_history_recent_limited_to_20(mem):
 
 # ── 9. Extracción de contactos desde steps ────────────────────────────────────
 
+
 def test_extract_contacts_from_steps(mem):
     """Simula los steps de un run real que usó gmail_send."""
 
@@ -277,8 +288,12 @@ def test_extract_contacts_from_steps(mem):
             self.result = result
 
     steps = [
-        FakeStep("contacts_find", {}, result='{"contacts": [{"name": "Jana Wall", "email": "jana@acme.com"}]}'),
-        FakeStep("gmail_send",    {"to": "jana@acme.com", "subject": "Informe"}, result="{}"),
+        FakeStep(
+            "contacts_find",
+            {},
+            result='{"contacts": [{"name": "Jana Wall", "email": "jana@acme.com"}]}',
+        ),
+        FakeStep("gmail_send", {"to": "jana@acme.com", "subject": "Informe"}, result="{}"),
     ]
 
     added = mem.extract_contacts_from_steps(steps)
@@ -289,9 +304,11 @@ def test_extract_contacts_from_steps(mem):
 
 # ── 10. Tool propose_improvement registrada ───────────────────────────────────
 
+
 def test_propose_improvement_tool_registered():
     """La tool propose_improvement debe estar en el registry global."""
     from loombit_operator.tools import tool_registry
+
     tool = tool_registry.get("propose_improvement")
     assert tool is not None
     assert tool.name == "propose_improvement"
@@ -307,6 +324,7 @@ def test_propose_improvement_tool_writes_to_memory(tmp_store: Path, monkeypatch)
     monkeypatch.setattr(mem_module, "_memory", test_mem)
 
     from loombit_operator.tools import tool_registry
+
     tool = tool_registry.get("propose_improvement")
     result_str = tool.execute(
         issue="No puedo leer adjuntos de correo",

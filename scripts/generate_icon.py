@@ -7,13 +7,13 @@ Representa el loom (telar) y la inicial L de Loombit.
 Uso:
     python scripts/generate_icon.py
 """
+
 from __future__ import annotations
 
-import math
 from pathlib import Path
 
 try:
-    from PIL import Image, ImageDraw, ImageFilter
+    from PIL import Image, ImageDraw
 except ImportError:
     raise SystemExit("Instala Pillow: pip install pillow")
 
@@ -22,10 +22,10 @@ OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 
 # ── Paleta ────────────────────────────────────────────────────────────────────
-BG       = (11, 17, 27)       # fondo navy profundo
-TEAL     = (0, 210, 175)      # #00D2AF  — hilo principal
-TEAL_DIM = (0, 120, 100)      # hilo más oscuro para glow exterior
-WHITE    = (230, 255, 250)    # núcleo del nodo
+BG = (11, 17, 27)  # fondo navy profundo
+TEAL = (0, 210, 175)  # #00D2AF  — hilo principal
+TEAL_DIM = (0, 120, 100)  # hilo más oscuro para glow exterior
+WHITE = (230, 255, 250)  # núcleo del nodo
 
 
 def _draw_glow_line(
@@ -75,12 +75,12 @@ def _make_frame(size: int) -> Image.Image:
 
     # Nodos de la L: top, corner, right
     pad = int(s * 0.22)
-    node_top    = (int(s * 0.36), pad)
+    node_top = (int(s * 0.36), pad)
     node_corner = (int(s * 0.36), s - pad)
-    node_right  = (s - pad, s - pad)
+    node_right = (s - pad, s - pad)
 
     # Radio de nodos
-    r_big   = max(4, s // 16)  # nodo esquina (pivote de la L)
+    r_big = max(4, s // 16)  # nodo esquina (pivote de la L)
     r_small = max(3, s // 22)  # nodos extremos
 
     # ── Líneas con glow ──────────────────────────────────────────────────────
@@ -92,7 +92,6 @@ def _make_frame(size: int) -> Image.Image:
     _draw_glow_line(ld, node_corner, node_right, TEAL, width=lw, layers=6)
 
     # Hilo diagonal tenue (fondo del telar)
-    mid_top   = ((node_top[0] + node_right[0]) // 2, (node_top[1] + node_right[1]) // 2)
     _draw_glow_line(ld, node_top, node_right, TEAL_DIM, width=max(1, lw // 2), layers=3)
 
     img = Image.alpha_composite(img, line_layer)

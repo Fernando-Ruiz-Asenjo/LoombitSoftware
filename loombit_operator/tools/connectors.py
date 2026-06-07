@@ -13,16 +13,16 @@ Tools registradas:
 🟡 Estado: implementadas, requieren OAuth Google activo para funcionar.
    Sin OAuth devuelven un mensaje de error claro indicando qué falta.
 """
+
 from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
-from typing import Any
 
 from .registry import ToolDefinition, tool_registry
 
-
 # ── gmail_send ────────────────────────────────────────────────────────────────
+
 
 def _gmail_send(
     to: str,
@@ -35,6 +35,7 @@ def _gmail_send(
     try:
         from ..skill_blanca_gmail import send_email
         from ..config import get_settings
+
         receipt = send_email(
             to=to,
             subject=subject,
@@ -43,25 +44,32 @@ def _gmail_send(
             attachment_path=attachment_path,
             settings=get_settings(),
         )
-        return json.dumps({
-            "ok": True,
-            "message_id": receipt.get("message_id", ""),
-            "to": to,
-            "subject": subject,
-            "sent_at": receipt.get("sent_at", datetime.now(UTC).isoformat()),
-            "receipt_path": receipt.get("receipt_path", ""),
-        }, ensure_ascii=False)
+        return json.dumps(
+            {
+                "ok": True,
+                "message_id": receipt.get("message_id", ""),
+                "to": to,
+                "subject": subject,
+                "sent_at": receipt.get("sent_at", datetime.now(UTC).isoformat()),
+                "receipt_path": receipt.get("receipt_path", ""),
+            },
+            ensure_ascii=False,
+        )
     except Exception as exc:
         msg = str(exc)
         if "no_token" in msg or "no está conectado" in msg or "token" in msg.lower():
-            return json.dumps({
-                "ok": False,
-                "error": "Google OAuth no está conectado. Necesitas autorizar en /skill-blanca/oauth/google/authorize",
-            }, ensure_ascii=False)
+            return json.dumps(
+                {
+                    "ok": False,
+                    "error": "Google OAuth no está conectado. Necesitas autorizar en /skill-blanca/oauth/google/authorize",
+                },
+                ensure_ascii=False,
+            )
         return json.dumps({"ok": False, "error": msg}, ensure_ascii=False)
 
 
 # ── gmail_search ──────────────────────────────────────────────────────────────
+
 
 def _gmail_search(query: str, max_results: int = 5) -> str:
     """Busca correos en Gmail para obtener contexto o historial de conversación."""
@@ -73,10 +81,13 @@ def _gmail_search(query: str, max_results: int = 5) -> str:
         settings = get_settings()
         token = load_access_token("google", settings)
         if not token:
-            return json.dumps({
-                "ok": False,
-                "error": "Google OAuth no conectado. Autoriza en /skill-blanca/oauth/google/authorize",
-            }, ensure_ascii=False)
+            return json.dumps(
+                {
+                    "ok": False,
+                    "error": "Google OAuth no conectado. Autoriza en /skill-blanca/oauth/google/authorize",
+                },
+                ensure_ascii=False,
+            )
 
         params = {"q": query, "maxResults": max_results, "fields": "messages(id,threadId)"}
         with httpx.Client(timeout=10) as client:
@@ -86,11 +97,16 @@ def _gmail_search(query: str, max_results: int = 5) -> str:
                 params=params,
             )
         if resp.status_code != 200:
-            return json.dumps({"ok": False, "error": f"Gmail API {resp.status_code}: {resp.text[:200]}"}, ensure_ascii=False)
+            return json.dumps(
+                {"ok": False, "error": f"Gmail API {resp.status_code}: {resp.text[:200]}"},
+                ensure_ascii=False,
+            )
 
         messages = resp.json().get("messages", [])
         if not messages:
-            return json.dumps({"ok": True, "count": 0, "messages": [], "query": query}, ensure_ascii=False)
+            return json.dumps(
+                {"ok": True, "count": 0, "messages": [], "query": query}, ensure_ascii=False
+            )
 
         # Obtener snippets de los primeros mensajes
         results = []
@@ -102,23 +118,31 @@ def _gmail_search(query: str, max_results: int = 5) -> str:
             )
             if msg_resp.status_code == 200:
                 data = msg_resp.json()
-                headers = {h["name"]: h["value"] for h in data.get("payload", {}).get("headers", [])}
-                results.append({
-                    "id": msg["id"],
-                    "subject": headers.get("Subject", ""),
-                    "from": headers.get("From", ""),
-                    "to": headers.get("To", ""),
-                    "date": headers.get("Date", ""),
-                    "snippet": data.get("snippet", ""),
-                })
+                headers = {
+                    h["name"]: h["value"] for h in data.get("payload", {}).get("headers", [])
+                }
+                results.append(
+                    {
+                        "id": msg["id"],
+                        "subject": headers.get("Subject", ""),
+                        "from": headers.get("From", ""),
+                        "to": headers.get("To", ""),
+                        "date": headers.get("Date", ""),
+                        "snippet": data.get("snippet", ""),
+                    }
+                )
 
-        return json.dumps({"ok": True, "count": len(results), "query": query, "messages": results}, ensure_ascii=False)
+        return json.dumps(
+            {"ok": True, "count": len(results), "query": query, "messages": results},
+            ensure_ascii=False,
+        )
 
     except Exception as exc:
         return json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False)
 
 
 # ── calendar_create ───────────────────────────────────────────────────────────
+
 
 def _calendar_create(
     title: str,
@@ -145,25 +169,32 @@ def _calendar_create(
             attendees=attendees_list,
             settings=get_settings(),
         )
-        return json.dumps({
-            "ok": True,
-            "event_id": receipt.get("event_id", ""),
-            "html_link": receipt.get("html_link", ""),
-            "title": title,
-            "start": start_iso,
-            "receipt_path": receipt.get("receipt_path", ""),
-        }, ensure_ascii=False)
+        return json.dumps(
+            {
+                "ok": True,
+                "event_id": receipt.get("event_id", ""),
+                "html_link": receipt.get("html_link", ""),
+                "title": title,
+                "start": start_iso,
+                "receipt_path": receipt.get("receipt_path", ""),
+            },
+            ensure_ascii=False,
+        )
     except Exception as exc:
         msg = str(exc)
         if "no_token" in msg or "no está conectado" in msg or "token" in msg.lower():
-            return json.dumps({
-                "ok": False,
-                "error": "Google OAuth no conectado. Autoriza en /skill-blanca/oauth/google/authorize",
-            }, ensure_ascii=False)
+            return json.dumps(
+                {
+                    "ok": False,
+                    "error": "Google OAuth no conectado. Autoriza en /skill-blanca/oauth/google/authorize",
+                },
+                ensure_ascii=False,
+            )
         return json.dumps({"ok": False, "error": msg}, ensure_ascii=False)
 
 
 # ── contacts_find ─────────────────────────────────────────────────────────────
+
 
 def _contacts_find(name: str) -> str:
     """Busca un contacto por nombre en Google Contacts para obtener su email."""
@@ -175,10 +206,13 @@ def _contacts_find(name: str) -> str:
         settings = get_settings()
         token = load_access_token("google", settings)
         if not token:
-            return json.dumps({
-                "ok": False,
-                "error": "Google OAuth no conectado.",
-            }, ensure_ascii=False)
+            return json.dumps(
+                {
+                    "ok": False,
+                    "error": "Google OAuth no conectado.",
+                },
+                ensure_ascii=False,
+            )
 
         with httpx.Client(timeout=10) as client:
             resp = client.get(
@@ -188,7 +222,9 @@ def _contacts_find(name: str) -> str:
             )
 
         if resp.status_code != 200:
-            return json.dumps({"ok": False, "error": f"Contacts API {resp.status_code}"}, ensure_ascii=False)
+            return json.dumps(
+                {"ok": False, "error": f"Contacts API {resp.status_code}"}, ensure_ascii=False
+            )
 
         results = []
         for person in resp.json().get("results", []):
@@ -197,10 +233,12 @@ def _contacts_find(name: str) -> str:
             emails = p.get("emailAddresses", [])
             display_name = names[0].get("displayName", "") if names else ""
             for email_entry in emails:
-                results.append({
-                    "name": display_name,
-                    "email": email_entry.get("value", ""),
-                })
+                results.append(
+                    {
+                        "name": display_name,
+                        "email": email_entry.get("value", ""),
+                    }
+                )
 
         return json.dumps({"ok": True, "query": name, "contacts": results}, ensure_ascii=False)
 
@@ -210,60 +248,88 @@ def _contacts_find(name: str) -> str:
 
 # ── Registro ──────────────────────────────────────────────────────────────────
 
-tool_registry.register(ToolDefinition(
-    name="gmail_send",
-    description=(
-        "Envia correo via Gmail API (requiere OAuth). Usar en vez de abrir navegador. "
-        "Para adjuntar una captura de pantalla: primero llama save_screenshot_to_file, "
-        "luego pasa la ruta devuelta en attachment_path."
-    ),
-    parameters={"type": "object", "properties": {
-        "to":              {"type": "string"},
-        "subject":         {"type": "string"},
-        "body":            {"type": "string"},
-        "cc":              {"type": "string", "default": ""},
-        "attachment_path": {"type": "string", "default": "", "description": "Ruta local de fichero a adjuntar (PNG, PDF, etc.). Opcional."},
-    }, "required": ["to", "subject", "body"]},
-    fn=_gmail_send,
-    requires_approval=True,
-    safety_class="assisted",
-    category="connector",
-))
+tool_registry.register(
+    ToolDefinition(
+        name="gmail_send",
+        description=(
+            "Envia correo via Gmail API (requiere OAuth). Usar en vez de abrir navegador. "
+            "Para adjuntar una captura de pantalla: primero llama save_screenshot_to_file, "
+            "luego pasa la ruta devuelta en attachment_path."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "to": {"type": "string"},
+                "subject": {"type": "string"},
+                "body": {"type": "string"},
+                "cc": {"type": "string", "default": ""},
+                "attachment_path": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Ruta local de fichero a adjuntar (PNG, PDF, etc.). Opcional.",
+                },
+            },
+            "required": ["to", "subject", "body"],
+        },
+        fn=_gmail_send,
+        requires_approval=True,
+        safety_class="assisted",
+        category="connector",
+    )
+)
 
-tool_registry.register(ToolDefinition(
-    name="gmail_search",
-    description="Busca correos en Gmail para contexto/historial. query estilo Gmail.",
-    parameters={"type": "object", "properties": {
-        "query":       {"type": "string"},
-        "max_results": {"type": "integer", "default": 5},
-    }, "required": ["query"]},
-    fn=_gmail_search,
-    category="connector",
-))
+tool_registry.register(
+    ToolDefinition(
+        name="gmail_search",
+        description="Busca correos en Gmail para contexto/historial. query estilo Gmail.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "query": {"type": "string"},
+                "max_results": {"type": "integer", "default": 5},
+            },
+            "required": ["query"],
+        },
+        fn=_gmail_search,
+        category="connector",
+    )
+)
 
-tool_registry.register(ToolDefinition(
-    name="calendar_create",
-    description="Crea evento en Google Calendar via API. start_iso en ISO 8601.",
-    parameters={"type": "object", "properties": {
-        "title":            {"type": "string"},
-        "start_iso":        {"type": "string"},
-        "duration_minutes": {"type": "integer", "default": 60},
-        "description":      {"type": "string", "default": ""},
-        "location":         {"type": "string", "default": ""},
-        "attendees":        {"type": "string", "default": ""},
-    }, "required": ["title", "start_iso"]},
-    fn=_calendar_create,
-    requires_approval=True,
-    safety_class="assisted",
-    category="connector",
-))
+tool_registry.register(
+    ToolDefinition(
+        name="calendar_create",
+        description="Crea evento en Google Calendar via API. start_iso en ISO 8601.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "title": {"type": "string"},
+                "start_iso": {"type": "string"},
+                "duration_minutes": {"type": "integer", "default": 60},
+                "description": {"type": "string", "default": ""},
+                "location": {"type": "string", "default": ""},
+                "attendees": {"type": "string", "default": ""},
+            },
+            "required": ["title", "start_iso"],
+        },
+        fn=_calendar_create,
+        requires_approval=True,
+        safety_class="assisted",
+        category="connector",
+    )
+)
 
-tool_registry.register(ToolDefinition(
-    name="contacts_find",
-    description="Busca email de contacto por nombre en Google Contacts.",
-    parameters={"type": "object", "properties": {
-        "name": {"type": "string"},
-    }, "required": ["name"]},
-    fn=_contacts_find,
-    category="connector",
-))
+tool_registry.register(
+    ToolDefinition(
+        name="contacts_find",
+        description="Busca email de contacto por nombre en Google Contacts.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+            },
+            "required": ["name"],
+        },
+        fn=_contacts_find,
+        category="connector",
+    )
+)

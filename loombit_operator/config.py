@@ -45,9 +45,7 @@ class AppSettings(BaseSettings):
     skill_manifest_dir: Path = Path("skills")
 
     # ── Skill Blanca — OAuth ──────────────────────────────────────────────────
-    skill_blanca_oauth_token_store_path: Path = Path(
-        "runtime/local/skill_blanca_oauth_tokens.json"
-    )
+    skill_blanca_oauth_token_store_path: Path = Path("runtime/local/skill_blanca_oauth_tokens.json")
     skill_blanca_oauth_local_config_path: Path = Path(
         "runtime/local/skill_blanca_oauth_config.json"
     )
@@ -73,9 +71,7 @@ class AppSettings(BaseSettings):
     skill_blanca_microsoft_redirect_uri: str = (
         "http://127.0.0.1:8787/skill-blanca/oauth/microsoft/callback"
     )
-    skill_blanca_microsoft_scopes: str = (
-        "offline_access User.Read Mail.Send Calendars.ReadWrite"
-    )
+    skill_blanca_microsoft_scopes: str = "offline_access User.Read Mail.Send Calendars.ReadWrite"
 
     # ── Skill Blanca — ejecución de conectores ────────────────────────────────
     skill_blanca_connector_writes_enabled: bool = False
@@ -85,9 +81,7 @@ class AppSettings(BaseSettings):
     skill_blanca_calendar_delivery_mode: Literal[
         "disabled", "local_ics", "google_oauth", "microsoft_graph"
     ] = "disabled"
-    skill_blanca_connector_outbox_path: Path = Path(
-        "runtime/local/skill_blanca_connector_outbox"
-    )
+    skill_blanca_connector_outbox_path: Path = Path("runtime/local/skill_blanca_connector_outbox")
 
 
 @lru_cache(maxsize=1)

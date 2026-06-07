@@ -4,6 +4,7 @@ screen.py — captura de pantalla local.
 Usa PIL.ImageGrab (Windows nativo). No sube nada a la nube.
 La imagen puede guardarse en disco y/o devolverse como base64.
 """
+
 from __future__ import annotations
 
 import base64

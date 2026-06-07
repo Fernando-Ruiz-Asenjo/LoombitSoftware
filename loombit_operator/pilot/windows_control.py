@@ -8,6 +8,7 @@ Jerarquía de automatización (más fiable primero):
 
 open_url usa webbrowser.open que delega en el navegador predeterminado.
 """
+
 from __future__ import annotations
 
 import logging
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 # ── Imports opcionales ────────────────────────────────────────────────────────
 
 try:
-    import pywinauto  # type: ignore
+
     _PYWINAUTO_OK = True
 except Exception:
     _PYWINAUTO_OK = False
@@ -29,6 +30,7 @@ except Exception:
 try:
     import win32gui  # type: ignore
     import win32con  # type: ignore
+
     _WIN32_OK = True
 except ImportError:
     _WIN32_OK = False
@@ -36,6 +38,7 @@ except ImportError:
 
 
 # ── URL ───────────────────────────────────────────────────────────────────────
+
 
 def open_url(url: str) -> dict[str, Any]:
     """Abre una URL en el navegador predeterminado del sistema."""
@@ -52,9 +55,8 @@ def _redact_url(url: str) -> str:
 
 # ── Foco de ventana ───────────────────────────────────────────────────────────
 
-def focus_window(
-    process_name: str = "", title: str = ""
-) -> dict[str, Any]:
+
+def focus_window(process_name: str = "", title: str = "") -> dict[str, Any]:
     """
     Trae una ventana al frente.
     Intenta pywinauto primero, luego win32gui, luego ctypes.
@@ -76,6 +78,7 @@ def _focus_pywinauto(process_name: str, title: str) -> dict[str, Any]:
 
         # Busca ventana activa
         from pywinauto import Desktop  # type: ignore
+
         windows = Desktop(backend="uia").windows()
         for w in windows:
             try:
@@ -86,6 +89,7 @@ def _focus_pywinauto(process_name: str, title: str) -> dict[str, Any]:
                     match = False
                 if process_name:
                     import psutil  # type: ignore
+
                     try:
                         pname = psutil.Process(wp).name().lower()
                         if process_name.lower() not in pname:
@@ -140,6 +144,7 @@ def _focus_win32(title: str, process_name: str) -> dict[str, Any]:
 def _focus_ctypes(title: str) -> dict[str, Any]:
     """Último recurso: ctypes FindWindow."""
     import ctypes
+
     user32 = ctypes.windll.user32
     hwnd = user32.FindWindowW(None, title) if title else 0
     if hwnd:
@@ -151,9 +156,8 @@ def _focus_ctypes(title: str) -> dict[str, Any]:
 
 # ── Inspección de controles UI Automation ────────────────────────────────────
 
-def inspect_controls(
-    process_name: str = "", title: str = "", limit: int = 40
-) -> dict[str, Any]:
+
+def inspect_controls(process_name: str = "", title: str = "", limit: int = 40) -> dict[str, Any]:
     """
     Enumera los controles accesibles de la ventana indicada.
     Devuelve una lista de {name, control_type, automation_id, rect}.
@@ -166,6 +170,7 @@ def inspect_controls(
         }
     try:
         from pywinauto import Desktop  # type: ignore
+
         windows = Desktop(backend="uia").windows()
         target = None
         for w in windows:
@@ -175,6 +180,7 @@ def inspect_controls(
                     continue
                 if process_name:
                     import psutil  # type: ignore
+
                     pname = psutil.Process(w.process_id()).name().lower()
                     if process_name.lower() not in pname:
                         continue
@@ -193,15 +199,19 @@ def inspect_controls(
                 ctype = ctrl.element_info.control_type
                 aid = ctrl.element_info.automation_id[:40]
                 rect = ctrl.rectangle()
-                controls.append({
-                    "name": name,
-                    "control_type": ctype,
-                    "automation_id": aid,
-                    "rect": {
-                        "left": rect.left, "top": rect.top,
-                        "right": rect.right, "bottom": rect.bottom,
-                    },
-                })
+                controls.append(
+                    {
+                        "name": name,
+                        "control_type": ctype,
+                        "automation_id": aid,
+                        "rect": {
+                            "left": rect.left,
+                            "top": rect.top,
+                            "right": rect.right,
+                            "bottom": rect.bottom,
+                        },
+                    }
+                )
             except Exception:
                 pass
 
@@ -231,6 +241,7 @@ def click_control(
         }
     try:
         from pywinauto import Desktop  # type: ignore
+
         windows = Desktop(backend="uia").windows()
         target = None
         for w in windows:
@@ -240,6 +251,7 @@ def click_control(
                     continue
                 if process_name:
                     import psutil  # type: ignore
+
                     pname = psutil.Process(w.process_id()).name().lower()
                     if process_name.lower() not in pname:
                         continue
@@ -266,7 +278,10 @@ def click_control(
                 continue
 
         if not ctrl:
-            return {"clicked": False, "error": f"Control no encontrado: name={name!r} aid={automation_id!r}"}
+            return {
+                "clicked": False,
+                "error": f"Control no encontrado: name={name!r} aid={automation_id!r}",
+            }
 
         ctrl.click_input()
         return {"clicked": True, "control_name": name or automation_id}

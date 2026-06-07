@@ -10,6 +10,7 @@ Un AgentRun pasa por estos estados:
 El historial de mensajes (messages) es el contexto completo del LLM.
 Los pasos (steps) registran qué tools se usaron y qué devolvieron.
 """
+
 from __future__ import annotations
 
 import json
@@ -24,13 +25,13 @@ from ..config import AppSettings, get_settings
 
 
 class AgentStatus(StrEnum):
-    PENDING           = "pending"
-    RUNNING           = "running"
-    COMPLETED         = "completed"
-    PENDING_APPROVAL  = "pending_approval"
-    PENDING_QUESTION  = "pending_question"
-    CANCELLED         = "cancelled"
-    FAILED            = "failed"
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    PENDING_APPROVAL = "pending_approval"
+    PENDING_QUESTION = "pending_question"
+    CANCELLED = "cancelled"
+    FAILED = "failed"
 
 
 @dataclass
@@ -70,18 +71,18 @@ class AgentStep:
 @dataclass
 class AgentRun:
     task: str
-    id: str                   = field(default_factory=lambda: str(uuid4()))
-    status: AgentStatus       = AgentStatus.PENDING
-    messages: list[dict]      = field(default_factory=list)
-    steps: list[AgentStep]    = field(default_factory=list)
-    result: str               = ""
-    error: str                = ""
-    pending_approval: dict    = field(default_factory=dict)   # qué acción espera aprobación
-    pending_question: dict     = field(default_factory=dict)   # pregunta pendiente al usuario
-    created_at: str           = field(default_factory=lambda: datetime.now(UTC).isoformat())
-    updated_at: str           = field(default_factory=lambda: datetime.now(UTC).isoformat())
-    completed_at: str         = ""
-    max_steps: int            = 20
+    id: str = field(default_factory=lambda: str(uuid4()))
+    status: AgentStatus = AgentStatus.PENDING
+    messages: list[dict] = field(default_factory=list)
+    steps: list[AgentStep] = field(default_factory=list)
+    result: str = ""
+    error: str = ""
+    pending_approval: dict = field(default_factory=dict)  # qué acción espera aprobación
+    pending_question: dict = field(default_factory=dict)  # pregunta pendiente al usuario
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
+    updated_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
+    completed_at: str = ""
+    max_steps: int = 20
 
     # ── Transiciones de estado ────────────────────────────────────────────────
 
@@ -189,6 +190,7 @@ class AgentRun:
 
 
 # ── AgentStore ────────────────────────────────────────────────────────────────
+
 
 class AgentStore:
     def __init__(self, store_path: Path | None = None, settings: AppSettings | None = None) -> None:

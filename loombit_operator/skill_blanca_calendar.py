@@ -12,6 +12,7 @@ Flujo:
   3. create_event()              → POST a Calendar API, guarda recibo + .ics
   4. recibo devuelto             → { event_id, html_link, receipt_path, ics_path, ... }
 """
+
 from __future__ import annotations
 
 import json
@@ -25,13 +26,12 @@ import httpx
 from .config import AppSettings, get_settings
 from .skill_blanca_oauth import load_access_token
 
-CALENDAR_EVENTS_URL = (
-    "https://www.googleapis.com/calendar/v3/calendars/{calendar_id}/events"
-)
+CALENDAR_EVENTS_URL = "https://www.googleapis.com/calendar/v3/calendars/{calendar_id}/events"
 DEFAULT_CALENDAR = "primary"
 
 
 # ── Composición de evento ─────────────────────────────────────────────────────
+
 
 def compose_event(
     *,
@@ -82,9 +82,7 @@ def compose_event(
     if location:
         payload["location"] = location
     if attendees:
-        payload["attendees"] = [
-            {"email": e.strip()} for e in attendees if e.strip()
-        ]
+        payload["attendees"] = [{"email": e.strip()} for e in attendees if e.strip()]
 
     return payload
 
@@ -147,9 +145,7 @@ def create_event(
             "Ejecuta /skill-blanca/oauth/google/start para reconectar."
         )
     if not (200 <= resp.status_code < 300):
-        raise ValueError(
-            f"calendar_create_failed:{resp.status_code} — {resp.text[:200]}"
-        )
+        raise ValueError(f"calendar_create_failed:{resp.status_code} — {resp.text[:200]}")
 
     api_data = resp.json()
     receipt = _build_receipt(
@@ -161,6 +157,7 @@ def create_event(
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _parse_dt(value: str) -> datetime:
     value = value.strip()
@@ -210,9 +207,7 @@ def _build_receipt(
     outbox_path.mkdir(parents=True, exist_ok=True)
 
     json_path = outbox_path / f"{base_name}.json"
-    json_path.write_text(
-        json.dumps(receipt, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
+    json_path.write_text(json.dumps(receipt, indent=2, ensure_ascii=False), encoding="utf-8")
     receipt["receipt_path"] = str(json_path)
 
     # Guardar .ics (iCalendar) para compatibilidad universal
@@ -223,9 +218,7 @@ def _build_receipt(
     return receipt
 
 
-def _build_ics(
-    event_payload: dict[str, Any], event_id: str, summary: str
-) -> str:
+def _build_ics(event_payload: dict[str, Any], event_id: str, summary: str) -> str:
     now_str = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     start = event_payload.get("start", {})
     end = event_payload.get("end", {})
@@ -278,14 +271,16 @@ def snapshot_calendar_outbox(settings: AppSettings | None = None) -> dict[str, A
     for f in files[:20]:
         try:
             data = json.loads(f.read_text(encoding="utf-8"))
-            items.append({
-                "file": f.name,
-                "created_at": data.get("created_at", ""),
-                "summary": data.get("summary", ""),
-                "event_id": data.get("event_id", ""),
-                "html_link": data.get("html_link", ""),
-                "status": data.get("status", ""),
-            })
+            items.append(
+                {
+                    "file": f.name,
+                    "created_at": data.get("created_at", ""),
+                    "summary": data.get("summary", ""),
+                    "event_id": data.get("event_id", ""),
+                    "html_link": data.get("html_link", ""),
+                    "status": data.get("status", ""),
+                }
+            )
         except (json.JSONDecodeError, OSError):
             pass
     return {"outbox_path": str(outbox), "count": len(files), "receipts": items}

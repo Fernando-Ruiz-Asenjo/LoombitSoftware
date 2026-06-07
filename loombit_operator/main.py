@@ -1,4 +1,5 @@
 """Punto de entrada FastAPI. Solo crea la app y monta routers (anti-monolito)."""
+
 from __future__ import annotations
 
 import os
@@ -52,6 +53,7 @@ def _patch_pywin32() -> None:
             # Verificar que funciona despues de las modificaciones
             try:
                 import importlib
+
                 if importlib.util.find_spec("win32api") is not None:
                     return  # Exito: win32api es importable
             except Exception:
@@ -64,10 +66,18 @@ def _patch_pywin32() -> None:
 _patch_pywin32()
 # ─────────────────────────────────────────────────────────────────────────────
 
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI  # noqa: E402
+from fastapi.staticfiles import StaticFiles  # noqa: E402
 
-from .routers import agent, computer, health, pilot, skill_blanca_actions, skill_blanca_oauth, ui
+from .routers import (  # noqa: E402
+    agent,
+    computer,
+    health,
+    pilot,
+    skill_blanca_actions,
+    skill_blanca_oauth,
+    ui,
+)
 
 STATIC_DIR = Path(__file__).parent / "static"
 

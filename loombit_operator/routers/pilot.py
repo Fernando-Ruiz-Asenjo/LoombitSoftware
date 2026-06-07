@@ -15,13 +15,14 @@ Estado: 🟠 Parcial
   - Verificar inspect_controls enumera controles de Chrome
   - Escribir recibo de secuencia completa en runtime/local/skill_pilot/
 """
+
 from __future__ import annotations
 
 import logging
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from loombit_operator.pilot.executor import (
@@ -35,6 +36,7 @@ router = APIRouter(prefix="/loombit/pilot", tags=["pilot"])
 
 
 # ── Modelos ───────────────────────────────────────────────────────────────────
+
 
 class PilotStep(BaseModel):
     type: str
@@ -64,6 +66,7 @@ class PilotExecuteRequest(BaseModel):
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
+
 
 @router.get("/capabilities")
 async def get_capabilities() -> dict[str, Any]:
@@ -108,6 +111,7 @@ async def pilot_execute(body: PilotExecuteRequest) -> dict[str, Any]:
     # Directorio de recibos
     try:
         from loombit_operator.config import get_settings
+
         settings = get_settings()
         receipt_dir = Path(settings.agent_run_store_path).parent / "skill_pilot"
     except Exception:

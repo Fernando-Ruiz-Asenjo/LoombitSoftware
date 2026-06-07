@@ -13,10 +13,11 @@ Endpoints:
 El agente corre de forma síncrona en el thread del request. Para producción
 se puede mover a un BackgroundTask o Celery; la interfaz del router no cambia.
 """
+
 from __future__ import annotations
 
 import logging
-from typing import Annotated, Literal
+from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Body, HTTPException, Query
 from pydantic import BaseModel
@@ -34,7 +35,7 @@ router = APIRouter(prefix="/agent", tags=["agent"])
 # En tests se pueden reemplazar con dependency injection si hace falta.
 
 _store: AgentStore | None = None
-_loop:  AgentLoop  | None = None
+_loop: AgentLoop | None = None
 
 
 def _get_store() -> AgentStore:
@@ -52,6 +53,7 @@ def _get_loop() -> AgentLoop:
 
 
 # ── Modelos Pydantic ──────────────────────────────────────────────────────────
+
 
 class RunRequest(BaseModel):
     task: str
@@ -115,6 +117,7 @@ class RunDetailResponse(RunResponse):
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
+
 
 @router.post("/run", response_model=RunResponse, summary="Lanzar una tarea al agente")
 async def start_run(body: RunRequest, background_tasks: BackgroundTasks) -> RunResponse:
@@ -192,17 +195,18 @@ async def approve_run(
         )
 
     if body.comment:
-        run.messages.append({
-            "role": "user",
-            "content": f"[Aprobación concedida] {body.comment}",
-        })
+        run.messages.append(
+            {
+                "role": "user",
+                "content": f"[Aprobación concedida] {body.comment}",
+            }
+        )
         store.save_run(run)
 
     run.approve()
     store.save_run(run)
     background_tasks.add_task(loop.execute_run, run_id)
     return RunResponse.from_run(run)
-
 
 
 @router.post(

@@ -12,9 +12,10 @@ Cada ToolDefinition tiene:
 El método to_openai() convierte la definición al formato que espera la API
 de LM Studio / OpenAI para function calling.
 """
+
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Callable
 
 
@@ -22,11 +23,11 @@ from typing import Any, Callable
 class ToolDefinition:
     name: str
     description: str
-    parameters: dict[str, Any]          # JSON Schema (type=object, properties, required)
+    parameters: dict[str, Any]  # JSON Schema (type=object, properties, required)
     fn: Callable[..., Any]
     requires_approval: bool = False
-    safety_class: str = "passive"       # passive | assisted | safety_sensitive
-    category: str = "base"              # base | file | web | shell | connector | computer
+    safety_class: str = "passive"  # passive | assisted | safety_sensitive
+    category: str = "base"  # base | file | web | shell | connector | computer
 
     def to_openai(self) -> dict[str, Any]:
         """Formato que espera /chat/completions con tools."""

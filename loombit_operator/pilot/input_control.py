@@ -4,6 +4,7 @@ input_control.py - raton y teclado via pynput.
 Primitivas de bajo nivel: mouse y teclado completos.
 Requiere: pynput>=1.7.6
 """
+
 from __future__ import annotations
 
 import logging
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 try:
     from pynput.mouse import Button, Controller as _MouseCtrl  # type: ignore
     from pynput.keyboard import Controller as _KbCtrl, Key, KeyCode  # type: ignore
+
     _PYNPUT_OK = True
 except ImportError:
     _PYNPUT_OK = False
@@ -22,33 +24,56 @@ except ImportError:
 
 _KEY_MAP: dict[str, Any] = {}
 
+
 def _build_key_map() -> None:
     if not _PYNPUT_OK:
         return
     global _KEY_MAP
     _KEY_MAP = {
-        "ctrl": Key.ctrl, "control": Key.ctrl,
+        "ctrl": Key.ctrl,
+        "control": Key.ctrl,
         "shift": Key.shift,
         "alt": Key.alt,
-        "win": Key.cmd, "cmd": Key.cmd, "super": Key.cmd,
-        "enter": Key.enter, "return": Key.enter,
+        "win": Key.cmd,
+        "cmd": Key.cmd,
+        "super": Key.cmd,
+        "enter": Key.enter,
+        "return": Key.enter,
         "tab": Key.tab,
-        "escape": Key.esc, "esc": Key.esc,
+        "escape": Key.esc,
+        "esc": Key.esc,
         "backspace": Key.backspace,
-        "delete": Key.delete, "del": Key.delete,
+        "delete": Key.delete,
+        "del": Key.delete,
         "space": Key.space,
-        "up": Key.up, "down": Key.down, "left": Key.left, "right": Key.right,
-        "home": Key.home, "end": Key.end,
-        "page_up": Key.page_up, "pageup": Key.page_up,
-        "page_down": Key.page_down, "pagedown": Key.page_down,
+        "up": Key.up,
+        "down": Key.down,
+        "left": Key.left,
+        "right": Key.right,
+        "home": Key.home,
+        "end": Key.end,
+        "page_up": Key.page_up,
+        "pageup": Key.page_up,
+        "page_down": Key.page_down,
+        "pagedown": Key.page_down,
         "insert": Key.insert,
-        "f1": Key.f1, "f2": Key.f2, "f3": Key.f3, "f4": Key.f4,
-        "f5": Key.f5, "f6": Key.f6, "f7": Key.f7, "f8": Key.f8,
-        "f9": Key.f9, "f10": Key.f10, "f11": Key.f11, "f12": Key.f12,
+        "f1": Key.f1,
+        "f2": Key.f2,
+        "f3": Key.f3,
+        "f4": Key.f4,
+        "f5": Key.f5,
+        "f6": Key.f6,
+        "f7": Key.f7,
+        "f8": Key.f8,
+        "f9": Key.f9,
+        "f10": Key.f10,
+        "f11": Key.f11,
+        "f12": Key.f12,
         "print_screen": Key.print_screen,
         "caps_lock": Key.caps_lock,
         "num_lock": Key.num_lock,
     }
+
 
 _build_key_map()
 
@@ -61,6 +86,7 @@ def _resolve_key(part: str) -> Any:
 
 
 # Mouse
+
 
 def mouse_move(x: int, y: int) -> dict[str, Any]:
     if not _PYNPUT_OK:
@@ -95,10 +121,13 @@ def mouse_scroll(x: int, y: int, direction: str = "down", amount: int = 3) -> di
     return {"scrolled": direction, "amount": amount, "at": [x, y]}
 
 
-def mouse_drag(x1: int, y1: int, x2: int, y2: int, button: str = "left", duration: float = 0.3) -> dict[str, Any]:
+def mouse_drag(
+    x1: int, y1: int, x2: int, y2: int, button: str = "left", duration: float = 0.3
+) -> dict[str, Any]:
     if not _PYNPUT_OK:
         return {"stub": True, "action": "drag"}
     import math
+
     m = _MouseCtrl()
     btn = Button.left if button in ("left", "izquierdo") else Button.right
     m.position = (x1, y1)
@@ -143,6 +172,7 @@ def cursor_position() -> dict[str, Any]:
 
 
 # Teclado
+
 
 def keyboard_type(text: str) -> dict[str, Any]:
     if not _PYNPUT_OK:
@@ -194,15 +224,18 @@ def keyboard_hold_release(key: str) -> dict[str, Any]:
 
 # Portapapeles
 
+
 def clipboard_read() -> dict[str, Any]:
     try:
         import pyperclip  # type: ignore
+
         text = pyperclip.paste()
         return {"clipboard": text, "length": len(text)}
     except ImportError:
         pass
     try:
         import win32clipboard  # type: ignore
+
         win32clipboard.OpenClipboard()
         try:
             text = win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
@@ -218,12 +251,14 @@ def clipboard_read() -> dict[str, Any]:
 def clipboard_write(text: str) -> dict[str, Any]:
     try:
         import pyperclip  # type: ignore
+
         pyperclip.copy(text)
         return {"written": len(text)}
     except ImportError:
         pass
     try:
         import win32clipboard  # type: ignore
+
         win32clipboard.OpenClipboard()
         try:
             win32clipboard.EmptyClipboard()
@@ -237,8 +272,10 @@ def clipboard_write(text: str) -> dict[str, Any]:
 
 # Aplicaciones
 
+
 def open_application(app_name: str) -> dict[str, Any]:
     import subprocess
+
     try:
         subprocess.Popen(app_name, shell=True)
         return {"launched": app_name}

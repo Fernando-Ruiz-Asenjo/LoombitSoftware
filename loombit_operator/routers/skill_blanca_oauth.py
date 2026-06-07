@@ -15,6 +15,7 @@ Flujo normal Google:
 
 🟡 Estado: contrato implementado. Pendiente piloto real (Fase 1).
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Query
@@ -22,7 +23,6 @@ from fastapi.responses import HTMLResponse
 
 from ..config import get_settings
 from ..skill_blanca_oauth import (
-    OAuthTokenStore,
     build_authorization_url,
     complete_callback,
     disconnect,
@@ -37,13 +37,17 @@ _SUPPORTED = {"google", "microsoft"}
 
 def _get_config(provider: str):
     if provider not in _SUPPORTED:
-        raise HTTPException(status_code=404, detail=f"Provider '{provider}' not supported. Use: {sorted(_SUPPORTED)}")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Provider '{provider}' not supported. Use: {sorted(_SUPPORTED)}",
+        )
     settings = get_settings()
     configs = oauth_configs_from_settings(settings)
     return configs[provider], settings
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
+
 
 @router.get("/{provider}/start")
 def oauth_start(provider: str):
@@ -56,13 +60,13 @@ def oauth_start(provider: str):
         raise HTTPException(
             status_code=403,
             detail=f"OAuth para '{provider}' está deshabilitado. "
-                   f"Actívalo en .env: LOOMBIT_OPERATOR_SKILL_BLANCA_{provider.upper()}_OAUTH_ENABLED=true",
+            f"Actívalo en .env: LOOMBIT_OPERATOR_SKILL_BLANCA_{provider.upper()}_OAUTH_ENABLED=true",
         )
     if not config.configured:
         raise HTTPException(
             status_code=422,
             detail=f"OAuth para '{provider}' no está configurado. "
-                   f"Faltan: client_id, client_secret y/o redirect_uri en .env",
+            f"Faltan: client_id, client_secret y/o redirect_uri en .env",
         )
     try:
         result = build_authorization_url(config)
@@ -138,6 +142,7 @@ def oauth_disconnect(provider: str):
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _format_token(result: dict) -> str:
     token = result.get("token", {})

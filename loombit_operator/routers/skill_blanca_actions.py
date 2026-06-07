@@ -14,6 +14,7 @@ Todos los endpoints validan:
 
 🟡 Estado: contrato implementado. Pendiente piloto real (Fase 1).
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -32,6 +33,7 @@ router = APIRouter(prefix="/skill-blanca/actions", tags=["skill-blanca-actions"]
 
 
 # ── Request models ────────────────────────────────────────────────────────────
+
 
 class GmailSendRequest(BaseModel):
     to: EmailStr
@@ -56,6 +58,7 @@ class CalendarCreateRequest(BaseModel):
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
+
 
 @router.post("/gmail/send")
 def action_gmail_send(req: GmailSendRequest) -> dict[str, Any]:
@@ -138,6 +141,7 @@ def action_outbox() -> dict[str, Any]:
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _raise_action_error(detail: str) -> None:
     if "no_token" in detail or "no está conectado" in detail:
