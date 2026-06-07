@@ -78,6 +78,7 @@ from fastapi.staticfiles import StaticFiles  # noqa: E402
 from .routers import (  # noqa: E402
     agent,
     computer,
+    docs,
     health,
     pilot,
     skill_blanca_actions,
@@ -96,6 +97,7 @@ app.include_router(skill_blanca_actions.router)
 app.include_router(agent.router)
 app.include_router(computer.router)
 app.include_router(pilot.router)
+app.include_router(docs.router)
 
 # UI estatico y home
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

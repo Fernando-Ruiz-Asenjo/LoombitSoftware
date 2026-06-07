@@ -6,5 +6,6 @@ from .registry import ToolDefinition, ToolRegistry, tool_registry
 from . import base  # noqa: F401
 from . import computer  # noqa: F401
 from . import pilot  # noqa: F401
+from . import documents  # noqa: F401
 
 __all__ = ["ToolDefinition", "ToolRegistry", "tool_registry"]
