@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Local runtime (NEVER commit — datos privados de cliente)
+.env
+runtime/local/
+logs/
+.pytest-tmp/
+.ptmp*/
+
+# Secretos / tokens
+*oauth*tokens*.json
+*oauth*config*.json
+
+# OS
+.DS_Store
+Thumbs.db

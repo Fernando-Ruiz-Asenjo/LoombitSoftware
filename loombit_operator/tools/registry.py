@@ -1,0 +1,89 @@
+"""
+Tool Registry — catálogo de herramientas que el agente puede invocar.
+
+Cada ToolDefinition tiene:
+  - name:              identificador único (snake_case)
+  - description:       qué hace (lo lee el LLM para decidir cuándo usarla)
+  - parameters:        JSON Schema de los argumentos
+  - fn:                función Python que ejecuta la tool
+  - requires_approval: si True, el loop para y espera confirmación humana
+  - safety_class:      passive | assisted | safety_sensitive | blocked_by_default
+
+El método to_openai() convierte la definición al formato que espera la API
+de LM Studio / OpenAI para function calling.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any, Callable
+
+
+@dataclass
+class ToolDefinition:
+    name: str
+    description: str
+    parameters: dict[str, Any]          # JSON Schema (type=object, properties, required)
+    fn: Callable[..., Any]
+    requires_approval: bool = False
+    safety_class: str = "passive"       # passive | assisted | safety_sensitive
+    category: str = "base"              # base | file | web | shell | connector | computer
+
+    def to_openai(self) -> dict[str, Any]:
+        """Formato que espera /chat/completions con tools."""
+        return {
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": self.parameters,
+            },
+        }
+
+    def execute(self, **kwargs: Any) -> Any:
+        return self.fn(**kwargs)
+
+    def snapshot(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "description": self.description[:80],
+            "requires_approval": self.requires_approval,
+            "safety_class": self.safety_class,
+            "category": self.category,
+        }
+
+
+class ToolRegistry:
+    def __init__(self) -> None:
+        self._tools: dict[str, ToolDefinition] = {}
+
+    def register(self, tool: ToolDefinition) -> None:
+        if tool.name in self._tools:
+            raise ValueError(f"Tool '{tool.name}' ya está registrada")
+        self._tools[tool.name] = tool
+
+    def get(self, name: str) -> ToolDefinition:
+        try:
+            return self._tools[name]
+        except KeyError as exc:
+            raise KeyError(f"Tool desconocida: '{name}'") from exc
+
+    def list(self, category: str | None = None) -> list[ToolDefinition]:
+        tools = list(self._tools.values())
+        if category:
+            tools = [t for t in tools if t.category == category]
+        return sorted(tools, key=lambda t: t.name)
+
+    def to_openai(self, category: str | None = None) -> list[dict[str, Any]]:
+        """Lista de tool definitions en formato OpenAI, lista para la API."""
+        return [t.to_openai() for t in self.list(category)]
+
+    def snapshot(self) -> dict[str, Any]:
+        tools = self.list()
+        return {
+            "count": len(tools),
+            "tools": [t.snapshot() for t in tools],
+        }
+
+
+# Registro singleton — se popula en tools/base.py (y futuros módulos)
+tool_registry = ToolRegistry()

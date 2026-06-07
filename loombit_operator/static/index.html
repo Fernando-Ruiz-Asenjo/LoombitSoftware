@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loombit</title>
+<style>
+/* ═══════════════════════════════════════════════════════
+   LOOMBIT — Skill Skins v1
+   Design system: tokens → components → layout
+═══════════════════════════════════════════════════════ */
+
+/* ── Tokens ── */
+:root {
+  --lb-navy:      #0b0f1a;
+  --lb-navy2:     #111827;
+  --lb-navy3:     #1a2235;
+  --lb-navy4:     #243048;
+  --lb-border:    rgba(255,255,255,0.07);
+  --lb-border2:   rgba(255,255,255,0.12);
+
+  --lb-purple:    #8b5cf6;
+  --lb-purple2:   #7c3aed;
+  --lb-purple-dim:#2d1f5e;
+  --lb-blue:      #3b82f6;
+  --lb-cyan:      #06b6d4;
+
+  --lb-text:      #f1f5f9;
+  --lb-text2:     #94a3b8;
+  --lb-text3:     #475569;
+
+  --lb-green:     #22c55e;
+  --lb-amber:     #f59e0b;
+  --lb-red:       #ef4444;
+
+  --lb-user-bubble:  #1e293b;
+  --lb-agent-bubble: #111827;
+
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 20px;
+  --r-full: 999px;
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --sidebar-w: 240px;
+  --header-h:  56px;
+  --input-max: 720px;
+
+  --transition: 160ms cubic-bezier(.4,0,.2,1);
+}
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; -webkit-font-smoothing: antialiased; }
+body {
+  font-family: var(--font-sans);
+  background: var(--lb-navy);
+  color: var(--lb-text);
+  height: 100dvh;
+  display: flex;
+  overflow: hidden;
+}
+button { cursor: pointer; font-family: inherit; border: none; background: none; }
+textarea, input { font-family: inherit; }
+a { color: inherit; text-decoration: none; }
+
+/* ═══════════════════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════════════════ */
+#sidebar {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  background: var(--lb-navy2);
+  border-right: 1px solid var(--lb-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width var(--transition), min-width var(--transition);
+  z-index: 20;
+}
+#sidebar.collapsed { width: 60px; min-width: 60px; }
+
+/* Logo */
+.sidebar-logo {
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 10px;
+  border-bottom: 1px solid var(--lb-border);
+  flex-shrink: 0;
+}
+.logo-icon {
+  width: 30px; height: 30px; min-width: 30px; border-radius: var(--r-sm);
+  background: linear-gradient(135deg, var(--lb-purple), var(--lb-cyan));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 800; color: #fff;
+  letter-spacing: -0.5px; flex-shrink: 0;
+}
+.logo-text {
+  font-size: 15px; font-weight: 700; letter-spacing: -0.4px;
+  white-space: nowrap; overflow: hidden;
+  transition: opacity var(--transition), width var(--transition);
+}
+#sidebar.collapsed .logo-text { opacity: 0; width: 0; }
+
+/* Nav */
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sidebar-nav::-webkit-scrollbar { display: none; }
+
+.nav-section-label {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--lb-text3);
+  padding: 8px 8px 4px;
+  white-space: nowrap; overflow: hidden;
+  transition: opacity var(--transition);
+}
+#sidebar.collapsed .nav-section-label { opacity: 0; }
+
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: var(--r-sm);
+  cursor: pointer; transition: background var(--transition), color var(--transition);
+  color: var(--lb-text2); font-size: 13.5px; font-weight: 500;
+  white-space: nowrap; overflow: hidden;
+  position: relative;
+  user-select: none;
+}
+.nav-item:hover   { background: var(--lb-navy3); color: var(--lb-text); }
+.nav-item.active  { background: var(--lb-purple-dim); color: #c4b5fd; }
+.nav-item .nav-icon {
+  font-size: 16px; min-width: 20px; text-align: center; flex-shrink: 0;
+}
+.nav-item .nav-label {
+  transition: opacity var(--transition), width var(--transition);
+  overflow: hidden;
+}
+#sidebar.collapsed .nav-label { opacity: 0; width: 0; }
+
+.nav-badge {
+  margin-left: auto; background: var(--lb-purple);
+  color: #fff; font-size: 10px; font-weight: 700;
+  padding: 1px 6px; border-radius: var(--r-full);
+  flex-shrink: 0;
+  transition: opacity var(--transition);
+}
+#sidebar.collapsed .nav-badge { opacity: 0; }
+
+/* Status pill al fondo */
+.sidebar-bottom {
+  padding: 12px 8px;
+  border-top: 1px solid var(--lb-border);
+  flex-shrink: 0;
+}
+.status-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: var(--r-sm);
+  font-size: 12px; color: var(--lb-text2);
+  white-space: nowrap; overflow: hidden;
+}
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  background: var(--lb-green);
+  box-shadow: 0 0 0 2px rgba(34,197,94,.2);
+  transition: background .3s;
+}
+.status-dot.amber { background: var(--lb-amber); box-shadow: 0 0 0 2px rgba(245,158,11,.2); animation: pulse 1.2s infinite; }
+.status-dot.red   { background: var(--lb-red);   box-shadow: 0 0 0 2px rgba(239,68,68,.2); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ═══════════════════════════════════════════════════════
+   MAIN AREA
+═══════════════════════════════════════════════════════ */
+#main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Header */
+#topbar {
+  height: var(--header-h);
+  min-height: var(--header-h);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--lb-border);
+  gap: 12px;
+  background: var(--lb-navy2);
+  z-index: 10;
+  flex-shrink: 0;
+}
+.topbar-toggle {
+  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+  border-radius: var(--r-sm); color: var(--lb-text2);
+  transition: background var(--transition), color var(--transition);
+  flex-shrink: 0;
+}
+.topbar-toggle:hover { background: var(--lb-navy3); color: var(--lb-text); }
+.topbar-toggle svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
+
+.topbar-skill {
+  display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;
+}
+.skill-avatar {
+  width: 28px; height: 28px; border-radius: var(--r-sm); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700;
+}
+.skill-avatar.admin { background: linear-gradient(135deg,#3b82f6,#8b5cf6); color: #fff; }
+.skill-avatar.code  { background: linear-gradient(135deg,#06b6d4,#3b82f6); color: #fff; }
+
+.skill-meta { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.skill-name { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.skill-sub  { font-size: 11px; color: var(--lb-text2); white-space: nowrap; }
+
+.topbar-divider { width: 1px; height: 20px; background: var(--lb-border); flex-shrink: 0; }
+
+.topbar-user {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+}
+.user-name { font-size: 13px; color: var(--lb-text2); white-space: nowrap; }
+.user-avatar {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  background: var(--lb-purple-dim);
+  border: 1.5px solid var(--lb-purple);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #c4b5fd;
+}
+
+.topbar-actions { display: flex; align-items: center; gap: 4px; margin-left: auto; flex-shrink: 0; }
+.icon-btn {
+  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+  border-radius: var(--r-sm); color: var(--lb-text2);
+  transition: background var(--transition), color var(--transition);
+}
+.icon-btn:hover { background: var(--lb-navy3); color: var(--lb-text); }
+.icon-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ═══════════════════════════════════════════════════════
+   CHAT BODY
+═══════════════════════════════════════════════════════ */
+#chat-body {
+  flex: 1;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  padding: 32px 0 24px;
+}
+#chat-body::-webkit-scrollbar { width: 3px; }
+#chat-body::-webkit-scrollbar-track { background: transparent; }
+#chat-body::-webkit-scrollbar-thumb { background: var(--lb-border2); border-radius: 2px; }
+
+.chat-content { max-width: var(--input-max); margin: 0 auto; padding: 0 24px; display: flex; flex-direction: column; gap: 0; }
+
+/* ── Welcome ── */
+#welcome {
+  max-width: var(--input-max); margin: 0 auto; padding: 48px 24px 32px;
+  animation: fadeIn .4s ease;
+}
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+.welcome-header { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+.welcome-avatar {
+  width: 48px; height: 48px; border-radius: var(--r-md); flex-shrink: 0;
+  background: linear-gradient(135deg, var(--lb-purple), var(--lb-cyan));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 800; color: #fff;
+}
+.welcome-text h2 { font-size: 20px; font-weight: 700; margin-bottom: 3px; }
+.welcome-text p  { font-size: 13.5px; color: var(--lb-text2); line-height: 1.5; }
+
+.suggestions {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 24px;
+}
+.sug-card {
+  background: var(--lb-navy2); border: 1px solid var(--lb-border);
+  border-radius: var(--r-md); padding: 12px 14px; cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+  text-align: left;
+}
+.sug-card:hover { border-color: var(--lb-purple); background: var(--lb-navy3); }
+.sug-card .sug-icon { font-size: 18px; margin-bottom: 6px; }
+.sug-card .sug-text { font-size: 13px; color: var(--lb-text2); line-height: 1.45; }
+.sug-card:hover .sug-text { color: var(--lb-text); }
+
+/* ── Messages ── */
+.msg-row {
+  display: flex; gap: 12px;
+  padding: 16px 0;
+  animation: fadeIn .25s ease;
+}
+.msg-row + .msg-row { border-top: none; }
+.msg-row.user { flex-direction: row-reverse; }
+
+.msg-ava {
+  width: 32px; height: 32px; min-width: 32px; border-radius: var(--r-sm); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700;
+  margin-top: 2px;
+}
+.msg-row.user  .msg-ava { background: var(--lb-purple-dim); color: #c4b5fd; border: 1px solid rgba(139,92,246,.3); }
+.msg-row.agent .msg-ava { background: linear-gradient(135deg,#3b82f6,#8b5cf6); color: #fff; }
+
+.msg-col { display: flex; flex-direction: column; gap: 4px; max-width: calc(100% - 44px); }
+.msg-row.user  .msg-col { align-items: flex-end; }
+.msg-row.agent .msg-col { align-items: flex-start; }
+
+.msg-sender { font-size: 11.5px; font-weight: 600; color: var(--lb-text2); }
+
+.msg-bubble {
+  padding: 11px 15px; border-radius: var(--r-md);
+  font-size: 14px; line-height: 1.65; word-break: break-word;
+  max-width: 100%;
+}
+.msg-row.user  .msg-bubble {
+  background: var(--lb-user-bubble);
+  border: 1px solid rgba(255,255,255,.06);
+  border-bottom-right-radius: 4px;
+}
+.msg-row.agent .msg-bubble {
+  background: var(--lb-agent-bubble);
+  border: 1px solid var(--lb-border);
+  border-bottom-left-radius: 4px;
+}
+
+.msg-bubble code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: rgba(255,255,255,.06);
+  padding: 1px 5px; border-radius: 4px;
+}
+.msg-bubble pre {
+  background: rgba(0,0,0,.3); border: 1px solid var(--lb-border);
+  border-radius: var(--r-sm); padding: 12px 14px; margin: 8px 0;
+  overflow-x: auto; font-size: 12px; font-family: var(--font-mono); line-height: 1.5;
+}
+
+.msg-meta { display: flex; align-items: center; gap: 8px; }
+.msg-time { font-size: 10.5px; color: var(--lb-text3); }
+
+/* Steps pills */
+.steps-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.step-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(255,255,255,.04); border: 1px solid var(--lb-border);
+  border-radius: var(--r-full); padding: 3px 10px;
+  font-size: 11px; color: var(--lb-text3); cursor: default;
+  transition: border-color var(--transition), color var(--transition);
+}
+.step-pill:hover { border-color: var(--lb-border2); color: var(--lb-text2); }
+.step-pill .sp-icon { font-size: 10px; }
+
+/* Thinking */
+.msg-thinking .msg-bubble { color: var(--lb-text3); }
+.typing-dots { display: inline-flex; gap: 4px; align-items: center; height: 14px; }
+.typing-dots span {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--lb-text3); display: block;
+  animation: tdot 1.2s infinite;
+}
+.typing-dots span:nth-child(2) { animation-delay: .18s; }
+.typing-dots span:nth-child(3) { animation-delay: .36s; }
+@keyframes tdot { 0%,80%,100%{transform:scale(1)} 40%{transform:scale(1.4)} }
+
+/* Approval */
+.approval-box {
+  margin-top: 6px; padding: 14px 16px;
+  background: rgba(245,158,11,.06); border: 1px solid rgba(245,158,11,.25);
+  border-radius: var(--r-md);
+}
+.approval-box .ap-title { font-size: 12.5px; font-weight: 600; color: var(--lb-amber); margin-bottom: 6px; }
+.approval-box .ap-body  { font-size: 13px; color: var(--lb-text2); line-height: 1.55; margin-bottom: 12px; }
+.approval-box .ap-body strong { color: var(--lb-text); }
+.ap-btns { display: flex; gap: 8px; }
+.ap-btn {
+  padding: 6px 16px; border-radius: var(--r-sm);
+  font-size: 12.5px; font-weight: 600;
+  transition: opacity var(--transition), transform var(--transition);
+}
+.ap-btn:hover { opacity: .85; }
+.ap-btn:active { transform: scale(.97); }
+.ap-btn.ok   { background: var(--lb-green); color: #000; }
+.ap-btn.deny { background: var(--lb-navy3); color: var(--lb-text2); border: 1px solid var(--lb-border); }
+
+/* Error */
+.msg-error .msg-bubble { border-color: rgba(239,68,68,.3); color: #fca5a5; }
+
+/* ═══════════════════════════════════════════════════════
+   INPUT BAR
+═══════════════════════════════════════════════════════ */
+#input-area {
+  flex-shrink: 0;
+  padding: 0 24px 20px;
+  background: var(--lb-navy);
+}
+.input-outer {
+  max-width: var(--input-max); margin: 0 auto;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.input-box {
+  display: flex; align-items: flex-end; gap: 10px;
+  background: var(--lb-navy2);
+  border: 1px solid var(--lb-border2);
+  border-radius: var(--r-lg); padding: 10px 12px;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.input-box:focus-within {
+  border-color: var(--lb-purple);
+  box-shadow: 0 0 0 3px rgba(139,92,246,.12);
+}
+#msg-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--lb-text); font-size: 14px; line-height: 1.55;
+  resize: none; min-height: 22px; max-height: 140px;
+  overflow-y: auto;
+}
+#msg-input::placeholder { color: var(--lb-text3); }
+#msg-input::-webkit-scrollbar { width: 3px; }
+#msg-input::-webkit-scrollbar-thumb { background: var(--lb-border2); border-radius: 2px; }
+
+.send-btn {
+  width: 34px; height: 34px; border-radius: var(--r-sm); flex-shrink: 0;
+  background: var(--lb-purple); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity var(--transition), transform var(--transition), background var(--transition);
+}
+.send-btn:hover  { background: var(--lb-purple2); }
+.send-btn:active { transform: scale(.95); }
+.send-btn:disabled { opacity: .35; pointer-events: none; }
+.send-btn svg { width: 16px; height: 16px; fill: currentColor; }
+
+.input-hint {
+  font-size: 11px; color: var(--lb-text3); text-align: center;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.input-hint kbd {
+  background: var(--lb-navy3); border: 1px solid var(--lb-border2);
+  border-radius: 4px; padding: 1px 5px; font-size: 10.5px;
+  font-family: var(--font-mono); color: var(--lb-text2);
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ SIDEBAR ═══════════════════════════════════════════ -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">Lb</div>
+    <span class="logo-text">Loombit</span>
+  </div>
+
+  <div class="sidebar-nav">
+    <div class="nav-section-label">Skills</div>
+
+    <div class="nav-item active" onclick="switchSkill('admin', this)">
+      <span class="nav-icon">🗂</span>
+      <span class="nav-label">Administrativo</span>
+    </div>
+
+    <div class="nav-item" onclick="switchSkill('coding', this)">
+      <span class="nav-icon">⌨</span>
+      <span class="nav-label">Coding</span>
+      <span class="nav-badge">pronto</span>
+    </div>
+
+    <div class="nav-section-label" style="margin-top:8px;">Historial</div>
+
+    <div class="nav-item" id="history-placeholder" style="pointer-events:none;">
+      <span class="nav-icon" style="font-size:13px;">💬</span>
+      <span class="nav-label" style="color:var(--lb-text3);font-size:12.5px;">Sin conversaciones</span>
+    </div>
+  </div>
+
+  <div class="sidebar-bottom">
+    <div class="status-item">
+      <div class="status-dot" id="llm-dot"></div>
+      <span class="nav-label" id="llm-label" style="font-size:12px;">Conectando…</span>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══ MAIN ═══════════════════════════════════════════════ -->
+<div id="main">
+
+  <!-- Topbar -->
+  <header id="topbar">
+    <button class="topbar-toggle" onclick="toggleSidebar()" title="Menú">
+      <svg viewBox="0 0 24 24"><line x1="3" y1="6"  x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+
+    <div class="topbar-skill">
+      <div class="skill-avatar admin" id="skill-avatar">SB</div>
+      <div class="skill-meta">
+        <span class="skill-name" id="skill-name">Skill Blanca · Administrativo</span>
+        <span class="skill-sub" id="skill-sub">Loombit Operator v0.1</span>
+      </div>
+    </div>
+
+    <div class="topbar-divider"></div>
+
+    <div class="topbar-user">
+      <span class="user-name" id="user-name-label">Fernando</span>
+      <div class="user-avatar" id="user-avatar">F</div>
+    </div>
+
+    <div class="topbar-actions">
+      <button class="icon-btn" onclick="clearChat()" title="Nueva conversación">
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+      <button class="icon-btn" title="Ajustes (próximamente)">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Chat body -->
+  <div id="chat-body">
+    <!-- Welcome -->
+    <div id="welcome">
+      <div class="welcome-header">
+        <div class="welcome-avatar">SB</div>
+        <div class="welcome-text">
+          <h2>Hola, Fernando</h2>
+          <p>Soy Skill Blanca Administrativo. Dime qué necesitas y lo gestiono.</p>
+        </div>
+      </div>
+      <div class="suggestions">
+        <button class="sug-card" onclick="useSuggestion(this)">
+          <div class="sug-icon">📧</div>
+          <div class="sug-text">Resume los correos sin leer de hoy</div>
+        </button>
+        <button class="sug-card" onclick="useSuggestion(this)">
+          <div class="sug-icon">📅</div>
+          <div class="sug-text">Crea una reunión de 1h para mañana a las 10</div>
+        </button>
+        <button class="sug-card" onclick="useSuggestion(this)">
+          <div class="sug-icon">📁</div>
+          <div class="sug-text">Lista los documentos PDF de la carpeta facturas</div>
+        </button>
+        <button class="sug-card" onclick="useSuggestion(this)">
+          <div class="sug-icon">🔧</div>
+          <div class="sug-text">¿Qué herramientas tienes disponibles?</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Messages container -->
+    <div class="chat-content" id="messages"></div>
+  </div>
+
+  <!-- Input -->
+  <div id="input-area">
+    <div class="input-outer">
+      <div class="input-box">
+        <textarea
+          id="msg-input"
+          rows="1"
+          placeholder="Escribe una tarea o pregunta…"
+        ></textarea>
+        <button class="send-btn" id="send-btn" onclick="sendMessage()" title="Enviar">
+          <svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+        </button>
+      </div>
+      <div class="input-hint">
+        <span><kbd>Ctrl</kbd>+<kbd>Enter</kbd> para enviar</span>
+        <span>·</span>
+        <span>Los pasos del agente se muestran en tiempo real</span>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ═══════════════════════════════════════════════════════
+// LOOMBIT — UI Logic
+// ═══════════════════════════════════════════════════════
+
+const API    = window.location.origin;
+const ME     = { name: 'Fernando', initial: 'F' };
+const SKILLS = {
+  admin:  { name: 'Skill Blanca · Administrativo', sub: 'Loombit Operator v0.1', initial: 'SB', cls: 'admin', profile: 'administrativo' },
+  coding: { name: 'Skill Blanca · Coding',         sub: 'Loombit Operator v0.1', initial: 'SC', cls: 'code',  profile: 'administrativo' },
+};
+
+let activeSkill = 'admin';
+let busy        = false;
+
+// ── DOM refs ──────────────────────────────────────────
+const msgInput  = document.getElementById('msg-input');
+const sendBtn   = document.getElementById('send-btn');
+const msgsCont  = document.getElementById('messages');
+const welcome   = document.getElementById('welcome');
+
+// ── Auto-resize textarea ──────────────────────────────
+msgInput.addEventListener('input', () => {
+  msgInput.style.height = 'auto';
+  msgInput.style.height = Math.min(msgInput.scrollHeight, 140) + 'px';
+});
+msgInput.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); sendMessage(); }
+});
+
+// ── Sidebar toggle ────────────────────────────────────
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('collapsed');
+}
+
+// ── Skill switch ──────────────────────────────────────
+function switchSkill(key, el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  activeSkill = key;
+  const sk = SKILLS[key];
+  document.getElementById('skill-name').textContent = sk.name;
+  document.getElementById('skill-sub').textContent  = sk.sub;
+  const ava = document.getElementById('skill-avatar');
+  ava.textContent = sk.initial;
+  ava.className   = `skill-avatar ${sk.cls}`;
+}
+
+// ── Clear chat ────────────────────────────────────────
+function clearChat() {
+  msgsCont.innerHTML = '';
+  welcome.style.display = '';
+}
+
+// ── Time ──────────────────────────────────────────────
+function fmtTime() {
+  return new Date().toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
+}
+
+// ── Render helpers ────────────────────────────────────
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+function fmt(text) {
+  return esc(text)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+    .replace(/\n/g, '<br>');
+}
+
+function addMsg(role, text, steps) {
+  welcome.style.display = 'none';
+  const sk = SKILLS[activeSkill];
+  const isUser = role === 'user';
+  const row = document.createElement('div');
+  row.className = `msg-row ${role}${role==='error'?' msg-error':''}`;
+  if (role === 'thinking') row.classList.add('msg-thinking');
+
+  const ava     = isUser ? ME.initial : sk.initial;
+  const sender  = isUser ? ME.name    : sk.name.split(' · ')[0];
+  const avaCls  = isUser ? '' : `style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff"`;
+  const roleKey = role === 'user' ? 'user' : 'agent';
+
+  let stepsHtml = '';
+  if (steps && steps.length) {
+    const pills = steps.map(s =>
+      `<div class="step-pill"><span class="sp-icon">⚙</span>${esc(s.tool_name)}</div>`
+    ).join('');
+    stepsHtml = `<div class="steps-row">${pills}</div>`;
+  }
+
+  let bubbleContent = role === 'thinking'
+    ? `Procesando <div class="typing-dots"><span></span><span></span><span></span></div>`
+    : fmt(text);
+
+  row.innerHTML = `
+    <div class="msg-ava" ${avaCls}>${ava}</div>
+    <div class="msg-col">
+      <div class="msg-sender">${esc(sender)}</div>
+      <div class="msg-bubble">${bubbleContent}</div>
+      ${stepsHtml}
+      <div class="msg-meta"><span class="msg-time">${fmtTime()}</span></div>
+    </div>`;
+  msgsCont.appendChild(row);
+  scrollBottom();
+  return row;
+}
+
+function removeThinking() {
+  document.querySelector('.msg-thinking')?.remove();
+}
+
+function addApproval(runId, reason, action) {
+  const row = addMsg('agent', '');
+  const bubble = row.querySelector('.msg-bubble');
+  bubble.innerHTML = `
+    <span style="color:var(--lb-text2)">He llegado a un punto que requiere tu confirmación.</span>
+    <div class="approval-box" style="margin-top:10px">
+      <div class="ap-title">⚠ Aprobación requerida</div>
+      <div class="ap-body">
+        <strong>Motivo:</strong> ${esc(reason)}<br>
+        <strong>Acción:</strong> ${esc(action)}
+      </div>
+      <div class="ap-btns">
+        <button class="ap-btn ok"   onclick="approveRun('${runId}',this)">✓ Aprobar</button>
+        <button class="ap-btn deny" onclick="denyRun(this)">✗ Cancelar</button>
+      </div>
+    </div>`;
+}
+
+function scrollBottom() {
+  const b = document.getElementById('chat-body');
+  b.scrollTop = b.scrollHeight;
+}
+
+// ── Status dot ────────────────────────────────────────
+function setLLMStatus(s) {
+  const d = document.getElementById('llm-dot');
+  const l = document.getElementById('llm-label');
+  d.className = 'status-dot' + (s === 'busy' ? ' amber' : s === 'offline' ? ' red' : '');
+  l.textContent = s === 'busy' ? 'Procesando…' : s === 'offline' ? 'Sin conexión' : 'Operador activo';
+}
+
+function setBusy(b) {
+  busy = b;
+  sendBtn.disabled   = b;
+  msgInput.disabled  = b;
+  setLLMStatus(b ? 'busy' : 'online');
+}
+
+// ── Send ──────────────────────────────────────────────
+async function sendMessage() {
+  const text = msgInput.value.trim();
+  if (!text || busy) return;
+  msgInput.value = '';
+  msgInput.style.height = 'auto';
+
+  addMsg('user', text);
+  setBusy(true);
+  addMsg('thinking');
+
+  try {
+    const res = await fetch(`${API}/agent/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task: text, max_steps: 20, profile: SKILLS[activeSkill].profile }),
+    });
+    removeThinking();
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      addMsg('error', `Error ${res.status}: ${err.detail || res.statusText}`);
+    } else {
+      renderRun(await res.json());
+    }
+  } catch(e) {
+    removeThinking();
+    addMsg('error', `No se pudo conectar con el operador:\n${e.message}`);
+    setLLMStatus('offline');
+  }
+  setBusy(false);
+}
+
+function renderRun(run) {
+  if (run.status === 'completed') {
+    addMsg('agent', run.result || '(tarea completada)', run.steps || []);
+  } else if (run.status === 'failed') {
+    addMsg('error', `Error del agente:\n${run.error || '(sin detalle)'}`, run.steps || []);
+  } else if (run.status === 'pending_approval') {
+    const pa = run.pending_approval || {};
+    addApproval(run.id, pa.reason || '', pa.proposed_action || '');
+  } else {
+    addMsg('agent', `Estado: ${run.status}`);
+  }
+}
+
+// ── Approval ──────────────────────────────────────────
+async function approveRun(runId, btn) {
+  btn.closest('.ap-btns').querySelectorAll('.ap-btn').forEach(b => b.disabled = true);
+  addMsg('user', '✓ Aprobado, continúa.');
+  setBusy(true);
+  addMsg('thinking');
+  try {
+    const res = await fetch(`${API}/agent/runs/${runId}/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ comment: 'Aprobado desde Loombit UI.' }),
+    });
+    removeThinking();
+    if (!res.ok) {
+      addMsg('error', `Error al aprobar: ${(await res.json().catch(()=>({}))).detail || res.statusText}`);
+    } else {
+      renderRun(await res.json());
+    }
+  } catch(e) {
+    removeThinking();
+    addMsg('error', `Error de red: ${e.message}`);
+  }
+  setBusy(false);
+}
+
+function denyRun(btn) {
+  btn.closest('.ap-btns').querySelectorAll('.ap-btn').forEach(b => b.disabled = true);
+  addMsg('user', '✗ Cancelado.');
+  addMsg('agent', 'Entendido, acción cancelada. ¿Quieres que intente algo diferente?');
+}
+
+// ── Suggestions ───────────────────────────────────────
+function useSuggestion(el) {
+  msgInput.value = el.querySelector('.sug-text').textContent;
+  sendMessage();
+}
+
+// ── Health check ──────────────────────────────────────
+(async () => {
+  try {
+    const r = await fetch(`${API}/health`, { signal: AbortSignal.timeout(3000) });
+    setLLMStatus(r.ok ? 'online' : 'offline');
+  } catch { setLLMStatus('offline'); }
+})();
+</script>
+</body>
+</html>
