@@ -18,8 +18,13 @@ import base64
 import json
 import re
 from datetime import UTC, datetime
+import mimetypes
+
+from email.mime.application import MIMEApplication
+from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email import encoders
 from pathlib import Path
 from typing import Any, Callable
 
@@ -42,10 +47,12 @@ def compose_message(
     body_html: str | None = None,
     cc: str = "",
     reply_to: str = "",
+    attachment_path: str = "",
 ) -> dict[str, Any]:
     """
     Construye el payload listo para Gmail API.
     Devuelve { "raw": "<base64url>" } que se pasa directamente a send_email().
+    Soporta attachment_path: ruta a un fichero local (PNG, PDF, etc.) para adjuntar.
     """
     _validate_email(to, "to")
     if cc:
@@ -55,8 +62,34 @@ def compose_message(
     if not body_text.strip():
         raise ValueError("email_body_required")
 
-    if body_html:
-        msg: MIMEMultipart | MIMEText = MIMEMultipart("alternative")
+    # Si hay adjunto, siempre usamos MIMEMultipart mixed
+    if attachment_path:
+        attach_p = Path(attachment_path)
+        if not attach_p.exists():
+            raise FileNotFoundError(f"Adjunto no encontrado: {attachment_path}")
+        outer: MIMEMultipart = MIMEMultipart("mixed")
+        # Parte de texto (con html si existe)
+        if body_html:
+            alt = MIMEMultipart("alternative")
+            alt.attach(MIMEText(body_text, "plain", "utf-8"))
+            alt.attach(MIMEText(body_html, "html", "utf-8"))
+            outer.attach(alt)
+        else:
+            outer.attach(MIMEText(body_text, "plain", "utf-8"))
+        # Adjunto
+        ctype, _ = mimetypes.guess_type(str(attach_p))
+        if not ctype:
+            ctype = "application/octet-stream"
+        maintype, subtype = ctype.split("/", 1)
+        with open(attach_p, "rb") as fp:
+            att = MIMEBase(maintype, subtype)
+            att.set_payload(fp.read())
+        encoders.encode_base64(att)
+        att.add_header("Content-Disposition", "attachment", filename=attach_p.name)
+        outer.attach(att)
+        msg: MIMEMultipart | MIMEText = outer
+    elif body_html:
+        msg = MIMEMultipart("alternative")
         assert isinstance(msg, MIMEMultipart)
         msg.attach(MIMEText(body_text, "plain", "utf-8"))
         msg.attach(MIMEText(body_html, "html", "utf-8"))
@@ -82,6 +115,7 @@ def send_email(
     body_html: str | None = None,
     cc: str = "",
     reply_to: str = "",
+    attachment_path: str = "",
     settings: AppSettings | None = None,
     http_post: Callable[..., Any] | None = None,
 ) -> dict[str, Any]:
@@ -110,6 +144,7 @@ def send_email(
         body_html=body_html,
         cc=cc,
         reply_to=reply_to,
+        attachment_path=attachment_path,
     )
 
     post = http_post or httpx.post
@@ -194,6 +229,9 @@ def _build_receipt(
     return receipt
 
 
+def snapshot_outbox(settings: AppSettings | None = None) -> dict[str, Any]:
+    """Lista los recibos del outbox local."""
+    active = settings or get_settings()
 def snapshot_outbox(settings: AppSettings | None = None) -> dict[str, Any]:
     """Lista los recibos del outbox local."""
     active = settings or get_settings()
