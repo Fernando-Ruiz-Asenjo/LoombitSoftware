@@ -173,9 +173,8 @@ class AgentLoop:
                 {"role": "user", "content": run.task},
             ]
 
-        tools_schema = self.registry.to_openai(profile=run.profile)
-
         try:
+            tools_schema = self.registry.to_openai(profile=run.profile)
             while True:
                 # Guard: cancelación externa (el usuario pulsó "Detener")
                 fresh = self.store.get(run.id)

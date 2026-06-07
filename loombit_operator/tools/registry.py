@@ -74,8 +74,16 @@ class ToolRegistry:
             tools = [t for t in tools if t.category == category]
         return sorted(tools, key=lambda t: t.name)
 
-    def to_openai(self, category: str | None = None) -> list[dict[str, Any]]:
-        """Lista de tool definitions en formato OpenAI, lista para la API."""
+    def to_openai(
+        self, category: str | None = None, profile: str | None = None
+    ) -> list[dict[str, Any]]:
+        """
+        Lista de tool definitions en formato OpenAI, lista para la API.
+
+        `profile` se acepta para una futura selección de tools por perfil
+        (administrativo, contabilidad…); por ahora todos los perfiles ven todas
+        las tools. `category` filtra por categoría si se indica.
+        """
         return [t.to_openai() for t in self.list(category)]
 
     def snapshot(self) -> dict[str, Any]:
