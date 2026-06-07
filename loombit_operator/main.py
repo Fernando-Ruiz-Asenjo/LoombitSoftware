@@ -1,24 +1,23 @@
 """Punto de entrada FastAPI. Solo crea la app y monta routers (anti-monolito)."""
 from __future__ import annotations
 
+import os
+import sys
 from pathlib import Path
 
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
 
-from .routers import agent, computer, health, skill_blanca_actions, skill_blanca_oauth, ui
+def _patch_pywin32() -> None:
+    """
+    Asegura que pywin32 (instalado en user site-packages) sea importable por
+    el proceso servidor, que puede no incluir user site-packages en sys.path.
 
-STATIC_DIR = Path(__file__).parent / "static"
+    pywin32 requiere tres cosas:
+      1. user_site-packages en sys.path  (para importar pywinauto, etc.)
+      2. user_site-packages/win32 en sys.path  (para importar win32api.pyd)
+      3. user_site-packages/pywin32_system32 en DLL search path (para pywintypes.dll)
+    """
+    try:
+        import site
 
-app = FastAPI(title="Loombit Operator", version="0.1.0")
-
-# Rutas API
-app.include_router(health.router)
-app.include_router(skill_blanca_oauth.router)
-app.include_router(skill_blanca_actions.router)
-app.include_router(agent.router)
-app.include_router(computer.router)
-
-# UI — sirve /static/* y / como home
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-app.include_router(ui.router)
+        # Directorios candidatos (user primero, luego system)
+        candidates: list[Path] = []
