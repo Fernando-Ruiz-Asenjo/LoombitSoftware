@@ -30,7 +30,7 @@ UTC = timezone.utc
 logger = logging.getLogger(__name__)
 
 _DEFAULT_MEMORY: dict[str, Any] = {
-    "version": 2,
+    "version": 3,
     "owner": {
         "name": "Fernando",
         "email": "fernando.ruizasenjo@gmail.com",
@@ -49,6 +49,7 @@ _DEFAULT_MEMORY: dict[str, Any] = {
     "procedures": {},  # {tipo_tarea: ProcedureEntry} — cómo hacerlo
     "proposals": [],  # ProposalEntry[] — carencias del agente
     "history": [],  # HistoryEntry[] — SIN LÍMITE
+    "entities": {},  # {clave: EntityProfile} — memoria semántica por empresa
 }
 
 
@@ -237,6 +238,105 @@ class ProposalEntry:
         return f"[{self.category}] {self.issue} → {self.suggestion}"
 
 
+def _norm_iban(iban: str) -> str:
+    """Normaliza un IBAN: sin espacios, en mayúsculas."""
+    return "".join(iban.split()).upper()
+
+
+class EntityProfile:
+    """
+    Memoria SEMÁNTICA por empresa (cliente/proveedor) — el "diferencial real".
+
+    No es una lista de hechos sueltos: es lo que sabe un administrativo con oficio
+    sobre cada empresa con la que trata: cómo paga, qué IBANs son suyos, qué
+    incidencias ha habido, quién es el contacto. Alimenta el seguimiento de cobros
+    y el gate antifraude (un IBAN nuevo en un proveedor conocido = alerta).
+    """
+
+    def __init__(
+        self,
+        name: str,
+        nif: str = "",
+        ibans: list[str] | None = None,
+        contacts: list[str] | None = None,
+        payments: list[int] | None = None,
+        incidents: list[dict[str, str]] | None = None,
+        notes: str = "",
+        first_seen: str = "",
+        last_seen: str = "",
+        times_seen: int = 0,
+    ) -> None:
+        self.name = name
+        self.nif = nif.upper().strip()
+        self.ibans = [_norm_iban(i) for i in (ibans or []) if i.strip()]
+        self.contacts = contacts or []
+        self.payments = payments or []  # días de demora por pago (negativo = adelantado)
+        self.incidents = incidents or []  # [{date, note}]
+        self.notes = notes
+        self.first_seen = first_seen or datetime.now(UTC).strftime("%Y-%m-%d")
+        self.last_seen = last_seen or datetime.now(UTC).strftime("%Y-%m-%d")
+        self.times_seen = times_seen
+
+    @property
+    def avg_days_late(self) -> float:
+        return round(sum(self.payments) / len(self.payments), 1) if self.payments else 0.0
+
+    @property
+    def late_count(self) -> int:
+        return sum(1 for d in self.payments if d > 0)
+
+    @property
+    def pays_late(self) -> bool:
+        """Paga tarde de forma habitual (media > 5 días y mayoría de pagos tardíos)."""
+        return (
+            bool(self.payments)
+            and self.avg_days_late > 5
+            and self.late_count * 2 >= len(self.payments)
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "nif": self.nif,
+            "ibans": self.ibans,
+            "contacts": self.contacts,
+            "payments": self.payments,
+            "incidents": self.incidents,
+            "notes": self.notes,
+            "first_seen": self.first_seen,
+            "last_seen": self.last_seen,
+            "times_seen": self.times_seen,
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict[str, Any]) -> "EntityProfile":
+        return cls(
+            name=str(d.get("name", "")),
+            nif=str(d.get("nif", "")),
+            ibans=list(d.get("ibans", [])),
+            contacts=list(d.get("contacts", [])),
+            payments=[int(x) for x in d.get("payments", [])],
+            incidents=list(d.get("incidents", [])),
+            notes=str(d.get("notes", "")),
+            first_seen=str(d.get("first_seen", "")),
+            last_seen=str(d.get("last_seen", "")),
+            times_seen=int(d.get("times_seen", 0)),
+        )
+
+    def __str__(self) -> str:
+        bits = [self.name]
+        if self.nif:
+            bits.append(f"NIF {self.nif}")
+        if self.payments:
+            tag = "paga tarde" if self.pays_late else "paga a tiempo"
+            bits.append(f"{tag} (media {self.avg_days_late:+g}d)")
+        if self.ibans:
+            bits.append(f"{len(self.ibans)} IBAN(s) conocidos")
+        if self.incidents:
+            bits.append(f"{len(self.incidents)} incidencia(s)")
+        return " | ".join(bits)
+
+
 # ── AgentMemory ───────────────────────────────────────────────────────────────
 
 
@@ -398,6 +498,95 @@ class AgentMemory:
             tasks.append(description)
             self._save()
 
+    # ── Mutadores — entidades (memoria de empresa) ────────────────────────────
+
+    @property
+    def entities(self) -> dict[str, EntityProfile]:
+        return {k: EntityProfile.from_dict(v) for k, v in self._data.get("entities", {}).items()}
+
+    @staticmethod
+    def _entity_key(name: str, nif: str = "") -> str:
+        if nif.strip():
+            return "nif:" + "".join(nif.split()).upper()
+        return "name:" + name.lower().strip()
+
+    def _load_entity(self, name: str, nif: str = "") -> tuple[str, EntityProfile]:
+        entities = self._data.setdefault("entities", {})
+        key = self._entity_key(name, nif)
+        if key in entities:
+            return key, EntityProfile.from_dict(entities[key])
+        # Si buscamos por nombre, reutiliza una entidad ya existente con ese nombre.
+        if not nif.strip() and name:
+            for k, raw in entities.items():
+                if str(raw.get("name", "")).lower().strip() == name.lower().strip():
+                    return k, EntityProfile.from_dict(raw)
+        return key, EntityProfile(name=name, nif=nif)
+
+    def _save_entity(self, key: str, prof: EntityProfile) -> EntityProfile:
+        prof.last_seen = datetime.now(UTC).strftime("%Y-%m-%d")
+        prof.times_seen += 1
+        self._data.setdefault("entities", {})[key] = prof.to_dict()
+        self._save()
+        return prof
+
+    def upsert_entity(
+        self, name: str, nif: str = "", iban: str = "", contact: str = ""
+    ) -> EntityProfile:
+        """Crea o actualiza el perfil de una empresa (cliente/proveedor)."""
+        key, prof = self._load_entity(name, nif)
+        if name and not prof.name:
+            prof.name = name
+        if nif and not prof.nif:
+            prof.nif = nif.upper().strip()
+        if iban:
+            ni = _norm_iban(iban)
+            if ni and ni not in prof.ibans:
+                prof.ibans.append(ni)
+        if contact and contact not in prof.contacts:
+            prof.contacts.append(contact)
+        return self._save_entity(key, prof)
+
+    def record_payment(self, name: str, days_late: int, nif: str = "") -> EntityProfile:
+        """Registra un pago: días de demora (negativo = adelantado/a tiempo)."""
+        key, prof = self._load_entity(name, nif)
+        prof.payments.append(int(days_late))
+        return self._save_entity(key, prof)
+
+    def add_entity_incident(self, name: str, note: str, nif: str = "") -> EntityProfile:
+        key, prof = self._load_entity(name, nif)
+        prof.incidents.append({"date": datetime.now(UTC).strftime("%Y-%m-%d"), "note": note[:300]})
+        return self._save_entity(key, prof)
+
+    def is_known_iban(self, name: str, iban: str, nif: str = "") -> bool:
+        _, prof = self._load_entity(name, nif)
+        return _norm_iban(iban) in prof.ibans
+
+    def iban_alert(self, name: str, iban: str, nif: str = "") -> dict[str, Any]:
+        """
+        Gate antifraude (supuestos S-05/S-15): marca si el IBAN es NUEVO para una
+        empresa que YA tiene IBANs conocidos → el operador debe bloquear el pago y
+        verificar por un canal alternativo antes de continuar.
+        """
+        _, prof = self._load_entity(name, nif)
+        ni = _norm_iban(iban)
+        return {
+            "entity": prof.name or name,
+            "iban": ni,
+            "known_ibans": prof.ibans,
+            "is_known": ni in prof.ibans,
+            "is_new_for_known_entity": bool(prof.ibans) and ni not in prof.ibans,
+        }
+
+    def find_entity(self, query: str) -> list[EntityProfile]:
+        q = query.lower()
+        return [
+            prof
+            for prof in self.entities.values()
+            if q in prof.name.lower()
+            or q in prof.nif.lower()
+            or any(q in c.lower() for c in prof.contacts)
+        ]
+
     def to_context_block(self, task_hint: str = "") -> str:
         """Genera el bloque de contexto para el system prompt."""
         lines: list[str] = []
@@ -435,6 +624,10 @@ class AgentMemory:
             proc = self.find_procedure(task_hint)
             if proc:
                 lines.append("Procedimiento conocido para tarea similar:\n" + str(proc))
+        entities = sorted(self.entities.values(), key=lambda e: e.times_seen, reverse=True)
+        notable = [e for e in entities if e.pays_late or e.incidents][:10]
+        if notable:
+            lines.append("Empresas a vigilar:\n" + "\n".join("  • " + str(e) for e in notable))
         recent = self.history[:8]
         if recent:
             lines.append("Historial reciente:\n" + "\n".join("  • " + str(h) for h in recent))
@@ -457,6 +650,8 @@ class AgentMemory:
             "proposals": [p.to_dict() for p in self.proposals],
             "history_count": len(self._data.get("history", [])),
             "history_recent": [h.to_dict() for h in self.history[:20]],
+            "entities_count": len(self._data.get("entities", {})),
+            "entities": {k: v.to_dict() for k, v in self.entities.items()},
         }
 
     def extract_contacts_from_steps(self, steps: list[Any]) -> int:
