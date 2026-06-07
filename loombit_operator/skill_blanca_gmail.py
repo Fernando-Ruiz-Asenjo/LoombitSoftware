@@ -31,7 +31,7 @@ from typing import Any, Callable
 import httpx
 
 from .config import AppSettings, get_settings
-from .skill_blanca_oauth import load_access_token
+from .skill_blanca_oauth import fresh_access_token
 
 GMAIL_SEND_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages/send"
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -131,7 +131,7 @@ def send_email(
     active = settings or get_settings()
     _check_writes_enabled(active)
 
-    token = load_access_token(active.skill_blanca_oauth_token_store_path, "google")
+    token = fresh_access_token(active, "google")
     if not token:
         raise ValueError(
             "gmail_send_no_token: Google OAuth no está conectado. "

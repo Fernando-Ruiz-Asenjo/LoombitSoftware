@@ -18,6 +18,128 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable
 
+# ── Activación de tools por intención (on-demand, no las 44 de golpe) ──────────
+# Núcleo SIEMPRE disponible (control del bucle).
+CORE_TOOLS: set[str] = {"task_done", "ask_user", "request_approval", "propose_improvement"}
+
+# Grupos que se activan cuando la petición casa con sus palabras clave.
+TOOL_GROUPS: list[tuple[tuple[str, ...], set[str]]] = [
+    (
+        (
+            "correo",
+            "email",
+            "e-mail",
+            "mail",
+            "gmail",
+            "envia",
+            "envía",
+            "manda",
+            "remite",
+            "escribe a",
+            "responde a",
+            "contesta",
+            "destinatario",
+            "buenas noches",
+            "buenos dias",
+        ),
+        {"contacts_find", "gmail_search", "gmail_send"},
+    ),
+    (
+        (
+            "reunion",
+            "reunión",
+            "cita",
+            "evento",
+            "calendario",
+            "agenda",
+            "agéndame",
+            "agendame",
+            "convoca",
+            "queda con",
+            "videollamada",
+        ),
+        {"calendar_create", "contacts_find"},
+    ),
+    (
+        ("busca correo", "buscar correo", "lee correo", "leer correo", "bandeja", "recibido"),
+        {"gmail_search"},
+    ),
+    (
+        (
+            "factura",
+            "albaran",
+            "albarán",
+            "pdf",
+            "documento",
+            "cobro",
+            "vencim",
+            "iban",
+            "importe",
+            "extracto",
+            "proveedor",
+        ),
+        {"read_invoice", "read_file", "list_directory"},
+    ),
+    (
+        ("fichero", "archivo", "carpeta", "guarda", "directorio", "lee el", "escribe el"),
+        {"read_file", "write_file", "list_directory"},
+    ),
+    (
+        (
+            "pantalla",
+            "captura",
+            "click",
+            "clic",
+            "ventana",
+            "programa",
+            "aplicacion",
+            "aplicación",
+            "abre",
+            "escritorio",
+            "excel",
+            "navega",
+            "web",
+            "página",
+            "pagina",
+            "portal",
+            "banco",
+            "sede",
+            "aeat",
+            "whatsapp",
+        ),
+        {
+            "desktop_screenshot",
+            "desktop_ui_snapshot",
+            "desktop_read_screen",
+            "desktop_click",
+            "desktop_click_accessibility",
+            "desktop_type",
+            "desktop_hotkey",
+            "desktop_open_app",
+            "desktop_navigate",
+            "desktop_wait_for_window",
+            "desktop_screen_changed",
+        },
+    ),
+]
+
+# Si la petición no casa con ningún grupo: set administrativo básico (API).
+_DEFAULT_GROUP: set[str] = {"contacts_find", "gmail_search", "gmail_send", "calendar_create"}
+
+
+def select_tool_names(task: str) -> set[str]:
+    """Núcleo + los grupos cuya palabra clave aparece en la petición."""
+    t = (task or "").lower()
+    names = set(CORE_TOOLS)
+    matched = False
+    for keywords, group in TOOL_GROUPS:
+        if any(k in t for k in keywords):
+            names |= group
+            matched = True
+    if not matched:
+        names |= _DEFAULT_GROUP
+    return names
+
 
 @dataclass
 class ToolDefinition:
@@ -75,16 +197,24 @@ class ToolRegistry:
         return sorted(tools, key=lambda t: t.name)
 
     def to_openai(
-        self, category: str | None = None, profile: str | None = None
+        self,
+        category: str | None = None,
+        profile: str | None = None,
+        task: str | None = None,
     ) -> list[dict[str, Any]]:
         """
         Lista de tool definitions en formato OpenAI, lista para la API.
 
-        `profile` se acepta para una futura selección de tools por perfil
-        (administrativo, contabilidad…); por ahora todos los perfiles ven todas
-        las tools. `category` filtra por categoría si se indica.
+        Si se pasa `task`, se activan SOLO las tools que la petición requiere
+        (núcleo + grupos por intención) — menos tokens, menor latencia y menos
+        confusión del modelo. `category` filtra por categoría. `profile` se
+        acepta por compatibilidad.
         """
-        return [t.to_openai() for t in self.list(category)]
+        tools = self.list(category)
+        if task is not None:
+            allow = select_tool_names(task)
+            tools = [t for t in tools if t.name in allow]
+        return [t.to_openai() for t in tools]
 
     def snapshot(self) -> dict[str, Any]:
         tools = self.list()

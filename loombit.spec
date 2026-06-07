@@ -106,6 +106,22 @@ hidden_imports = [
     "loombit_operator.skill_blanca_oauth",
     "loombit_operator.lm_jobs",
     "loombit_operator.skill_loader",
+    "loombit_operator.skills",
+    "loombit_operator.docs_intel",
+    "loombit_operator.cobros",
+    "loombit_operator.pilot.system",
+    "loombit_operator.tools.documents",
+    "loombit_operator.routers.docs",
+    # Cifrado del token (cryptography + keyring backends de Windows)
+    "cryptography",
+    "cryptography.fernet",
+    "keyring",
+    "keyring.backends",
+    "keyring.backends.Windows",
+    "keyring.backends.fail",
+    "keyring.backends.chainer",
+    # Inteligencia documental
+    "pypdf",
     # email / mimetypes (para adjuntos)
     "email.mime.multipart",
     "email.mime.text",

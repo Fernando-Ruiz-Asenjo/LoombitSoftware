@@ -7,5 +7,6 @@ from . import base  # noqa: F401
 from . import computer  # noqa: F401
 from . import pilot  # noqa: F401
 from . import documents  # noqa: F401
+from . import connectors  # noqa: F401  (gmail_send, gmail_search, calendar_create, contacts_find)
 
 __all__ = ["ToolDefinition", "ToolRegistry", "tool_registry"]

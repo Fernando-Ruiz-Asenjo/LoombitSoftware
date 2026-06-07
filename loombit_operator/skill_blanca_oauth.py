@@ -385,6 +385,19 @@ def ensure_fresh_access_token(
     return str(store.token_for(config.provider).get("access_token", ""))
 
 
+def fresh_access_token(settings: AppSettings, provider: str = "google") -> str:
+    """
+    Devuelve un access_token VIVO para el provider, refrescándolo con el
+    refresh_token si ha expirado. Conveniencia sobre ensure_fresh_access_token:
+    construye la config desde los settings. Lanza ValueError si no hay conexión.
+
+    Es la vía que deben usar los conectores (Gmail, Calendar, People) para no
+    obligar al usuario a reconectarse cada hora.
+    """
+    config = oauth_configs_from_settings(settings)[provider]
+    return ensure_fresh_access_token(config)
+
+
 # ── Helpers privados ──────────────────────────────────────────────────────────
 
 

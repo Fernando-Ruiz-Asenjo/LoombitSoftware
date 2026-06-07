@@ -74,12 +74,12 @@ def _gmail_send(
 def _gmail_search(query: str, max_results: int = 5) -> str:
     """Busca correos en Gmail para obtener contexto o historial de conversación."""
     try:
-        from ..skill_blanca_oauth import load_access_token
+        from ..skill_blanca_oauth import fresh_access_token
         from ..config import get_settings
         import httpx
 
         settings = get_settings()
-        token = load_access_token("google", settings)
+        token = fresh_access_token(settings, "google")
         if not token:
             return json.dumps(
                 {
@@ -199,12 +199,12 @@ def _calendar_create(
 def _contacts_find(name: str) -> str:
     """Busca un contacto por nombre en Google Contacts para obtener su email."""
     try:
-        from ..skill_blanca_oauth import load_access_token
+        from ..skill_blanca_oauth import fresh_access_token
         from ..config import get_settings
         import httpx
 
         settings = get_settings()
-        token = load_access_token("google", settings)
+        token = fresh_access_token(settings, "google")
         if not token:
             return json.dumps(
                 {
