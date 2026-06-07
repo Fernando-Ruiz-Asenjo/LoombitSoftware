@@ -6,11 +6,15 @@ Flujo: authorization-url → callback → token store → refresh → disconnect
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import json
+import secrets
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 from urllib.parse import urlencode
 from uuid import uuid4
 
@@ -39,7 +43,9 @@ class OAuthProviderConfig:
 
     @property
     def configured(self) -> bool:
-        return bool(self.client_id and self.client_secret and self.redirect_uri and self.scopes)
+        # En el flujo "app de escritorio" + PKCE el client_secret es opcional,
+        # así que no se exige aquí. Lo imprescindible es client_id, redirect y scopes.
+        return bool(self.client_id and self.redirect_uri and self.scopes)
 
     @property
     def auth_url(self) -> str:
@@ -87,11 +93,12 @@ class OAuthTokenStore:
         item = raw.get("providers", {}).get(provider, {})
         return dict(item) if isinstance(item, dict) else {}
 
-    def store_pending(self, provider: str, state: str) -> None:
+    def store_pending(self, provider: str, state: str, code_verifier: str = "") -> None:
         raw = self._load()
         raw.setdefault("pending_authorizations", {})[state] = {
             "provider": provider,
             "created_at": datetime.now(UTC).isoformat(),
+            "code_verifier": code_verifier,
         }
         self._save(raw)
 
@@ -197,14 +204,17 @@ def build_authorization_url(config: OAuthProviderConfig, *, state: str = "") -> 
     if not config.configured:
         raise ValueError("oauth_provider_not_configured")
     active_state = state or f"SB_OAUTH_{uuid4().hex.upper()}"
+    code_verifier, code_challenge = _generate_pkce()
     store = OAuthTokenStore(config.token_store_path)
-    store.store_pending(config.provider, active_state)
+    store.store_pending(config.provider, active_state, code_verifier=code_verifier)
     params: dict[str, str] = {
         "client_id": config.client_id,
         "redirect_uri": config.redirect_uri,
         "response_type": "code",
         "scope": " ".join(config.scopes),
         "state": active_state,
+        "code_challenge": code_challenge,
+        "code_challenge_method": "S256",
     }
     if config.provider == "google":
         params.update(access_type="offline", prompt="consent", include_granted_scopes="true")
@@ -235,14 +245,20 @@ def complete_callback(
     if not code.strip():
         raise ValueError("oauth_code_required")
     store = OAuthTokenStore(config.token_store_path)
-    store.consume_pending(config.provider, state)
+    pending = store.consume_pending(config.provider, state)
+    code_verifier = str(pending.get("code_verifier", ""))
     payload = {
         "client_id": config.client_id,
-        "client_secret": config.client_secret,
         "code": code,
         "redirect_uri": config.redirect_uri,
         "grant_type": "authorization_code",
     }
+    # En clientes "app de escritorio" el secret no es confidencial y puede faltar
+    # (PKCE protege el intercambio). Solo se envía si está configurado.
+    if config.client_secret:
+        payload["client_secret"] = config.client_secret
+    if code_verifier:
+        payload["code_verifier"] = code_verifier
     if config.provider == "microsoft":
         payload["scope"] = " ".join(config.scopes)
     post = http_post or httpx.post
@@ -277,10 +293,11 @@ def refresh_token(
         raise ValueError("oauth_refresh_token_missing")
     payload = {
         "client_id": config.client_id,
-        "client_secret": config.client_secret,
         "refresh_token": refresh,
         "grant_type": "refresh_token",
     }
+    if config.client_secret:
+        payload["client_secret"] = config.client_secret
     if config.provider == "microsoft":
         payload["scope"] = " ".join(config.scopes)
     post = http_post or httpx.post
@@ -310,7 +327,57 @@ def load_access_token(token_store_path: Path, provider: str) -> str:
     return str(OAuthTokenStore(token_store_path).token_for(provider).get("access_token", ""))
 
 
+def ensure_fresh_access_token(
+    config: OAuthProviderConfig,
+    *,
+    skew_seconds: int = 60,
+    http_post: Callable[..., Any] | None = None,
+) -> str:
+    """
+    Devuelve un access_token válido para el provider, refrescándolo de forma
+    transparente si ha expirado (o está a menos de `skew_seconds` de hacerlo).
+
+    El usuario conecta una vez; esta función mantiene viva la sesión usando el
+    refresh_token. Lanza ValueError si no hay token o no se puede refrescar.
+    """
+    _ensure(config.provider)
+    store = OAuthTokenStore(config.token_store_path)
+    current = store.token_for(config.provider)
+    access = str(current.get("access_token", ""))
+    if not access:
+        raise ValueError("oauth_not_connected")
+
+    if not _token_expired(current, skew_seconds=skew_seconds):
+        return access
+
+    if not str(current.get("refresh_token", "")):
+        raise ValueError("oauth_refresh_token_missing")
+
+    refresh_token(config, http_post=http_post)
+    return str(store.token_for(config.provider).get("access_token", ""))
+
+
 # ── Helpers privados ──────────────────────────────────────────────────────────
+
+
+def _generate_pkce() -> tuple[str, str]:
+    """Genera (code_verifier, code_challenge) con método S256 (RFC 7636)."""
+    verifier = base64.urlsafe_b64encode(secrets.token_bytes(32)).rstrip(b"=").decode("ascii")
+    digest = hashlib.sha256(verifier.encode("ascii")).digest()
+    challenge = base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+    return verifier, challenge
+
+
+def _token_expired(token: dict[str, Any], *, skew_seconds: int = 60) -> bool:
+    """True si el token no tiene expires_at o ya caducó (con margen de seguridad)."""
+    expires_at = str(token.get("expires_at", ""))
+    if not expires_at:
+        return True
+    try:
+        deadline = datetime.fromisoformat(expires_at)
+    except ValueError:
+        return True
+    return datetime.now(UTC) >= deadline - timedelta(seconds=skew_seconds)
 
 
 def _ensure(provider: str) -> None:
