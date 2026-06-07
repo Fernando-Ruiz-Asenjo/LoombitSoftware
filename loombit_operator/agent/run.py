@@ -119,6 +119,28 @@ class AgentRun:
         self.pending_approval = {}
         self._touch()
 
+    def mark_pending_question(self, question: str, tool_call_id: str) -> None:
+        self.status = AgentStatus.PENDING_QUESTION
+        self.pending_question = {
+            "question": question,
+            "tool_call_id": tool_call_id,
+            "asked_at": datetime.now(UTC).isoformat(),
+        }
+        self._touch()
+
+    def answer(self) -> None:
+        """Retoma la ejecución tras responder a una pregunta del agente."""
+        if self.status != AgentStatus.PENDING_QUESTION:
+            raise ValueError(f"AgentRun no está en pending_question: {self.status}")
+        self.status = AgentStatus.RUNNING
+        self.pending_question = {}
+        self._touch()
+
+    def cancel(self) -> None:
+        """Cancela el run (el usuario pulsó Detener)."""
+        self.status = AgentStatus.CANCELLED
+        self._touch()
+
     def add_step(self, step: AgentStep) -> None:
         self.steps.append(step)
         self._touch()
