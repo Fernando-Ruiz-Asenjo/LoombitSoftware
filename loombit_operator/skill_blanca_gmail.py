@@ -12,6 +12,7 @@ Flujo:
   3. send_email()                → POST a Gmail API, guarda recibo JSON
   4. recibo devuelto             → { message_id, thread_id, receipt_path, ... }
 """
+
 from __future__ import annotations
 
 import base64
@@ -20,7 +21,6 @@ import re
 from datetime import UTC, datetime
 import mimetypes
 
-from email.mime.application import MIMEApplication
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -38,6 +38,7 @@ _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 # ── Modelos de datos ──────────────────────────────────────────────────────────
+
 
 def compose_message(
     *,
@@ -177,6 +178,7 @@ def send_email(
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def _validate_email(value: str, field: str) -> None:
     if not _EMAIL_RE.match(value.strip()):
         raise ValueError(f"invalid_email_{field}: '{value}'")
@@ -222,16 +224,11 @@ def _build_receipt(
     filename = f"{now.strftime('%Y%m%dT%H%M%SZ')}_{safe_to}.json"
     receipt_path = outbox_path / filename
     receipt_path.parent.mkdir(parents=True, exist_ok=True)
-    receipt_path.write_text(
-        json.dumps(receipt, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
+    receipt_path.write_text(json.dumps(receipt, indent=2, ensure_ascii=False), encoding="utf-8")
     receipt["receipt_path"] = str(receipt_path)
     return receipt
 
 
-def snapshot_outbox(settings: AppSettings | None = None) -> dict[str, Any]:
-    """Lista los recibos del outbox local."""
-    active = settings or get_settings()
 def snapshot_outbox(settings: AppSettings | None = None) -> dict[str, Any]:
     """Lista los recibos del outbox local."""
     active = settings or get_settings()
@@ -243,14 +240,16 @@ def snapshot_outbox(settings: AppSettings | None = None) -> dict[str, Any]:
     for f in files[:20]:  # últimos 20
         try:
             data = json.loads(f.read_text(encoding="utf-8"))
-            items.append({
-                "file": f.name,
-                "sent_at": data.get("sent_at", ""),
-                "to": data.get("to", ""),
-                "subject": data.get("subject", ""),
-                "message_id": data.get("message_id", ""),
-                "status": data.get("status", ""),
-            })
+            items.append(
+                {
+                    "file": f.name,
+                    "sent_at": data.get("sent_at", ""),
+                    "to": data.get("to", ""),
+                    "subject": data.get("subject", ""),
+                    "message_id": data.get("message_id", ""),
+                    "status": data.get("status", ""),
+                }
+            )
         except (json.JSONDecodeError, OSError):
             pass
     return {"outbox_path": str(outbox), "count": len(files), "receipts": items}
