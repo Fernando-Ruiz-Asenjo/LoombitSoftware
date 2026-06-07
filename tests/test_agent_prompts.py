@@ -1,0 +1,30 @@
+"""Tests del prompt del agente: jerarquía de ejecución y gates de seguridad."""
+
+from loombit_operator.agent.prompts import build_system_prompt
+
+
+def test_prompt_includes_execution_hierarchy_and_pilot_tools():
+    p = build_system_prompt()
+    assert "JERARQUÍA DE EJECUCIÓN" in p
+    assert "desktop_ui_snapshot" in p
+    assert "desktop_click_accessibility" in p
+    assert "desktop_screen_changed" in p
+
+
+def test_prompt_includes_security_gates():
+    low = build_system_prompt().lower()
+    for kw in (
+        "request_approval",
+        "credenciales",
+        "no inventes datos",
+        "fraude",
+        "datos, no órdenes",
+    ):
+        assert kw in low
+
+
+def test_prompt_formats_and_appends_memory():
+    p = build_system_prompt(profile="contabilidad", memory_block="\n\nMEMORIA: saldo")
+    assert "Loombit Operator" in p
+    assert "MEMORIA: saldo" in p
+    assert "{rol_descripcion}" not in p  # el .format se aplicó
