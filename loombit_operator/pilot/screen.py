@@ -68,3 +68,53 @@ def take_screenshot(
             result["save_error"] = str(exc)
 
     return result
+
+
+def screen_changed(threshold: float = 0.02, interval: float = 0.5) -> dict[str, Any]:
+    """
+    Captura dos frames separados por `interval` segundos y reporta si una
+    fracción de píxeles mayor que `threshold` (0..1) ha cambiado.
+
+    Sirve para que el agente detecte si la pantalla está reaccionando a una
+    acción (carga, animación, repintado) antes de continuar.
+
+    Returns:
+        dict con changed (bool), fraction (0..1), threshold, interval.
+    """
+    try:
+        from PIL import ImageChops, ImageGrab  # type: ignore
+    except ImportError:
+        return {"error": "Pillow no instalado. Ejecuta: pip install pillow"}
+
+    import time
+
+    def _grab():
+        try:
+            return ImageGrab.grab(all_screens=True).convert("L")
+        except TypeError:
+            return ImageGrab.grab().convert("L")
+
+    threshold = min(1.0, max(0.0, float(threshold)))
+    before = _grab()
+    time.sleep(max(0.0, float(interval)))
+    after = _grab()
+
+    if before.size != after.size:
+        return {"changed": True, "fraction": 1.0, "reason": "la resolución cambió"}
+
+    diff = ImageChops.difference(before, after)
+    if diff.getbbox() is None:
+        return {"changed": False, "fraction": 0.0, "threshold": threshold}
+
+    # Cuenta píxeles que cambian de forma significativa (>16 niveles de gris).
+    mask = diff.point(lambda p: 255 if p > 16 else 0)
+    changed_pixels = mask.histogram()[255]
+    total = before.width * before.height
+    fraction = (changed_pixels / total) if total else 0.0
+
+    return {
+        "changed": fraction > threshold,
+        "fraction": round(fraction, 5),
+        "threshold": threshold,
+        "interval": interval,
+    }

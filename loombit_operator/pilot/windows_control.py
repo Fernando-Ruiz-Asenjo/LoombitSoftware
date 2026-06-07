@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 # ── Imports opcionales ────────────────────────────────────────────────────────
 
 try:
+    import pywinauto  # type: ignore  # noqa: F401
 
     _PYWINAUTO_OK = True
 except Exception:
@@ -287,3 +288,105 @@ def click_control(
         return {"clicked": True, "control_name": name or automation_id}
     except Exception as exc:
         return {"clicked": False, "error": str(exc)}
+
+
+def click_accessibility(
+    name: str = "",
+    automation_id: str = "",
+    window_title: str = "",
+) -> dict[str, Any]:
+    """
+    Hace clic en un control accesible (UI Automation) por nombre o automation_id.
+
+    Alias semántico de :func:`click_control` que filtra la ventana por
+    `window_title`. Es la entrada que usa la tool `desktop_click_accessibility`.
+    """
+    if not name and not automation_id:
+        return {"clicked": False, "error": "Indica name o automation_id"}
+    return click_control(name=name, automation_id=automation_id, title=window_title)
+
+
+# ── Espera de ventana ─────────────────────────────────────────────────────────
+
+
+def _match_window_title(title: str) -> str | None:
+    """Devuelve el texto de la primera ventana visible cuyo título contiene `title`."""
+    needle = title.lower()
+
+    if _PYWINAUTO_OK:
+        try:
+            from pywinauto import Desktop  # type: ignore
+
+            for w in Desktop(backend="uia").windows():
+                try:
+                    wt = w.window_text()
+                    if wt and needle in wt.lower():
+                        return wt
+                except Exception:
+                    continue
+        except Exception as exc:
+            logger.debug("pywinauto wait_for_window falló: %s", exc)
+
+    if _WIN32_OK:
+        found: list[str] = []
+
+        def _enum(hwnd: int, _: Any) -> None:
+            if not win32gui.IsWindowVisible(hwnd):
+                return
+            t = win32gui.GetWindowText(hwnd)
+            if t and needle in t.lower():
+                found.append(t)
+
+        try:
+            win32gui.EnumWindows(_enum, None)
+            if found:
+                return found[0]
+        except Exception:
+            pass
+
+    # Último recurso: ctypes (sólo coincidencia exacta del título).
+    try:
+        import ctypes
+
+        if ctypes.windll.user32.FindWindowW(None, title):
+            return title
+    except Exception:
+        pass
+
+    return None
+
+
+def wait_for_window(
+    title: str,
+    timeout: float = 10.0,
+    poll_interval: float = 0.5,
+) -> dict[str, Any]:
+    """
+    Espera hasta `timeout` segundos a que aparezca una ventana cuyo título
+    contenga `title` (búsqueda case-insensitive por subcadena).
+
+    Devuelve {found, window_title, waited_seconds}. No bloquea más de `timeout`.
+    Útil tras abrir una app o lanzar un diálogo, antes de interactuar con él.
+    """
+    import time
+
+    if not title:
+        return {"found": False, "error": "title vacío"}
+
+    timeout = max(0.0, float(timeout))
+    poll_interval = max(0.05, float(poll_interval))
+    deadline = time.monotonic() + timeout
+    waited = 0.0
+
+    while True:
+        matched = _match_window_title(title)
+        if matched is not None:
+            return {"found": True, "window_title": matched, "waited_seconds": round(waited, 2)}
+        if time.monotonic() >= deadline:
+            return {
+                "found": False,
+                "waited_seconds": round(waited, 2),
+                "error": f"La ventana {title!r} no apareció en {timeout:g}s",
+            }
+        time.sleep(poll_interval)
+        waited += poll_interval

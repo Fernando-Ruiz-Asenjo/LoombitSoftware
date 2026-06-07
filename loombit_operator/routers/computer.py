@@ -29,6 +29,9 @@ Endpoints:
   POST /computer-use/clipboard
   POST /computer-use/open_application
   POST /computer-use/wait
+  POST /computer-use/wait_for_window
+  POST /computer-use/click_accessibility
+  POST /computer-use/screen_changed
   POST /computer-use/batch
 """
 
@@ -133,6 +136,22 @@ class BatchAction(BaseModel):
 
 class BatchRequest(BaseModel):
     actions: list[BatchAction]
+
+
+class WaitForWindowRequest(BaseModel):
+    title: str
+    timeout: float = 10.0
+
+
+class ClickAccessibilityRequest(BaseModel):
+    name: str = ""
+    automation_id: str = ""
+    window_title: str = ""
+
+
+class ScreenChangedRequest(BaseModel):
+    threshold: float = 0.02
+    interval: float = 0.5
 
 
 # Status
@@ -428,6 +447,56 @@ async def zoom(body: ZoomRequest) -> dict:
         "height": result["height"],
         "base64": result.get("base64"),
     }
+
+
+# Wait for window
+
+
+@router.post("/wait_for_window")
+async def wait_for_window_endpoint(body: WaitForWindowRequest) -> dict:
+    from loombit_operator.pilot.windows_control import wait_for_window
+
+    result = wait_for_window(body.title, timeout=body.timeout)
+    if result.get("found"):
+        return {
+            "result": (
+                f"Ventana '{result['window_title']}' lista " f"(tras {result['waited_seconds']}s)."
+            ),
+            **result,
+        }
+    return {"result": f"ERROR: {result.get('error', 'ventana no encontrada')}", **result}
+
+
+# Click por accesibilidad (UI Automation)
+
+
+@router.post("/click_accessibility")
+async def click_accessibility_endpoint(body: ClickAccessibilityRequest) -> dict:
+    from loombit_operator.pilot.windows_control import click_accessibility
+
+    result = click_accessibility(
+        name=body.name,
+        automation_id=body.automation_id,
+        window_title=body.window_title,
+    )
+    if result.get("clicked"):
+        return {"result": f"Click en '{result.get('control_name', '')}'.", **result}
+    return {"result": f"ERROR: {result.get('error', 'no se pudo hacer click')}", **result}
+
+
+# Screen changed (detección de cambio de pantalla)
+
+
+@router.post("/screen_changed")
+async def screen_changed_endpoint(body: ScreenChangedRequest) -> dict:
+    from loombit_operator.pilot.screen import screen_changed
+
+    result = screen_changed(threshold=body.threshold, interval=body.interval)
+    if "error" in result:
+        return {"result": f"ERROR: {result['error']}", **result}
+    pct = result["fraction"] * 100
+    verbo = "cambió" if result["changed"] else "sin cambios"
+    return {"result": f"Pantalla {verbo} ({pct:.2f}% de píxeles).", **result}
 
 
 # Cursor position
