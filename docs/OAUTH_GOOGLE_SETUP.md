@@ -20,13 +20,15 @@ Lo único que falta son las **credenciales** y conectar la cuenta una vez.
    - En *Usuarios de prueba* añade la cuenta de Gmail con la que vas a probar.
    - Scopes: `gmail.send`, `calendar.events`, `contacts.readonly`.
 4. **APIs y servicios → Credenciales → ID de cliente de OAuth**:
-   - Si ya existe el cliente del proyecto, ábrelo; si no, crea *Aplicación web*.
+   - Crea (o convierte) un cliente de tipo **"App de escritorio"** — es el que
+     permite la redirección a `127.0.0.1` (loopback) y usa **PKCE**. En este tipo
+     el `client_secret` no es confidencial y es opcional.
    - En **URIs de redirección autorizados** añade **exactamente**:
      ```
      http://127.0.0.1:8787/skill-blanca/oauth/google/callback
      ```
-   - Copia el **client_secret** (el que termina en `ty4N`). Si lo perdiste, pulsa
-     *Restablecer secreto* y copia el nuevo.
+   - Copia el **client_id** (y el `client_secret` si lo hubiera). El token que se
+     obtenga se guarda **cifrado en reposo** con el almacén de credenciales del SO.
 
 ## 2. Configurar `.env`
 

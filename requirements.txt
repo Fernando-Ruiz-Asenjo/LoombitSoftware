@@ -18,6 +18,10 @@ google-auth>=2.28.0
 google-auth-oauthlib>=1.2.0
 google-api-python-client>=2.120.0
 
+# Cifrado del token OAuth en reposo (clave en el almacén del SO)
+cryptography>=42.0.0
+keyring>=24.0.0
+
 # Dev / calidad
 pytest>=8.0.0
 pytest-cov>=5.0.0

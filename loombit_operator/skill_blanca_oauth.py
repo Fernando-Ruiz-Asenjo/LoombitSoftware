@@ -29,6 +29,12 @@ GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 MICROSOFT_AUTH_URL_TEMPLATE = "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize"
 MICROSOFT_TOKEN_URL_TEMPLATE = "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token"
 
+# Cifrado en reposo del token store
+_ENC_PREFIX = "LBENC1:"
+_KEYRING_SERVICE = "loombit-operator"
+_KEYRING_KEY_USER = "oauth-token-store-key"
+_cipher_cache: list[Any] = []
+
 
 @dataclass(frozen=True)
 class OAuthProviderConfig:
@@ -135,21 +141,43 @@ class OAuthTokenStore:
         }
 
     def _load(self) -> dict[str, Any]:
+        empty = {"providers": {}, "pending_authorizations": {}}
         if not self.path.exists():
-            return {"providers": {}, "pending_authorizations": {}}
+            return dict(empty)
         try:
-            data = json.loads(self.path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            return {"providers": {}, "pending_authorizations": {}}
+            text = self.path.read_text(encoding="utf-8")
+        except OSError:
+            return dict(empty)
+
+        if text.startswith(_ENC_PREFIX):
+            cipher = _resolve_cipher()
+            if cipher is None:
+                return dict(empty)  # cifrado pero sin clave para descifrar
+            try:
+                text = cipher.decrypt(text[len(_ENC_PREFIX) :].encode("ascii")).decode("utf-8")
+            except Exception:
+                return dict(empty)
+
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError:
+            return dict(empty)
         if not isinstance(data, dict):
-            return {"providers": {}, "pending_authorizations": {}}
+            return dict(empty)
         data.setdefault("providers", {})
         data.setdefault("pending_authorizations", {})
         return data
 
     def _save(self, data: dict[str, Any]) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+        payload = json.dumps(data, indent=2, ensure_ascii=False)
+        cipher = _resolve_cipher()
+        if cipher is not None:
+            token = cipher.encrypt(payload.encode("utf-8")).decode("ascii")
+            self.path.write_text(_ENC_PREFIX + token, encoding="utf-8")
+        else:
+            # Sin almacén de claves del SO (p. ej. CI): texto plano como fallback.
+            self.path.write_text(payload, encoding="utf-8")
 
 
 # ── Funciones públicas ────────────────────────────────────────────────────────
@@ -366,6 +394,34 @@ def _generate_pkce() -> tuple[str, str]:
     digest = hashlib.sha256(verifier.encode("ascii")).digest()
     challenge = base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
     return verifier, challenge
+
+
+def _resolve_cipher() -> Any:
+    """
+    Devuelve un cifrador Fernet cuya clave vive en el almacén de credenciales
+    del SO (Windows Credential Manager vía DPAPI, Keychain en macOS, etc.).
+
+    Si no hay keyring/cryptography disponible (p. ej. CI o un Linux headless),
+    devuelve None y el token store cae a texto plano. El resultado se memoiza.
+    """
+    if _cipher_cache:
+        return _cipher_cache[0]
+
+    cipher = None
+    try:
+        import keyring
+        from cryptography.fernet import Fernet
+
+        key = keyring.get_password(_KEYRING_SERVICE, _KEYRING_KEY_USER)
+        if not key:
+            key = Fernet.generate_key().decode("ascii")
+            keyring.set_password(_KEYRING_SERVICE, _KEYRING_KEY_USER, key)
+        cipher = Fernet(key.encode("ascii"))
+    except Exception:
+        cipher = None
+
+    _cipher_cache.append(cipher)
+    return cipher
 
 
 def _token_expired(token: dict[str, Any], *, skew_seconds: int = 60) -> bool:
