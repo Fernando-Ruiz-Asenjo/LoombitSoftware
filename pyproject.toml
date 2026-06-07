@@ -12,6 +12,8 @@ target-version = ["py311"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+# Los notebooks de docs son prosa (no código): no los lintamos como Python.
+extend-exclude = ["*.ipynb"]
 
 [tool.pytest.ini_options]
 addopts = "-q --cov=loombit_operator --cov-report=term-missing"
