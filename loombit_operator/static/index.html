@@ -6,7 +6,7 @@
 <title>Loombit</title>
 <style>
 /* ═══════════════════════════════════════════════════════
-   LOOMBIT — Skill Skins v1
+   LOOMBIT — Skill Skins v2
    Design system: tokens → components → layout
 ═══════════════════════════════════════════════════════ */
 
@@ -300,6 +300,7 @@ a { color: inherit; text-decoration: none; }
   display: flex; gap: 12px;
   padding: 16px 0;
   animation: fadeIn .25s ease;
+  position: relative;
 }
 .msg-row + .msg-row { border-top: none; }
 .msg-row.user { flex-direction: row-reverse; }
@@ -335,34 +336,112 @@ a { color: inherit; text-decoration: none; }
   border-bottom-left-radius: 4px;
 }
 
+/* ── Markdown inside bubble ── */
+.msg-bubble p { margin: 0 0 6px; }
+.msg-bubble p:last-child { margin-bottom: 0; }
+.msg-bubble .md-gap { height: 6px; }
+
+.msg-bubble h4, .msg-bubble h5, .msg-bubble h6 {
+  font-size: 13px; font-weight: 700; margin: 12px 0 4px; color: var(--lb-text);
+}
+.msg-bubble h4 { font-size: 14px; color: #c4b5fd; }
+
+.msg-bubble ul, .msg-bubble ol {
+  padding-left: 18px; margin: 4px 0 8px;
+}
+.msg-bubble li { margin-bottom: 3px; line-height: 1.6; }
+
+.msg-bubble strong { font-weight: 700; color: var(--lb-text); }
+.msg-bubble em { font-style: italic; color: var(--lb-text2); }
+
 .msg-bubble code {
   font-family: var(--font-mono);
   font-size: 12px;
   background: rgba(255,255,255,.06);
   padding: 1px 5px; border-radius: 4px;
-}
-.msg-bubble pre {
-  background: rgba(0,0,0,.3); border: 1px solid var(--lb-border);
-  border-radius: var(--r-sm); padding: 12px 14px; margin: 8px 0;
-  overflow-x: auto; font-size: 12px; font-family: var(--font-mono); line-height: 1.5;
+  color: #a78bfa;
 }
 
+/* ── Code block ── */
+.code-block-wrap {
+  position: relative;
+  background: #0d1117;
+  border: 1px solid var(--lb-border2);
+  border-radius: var(--r-sm);
+  margin: 8px 0;
+  overflow: hidden;
+}
+.cb-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 5px 12px;
+  background: rgba(255,255,255,.04);
+  border-bottom: 1px solid var(--lb-border);
+  font-size: 11px; font-family: var(--font-mono);
+}
+.cb-lang { color: var(--lb-text3); text-transform: lowercase; }
+.cb-copy {
+  font-size: 11px; color: var(--lb-text3); padding: 2px 6px;
+  border-radius: 4px; transition: background var(--transition), color var(--transition);
+  font-family: var(--font-sans);
+}
+.cb-copy:hover { background: var(--lb-navy4); color: var(--lb-text2); }
+
+.code-block-wrap pre {
+  background: transparent; border: none; border-radius: 0;
+  padding: 12px 14px; margin: 0;
+  overflow-x: auto; font-size: 12.5px; font-family: var(--font-mono); line-height: 1.55;
+  color: #e2e8f0;
+}
+.code-block-wrap pre code {
+  font-family: var(--font-mono); font-size: inherit;
+  background: transparent; padding: 0; border-radius: 0; color: inherit;
+}
+
+/* ── Message meta + actions ── */
 .msg-meta { display: flex; align-items: center; gap: 8px; }
 .msg-time { font-size: 10.5px; color: var(--lb-text3); }
+.msg-steps-count { font-size: 10.5px; color: var(--lb-text3); }
 
-/* Steps pills */
-.steps-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.msg-actions {
+  display: none; gap: 4px; margin-left: auto;
+}
+.msg-row:hover .msg-actions { display: flex; }
+.msg-action-btn {
+  font-size: 11px; color: var(--lb-text3); padding: 2px 6px;
+  border-radius: 4px; transition: background var(--transition), color var(--transition);
+}
+.msg-action-btn:hover { background: var(--lb-navy3); color: var(--lb-text2); }
+
+/* ── Steps pills ── */
+.steps-row {
+  display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;
+  max-height: 200px; overflow: hidden;
+  transition: max-height 0.25s ease;
+}
+.steps-row.collapsed { max-height: 28px; overflow: hidden; }
+
 .step-pill {
   display: inline-flex; align-items: center; gap: 5px;
   background: rgba(255,255,255,.04); border: 1px solid var(--lb-border);
   border-radius: var(--r-full); padding: 3px 10px;
   font-size: 11px; color: var(--lb-text3); cursor: default;
   transition: border-color var(--transition), color var(--transition);
+  white-space: nowrap;
 }
 .step-pill:hover { border-color: var(--lb-border2); color: var(--lb-text2); }
 .step-pill .sp-icon { font-size: 10px; }
 
-/* Thinking */
+.steps-toggle {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(139,92,246,.08); border: 1px solid rgba(139,92,246,.2);
+  border-radius: var(--r-full); padding: 3px 10px;
+  font-size: 11px; color: #a78bfa; cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+  white-space: nowrap;
+}
+.steps-toggle:hover { background: rgba(139,92,246,.14); border-color: rgba(139,92,246,.35); }
+
+/* ── Thinking ── */
 .msg-thinking .msg-bubble { color: var(--lb-text3); }
 .typing-dots { display: inline-flex; gap: 4px; align-items: center; height: 14px; }
 .typing-dots span {
@@ -374,7 +453,7 @@ a { color: inherit; text-decoration: none; }
 .typing-dots span:nth-child(3) { animation-delay: .36s; }
 @keyframes tdot { 0%,80%,100%{transform:scale(1)} 40%{transform:scale(1.4)} }
 
-/* Approval */
+/* ── Approval ── */
 .approval-box {
   margin-top: 6px; padding: 14px 16px;
   background: rgba(245,158,11,.06); border: 1px solid rgba(245,158,11,.25);
@@ -394,7 +473,7 @@ a { color: inherit; text-decoration: none; }
 .ap-btn.ok   { background: var(--lb-green); color: #000; }
 .ap-btn.deny { background: var(--lb-navy3); color: var(--lb-text2); border: 1px solid var(--lb-border); }
 
-/* Error */
+/* ── Error ── */
 .msg-error .msg-bubble { border-color: rgba(239,68,68,.3); color: #fca5a5; }
 
 /* ═══════════════════════════════════════════════════════
@@ -504,7 +583,7 @@ a { color: inherit; text-decoration: none; }
       <div class="skill-avatar admin" id="skill-avatar">SB</div>
       <div class="skill-meta">
         <span class="skill-name" id="skill-name">Skill Blanca · Administrativo</span>
-        <span class="skill-sub" id="skill-sub">Loombit Operator v0.1</span>
+        <span class="skill-sub" id="skill-sub">Loombit Operator v0.2</span>
       </div>
     </div>
 
@@ -533,13 +612,13 @@ a { color: inherit; text-decoration: none; }
         <div class="welcome-avatar">SB</div>
         <div class="welcome-text">
           <h2>Hola, Fernando</h2>
-          <p>Soy Skill Blanca Administrativo. Dime qué necesitas y lo gestiono.</p>
+          <p>Soy Skill Blanca Administrativo. Controlo el escritorio, gestiono ficheros, navego la web y ejecuto tareas complejas de forma autónoma.</p>
         </div>
       </div>
       <div class="suggestions">
         <button class="sug-card" onclick="useSuggestion(this)">
-          <div class="sug-icon">📧</div>
-          <div class="sug-text">Resume los correos sin leer de hoy</div>
+          <div class="sug-icon">🖥</div>
+          <div class="sug-text">Haz una captura de pantalla y describe lo que ves</div>
         </button>
         <button class="sug-card" onclick="useSuggestion(this)">
           <div class="sug-icon">📅</div>
@@ -567,16 +646,14 @@ a { color: inherit; text-decoration: none; }
         <textarea
           id="msg-input"
           rows="1"
-          placeholder="Escribe una tarea o pregunta…"
+          placeholder="Escribe una tarea o pregunta… (Ctrl+Enter para enviar)"
         ></textarea>
-        <button class="send-btn" id="send-btn" onclick="sendMessage()" title="Enviar">
+        <button class="send-btn" id="send-btn" onclick="sendMessage()" title="Enviar (Ctrl+Enter)">
           <svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
         </button>
       </div>
       <div class="input-hint">
-        <span><kbd>Ctrl</kbd>+<kbd>Enter</kbd> para enviar</span>
-        <span>·</span>
-        <span>Los pasos del agente se muestran en tiempo real</span>
+        <span><kbd>Ctrl</kbd>+<kbd>Enter</kbd> enviar · <kbd>Shift</kbd>+<kbd>Enter</kbd> nueva línea</span>
       </div>
     </div>
   </div>
@@ -585,15 +662,29 @@ a { color: inherit; text-decoration: none; }
 
 <script>
 // ═══════════════════════════════════════════════════════
-// LOOMBIT — UI Logic
+// LOOMBIT — UI Logic v2
 // ═══════════════════════════════════════════════════════
 
 const API    = window.location.origin;
 const ME     = { name: 'Fernando', initial: 'F' };
 const SKILLS = {
-  admin:  { name: 'Skill Blanca · Administrativo', sub: 'Loombit Operator v0.1', initial: 'SB', cls: 'admin', profile: 'administrativo' },
-  coding: { name: 'Skill Blanca · Coding',         sub: 'Loombit Operator v0.1', initial: 'SC', cls: 'code',  profile: 'administrativo' },
+  admin:  { name: 'Skill Blanca · Administrativo', sub: 'Loombit Operator v0.2', initial: 'SB', cls: 'admin', profile: 'administrativo' },
+  coding: { name: 'Skill Blanca · Coding',         sub: 'Loombit Operator v0.2', initial: 'SC', cls: 'code',  profile: 'administrativo' },
 };
+
+// Category icons for tool names
+const TOOL_ICONS = {
+  desktop:  '🖥',
+  browser:  '🌐',
+  read_file:'📄', write_file:'📄', list_directory:'📁',
+  web_fetch:'🌐', run_shell:'⚡', task_done:'✅', request_approval:'⚠',
+};
+
+function toolIcon(name) {
+  if (name.startsWith('desktop_')) return '🖥';
+  if (name.startsWith('browser_')) return '🌐';
+  return TOOL_ICONS[name] || '⚙';
+}
 
 let activeSkill = 'admin';
 let busy        = false;
@@ -642,20 +733,149 @@ function fmtTime() {
   return new Date().toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
 }
 
-// ── Render helpers ────────────────────────────────────
+// ── HTML escape ──────────────────────────────────────
 function esc(s) {
   return String(s)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/"/g,'&quot;');
 }
-function fmt(text) {
+
+// ── Inline formatting (bold, italic, inline code) ────
+function inlineFmt(text) {
   return esc(text)
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/`([^`\n]+)`/g, '<code>$1</code>')
-    .replace(/\n/g, '<br>');
+    .replace(/\*(.+?)\*/g,     '<em>$1</em>')
+    .replace(/`([^`]+)`/g,     '<code>$1</code>');
 }
 
-function addMsg(role, text, steps) {
+// ── Markdown renderer ────────────────────────────────
+function fmt(text) {
+  // 1. Extract fenced code blocks (protect from further processing)
+  const codeBlocks = [];
+  text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+    codeBlocks.push({ lang: (lang || '').trim(), code: code.trimEnd() });
+    return '\n\x00CB' + (codeBlocks.length - 1) + '\x00\n';
+  });
+
+  const lines  = text.split('\n');
+  const output = [];
+  let inList   = false;
+  let listType = '';
+
+  const closeList = () => {
+    if (inList) { output.push(`</${listType}>`); inList = false; listType = ''; }
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Code block placeholder
+    const cbMatch = line.match(/\x00CB(\d+)\x00/);
+    if (cbMatch) {
+      closeList();
+      const { lang, code } = codeBlocks[+cbMatch[1]];
+      const langLabel = lang
+        ? `<span class="cb-lang">${esc(lang)}</span>`
+        : '<span class="cb-lang">texto</span>';
+      output.push(
+        `<div class="code-block-wrap">` +
+        `<div class="cb-header">${langLabel}<button class="cb-copy" onclick="copyCode(this)">Copiar</button></div>` +
+        `<pre><code>${esc(code)}</code></pre></div>`
+      );
+      continue;
+    }
+
+    // Headings
+    const hMatch = line.match(/^(#{1,3})\s+(.*)/);
+    if (hMatch) {
+      closeList();
+      const level = Math.min(hMatch[1].length + 3, 6); // h4-h6
+      output.push(`<h${level} class="md-h">${inlineFmt(hMatch[2])}</h${level}>`);
+      continue;
+    }
+
+    // Unordered list
+    const uMatch = line.match(/^[-*•]\s+(.*)/);
+    if (uMatch) {
+      if (!inList || listType !== 'ul') { closeList(); output.push('<ul>'); inList = true; listType = 'ul'; }
+      output.push(`<li>${inlineFmt(uMatch[1])}</li>`);
+      continue;
+    }
+
+    // Ordered list
+    const oMatch = line.match(/^\d+\.\s+(.*)/);
+    if (oMatch) {
+      if (!inList || listType !== 'ol') { closeList(); output.push('<ol>'); inList = true; listType = 'ol'; }
+      output.push(`<li>${inlineFmt(oMatch[1])}</li>`);
+      continue;
+    }
+
+    // Blank line
+    if (line.trim() === '') {
+      closeList();
+      output.push('<div class="md-gap"></div>');
+      continue;
+    }
+
+    // Regular paragraph line
+    closeList();
+    output.push(`<p>${inlineFmt(line)}</p>`);
+  }
+
+  closeList();
+  return output.join('');
+}
+
+
+// ── Copy code block ──────────────────────────────────
+function copyCode(btn) {
+  const code = btn.closest('.code-block-wrap').querySelector('code').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copiado';
+    btn.style.color = 'var(--lb-green)';
+    setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 1800);
+  }).catch(() => {
+    btn.textContent = 'Error';
+    setTimeout(() => { btn.textContent = 'Copiar'; }, 1500);
+  });
+}
+
+// ── Copy message text ─────────────────────────────────
+function copyMsg(btn) {
+  const bubble = btn.closest('.msg-col').querySelector('.msg-bubble');
+  navigator.clipboard.writeText(bubble.innerText).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓';
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  });
+}
+
+// ── Toggle steps expand ───────────────────────────────
+function toggleSteps(btn) {
+  const row = btn.previousElementSibling;
+  if (!row || !row.classList.contains('steps-row')) return;
+  const collapsed = row.classList.toggle('collapsed');
+  btn.textContent = collapsed ? `▸ ${btn.dataset.count} pasos` : `▴ ocultar`;
+}
+
+// ── Build steps HTML ──────────────────────────────────
+function buildStepsHtml(steps) {
+  if (!steps || !steps.length) return '';
+  const pills = steps.map(s => {
+    const icon = toolIcon(s.tool_name || '');
+    return `<div class="step-pill"><span class="sp-icon">${icon}</span>${esc(s.tool_name)}</div>`;
+  }).join('');
+  const count = steps.length;
+  const collapsed = count > 4 ? ' collapsed' : '';
+  const toggleHtml = count > 4
+    ? `<button class="steps-toggle" data-count="${count}" onclick="toggleSteps(this)">▸ ${count} pasos</button>`
+    : '';
+  return `<div class="steps-row${collapsed}">${pills}</div>` + toggleHtml;
+}
+
+// ── Add message ───────────────────────────────────────
+function addMsg(role, text, steps, stepCount) {
   welcome.style.display = 'none';
   const sk = SKILLS[activeSkill];
   const isUser = role === 'user';
@@ -663,31 +883,33 @@ function addMsg(role, text, steps) {
   row.className = `msg-row ${role}${role==='error'?' msg-error':''}`;
   if (role === 'thinking') row.classList.add('msg-thinking');
 
-  const ava     = isUser ? ME.initial : sk.initial;
-  const sender  = isUser ? ME.name    : sk.name.split(' · ')[0];
-  const avaCls  = isUser ? '' : `style="background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff"`;
-  const roleKey = role === 'user' ? 'user' : 'agent';
-
-  let stepsHtml = '';
-  if (steps && steps.length) {
-    const pills = steps.map(s =>
-      `<div class="step-pill"><span class="sp-icon">⚙</span>${esc(s.tool_name)}</div>`
-    ).join('');
-    stepsHtml = `<div class="steps-row">${pills}</div>`;
-  }
+  const ava    = isUser ? ME.initial : sk.initial;
+  const sender = isUser ? ME.name    : sk.name.split(' · ')[0];
 
   let bubbleContent = role === 'thinking'
     ? `Procesando <div class="typing-dots"><span></span><span></span><span></span></div>`
-    : fmt(text);
+    : fmt(text || '');
+
+  const stepsHtml = (role === 'agent' || role === 'error') ? buildStepsHtml(steps) : '';
+  const stepsMeta = (stepCount && stepCount > 0)
+    ? `<span class="msg-steps-count">· ${stepCount} pasos</span>` : '';
+  const copyBtn = (!isUser && role !== 'thinking')
+    ? `<button class="msg-action-btn" onclick="copyMsg(this)" title="Copiar respuesta">⧉ copiar</button>` : '';
+  const avaStyle = isUser ? '' : 'background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff';
 
   row.innerHTML = `
-    <div class="msg-ava" ${avaCls}>${ava}</div>
+    <div class="msg-ava" style="${avaStyle}">${ava}</div>
     <div class="msg-col">
       <div class="msg-sender">${esc(sender)}</div>
       <div class="msg-bubble">${bubbleContent}</div>
       ${stepsHtml}
-      <div class="msg-meta"><span class="msg-time">${fmtTime()}</span></div>
+      <div class="msg-meta">
+        <span class="msg-time">${fmtTime()}</span>
+        ${stepsMeta}
+        <div class="msg-actions">${copyBtn}</div>
+      </div>
     </div>`;
+
   msgsCont.appendChild(row);
   scrollBottom();
   return row;
@@ -730,8 +952,8 @@ function setLLMStatus(s) {
 
 function setBusy(b) {
   busy = b;
-  sendBtn.disabled   = b;
-  msgInput.disabled  = b;
+  sendBtn.disabled  = b;
+  msgInput.disabled = b;
   setLLMStatus(b ? 'busy' : 'online');
 }
 
@@ -769,9 +991,9 @@ async function sendMessage() {
 
 function renderRun(run) {
   if (run.status === 'completed') {
-    addMsg('agent', run.result || '(tarea completada)', run.steps || []);
+    addMsg('agent', run.result || '(tarea completada)', run.steps || [], run.step_count);
   } else if (run.status === 'failed') {
-    addMsg('error', `Error del agente:\n${run.error || '(sin detalle)'}`, run.steps || []);
+    addMsg('error', `Error del agente:\n${run.error || '(sin detalle)'}`, run.steps || [], run.step_count);
   } else if (run.status === 'pending_approval') {
     const pa = run.pending_approval || {};
     addApproval(run.id, pa.reason || '', pa.proposed_action || '');
