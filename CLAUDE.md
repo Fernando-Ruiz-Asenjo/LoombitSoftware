@@ -138,6 +138,9 @@ loombit_operator/
 | `docs/PLAN_MAESTRO_100.md` | Hoja de ruta detallada hacia 100% operatividad + autonomía |
 | `docs/DEFINITION_OF_DONE.md` | Qué significa "hecho". Obligatorio antes de cualquier PR |
 | `docs/CAPACIDADES_Y_HERRAMIENTAS.md` | Con qué construimos cada fase |
+| `docs/CONOCIMIENTO_OFICIO_ADMINISTRATIVO.md` | Fuente de verdad de dominio: el oficio administrativo (España) y sus gates |
+| `docs/BANCO_SUPUESTOS_LOOMBIT.md` | Banco de supuestos S-01…S-15 para exprimir al operador (futuros tests de comportamiento) |
+| `docs/OAUTH_GOOGLE_SETUP.md` | Guía paso a paso para conectar Google (Fase 1) |
 | `docs/PARKED.md` | Qué está aparcado y no hay que tocar |
 | `AGENTS.md` | Bucle de trabajo para agentes: cómo abrir rama, validar, hacer PR |
 
