@@ -50,10 +50,14 @@ class PilotStep(BaseModel):
     button: str = "left"
     name: str | None = None
     automation_id: str | None = None
+    window_title: str | None = None
     text: str | None = None
     keys: str | None = None
     key: str | None = None
     seconds: float | None = None
+    timeout: float | None = None
+    threshold: float | None = None
+    interval: float | None = None
     direction: str | None = None
     amount: int | None = None
 

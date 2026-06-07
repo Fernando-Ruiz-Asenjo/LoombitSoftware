@@ -33,7 +33,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from .screen import take_screenshot
+from .screen import screen_changed, take_screenshot
 from .input_control import (
     mouse_click,
     mouse_double_click,
@@ -46,6 +46,8 @@ from .windows_control import (
     focus_window,
     inspect_controls,
     click_control,
+    click_accessibility,
+    wait_for_window,
 )
 
 logger = logging.getLogger(__name__)
@@ -53,15 +55,18 @@ logger = logging.getLogger(__name__)
 SUPPORTED_STEPS = [
     "open_url",
     "focus_window",
+    "wait_for_window",
     "inspect_controls",
     "screenshot",
     "click",
     "double_click",
     "click_control",
+    "click_accessibility",
     "type_text",
     "hotkey",
     "wait",
     "scroll",
+    "screen_changed",
 ]
 
 SAFETY_CONTRACT = {
@@ -182,6 +187,12 @@ async def _execute_step(step: dict[str, Any]) -> dict[str, Any]:
             title=step.get("title", ""),
         )
 
+    elif step_type == "wait_for_window":
+        return wait_for_window(
+            step.get("title", ""),
+            timeout=float(step.get("timeout", 10.0)),
+        )
+
     elif step_type == "inspect_controls":
         return inspect_controls(
             process_name=step.get("process_name", ""),
@@ -225,6 +236,19 @@ async def _execute_step(step: dict[str, Any]) -> dict[str, Any]:
             automation_id=step.get("automation_id", ""),
             process_name=step.get("process_name", ""),
             title=step.get("title", ""),
+        )
+
+    elif step_type == "click_accessibility":
+        return click_accessibility(
+            name=step.get("name", ""),
+            automation_id=step.get("automation_id", ""),
+            window_title=step.get("window_title", step.get("title", "")),
+        )
+
+    elif step_type == "screen_changed":
+        return screen_changed(
+            threshold=float(step.get("threshold", 0.02)),
+            interval=float(step.get("interval", 0.5)),
         )
 
     elif step_type == "type_text":
