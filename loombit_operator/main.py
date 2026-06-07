@@ -64,6 +64,12 @@ def _patch_pywin32() -> None:
 
 
 _patch_pywin32()
+
+# El Pilot necesita coordenadas a píxeles reales: activar DPI-awareness ya, antes
+# de servir, para que captura y clic estén alineados en pantallas con escalado.
+from .pilot.system import enable_dpi_awareness  # noqa: E402
+
+enable_dpi_awareness()
 # ─────────────────────────────────────────────────────────────────────────────
 
 from fastapi import FastAPI  # noqa: E402

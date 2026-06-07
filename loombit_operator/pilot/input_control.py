@@ -174,12 +174,50 @@ def cursor_position() -> dict[str, Any]:
 # Teclado
 
 
-def keyboard_type(text: str) -> dict[str, Any]:
+def _should_use_clipboard(text: str) -> bool:
+    """
+    True si conviene escribir vía portapapeles en vez de tecla a tecla.
+
+    `pynput.type()` es poco fiable con caracteres no-ASCII (acentos, ñ, €, ¿, ¡)
+    porque depende del layout de teclado activo. Para texto con no-ASCII, saltos
+    de línea o tabuladores, el pegado por portapapeles es exacto.
+    """
+    if not text:
+        return False
+    if "\n" in text or "\t" in text:
+        return True
+    return any(ord(ch) > 127 for ch in text)
+
+
+def _type_via_clipboard(text: str) -> dict[str, Any] | None:
+    """
+    Escribe `text` pegándolo con Ctrl+V y restaura el portapapeles anterior.
+    Devuelve None si el portapapeles no está disponible (para caer a pynput).
+    """
+    backup = clipboard_read().get("clipboard")
+    written = clipboard_write(text)
+    if "error" in written:
+        return None
+    keyboard_hotkey("ctrl+v")
+    time.sleep(0.05)
+    if isinstance(backup, str) and backup:
+        clipboard_write(backup)  # cortesía: no pisar lo que tuviera el usuario
+    return {"typed_chars": len(text), "preview": text[:40], "method": "clipboard"}
+
+
+def keyboard_type(text: str, use_clipboard: bool | None = None) -> dict[str, Any]:
     if not _PYNPUT_OK:
         return {"stub": True, "action": "type", "chars": len(text)}
+    if use_clipboard is None:
+        use_clipboard = _should_use_clipboard(text)
+    if use_clipboard:
+        clip_result = _type_via_clipboard(text)
+        if clip_result is not None:
+            return clip_result
+        # Si el portapapeles falla, caer al tecleo directo.
     kb = _KbCtrl()
     kb.type(text)
-    return {"typed_chars": len(text), "preview": text[:40]}
+    return {"typed_chars": len(text), "preview": text[:40], "method": "pynput"}
 
 
 def keyboard_press(key: str) -> dict[str, Any]:
