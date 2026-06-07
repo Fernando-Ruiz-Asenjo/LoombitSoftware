@@ -560,6 +560,19 @@ a { color: inherit; text-decoration: none; }
       <span class="nav-icon" style="font-size:13px;">💬</span>
       <span class="nav-label" style="color:var(--lb-text3);font-size:12.5px;">Sin conversaciones</span>
     </div>
+
+    <div class="nav-section-label" style="margin-top:8px;">Conexiones</div>
+    <div class="nav-item" id="conn-google" style="pointer-events:none;">
+      <span class="nav-icon">📧</span>
+      <span class="nav-label">Google</span>
+      <span class="nav-badge" id="conn-google-badge" style="margin-left:auto;">…</span>
+    </div>
+    <button id="conn-google-btn" onclick="toggleGoogle()"
+            style="margin:6px 12px 0;width:calc(100% - 24px);padding:7px 10px;border:none;
+                   border-radius:8px;background:#2f6feb;color:#fff;font-size:12.5px;
+                   cursor:pointer;font-weight:500;">
+      Conectar Google
+    </button>
   </div>
 
   <div class="sidebar-bottom">
@@ -1071,12 +1084,75 @@ function useSuggestion(el) {
   sendMessage();
 }
 
+// ── Conexiones (OAuth) ────────────────────────────────
+let googleConnected = false;
+
+async function refreshConnections() {
+  const badge = document.getElementById('conn-google-badge');
+  const btn   = document.getElementById('conn-google-btn');
+  try {
+    const r = await fetch(`${API}/skill-blanca/oauth/google/status`, { signal: AbortSignal.timeout(4000) });
+    if (!r.ok) throw new Error('status');
+    const s = await r.json();
+    googleConnected = !!s.connected;
+    if (googleConnected) {
+      badge.textContent = 'conectado'; badge.style.color = '#2ec27e';
+      btn.textContent = 'Desconectar Google'; btn.disabled = false; btn.style.background = '#4a4a4a';
+    } else if (!s.enabled || !s.configured) {
+      badge.textContent = 'sin configurar'; badge.style.color = 'var(--lb-text3,#888)';
+      btn.textContent = 'Conectar Google'; btn.disabled = true; btn.style.background = '#3a3a3a';
+    } else {
+      badge.textContent = 'desconectado'; badge.style.color = 'var(--lb-text3,#888)';
+      btn.textContent = 'Conectar Google'; btn.disabled = false; btn.style.background = '#2f6feb';
+    }
+  } catch {
+    badge.textContent = 'n/d'; badge.style.color = 'var(--lb-text3,#888)';
+  }
+}
+
+function toggleGoogle() {
+  return googleConnected ? disconnectGoogle() : connectGoogle();
+}
+
+async function connectGoogle() {
+  const btn = document.getElementById('conn-google-btn');
+  btn.disabled = true; btn.textContent = 'Abriendo Google…';
+  try {
+    const r = await fetch(`${API}/skill-blanca/oauth/google/start`);
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.detail || 'start'); }
+    const data = await r.json();
+    window.open(data.authorization_url, '_blank', 'noopener');
+    pollGoogleConnection();
+  } catch (e) {
+    alert('No se pudo iniciar la conexión con Google: ' + e.message);
+    refreshConnections();
+  }
+}
+
+function pollGoogleConnection() {
+  let tries = 0;
+  const iv = setInterval(async () => {
+    tries++;
+    await refreshConnections();
+    if (googleConnected || tries > 60) clearInterval(iv);
+  }, 2000);
+}
+
+async function disconnectGoogle() {
+  if (!confirm('¿Desconectar la cuenta de Google? Se borra el token local.')) return;
+  try {
+    await fetch(`${API}/skill-blanca/oauth/google/disconnect`, { method: 'DELETE' });
+  } catch { /* noop */ }
+  refreshConnections();
+}
+
 // ── Health check ──────────────────────────────────────
 (async () => {
   try {
     const r = await fetch(`${API}/health`, { signal: AbortSignal.timeout(3000) });
     setLLMStatus(r.ok ? 'online' : 'offline');
   } catch { setLLMStatus('offline'); }
+  refreshConnections();
 })();
 </script>
 </body>
