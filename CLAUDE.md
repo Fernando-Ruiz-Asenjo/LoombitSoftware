@@ -140,6 +140,8 @@ loombit_operator/
 | `docs/CAPACIDADES_Y_HERRAMIENTAS.md` | Con qué construimos cada fase |
 | `docs/CONOCIMIENTO_OFICIO_ADMINISTRATIVO.md` | Fuente de verdad de dominio: el oficio administrativo (España) y sus gates |
 | `docs/BANCO_SUPUESTOS_LOOMBIT.md` | Banco de supuestos S-01…S-15 para exprimir al operador (futuros tests de comportamiento) |
+| `docs/TENDENCIAS_IA_2025_2026.ipynb` | Inspiración estratégica: tendencias IA 2025-2026 aplicadas a Loombit |
+| `docs/ROADMAP_TENDENCIAS_IA.md` | Traducción de esas tendencias a trabajo de código concreto y orden de ataque |
 | `docs/OAUTH_GOOGLE_SETUP.md` | Guía paso a paso para conectar Google (Fase 1) |
 | `docs/PARKED.md` | Qué está aparcado y no hay que tocar |
 | `AGENTS.md` | Bucle de trabajo para agentes: cómo abrir rama, validar, hacer PR |
