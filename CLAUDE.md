@@ -79,12 +79,17 @@ Camino crítico sin dispersión: **Fase 1 → 2 → 3 → 4**.
 Verificado contra el código, no contra notas previas:
 
 - ✅ Repo limpio: historial profesional, LICENSE propietaria, CI verde
-  (`black --check` + `ruff check` + `pytest`, 34 tests). Árbol sin cambios pendientes.
-- 🟠 **Tarea #4 (pilot) parcial:** los wrappers de tool `desktop_wait_for_window`,
-  `desktop_click_accessibility`, `desktop_screen_changed` existen en `tools/pilot.py` y
-  hacen `_cu_post(...)`, pero **falta** el endpoint en `routers/computer.py` y la lógica
-  en `pilot/windows_control.py`. Hoy esas 3 tools darían 404.
-- ❌ `lm_jobs.py` y `skill_loader.py` **no están migrados** todavía (ver tabla más abajo).
+  (`black --check` + `ruff check` + `pytest`, 84 tests). Árbol sin cambios pendientes.
+- ✅ **OAuth modo escritorio**: PKCE (S256), auto-refresh, token cifrado en reposo
+  (keyring/DPAPI, 🟢 verificado en Windows), botón "Conectar Google" en el home.
+  Pendiente 🟢: piloto real (cliente "App de escritorio" en Google Console + 1 envío real).
+- ✅ **Skill W Pilot reforzada**: DPI-awareness (per-monitor v2), tecleo Unicode-seguro
+  (acentos/€ vía portapapeles), `wait_for_window`/`click_accessibility`/`screen_changed`
+  con endpoint + lógica + executor, y **accesibilidad-primero** (`ui_snapshot` UIA).
+  El prompt del agente codifica la jerarquía API→navegador→UIA→coordenadas y los gates.
+  Pendiente 🟢: verificación en escritorio real; pendiente build: adaptador de navegador
+  (Playwright/CDP) y contrato de escalado de coordenadas.
+- ✅ `lm_jobs.py`, `skills.py` y `skill_loader.py` migrados (🟡, unit-tested; sin montar en routers).
 
 ---
 
