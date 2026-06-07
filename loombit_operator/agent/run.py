@@ -28,6 +28,8 @@ class AgentStatus(StrEnum):
     RUNNING           = "running"
     COMPLETED         = "completed"
     PENDING_APPROVAL  = "pending_approval"
+    PENDING_QUESTION  = "pending_question"
+    CANCELLED         = "cancelled"
     FAILED            = "failed"
 
 
@@ -75,6 +77,7 @@ class AgentRun:
     result: str               = ""
     error: str                = ""
     pending_approval: dict    = field(default_factory=dict)   # qué acción espera aprobación
+    pending_question: dict     = field(default_factory=dict)   # pregunta pendiente al usuario
     created_at: str           = field(default_factory=lambda: datetime.now(UTC).isoformat())
     updated_at: str           = field(default_factory=lambda: datetime.now(UTC).isoformat())
     completed_at: str         = ""
@@ -139,6 +142,7 @@ class AgentRun:
             "result": self.result,
             "error": self.error,
             "pending_approval": self.pending_approval,
+            "pending_question": self.pending_question,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
             "completed_at": self.completed_at,
@@ -155,6 +159,7 @@ class AgentRun:
             "result": self.result[:300] if self.result else "",
             "error": self.error[:200] if self.error else "",
             "pending_approval": self.pending_approval,
+            "pending_question": self.pending_question,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
             "completed_at": self.completed_at,
@@ -171,6 +176,7 @@ class AgentRun:
             result=str(d.get("result", "")),
             error=str(d.get("error", "")),
             pending_approval=dict(d.get("pending_approval", {})),
+            pending_question=dict(d.get("pending_question", {})),
             created_at=str(d.get("created_at", "")),
             updated_at=str(d.get("updated_at", "")),
             completed_at=str(d.get("completed_at", "")),

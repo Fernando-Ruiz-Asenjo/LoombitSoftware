@@ -2,11 +2,13 @@
 Router del agente autónomo de Loombit.
 
 Endpoints:
-  POST   /agent/run                — lanza una tarea nueva
-  GET    /agent/runs               — lista de runs (filtrables por status)
-  GET    /agent/runs/{run_id}      — detalle completo de un run
-  POST   /agent/runs/{run_id}/approve — aprueba una acción pendiente y reanuda
-  GET    /agent/tools              — catálogo de tools registradas
+  POST   /agent/run                        — lanza una tarea nueva
+  GET    /agent/runs                       — lista de runs (filtrables por status)
+  GET    /agent/runs/{run_id}              — detalle completo de un run
+  POST   /agent/runs/{run_id}/approve      — aprueba una acción pendiente y reanuda
+  POST   /agent/runs/{run_id}/answer       — responde a una pregunta del agente
+  POST   /agent/runs/{run_id}/cancel       — cancela un run activo
+  GET    /agent/tools                      — catálogo de tools registradas
 
 El agente corre de forma síncrona en el thread del request. Para producción
 se puede mover a un BackgroundTask o Celery; la interfaz del router no cambia.
@@ -20,6 +22,7 @@ from fastapi import APIRouter, BackgroundTasks, Body, HTTPException, Query
 from pydantic import BaseModel
 
 from ..agent import AgentLoop, AgentRun, AgentStatus
+from ..agent.memory import get_memory
 from ..agent.run import AgentStore
 from ..tools import tool_registry
 
@@ -60,6 +63,10 @@ class ApproveRequest(BaseModel):
     comment: str = ""
 
 
+class AnswerRequest(BaseModel):
+    answer: str
+
+
 class RunResponse(BaseModel):
     id: str
     task: str
@@ -68,13 +75,16 @@ class RunResponse(BaseModel):
     result: str
     error: str
     pending_approval: dict
+    pending_question: dict
     created_at: str
     updated_at: str
     completed_at: str
 
     @classmethod
     def from_run(cls, run: AgentRun) -> "RunResponse":
-        return cls(**run.snapshot())
+        snap = run.snapshot()
+        snap.setdefault("pending_question", {})
+        return cls(**snap)
 
     model_config = {"from_attributes": True}
 
@@ -95,6 +105,7 @@ class RunDetailResponse(RunResponse):
             result=data.get("result", ""),
             error=data.get("error", ""),
             pending_approval=data.get("pending_approval", {}),
+            pending_question=data.get("pending_question", {}),
             created_at=data.get("created_at", ""),
             updated_at=data.get("updated_at", ""),
             completed_at=data.get("completed_at", ""),
@@ -193,17 +204,83 @@ async def approve_run(
     return RunResponse.from_run(run)
 
 
-@router.get("/tools", summary="Catálogo de tools registradas")
-async def list_tools() -> dict:
-    """Devuelve el catálogo completo de tools disponibles para el agente."""
-    return tool_registry.snapshot()
 
-
-@router.get("/status", summary="Estado del subsistema de agente")
-async def agent_status() -> dict:
-    """Resumen rápido: store + tools."""
+@router.post(
+    "/runs/{run_id}/answer",
+    response_model=RunResponse,
+    summary="Responder pregunta del agente y reanudar",
+)
+async def answer_run(
+    run_id: str,
+    background_tasks: BackgroundTasks,
+    body: AnswerRequest,
+) -> RunResponse:
+    """
+    Entrega la respuesta del usuario a una pregunta pendiente del agente
+    y reanuda la ejecución en background.
+    """
+    loop = _get_loop()
     store = _get_store()
-    return {
-        "store": store.snapshot(),
-        "tools": tool_registry.snapshot(),
-    }
+
+    try:
+        run = store.get(run_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    if run.status != AgentStatus.PENDING_QUESTION:
+        raise HTTPException(
+            status_code=409,
+            detail=f"El run no está en pending_question (status={run.status})",
+        )
+
+    run.messages.append({"role": "user", "content": body.answer})
+    run.status = AgentStatus.RUNNING
+    run.pending_question = {}
+    store.save_run(run)
+    background_tasks.add_task(loop.execute_run, run_id)
+    return RunResponse.from_run(run)
+
+
+@router.post(
+    "/runs/{run_id}/cancel",
+    response_model=RunResponse,
+    summary="Cancelar un run activo",
+)
+async def cancel_run(run_id: str) -> RunResponse:
+    """Cancela un run que esté en running, pending_approval o pending_question."""
+    store = _get_store()
+    try:
+        run = store.get(run_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    cancellable = {AgentStatus.RUNNING, AgentStatus.PENDING_APPROVAL, AgentStatus.PENDING_QUESTION}
+    if run.status not in cancellable:
+        raise HTTPException(
+            status_code=409,
+            detail=f"El run no se puede cancelar (status={run.status})",
+        )
+
+    run.cancel()
+    store.save_run(run)
+    return RunResponse.from_run(run)
+
+
+@router.get("/tools", summary="Catálogo de tools registradas")
+async def list_tools() -> list[dict]:
+    """Lista todas las tools disponibles para el agente con su descripción y parámetros."""
+    return [
+        {
+            "name": t.name,
+            "description": t.description,
+            "category": t.category,
+            "requires_approval": t.requires_approval,
+        }
+        for t in tool_registry.all()
+    ]
+
+
+@router.get("/memory", summary="Vista completa de la memoria operativa del agente")
+async def agent_memory() -> dict:
+    """Devuelve el estado actual de la memoria persistente del agente."""
+    return get_memory().snapshot()

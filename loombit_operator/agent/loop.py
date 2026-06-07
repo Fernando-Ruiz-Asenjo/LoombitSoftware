@@ -26,6 +26,7 @@ from typing import Any
 from ..llm import ChatResponse, LLMClient, ToolCall, tool_result_message
 from ..tools import tool_registry
 from ..tools.registry import ToolRegistry
+from .memory import get_memory
 from .prompts import build_system_prompt
 from .run import AgentRun, AgentStatus, AgentStep, AgentStore
 
@@ -33,6 +34,7 @@ logger = logging.getLogger(__name__)
 
 _SENTINEL_DONE     = "TASK_DONE:"
 _SENTINEL_APPROVAL = "PENDING_APPROVAL:"
+_SENTINEL_QUESTION = "PENDING_QUESTION:"
 
 
 class AgentLoop:
@@ -67,9 +69,11 @@ class AgentLoop:
     def create(self, task: str, max_steps: int | None = None, profile: str = "administrativo") -> AgentRun:
         """Crea un AgentRun sin ejecutarlo — para lanzar en background."""
         run = self.store.create(task, max_steps=max_steps or self.max_steps)
-        # Inicializar mensajes con el system prompt del perfil
+        run.profile = profile
+        # Pasar la tarea como hint para que la memoria incluya procedimientos relevantes
+        memory_block = get_memory().to_context_block(task_hint=task)
         run.messages = [
-            {"role": "system", "content": build_system_prompt(profile)},
+            {"role": "system", "content": build_system_prompt(profile, memory_block)},
             {"role": "user",   "content": task},
         ]
         self.store.save_run(run)
@@ -81,15 +85,80 @@ class AgentLoop:
         return self._execute(run)
 
     def resume(self, run_id: str) -> AgentRun:
-        """Reanuda un AgentRun en pending_approval tras recibir aprobación humana."""
-        agent_run = self.store.get(run_id)
-        if agent_run.status != AgentStatus.PENDING_APPROVAL:
+        """Reanuda un AgentRun en pending_approval tras recibir aprobación humana.
+
+        Ejecuta la tool aprobada y reemplaza el placeholder PENDING_APPROVAL
+        en el historial de mensajes con el resultado real antes de continuar.
+        """
+        run = self.store.get(run_id)
+        if run.status != AgentStatus.PENDING_APPROVAL:
             raise ValueError(
-                f"El run {run_id} no está en pending_approval (status={agent_run.status})"
+                f"El run {run_id} no está en pending_approval (status={run.status})"
             )
-        agent_run.approve()
-        self.store.save_run(agent_run)
-        return self._execute(agent_run)
+
+        # Ejecutar TODOS los steps que están esperando aprobación
+        pending_steps = [
+            s for s in run.steps
+            if s.requires_approval and s.result.startswith(_SENTINEL_APPROVAL)
+        ]
+        for pending_step in pending_steps:
+            logger.info(
+                "Resume: ejecutando tool aprobada '%s' (step %d) run=%s",
+                pending_step.tool_name, pending_step.step, run_id,
+            )
+            try:
+                tool_def = self.registry.get(pending_step.tool_name)
+                actual_result = str(tool_def.execute(**pending_step.arguments))
+            except Exception as exc:
+                actual_result = f"ERROR al ejecutar '{pending_step.tool_name}': {exc}"
+
+            # Actualizar el step con el resultado real
+            pending_step.result = actual_result
+            pending_step.requires_approval = False
+
+            # Reemplazar el mensaje PENDING_APPROVAL en el historial del LLM
+            tc_id = pending_step.tool_call_id
+            for msg in run.messages:
+                if msg.get("role") == "tool" and msg.get("tool_call_id") == tc_id:
+                    msg["content"] = actual_result
+                    break
+
+        run.approve()
+        self.store.save_run(run)
+        return self._execute(run)
+
+    def answer(self, run_id: str, answer_text: str) -> AgentRun:
+        """Inyecta la respuesta del usuario a una pregunta y reanuda el agente."""
+        run = self.store.get(run_id)
+        if run.status != AgentStatus.PENDING_QUESTION:
+            raise ValueError(
+                f"El run {run_id} no está en pending_question (status={run.status})"
+            )
+
+        # Reemplazar el resultado PENDING_QUESTION en el historial por la respuesta real
+        tc_id = run.pending_question.get("tool_call_id", "")
+        answer_result = f"Usuario respondió: {answer_text}"
+
+        for step in run.steps:
+            if step.tool_call_id == tc_id and step.result.startswith(_SENTINEL_QUESTION):
+                step.result = answer_result
+                step.requires_approval = False
+
+        for msg in run.messages:
+            if msg.get("role") == "tool" and msg.get("tool_call_id") == tc_id:
+                msg["content"] = answer_result
+                break
+
+        # Añadir la respuesta como mensaje de usuario al historial del LLM
+        run.messages.append({"role": "user", "content": answer_text})
+
+        run.answer()
+        self.store.save_run(run)
+
+        # Guardar en memoria conversacional
+        _log_conversation_event(run, "user_answer", answer_text)
+
+        return self._execute(run)
 
     # ── Motor interno ─────────────────────────────────────────────────────────
 
@@ -104,10 +173,15 @@ class AgentLoop:
                 {"role": "user",   "content": run.task},
             ]
 
-        tools_schema = self.registry.to_openai()
+        tools_schema = self.registry.to_openai(profile=run.profile)
 
         try:
             while True:
+                # Guard: cancelación externa (el usuario pulsó "Detener")
+                fresh = self.store.get(run.id)
+                if fresh.status == AgentStatus.CANCELLED:
+                    return fresh
+
                 # Guard: límite de pasos
                 if run.exceeded_max_steps:
                     run.mark_failed(
@@ -138,6 +212,8 @@ class AgentLoop:
                     done_result = _extract_sentinel(content, _SENTINEL_DONE)
                     if done_result is not None:
                         run.mark_completed(done_result)
+                        _log_conversation_event(run, "completed", done_result)
+                        _update_memory(run)
                         self.store.save_run(run)
                         return run
 
@@ -156,6 +232,7 @@ class AgentLoop:
                     # Si finish_reason=stop y no hay sentineles, asumimos tarea completada
                     if response.finish_reason == "stop":
                         run.mark_completed(content or "(sin resultado)")
+                        _update_memory(run)
                         self.store.save_run(run)
                         return run
 
@@ -164,10 +241,13 @@ class AgentLoop:
                     continue
 
                 # ── Caso: el LLM quiere ejecutar tools ────────────────────────
+                # Detección de bucle: si la misma tool se repite N veces seguidas
+                _inject_loop_hint(run, response.tool_calls)
+
                 tool_results: list[dict] = []
                 pending_approval: dict | None = None
 
-                for tc in response.tool_calls:
+                for idx, tc in enumerate(response.tool_calls):
                     step_num = run.step_count + 1
                     result_text, needs_stop = self._execute_tool_call(tc, step_num, run)
 
@@ -182,27 +262,33 @@ class AgentLoop:
                     run.add_step(step)
                     tool_results.append(tool_result_message(tc.id, result_text))
 
-                    if needs_stop and pending_approval is None:
-                        parsed = _parse_approval_json(
-                            result_text[len(_SENTINEL_APPROVAL):]
-                            if result_text.startswith(_SENTINEL_APPROVAL)
-                            else result_text
-                        )
-                        pending_approval = {
-                            "reason":          parsed.get("reason", "Aprobación requerida"),
-                            "proposed_action": parsed.get("proposed_action", result_text),
-                            "tool_call_id":    tc.id,
-                        }
+                    if needs_stop:
+                        # Placeholders para tool calls no procesadas
+                        for remaining_tc in response.tool_calls[idx + 1:]:
+                            tool_results.append(
+                                tool_result_message(remaining_tc.id, "Accion pospuesta.")
+                            )
+                        if not result_text.startswith(_SENTINEL_QUESTION):
+                            parsed = _parse_approval_json(
+                                result_text[len(_SENTINEL_APPROVAL):]
+                                if result_text.startswith(_SENTINEL_APPROVAL)
+                                else result_text
+                            )
+                            pending_approval = {
+                                "reason":          parsed.get("reason", "Aprobacion requerida"),
+                                "proposed_action": parsed.get("proposed_action", result_text),
+                                "tool_call_id":    tc.id,
+                            }
+                        break
 
-                # Añadir resultados de tools al historial
                 run.messages.extend(tool_results)
 
-                # Verificar sentineles en los resultados de tools
                 done_summary = _first_sentinel(
                     [tr["content"] for tr in tool_results], _SENTINEL_DONE
                 )
                 if done_summary is not None:
                     run.mark_completed(done_summary)
+                    _update_memory(run)
                     self.store.save_run(run)
                     return run
 
@@ -215,7 +301,24 @@ class AgentLoop:
                     self.store.save_run(run)
                     return run
 
-                # Ningún sentinel → seguir el bucle
+                question_payload = _first_sentinel(
+                    [tr["content"] for tr in tool_results], _SENTINEL_QUESTION
+                )
+                if question_payload is not None:
+                    parsed = _parse_approval_json(question_payload)
+                    question_tc_id = next(
+                        (tr.get("tool_call_id", "") for tr in tool_results
+                         if _SENTINEL_QUESTION in tr.get("content", "")),
+                        "",
+                    )
+                    run.mark_pending_question(
+                        question=parsed.get("question", question_payload),
+                        tool_call_id=question_tc_id,
+                    )
+                    _log_conversation_event(run, "agent_question", parsed.get("question", question_payload))
+                    self.store.save_run(run)
+                    return run
+
                 self.store.save_run(run)
 
         except Exception as exc:
@@ -224,27 +327,16 @@ class AgentLoop:
             self.store.save_run(run)
             return run
 
-    def _execute_tool_call(
-        self, tc: ToolCall, step_num: int, run: AgentRun
-    ) -> tuple[str, bool]:
-        """
-        Ejecuta una tool call.
-        Devuelve (result_text, needs_stop).
-        needs_stop=True si la tool tiene requires_approval=True o devuelve PENDING_APPROVAL.
-        """
+    def _execute_tool_call(self, tc: ToolCall, step_num: int, run: AgentRun) -> tuple[str, bool]:
         try:
             tool_def = self.registry.get(tc.tool_name)
         except KeyError:
             return f"ERROR: tool desconocida '{tc.tool_name}'", False
 
-        # Tools que requieren aprobación antes de ejecutarse → detener el loop
         if tool_def.requires_approval:
-            # En vez de ejecutar, devolvemos un PENDING_APPROVAL automático
             payload = json.dumps({
-                "reason": f"La tool '{tc.tool_name}' requiere aprobación antes de ejecutarse.",
-                "proposed_action": (
-                    f"Ejecutar {tc.tool_name} con argumentos: {json.dumps(tc.arguments, ensure_ascii=False)}"
-                ),
+                "reason": f"La tool '{tc.tool_name}' requiere aprobacion antes de ejecutarse.",
+                "proposed_action": f"Ejecutar {tc.tool_name} con: {json.dumps(tc.arguments, ensure_ascii=False)}",
             })
             return f"{_SENTINEL_APPROVAL}{payload}", True
 
@@ -252,15 +344,29 @@ class AgentLoop:
         try:
             result = tool_def.execute(**tc.arguments)
         except TypeError as exc:
-            return f"ERROR: argumentos inválidos para '{tc.tool_name}': {exc}", False
+            return f"ERROR: argumentos invalidos para '{tc.tool_name}': {exc}", False
         except Exception as exc:
             return f"ERROR en '{tc.tool_name}': {exc}", False
 
         result_text = str(result)
 
-        # La tool puede devolver sentineles directamente
         if result_text.startswith(_SENTINEL_APPROVAL):
             return result_text, True
+        if result_text.startswith(_SENTINEL_QUESTION):
+            return result_text, True
+
+        if tc.tool_name == "gmail_search":
+            try:
+                parsed = json.loads(result_text)
+                if parsed.get("ok") and parsed.get("count", 0) == 0:
+                    hint = (
+                        result_text + "\n"
+                        "[SISTEMA: 0 resultados. Prueba terminos distintos: "
+                        "nombre parcial, dominio, asunto, fecha. No preguntes al usuario.]"
+                    )
+                    return hint, False
+            except (json.JSONDecodeError, AttributeError):
+                pass
 
         return result_text, False
 
@@ -268,7 +374,6 @@ class AgentLoop:
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _extract_sentinel(text: str, prefix: str) -> str | None:
-    """Extrae el payload tras un sentinel si está presente."""
     if text.startswith(prefix):
         return text[len(prefix):]
     return None
@@ -286,4 +391,56 @@ def _parse_approval_json(payload: str) -> dict[str, Any]:
     try:
         return json.loads(payload)
     except json.JSONDecodeError:
-        return {"reason": payload, "proposed_action": payload}
+        return {"reason": payload, "proposed_action": payload, "question": payload}
+
+
+def _log_conversation_event(run: "AgentRun", event_type: str, content: str) -> None:
+    try:
+        from pathlib import Path
+        from datetime import UTC, datetime
+        ts = datetime.now(UTC)
+        date_str = ts.strftime("%Y-%m-%d")
+        conv_dir = Path("runtime/local/conversations")
+        conv_dir.mkdir(parents=True, exist_ok=True)
+        filename = f"{date_str}_{run.id[:8]}.jsonl"
+        event = json.dumps({
+            "ts": ts.isoformat(), "run_id": run.id,
+            "task": run.task[:120], "event": event_type, "content": content,
+        }, ensure_ascii=False)
+        with open(conv_dir / filename, "a", encoding="utf-8") as f:
+            f.write(event + "\n")
+    except Exception:
+        pass
+
+
+def _inject_loop_hint(run: "AgentRun", incoming_calls: list) -> None:
+    _LOOP_THRESHOLD = 3
+    if not run.steps or not incoming_calls:
+        return
+    last_tools = [s.tool_name for s in run.steps[-_LOOP_THRESHOLD:]]
+    if len(last_tools) < _LOOP_THRESHOLD:
+        return
+    if len(set(last_tools)) != 1:
+        return
+    repeated_tool = last_tools[0]
+    if repeated_tool not in [tc.tool_name for tc in incoming_calls]:
+        return
+    hint = (
+        f"[SISTEMA-ANTI-BUCLE]: Llevas {_LOOP_THRESHOLD} llamadas seguidas a "
+        f"'{repeated_tool}' sin avanzar. Cambia de estrategia. "
+        "Si la capacidad no existe llama propose_improvement y luego task_done."
+    )
+    run.messages.append({"role": "user", "content": hint})
+    logger.warning("Bucle detectado: '%s' x%d run=%s", repeated_tool, _LOOP_THRESHOLD, run.id)
+
+
+def _update_memory(run: "AgentRun") -> None:
+    try:
+        mem = get_memory()
+        mem.extract_contacts_from_steps(run.steps)
+        tools_used = list(dict.fromkeys(s.tool_name for s in run.steps))
+        if run.result:
+            mem.add_history(task=run.task, result=run.result, tools_used=tools_used, run_id=run.id)
+        mem.extract_procedure_from_run(run)
+    except Exception:
+        pass
