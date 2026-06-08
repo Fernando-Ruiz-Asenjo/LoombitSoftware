@@ -762,6 +762,8 @@ a { color: inherit; text-decoration: none; }
   <div id="chat-body">
     <!-- Welcome -->
     <div id="welcome">
+      <!-- La tela de la mañana: lo importante de hoy + lo ya preparado (se llena al abrir) -->
+      <div id="telar-panel" style="display:none;margin-bottom:18px"></div>
       <div class="welcome-header">
         <div class="welcome-avatar">SB</div>
         <div class="welcome-text">
@@ -2060,6 +2062,61 @@ function gxToast(text) {
   clearTimeout(gxToast._t); gxToast._t = setTimeout(()=>{ t.style.display='none'; }, 5000);
 }
 
+// ═══════════════════════════════════════════════════════
+// LA TELA DE LA MAÑANA — lo importante de hoy + lo ya preparado, al abrir.
+// Cada hilo trae su acción a un clic; los efectos pasan por el agente → "Aprobar todo".
+// ═══════════════════════════════════════════════════════
+const TELAR_COLOR = { agenda:'#3b82f6', cobro:'#ef4444', correo:'#06b6d4', plazo:'#f59e0b', aprobacion:'#8b5cf6' };
+
+async function cargarTelar() {
+  const panel = document.getElementById('telar-panel'); if (!panel) return;
+  try {
+    const r = await fetch(`${API}/telar`, { signal: AbortSignal.timeout(15000) });
+    if (!r.ok) return;
+    const t = await r.json();
+    if (!t.hilos || !t.hilos.length) { panel.style.display = 'none'; return; }
+    const filas = t.hilos.map((h, i) => {
+      const col = TELAR_COLOR[h.tipo] || 'var(--lb-purple,#8b5cf6)';
+      const btn = h.accion && h.accion.label
+        ? `<button onclick="telarAccion(${i})" data-i="${i}" style="margin-left:auto;flex-shrink:0;background:linear-gradient(135deg,var(--lb-purple,#8b5cf6),var(--lb-cyan,#06b6d4));color:#fff;border:none;border-radius:999px;padding:5px 13px;font-size:12px;font-weight:600;cursor:pointer">${esc(h.accion.label)}</button>` : '';
+      return `<div class="telar-hilo" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;background:var(--lb-navy2,#111827);border-left:3px solid ${col};margin:6px 0">
+        <span style="font-size:16px">${esc(h.icono||'•')}</span>
+        <span style="font-size:13px;line-height:1.35">${esc(h.titulo||'')}</span>${btn}</div>`;
+    }).join('');
+    panel.innerHTML = `
+      <div style="background:linear-gradient(135deg,rgba(139,92,246,.14),rgba(6,182,212,.10));border:1px solid var(--lb-border2,rgba(255,255,255,.12));border-radius:16px;padding:16px 18px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+          <span style="font-size:18px">☀️</span>
+          <span style="font-size:16px;font-weight:700">${esc(t.saludo||'Hola')}, Fernando</span>
+          <button onclick="document.getElementById('telar-panel').style.display='none'" title="Ocultar" style="margin-left:auto;background:none;border:none;color:var(--lb-text3,#475569);cursor:pointer;font-size:16px">✕</button>
+        </div>
+        <div style="font-size:13px;color:var(--lb-text2,#94a3b8);margin-bottom:10px">${esc(t.resumen||'')}</div>
+        ${filas}
+        <div style="font-size:11px;color:var(--lb-text3,#475569);margin-top:10px;display:flex;align-items:center;gap:6px">🔒 ${esc((t.meta&&t.meta.privado)||'Nada de esto ha salido de tu máquina.')}</div>
+      </div>`;
+    panel.style.display = 'block';
+    panel._hilos = t.hilos;   // guardamos para telarAccion
+  } catch { /* el telar es complementario, nunca rompe la app */ }
+}
+
+async function telarAccion(i) {
+  const panel = document.getElementById('telar-panel');
+  const h = panel && panel._hilos && panel._hilos[i]; if (!h || !h.accion) return;
+  const ac = h.accion;
+  if (ac.modo === 'agent_task' && ac.task) {
+    const btn = panel.querySelector(`button[data-i="${i}"]`); if (btn) { btn.disabled = true; btn.textContent = 'Preparando…'; }
+    try {
+      await fetch(`${API}/agent/run`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ task: ac.task }), signal: AbortSignal.timeout(15000) });
+      if (btn) btn.textContent = '✓ Preparado';
+      addMsg('agent', `✅ ${ac.label}: lo he dejado en «Aprobar todo» (arriba a la derecha) para que lo apruebes.`);
+      setTimeout(refreshApprovals, 1200);
+    } catch (e) { if (btn) { btn.disabled = false; btn.textContent = ac.label; } }
+  } else if (ac.modo === 'navigate') {
+    if (h.tipo === 'agenda') openGalaxia();
+    else { const bar = document.getElementById('approveAllBar'); if (bar) bar.style.boxShadow = '0 0 0 3px var(--lb-purple,#8b5cf6)'; }
+  }
+}
+
 // ── Health check ──────────────────────────────────────
 (async () => {
   try {
@@ -2072,6 +2129,7 @@ function gxToast(text) {
   loadFeed();
   loadCuentas();
   gxPrewarm();
+  cargarTelar();
 })();
 </script>
 <div id="approveAllBar" style="display:none;position:fixed;top:64px;right:20px;z-index:9999;background:var(--lb-navy3,#1a2235);border:1px solid var(--lb-purple,#8b5cf6);border-radius:12px;padding:10px 14px;box-shadow:0 10px 30px rgba(0,0,0,.55);flex-direction:column;align-items:stretch;gap:8px;font-size:13px;color:var(--lb-text,#f1f5f9);max-width:340px">

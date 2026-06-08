@@ -93,6 +93,7 @@ from .routers import (  # noqa: E402
     routines,
     skill_blanca_actions,
     skill_blanca_oauth,
+    telar,
     ui,
 )
 
@@ -158,6 +159,7 @@ app.include_router(galaxia.router)
 app.include_router(home.router)
 app.include_router(credentials.router)
 app.include_router(mcp.router)
+app.include_router(telar.router)
 
 # UI estatico y home
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
