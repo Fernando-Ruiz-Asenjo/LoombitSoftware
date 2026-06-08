@@ -81,6 +81,7 @@ from .routers import (  # noqa: E402
     agent,
     computer,
     conciliacion,
+    credentials,
     docs,
     fiscal,
     health,
@@ -150,6 +151,7 @@ app.include_router(routines.router)
 app.include_router(fiscal.router)
 app.include_router(conciliacion.router)
 app.include_router(home.router)
+app.include_router(credentials.router)
 
 # UI estatico y home
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
