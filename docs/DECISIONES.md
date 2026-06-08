@@ -79,4 +79,9 @@ Formato: **D-NN — decisión** · *contexto* · **elegido** vs alternativas · 
 - `registrar_factura` (Expediente `factura_intake` + PDF con huella) y `liquidar_303_periodo` (reúne facturas → 303 → `PENDING_APPROVAL`, arrastrando avisos de facturas ilegibles).
 - 8 tests (suite 165). Extracción con 14B/visión para difíciles/escaneadas: pendiente.
 
+**D-13 — Router fiscal (API multi-entidad) IMPLEMENTADO** (`routers/fiscal.py`).
+- Endpoints: listar/ver expedientes (con `verify_chain` + eventos + documentos), registrar factura, liquidar 303 (→ `PENDING_APPROVAL`), y **aprobar** (el humano aporta justificante → cierra).
+- **Ningún endpoint presenta a la AEAT ni cierra sin acción humana** (regla legal inamovible).
+- 3 tests TestClient del flujo completo (suite 168).
+
 *(se irán añadiendo entradas según avance el bloque)*

@@ -7,7 +7,7 @@
 
 ## Foto global
 - **Repo**: limpio y profesional, historial sano, LICENSE propietaria, `.gitignore`/`.gitattributes`.
-- **CI**: verde (black + ruff + pytest). **165 tests**.
+- **CI**: verde (black + ruff + pytest). **168 tests**.
 - **Arquitectura**: núcleo blanco + skills + ReAct; FastAPI en `:8787`; LLM local (instructor **Qwen2.5-14B**, coder 7B, vía LM Studio). Ver `MODELOS_LOOMBIT.md`.
 
 ## Avance por fases
@@ -95,7 +95,9 @@ hashes) + documentos con sha256, 8 tests. 🟡 (sin router/UI todavía). Y encim
 casuística) y `procesar_303` (abre Expediente → calcula → `PENDING_APPROVAL`), 11 tests. La IA
 prepara; el humano valida y presenta. El **intake** (factura → línea del 303, con abstención
 honesta) ya está (`intake.py`); `liquidar_303_periodo` hace el flujo completo factura→303.
-Pendiente: extracción con 14B/visión para facturas difíciles/escaneadas, y router/UI.
+El **router fiscal** (API multi-entidad: registrar factura, liquidar 303 → `PENDING_APPROVAL`,
+aprobar con justificante) ya está (`routers/fiscal.py`). Pendiente: **extracción con 14B/visión**
+para facturas difíciles/escaneadas, y la **UI**.
 
 ## Bloqueadores / dependen de Fernando
 - ~~**#28**: crear el cliente OAuth "App de escritorio"~~ → ✅ **RESUELTO** el 2026-06-08
