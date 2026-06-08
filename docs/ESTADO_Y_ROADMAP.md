@@ -18,7 +18,7 @@
 | 1 · Verdad de conectores | OAuth real Google + 1 correo + 1 evento reales | ✅ **Cerrada (2026-06-08)** | Correo real (`message_id` 19ea478e791867b0) + evento real (`event_id` vmovd103mbb40u7ek3ehb5jsa0), ambos con recibo |
 | 2 · Percepción real (Morning Brief) | Brief diario con datos reales | 🟠 En curso | Store de cuentas a cobrar + servicio de brief (las 3 piezas base ya están) |
 | 3 · Bucle e2e cuña 1 (cobros) | Flujo cobros completo ×5 sin intervención | 🟠 Cerebro listo | Orquestación e2e + recibos 🟢 |
-| 4 · UI humana | Dashboard no técnico | 🟠 Parcial | Home + botón Conectar Google hechos; falta dashboard |
+| 4 · UI humana | Dashboard no técnico | 🟠 Parcial | Home + botón Conectar Google + **Galaxia MVP 🟢** (mapa relacional del negocio, D-26); falta drag-to-act, latido y órbitas correo/calendario/Drive |
 | 5 · Memoria y aprendizaje | Daemon de memoria proactiva | 🟡 Memoria lista | Scheduler/daemon proactivo |
 | 6 · Endurecimiento + navegador | Consentimiento, export, Skill Pilot navegador | ⬜ | Adaptador Playwright/CDP, contrato de coordenadas |
 | 7 · Edge / Jetson | Benchmark en Jetson Orin NX | ⬜ | Comprar hardware |
@@ -65,6 +65,11 @@
 3. **WhatsApp como objetivo del Pilot** — canal de negocio real (92% lo usa a diario, 68% prefiere WhatsApp a email/teléfono). Ver `INSIGHTS_PRODUCTO_Y_SUPUESTOS.md`.
 4. 🟢 **Routines: scheduler + Brief diario** — verificado end-to-end (2026-06-08): motor + cron + recibo + semáforo + 15 tests + brief real contra el 14B. **Falta**: cablear fuentes reales (banco/Gmail) al brief + store de cuentas a cobrar (cierra MVP Fase 2). Ver `ROUTINES_LOOMBIT.md`.
 5. **Piloto real de cobros** end-to-end → primer recibo 🟢 (necesita LM Studio + datos).
+   - ✅ **Galaxia MVP (Fase 4)** — HECHO 2026-06-08 (🟢): `GET /galaxia` agrega contactos (Enviados) +
+     cuentas a cobrar + aristas contacto↔cuenta; vista orbital determinista y **edgeless** (anti-maraña),
+     gravedad semántica (vencidas al centro), command palette ⌘K, cinturón para la cola. Verificado en
+     vivo en el servidor real. Ver D-26. **Siguiente**: drag-to-act, latido por novedad, órbitas
+     correo/calendario/Drive (= los 3 gaps de Google).
 6. Qwen2.5-VL local (facturas escaneadas), servidor MCP, adaptador navegador.
 7. Convertir los supuestos (S-01…S-15 + los nuevos A-G/I-X de investigación de campo) en **tests de comportamiento**.
 

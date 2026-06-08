@@ -85,6 +85,7 @@ from .routers import (  # noqa: E402
     cuentas,
     docs,
     fiscal,
+    galaxia,
     health,
     home,
     mcp,
@@ -153,6 +154,7 @@ app.include_router(routines.router)
 app.include_router(fiscal.router)
 app.include_router(conciliacion.router)
 app.include_router(cuentas.router)
+app.include_router(galaxia.router)
 app.include_router(home.router)
 app.include_router(credentials.router)
 app.include_router(mcp.router)

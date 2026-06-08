@@ -177,19 +177,26 @@ correos+documentos+eventos con todas sus líneas a la vez, sería ruido. Cómo l
 - **Datos**: un único `GET /galaxia` agrega lo que ya existe (§5) en `{ sol, nodos[], aristas[] }`,
   con `peso`, `estado`, `temperatura` y `urgencia` por nodo → el canvas coloca por órbita/radio.
 
-## 12. MVP revisado (anti-hairball desde el día 1)
+## 12. MVP revisado (anti-hairball desde el día 1) — ✅ HECHO 🟢 (2026-06-08, D-26)
 
-1. `GET /galaxia`: sol (entidad + KPIs) · nodos contacto (peso=frecuencia, temperatura=recencia) ·
-   nodos cuenta (estado, urgencia=días a vencer) · **aristas solo contacto↔cuenta** (no se pintan
-   salvo foco). + test.
+1. `GET /galaxia`: sol (entidad + KPIs) · nodos contacto (peso=frecuencia, temperatura=intensidad de
+   trato) · nodos cuenta (estado, urgencia=días a vencer) · **aristas solo contacto↔cuenta** (no se
+   pintan salvo foco). + test. → `loombit_operator/galaxia.py` + `routers/galaxia.py` + `test_galaxia.py` (6).
 2. Canvas orbital determinista: sol al centro, órbita de contactos (tamaño=peso, brillo=temperatura),
    órbita de cuentas (color=estado, radio=urgencia → las que vencen, más adentro), **cinturón** para
-   la cola. **Hover** = tooltip; **clic** = foco (parent-centered, aparecen sus líneas); **⌘K** = saltar.
-3. 🟢 cuando, con datos reales, la vista coloca tus contactos y sus facturas vencidas hacia el centro,
-   sin maraña, y al hacer foco en un cliente aparecen solo SUS líneas.
+   la cola. **Hover** = tooltip; **clic** = foco (aparecen sus líneas); **⌘K** = saltar; doble clic =
+   abrir en el chat. → vista 🌌 en `static/index.html` (canvas propio, sin dependencia).
+3. ✅ 🟢 **verificado EN VIVO en el servidor real**: con datos reales (8 contactos de Enviados + 4
+   cuentas de prueba) la vista colocó las facturas vencidas hacia el centro en rojo, sin maraña, y al
+   enfocar un cliente apareció **solo SU** arista (3 aristas correctas, 0 espurias). Datos de prueba
+   borrados tras verificar. Ver **D-26** en `DECISIONES.md`.
 
-*Siguientes slices*: drag-to-act, latido por novedad (daemon), órbitas de correo/eventos/documentos
-(= los 3 gaps de Google), zoom semántico completo.
+> **Nota honesta sobre `temperatura`:** en el MVP es *intensidad de trato* (frecuencia normalizada en
+> [0.35, 1.0]), no la *recencia* (último contacto). La recencia real necesita la marca de tiempo de los
+> mensajes de Enviados → siguiente slice. El brillo ya distingue "con quién tratas más".
+
+*Siguientes slices*: `temperatura`=recencia real; drag-to-act; latido por novedad (daemon); órbitas de
+correo/eventos/documentos (= los 3 gaps de Google); zoom semántico completo.
 
 ## Fuentes
 - [JS graph libs (Cytoscape/Sigma/D3) — comparación](https://www.cylynx.io/blog/a-comparison-of-javascript-graph-network-visualisation-libraries/) · [Cytoscape.js](https://js.cytoscape.org/)
