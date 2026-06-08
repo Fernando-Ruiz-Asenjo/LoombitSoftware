@@ -181,6 +181,15 @@ def aprobar_conciliacion(entity_id: str, expediente_id: str, body: AprobarConcil
         )
         # Flywheel: aprende el puente concepto-bancario → contraparte de ESTE cobro confirmado.
         contraparte = factura.data.get("fields", {}).get("proveedor") or ""
+
+        # Fase 2: cierra el ciclo — marca la cuenta a cobrar como COBRADA (entró el pago).
+        from ..cuentas_cobrar import CuentasCobrarStore
+
+        CuentasCobrarStore().conciliar_cobro(
+            referencia=prop.get("factura_referencia") or "",
+            cliente=contraparte,
+            importe=float(prop["importe"]),
+        )
         if resolver.aprender(
             prop["concepto"],
             contraparte,

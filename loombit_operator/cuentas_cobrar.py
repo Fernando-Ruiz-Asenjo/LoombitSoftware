@@ -106,6 +106,31 @@ class CuentasCobrarStore:
         self._save()
         return True
 
+    def conciliar_cobro(
+        self,
+        *,
+        referencia: str = "",
+        cliente: str = "",
+        importe: float | None = None,
+        tol: float = 0.01,
+    ) -> str | None:
+        """Marca cobrada la cuenta pendiente que case con un cobro conciliado. Empareja por
+        referencia (en el concepto) o, si no, por cliente + importe. Devuelve el id o None."""
+        pend = self.pendientes()
+        ref = (referencia or "").strip().lower()
+        if ref:
+            for c in pend:
+                if ref in c.concepto.lower():
+                    self.marcar_cobrada(c.id)
+                    return c.id
+        cl = (cliente or "").strip().lower()
+        if cl and importe is not None:
+            for c in pend:
+                if cl in c.cliente.lower() and abs(c.importe - float(importe)) <= tol:
+                    self.marcar_cobrada(c.id)
+                    return c.id
+        return None
+
 
 def cuenta_desde_factura(
     *,

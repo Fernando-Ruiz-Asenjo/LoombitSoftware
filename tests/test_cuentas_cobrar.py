@@ -49,3 +49,24 @@ def test_marcar_cobrada(tmp_path):
     assert s.marcar_cobrada(c.id) is True
     assert s.pendientes() == []
     assert s.marcar_cobrada("noexiste") is False
+
+
+def test_conciliar_cobro_por_referencia(tmp_path):
+    s = _store(tmp_path)
+    s.add(
+        CuentaCobrar(
+            cliente="Acme SL", importe=500, vencimiento="2026-06-01", concepto="Factura F-7"
+        )
+    )
+    assert s.conciliar_cobro(referencia="F-7") is not None
+    assert s.pendientes() == []
+
+
+def test_conciliar_cobro_por_cliente_importe(tmp_path):
+    s = _store(tmp_path)
+    s.add(CuentaCobrar(cliente="Beta SL", importe=300, vencimiento="2026-06-01"))
+    assert s.conciliar_cobro(cliente="Beta SL", importe=300) is not None
+    assert s.pendientes() == []
+    # sin coincidencia → None
+    s.add(CuentaCobrar(cliente="Gamma", importe=100, vencimiento="2026-06-01"))
+    assert s.conciliar_cobro(cliente="Nadie", importe=999) is None
