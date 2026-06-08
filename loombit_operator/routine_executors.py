@@ -138,16 +138,31 @@ def _buscar_respuestas(token: str, contactos: list, dias: int = 2, maximo: int =
 def reply_watch_executor(routine: Routine, now: datetime) -> str:
     """Vigila respuestas: detecta correos sin leer de contactos conocidos y prepara un borrador
     de respuesta para cada uno (no envía; el humano aprueba). Memoria persistente del contacto."""
+    from types import SimpleNamespace
+
     from .agent.memory import get_memory
     from .config import get_settings
+    from .routers.home import _contactos_de_gmail
     from .skill_blanca_oauth import fresh_access_token
 
-    token = fresh_access_token(get_settings(), "google")
+    settings = get_settings()
+    token = fresh_access_token(settings, "google")
     if not token:
         return "No puedo vigilar respuestas: Google no está conectado."
 
+    # A quién vigilar = a quien REALMENTE escribes (Enviados) + memoria; excluye tu propio correo.
     mem = get_memory()
-    contactos = [c for c in mem.contacts if getattr(c, "email", "")]
+    propio = (mem.owner.get("email") or "").lower()
+    por_email: dict[str, object] = {}
+    for c in _contactos_de_gmail(settings):
+        em = c["email"].lower()
+        if em and em != propio:
+            por_email[em] = SimpleNamespace(name=c["name"], email=c["email"])
+    for c in mem.contacts:
+        em = (getattr(c, "email", "") or "").lower()
+        if em and em != propio:
+            por_email.setdefault(em, c)
+    contactos = list(por_email.values())
     respuestas = _buscar_respuestas(token, contactos)
     if not respuestas:
         return "Sin respuestas nuevas de tus contactos."
