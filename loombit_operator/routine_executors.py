@@ -47,27 +47,34 @@ def _señales_reales(now: datetime | None = None) -> list[str]:
             señales.append("sin eventos en tu calendario hoy")
     except Exception:
         pass
-    # Próximas citas (no solo hoy): que NO se pierda la reunión cerrada para el jueves. Autoritativo.
+    # Próximas reuniones DESTILADAS (Skill D · Reuniones): el modelo lee correos + calendario y da la
+    # reunión REAL reconciliada. Si el correo contradice el calendario, manda el correo y se avisa del
+    # descuadre. No solo HOY; no la regex ruidosa. Loombit acierta, no pide revisar.
     try:
         from datetime import date as _date
 
+        from .reuniones_intel import destilar_reuniones
         from .skill_blanca_calendar_read import eventos_proximos
+        from .telar import _buscar_correos, _fuente_inbox
 
         prox = eventos_proximos(now=now, dias=7)
-        for ev in prox[:4]:
-            inicio = str(ev.get("start", ""))
-            dia = inicio[:10]
-            hora = inicio[11:16] if not ev.get("all_day") else ""
-            try:
-                d = _date.fromisoformat(dia)
-                cuando = ("lun", "mar", "mié", "jue", "vie", "sáb", "dom")[
-                    d.weekday()
-                ] + f" {d.day}/{d.month}"
-            except ValueError:
-                cuando = dia
+        inbox = _fuente_inbox(None, incluir_leidos=True)
+        hoy = (now or datetime.now()).date()
+        for r in destilar_reuniones(inbox, prox, hoy, buscar=_buscar_correos)[:4]:
+            quien = f"con {r['con']}" if r["con"] else ""
+            d = _date.fromisoformat(r["fecha"])
+            cuando = ("lun", "mar", "mié", "jue", "vie", "sáb", "dom")[
+                d.weekday()
+            ] + f" {d.day}/{d.month}"
+            extra = ""
+            if r["conflicto"] and r["nota"]:
+                extra = f" (ojo: {r['nota']}; uso la fecha del correo)"
+            elif r["lugar"]:
+                extra = f" en {r['lugar']}"
             señales.append(
-                f"próxima cita: «{ev.get('summary', 'evento')}» {cuando}"
-                + (f" {hora}" if hora else "")
+                f"reunión {quien} {cuando}{(' ' + r['hora']) if r['hora'] else ''}{extra}".replace(
+                    "  ", " "
+                ).strip()
             )
     except Exception:
         pass
@@ -96,23 +103,12 @@ def _señales_reales(now: datetime | None = None) -> list[str]:
             )
     except Exception:
         pass
-    # Percepción AMPLIA (no solo contactos conocidos): correos recientes de CUALQUIERA + reuniones
-    # acordadas en correo aunque no estén en el calendario. Esto es "destilar" — que no se nos escape
-    # un hilo nuevo (p. ej. un proveedor con el que acabas de cerrar una reunión). Honesto: marcado
-    # "según un correo"; no inventa. Best-effort: si falla la red, no aporta señal.
+    # Percepción AMPLIA: cuántos correos recientes hay en la bandeja (de cualquiera, no solo
+    # contactos). Las reuniones ya las destila el bloque de arriba. Best-effort.
     try:
-        from .percepcion_correo import detectar_reuniones
         from .telar import _fuente_inbox
 
-        inbox = _fuente_inbox(None, incluir_leidos=True)  # también leídos: la reunión ya la leíste
-        hoy = (now or datetime.now()).date()
-        for r in detectar_reuniones(inbox, hoy)[:3]:
-            quien = f"con {r['de']}" if r.get("de") else ""
-            señales.append(
-                f"posible reunión {quien} {r['cuando']} (según un correo)".replace(
-                    "  ", " "
-                ).strip()
-            )
+        inbox = _fuente_inbox(None, incluir_leidos=True)
         if inbox:
             señales.append(f"{len(inbox)} correo(s) reciente(s) en tu bandeja")
     except Exception:

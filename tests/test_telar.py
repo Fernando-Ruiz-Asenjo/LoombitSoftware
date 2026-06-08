@@ -69,6 +69,7 @@ def test_tejer_dia_produce_hilos_con_accion() -> None:
         proximos=[],
         correos=[{"from": "David <d@x.com>", "subject": "presupuesto", "snippet": "¿me lo pasas?"}],
         inbox=[],
+        reuniones=[],
         vencidas=[SimpleNamespace(cliente="Acme", importe=1200.0)],
         proximas=[],
         aprobaciones=1,
@@ -128,6 +129,7 @@ def test_plazo_desde_la_bandeja_no_solo_contactos() -> None:
                 "snippet": "plazo hasta el 20/07",
             }
         ],
+        reuniones=[],
         vencidas=[],
         proximas=[],
         aprobaciones=0,
@@ -174,6 +176,7 @@ def test_plazo_genera_hilo_de_agendar() -> None:
             {"from": "Gestoría <g@x.com>", "subject": "303", "snippet": "presentar antes del 20/07"}
         ],
         inbox=[],
+        reuniones=[],
         vencidas=[],
         proximas=[],
         aprobaciones=0,
@@ -224,61 +227,69 @@ def test_cobro_sin_vencimiento_degrada_a_recordatorio_basico() -> None:
     assert "Beta" in cobro["accion"]["task"]
 
 
-def test_telar_destila_reunion_acordada_en_correo() -> None:
-    # El caso de Fernando: un correo de David donde se cierra una reunión el jueves a las 9.
+def test_telar_reunion_con_conflicto_usa_la_fecha_del_correo() -> None:
+    # Caso David: el destilador da la reunión con CONFLICTO (correo jueves 11 vs calendario lunes 15).
+    # El telar usa la fecha del CORREO, muestra el lugar y ofrece corregir el calendario. Lo más urgente.
     tela = telar.tejer_dia(
-        now=datetime(2026, 6, 8, 9),  # lunes
+        now=datetime(2026, 6, 8, 9),
         eventos=[],
         proximos=[],
-        correos=[
-            {
-                "from": "David Valentín <david@empresa.com>",
-                "subject": "Colaboración",
-                "snippet": "Hecho, hemos quedado para la reunión el jueves a las 09.00.",
-            }
-        ],
+        correos=[],
         inbox=[],
         vencidas=[],
         proximas=[],
         aprobaciones=0,
+        reuniones=[
+            {
+                "con": "David Valentín",
+                "fecha": "2026-06-11",
+                "hora": "09:00",
+                "lugar": "Calle Manzana, 8 Local, Getafe",
+                "fuente": "correo",
+                "conflicto": True,
+                "nota": "tu calendario la tiene el lunes 15",
+                "origen": "RE: BAREMOS BRICOS Y MANTENIMIENTOS",
+                "dia_semana": "jueves",
+            }
+        ],
     )
-    reunion = next(h for h in tela["hilos"] if h["tipo"] == "reunion")
-    assert "David" in reunion["titulo"] and "jueves" in reunion["titulo"]
-    assert reunion["accion"]["label"] == "Agendar"
-    # la acción prepara el evento con la fecha/hora destiladas (jueves 2026-06-11, 09:00)
-    assert "2026-06-11T09:00:00" in reunion["accion"]["task"]
-    assert "según un correo" in reunion["detalle"].lower()
+    r = next(h for h in tela["hilos"] if h["tipo"] == "reunion")
+    assert "David Valentín" in r["titulo"]
+    assert (
+        "jueves 11/6" in r["titulo"] and "09:00" in r["titulo"]
+    )  # la fecha del CORREO, no del calendario
+    assert "Getafe" in r["detalle"] and "correo" in r["detalle"].lower()
+    assert r["accion"]["label"] == "Corregir calendario"
+    assert "2026-06-11" in r["accion"]["task"]
+    assert r["urgencia"] == 3  # el descuadre es lo más urgente del telar
 
 
-def test_telar_reunion_del_calendario_y_no_duplica_con_correo() -> None:
-    # La reunión del jueves vive en el CALENDARIO (autoritativo). Una detección por correo del MISMO
-    # día NO se duplica. Esto es el caso real de David (invitación aceptada).
+def test_telar_reunion_normal_del_calendario() -> None:
+    # Sin conflicto: una reunión del calendario se muestra con "Ver".
     tela = telar.tejer_dia(
-        now=datetime(2026, 6, 8, 9),  # lunes
+        now=datetime(2026, 6, 8, 9),
         eventos=[],
-        proximos=[
-            {
-                "summary": "Reunión con David Valentin",
-                "start": "2026-06-11T09:00:00+02:00",
-                "all_day": False,
-            }
-        ],
-        correos=[
-            {
-                "from": "David <david@x.com>",
-                "subject": "Colaboración",
-                "snippet": "quedamos el jueves a las 9 para la reunión",
-            }
-        ],
+        proximos=[],
+        correos=[],
         inbox=[],
         vencidas=[],
         proximas=[],
         aprobaciones=0,
+        reuniones=[
+            {
+                "con": "David Valentin",
+                "fecha": "2026-06-15",
+                "hora": "11:00",
+                "lugar": "",
+                "fuente": "calendario",
+                "conflicto": False,
+                "nota": "",
+                "origen": "Reunión con David Valentin",
+                "dia_semana": "lunes",
+            }
+        ],
     )
-    reuniones = [h for h in tela["hilos"] if h["tipo"] == "reunion"]
-    assert len(reuniones) == 1  # solo la del calendario; la del correo (mismo 11/6) se deduplica
-    r = reuniones[0]
-    assert "David Valentin" in r["titulo"]
-    assert "jueves 11/6" in r["titulo"] and "09:00" in r["titulo"]
+    r = next(h for h in tela["hilos"] if h["tipo"] == "reunion")
+    assert "David Valentin" in r["titulo"] and "lunes 15/6" in r["titulo"]
     assert r["accion"]["label"] == "Ver"
-    assert "calendario" in r["detalle"].lower()
+    assert r["urgencia"] == 2

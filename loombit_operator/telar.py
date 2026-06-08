@@ -293,6 +293,7 @@ def tejer_dia(
     now: datetime | None = None,
     eventos: list[dict] | None = None,
     proximos: list[dict] | None = None,
+    reuniones: list[dict] | None = None,
     correos: list[dict] | None = None,
     inbox: list[dict] | None = None,
     vencidas: list | None = None,
@@ -415,59 +416,52 @@ def tejer_dia(
             )
         )
 
-    # 📆 Próximas citas del CALENDARIO (próximos días, no solo hoy) — la fuente autoritativa: aquí
-    # vive la reunión del jueves. Antes el telar solo miraba HOY y se la perdía.
-    fechas_calendario: set = set()
-    for ev in (proximos or [])[:6]:
-        inicio = str(ev.get("start", ""))
-        fecha = inicio[:10]
-        if not fecha:
-            continue
-        fechas_calendario.add(fecha)
-        hora = inicio[11:16] if not ev.get("all_day") else ""
-        cuando = _cuando_humano(fecha, hora)
-        hilos.append(
-            _hilo(
-                "reunion",
-                "📆",
-                f"{ev.get('summary', '(evento)')} · {cuando}",
-                urgencia=2,
-                accion={"modo": "navigate", "label": "Ver"},
-                detalle=f"En tu calendario · {cuando}"
-                + (f" · {ev['location']}" if ev.get("location") else ""),
-            )
+    # 📆 Reuniones — DESTILADAS por el modelo (Skill D · Reuniones): lee correos + calendario y da la
+    # reunión REAL reconciliada. Si el correo (la palabra de la persona) contradice el calendario,
+    # MANDA el correo y se canta el descuadre. La regex no destilaba (confundía un timestamp con la
+    # hora). Loombit ACIERTA; nunca te pide que revises.
+    if reuniones is None:
+        from .reuniones_intel import destilar_reuniones
+
+        reuniones = destilar_reuniones(
+            (correos or []) + (inbox or []), proximos or [], hoy, buscar=_buscar_correos
         )
+    for r in reuniones[:5]:
+        con = r["con"]
+        quien = f"con {con}" if con else ""
+        cuando = _cuando_humano(r["fecha"], r["hora"])
+        lugar = r["lugar"]
+        partes = []
+        if lugar:
+            partes.append(f"📍 {lugar}")
+        if r["conflicto"] and r["nota"]:
+            partes.append(f"⚠️ {r['nota']} — uso la fecha del correo")
+        elif r["fuente"] == "calendario":
+            partes.append("en tu calendario")
+        if r["origen"]:
+            partes.append(f"según «{r['origen'][:48]}»")
 
-    # 📆 Reuniones acordadas en CORREO que aún NO están en el calendario (destilar lo informal: el
-    # hilo donde quedasteis pero nadie creó el evento). Dedup contra el calendario y contra tu propio
-    # nombre (un correo "Confirmación" que TÚ enviaste no es una reunión "con" otra persona).
-    from .percepcion_correo import detectar_reuniones
-
-    yo = (_usuario() or "").lower()
-    for r in detectar_reuniones((correos or []) + (inbox or []), hoy)[:4]:
-        if r["fecha"] in fechas_calendario:
-            continue  # ya está en tu calendario → no lo duplicamos
-        de = r["de"]
-        if de and yo and (de.lower() in yo or yo in de.lower()):
-            continue  # lo enviaste tú; no es una cita "con" otra persona
-        quien = f"con {de}" if de else ""
-        hora_iso = f"{r['fecha']}T{r['hora']}:00" if r["hora"] else r["fecha"]
+        if r["conflicto"]:
+            accion = {
+                "modo": "agent_task",
+                "label": "Corregir calendario",
+                "task": (
+                    f"Mi calendario tiene MAL la reunión {quien}: lo acordamos por correo para el "
+                    f"{r['fecha']}{(' a las ' + r['hora']) if r['hora'] else ''}"
+                    f"{(' en ' + lugar) if lugar else ''} (fuente: «{r['origen']}»). Corrige/crea el "
+                    "evento con la fecha del correo y avísame; no borres nada sin confirmar."
+                ),
+            }
+        else:
+            accion = {"modo": "navigate", "label": "Ver"}
         hilos.append(
             _hilo(
                 "reunion",
                 "📆",
-                f"Reunión {quien} · {r['cuando']} (sin agendar)".replace("  ", " ").strip(),
-                urgencia=2,
-                accion={
-                    "modo": "agent_task",
-                    "label": "Agendar",
-                    "task": (
-                        f"Crea un evento en mi calendario el {hora_iso} titulado "
-                        f"«Reunión{(' con ' + de) if de else ''}» (lo acordamos en un correo). Antes "
-                        "comprueba con calendar_today/gmail_search que no esté ya creado."
-                    ),
-                },
-                detalle=f"Según un correo de {de}: «{r['snippet']}»",
+                f"Reunión {quien} · {cuando}".replace("  ", " ").strip(),
+                urgencia=3 if r["conflicto"] else 2,
+                accion=accion,
+                detalle=" · ".join(partes),
             )
         )
 
@@ -526,6 +520,19 @@ def _fuente_eventos(settings: Any, ahora: datetime) -> list[dict]:
         from .skill_blanca_calendar_read import eventos_de_hoy
 
         return eventos_de_hoy(settings=settings, now=ahora)
+    except Exception:
+        return []
+
+
+def _buscar_correos(nombre: str) -> list[dict]:
+    """Busca en TODO el Gmail los correos de/sobre `nombre` (para reconciliar reuniones). Read-only."""
+    try:
+        import json as _json
+
+        from .tools.connectors import _gmail_search
+
+        data = _json.loads(_gmail_search(nombre))
+        return data.get("messages", []) if data.get("ok") else []
     except Exception:
         return []
 
