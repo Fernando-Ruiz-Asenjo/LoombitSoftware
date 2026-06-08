@@ -1,0 +1,19 @@
+#!/bin/sh
+# Pre-commit de Loombit: BLOQUEA el commit si la verificacion esta en rojo.
+# Codifica "no se afirma hecho sin probarlo". Se activa con: git config core.hooksPath .githooks
+# Saltarlo (solo emergencias, bajo tu responsabilidad): git commit --no-verify
+
+ROOT="$(git rev-parse --show-toplevel)"
+PY="$ROOT/.venv/Scripts/python.exe"
+[ -x "$PY" ] || PY="$ROOT/.venv/bin/python"
+[ -x "$PY" ] || PY="python"
+
+echo "[pre-commit] verificando (tests + evals + formato)..."
+"$PY" "$ROOT/scripts/verify.py"
+rc=$?
+if [ $rc -ne 0 ]; then
+  echo "[pre-commit] BLOQUEADO: la verificacion fallo. Arregla o usa --no-verify si es una emergencia."
+  exit 1
+fi
+echo "[pre-commit] verde. Commit permitido."
+exit 0
