@@ -20,6 +20,9 @@ Estas responsabilidades no dependen de que nadie las recuerde: las **fuerza el c
 - **No se afirma "hecho" sin probarlo.** La puerta es `python scripts/verify.py` (black + ruff +
   pytest, que incluye el eval-set F1-F8). El **hook `.githooks/pre-commit` BLOQUEA el commit** si
   está en rojo (actívalo en un clon nuevo: `git config core.hooksPath .githooks`). CI corre lo mismo.
+- **Un push no está "subido" hasta verificar el remoto.** Publica con `python scripts/publish.py`
+  (empuja la rama actual y comprueba que `origin/<rama>` == HEAD). Nunca cantes "pushed OK" por el
+  eco del comando (así se coló un push falso a `main` estando en otra rama).
 - **Cada arreglo lleva su eval.** El método es eval-driven (`docs/METODO_INGENIERIA_IA_LOOMBIT.md`):
   análisis de error sobre trazas reales → taxonomía → eval → medir. Auto-chequeo: `/health/selfcheck`
   y `python -m evals.runner`. El servidor lo corre solo al arrancar y avisa si hay rojo.
