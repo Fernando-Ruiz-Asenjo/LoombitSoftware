@@ -70,13 +70,14 @@ def _narrar(señales: list[str]) -> str:
     return "Resumen de hoy:\n" + "\n".join(f"• {s}" for s in señales)
 
 
-def _daily_brief() -> str:
-    """Resumen del día: agenda + correos por responder + aprobaciones + cobros que vencen."""
+def _daily_brief(**_: object) -> str:
+    """Resumen del día: agenda + correos por responder + aprobaciones + cobros que vencen.
+    Acepta y descarta cualquier argumento (el modelo a veces pasa alguno de más)."""
     return _narrar(_señales_del_dia())
 
 
-def _calendar_today() -> str:
-    """Lista, en texto, los eventos de hoy del calendario."""
+def _calendar_today(**_: object) -> str:
+    """Lista, en texto, los eventos de hoy del calendario. Tolera args extra del modelo."""
     try:
         from ..skill_blanca_calendar_read import eventos_de_hoy
 

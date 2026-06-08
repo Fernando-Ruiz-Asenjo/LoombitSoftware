@@ -93,47 +93,52 @@ def _gmail_search(query: str, max_results: int = 5) -> str:
             )
 
         params = {"q": query, "maxResults": max_results, "fields": "messages(id,threadId)"}
+        # Un solo cliente para TODA la función: la lista + el detalle de cada mensaje. (Bug
+        # anterior: el bucle usaba el cliente FUERA del `with` → "client has been closed".)
         with httpx.Client(timeout=10) as client:
             resp = client.get(
                 "https://gmail.googleapis.com/gmail/v1/users/me/messages",
                 headers={"Authorization": f"Bearer {token}"},
                 params=params,
             )
-        if resp.status_code != 200:
-            return json.dumps(
-                {"ok": False, "error": f"Gmail API {resp.status_code}: {resp.text[:200]}"},
-                ensure_ascii=False,
-            )
-
-        messages = resp.json().get("messages", [])
-        if not messages:
-            return json.dumps(
-                {"ok": True, "count": 0, "messages": [], "query": query}, ensure_ascii=False
-            )
-
-        # Obtener snippets de los primeros mensajes
-        results = []
-        for msg in messages[:max_results]:
-            msg_resp = client.get(
-                f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{msg['id']}",
-                headers={"Authorization": f"Bearer {token}"},
-                params={"format": "metadata", "metadataHeaders": ["Subject", "From", "To", "Date"]},
-            )
-            if msg_resp.status_code == 200:
-                data = msg_resp.json()
-                headers = {
-                    h["name"]: h["value"] for h in data.get("payload", {}).get("headers", [])
-                }
-                results.append(
-                    {
-                        "id": msg["id"],
-                        "subject": headers.get("Subject", ""),
-                        "from": headers.get("From", ""),
-                        "to": headers.get("To", ""),
-                        "date": headers.get("Date", ""),
-                        "snippet": data.get("snippet", ""),
-                    }
+            if resp.status_code != 200:
+                return json.dumps(
+                    {"ok": False, "error": f"Gmail API {resp.status_code}: {resp.text[:200]}"},
+                    ensure_ascii=False,
                 )
+
+            messages = resp.json().get("messages", [])
+            if not messages:
+                return json.dumps(
+                    {"ok": True, "count": 0, "messages": [], "query": query}, ensure_ascii=False
+                )
+
+            # Obtener snippets de los primeros mensajes
+            results = []
+            for msg in messages[:max_results]:
+                msg_resp = client.get(
+                    f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{msg['id']}",
+                    headers={"Authorization": f"Bearer {token}"},
+                    params={
+                        "format": "metadata",
+                        "metadataHeaders": ["Subject", "From", "To", "Date"],
+                    },
+                )
+                if msg_resp.status_code == 200:
+                    data = msg_resp.json()
+                    headers = {
+                        h["name"]: h["value"] for h in data.get("payload", {}).get("headers", [])
+                    }
+                    results.append(
+                        {
+                            "id": msg["id"],
+                            "subject": headers.get("Subject", ""),
+                            "from": headers.get("From", ""),
+                            "to": headers.get("To", ""),
+                            "date": headers.get("Date", ""),
+                            "snippet": data.get("snippet", ""),
+                        }
+                    )
 
         return json.dumps(
             {"ok": True, "count": len(results), "query": query, "messages": results},

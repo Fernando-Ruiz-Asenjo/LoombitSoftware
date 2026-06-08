@@ -161,6 +161,12 @@ def create_event(
 
 def _parse_dt(value: str) -> datetime:
     value = value.strip()
+    # ISO 8601 con 'Z' (UTC) o desfase horario (+02:00) — lo más común que emite el modelo.
+    # fromisoformat (Py 3.11+) lo acepta; normalizamos 'Z' → '+00:00' por compatibilidad.
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        pass
     for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M", "%Y-%m-%d"):
         try:
             return datetime.strptime(value, fmt)
