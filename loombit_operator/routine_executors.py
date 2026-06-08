@@ -16,8 +16,9 @@ from .scheduler import RoutineScheduler
 from .skills import SkillSafetyClass
 
 _BRIEF_SYSTEM = (
-    "Eres Loombit, operador administrativo local. Responde SIEMPRE en español, en un "
-    "brief de máximo 5 líneas, en lenguaje natural, sin JSON ni markdown."
+    "Eres Loombit, operador administrativo local. Responde SIEMPRE en español, en un brief de "
+    "máximo 4 líneas, natural, sin JSON ni markdown. Usa SOLO los datos reales que te paso: "
+    "NO inventes vencimientos, plazos, cifras ni tareas. Si no hay nada, dilo en una línea."
 )
 
 _MEJORA_SYSTEM = (
@@ -29,21 +30,59 @@ _MEJORA_SYSTEM = (
 )
 
 
-def brief_executor(routine: Routine, now: datetime) -> str:
-    """Compone el output de una rutina con el LLM instructor (rol por defecto = 14B).
+def _señales_reales() -> list[str]:
+    """Señales REALES de hoy para el brief: respuestas sin leer de contactos + aprobaciones
+    pendientes. Sin inventar nada; si una fuente falla, simplemente no aporta señal."""
+    señales: list[str] = []
+    try:
+        from types import SimpleNamespace
 
-    Honesto: aún no hay conectores de lectura (Gmail/Calendar/banco), así que el
-    contexto es mínimo y se declara como tal; el brief crecerá cuando esas fuentes existan.
-    """
-    contexto = (
-        "Aún no hay fuentes conectadas (Gmail/Calendar/banco). "
-        "Genera un brief honesto de demostración con la estructura pedida; no inventes datos."
-    )
+        from .agent.memory import get_memory
+        from .config import get_settings
+        from .routers.home import _contactos_de_gmail
+        from .skill_blanca_oauth import fresh_access_token
+
+        settings = get_settings()
+        token = fresh_access_token(settings, "google")
+        if token:
+            propio = (get_memory().owner.get("email") or "").lower()
+            contactos = [
+                SimpleNamespace(name=c["name"], email=c["email"])
+                for c in _contactos_de_gmail(settings)
+                if c["email"].lower() != propio
+            ]
+            n = len(_buscar_respuestas(token, contactos))
+            señales.append(
+                f"{n} correo(s) sin leer de tus contactos"
+                if n
+                else "ningún correo sin leer de contactos"
+            )
+    except Exception:
+        pass
+    try:
+        from .agent import AgentStatus
+        from .agent.run import AgentStore
+
+        pend = AgentStore().list(status=AgentStatus.PENDING_APPROVAL)
+        if pend:
+            señales.append(f"{len(pend)} aprobación(es) pendiente(s)")
+    except Exception:
+        pass
+    return señales
+
+
+def brief_executor(routine: Routine, now: datetime) -> str:
+    """Brief HONESTO a partir de datos REALES de hoy (no inventa). El LLM solo redacta."""
+    señales = _señales_reales()
+    contexto = "; ".join(señales) if señales else "sin señales conectadas hoy"
     messages = [
         {"role": "system", "content": _BRIEF_SYSTEM},
-        {"role": "user", "content": f"{routine.objective}\n\nContexto disponible: {contexto}"},
+        {
+            "role": "user",
+            "content": f"{routine.objective}\n\nDATOS REALES DE HOY (no añadas nada más): {contexto}.",
+        },
     ]
-    return LLMClient().chat(messages, max_tokens=300).content.strip()
+    return LLMClient().chat(messages, max_tokens=250).content.strip()
 
 
 def mejora_continua_routine() -> Routine:

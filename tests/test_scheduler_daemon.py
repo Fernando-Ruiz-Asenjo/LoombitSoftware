@@ -9,14 +9,19 @@ from loombit_operator.routines import RoutineStore
 from loombit_operator.scheduler import RoutineScheduler, SchedulerDaemon
 
 
-def test_daemon_ticks_and_stops():
+def _isolated_scheduler(tmp_path, executor):
+    # AISLADO: store vacío en tmp + recibos en tmp → NO toca las routines reales
+    # ni la carpeta de recibos de producción (el bug del 'ok').
+    return RoutineScheduler(
+        RoutineStore(store_path=tmp_path / "routines.json"),
+        executor,
+        receipt_dir=tmp_path / "receipts",
+    )
+
+
+def test_daemon_ticks_and_stops(tmp_path):
     ticks = {"n": 0}
-
-    def _executor(routine, now):
-        return "ok"
-
-    sched = RoutineScheduler(RoutineStore(), _executor)
-    # envolver tick para contar invocaciones reales del hilo
+    sched = _isolated_scheduler(tmp_path, lambda r, now: "ok")
     orig_tick = sched.tick
 
     def _counting_tick(now=None):
@@ -34,9 +39,8 @@ def test_daemon_ticks_and_stops():
     assert daemon.tick_count >= 1
 
 
-def test_daemon_double_start_is_safe():
-    sched = RoutineScheduler(RoutineStore(), lambda r, now: "ok")
-    daemon = SchedulerDaemon(sched, interval_seconds=5)
+def test_daemon_double_start_is_safe(tmp_path):
+    daemon = SchedulerDaemon(_isolated_scheduler(tmp_path, lambda r, now: "ok"), interval_seconds=5)
     daemon.start()
     daemon.start()  # no debe lanzar ni crear un segundo hilo
     daemon.stop()
