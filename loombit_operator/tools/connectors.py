@@ -31,15 +31,18 @@ def _gmail_send(
     cc: str = "",
     attachment_path: str = "",
 ) -> str:
-    """Envía un correo via Gmail API directamente. Soporta adjuntos via attachment_path."""
+    """Envía un correo via Gmail API directamente. Soporta adjuntos via attachment_path.
+
+    El correo (asunto y cuerpo, con saludo y firma) lo redacta el modelo. Aquí solo se normaliza
+    el formato de los saltos de línea antes de enviar."""
     try:
-        from ..skill_blanca_gmail import send_email
         from ..config import get_settings
+        from ..skill_blanca_gmail import normalize_email_text, send_email
 
         receipt = send_email(
             to=to,
             subject=subject,
-            body_text=body,
+            body_text=normalize_email_text(body),
             cc=cc,
             attachment_path=attachment_path,
             settings=get_settings(),

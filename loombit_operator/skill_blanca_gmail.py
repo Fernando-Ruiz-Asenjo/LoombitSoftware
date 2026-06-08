@@ -37,6 +37,13 @@ GMAIL_SEND_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages/send"
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
+def normalize_email_text(text: str) -> str:
+    """Arregla un GLITCH de formato (no de contenido): el 14B a veces emite los saltos de línea
+    como texto literal '\\n' en vez de saltos reales. Si no se corrige, el destinatario vería
+    '\\n' escrito en el correo. El contenido lo decide el modelo; esto solo lo renderiza bien."""
+    return text.replace("\\r\\n", "\n").replace("\\n", "\n")
+
+
 # ── Modelos de datos ──────────────────────────────────────────────────────────
 
 
