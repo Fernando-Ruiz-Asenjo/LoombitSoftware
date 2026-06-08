@@ -46,12 +46,26 @@ def test_dunning_paid_invoice_not_claimed():  # S-01 trampa
     assert plan["reason"] == "factura_cobrada"
 
 
-def test_dunning_overdue_claims_with_fee_and_unknown_rate():  # S-02 trampa 1
+def test_dunning_overdue_usa_tipo_legal_publicado():  # S-02: ya no se abstiene si el BOE lo cubre
+    # Mayo–junio 2026 cae en 1S2026 → tipo legal publicado 10,15 % (BOE-A-2025-27201). NO se inventa:
+    # se usa la cifra oficial. 1250 € · 10,15 % · 37/365 = 12,86 €.
     plan = dunning_plan(total=1250.0, due_date="2026-05-01", today="2026-06-07")
     assert plan["action"] == "reclamar"
     assert plan["outstanding"] == 1250.0
     assert plan["fixed_compensation_eur"] == LATE_FEE_FIXED_EUR
-    assert plan["interest"]["rate_required"] is True  # no se inventa el tipo
+    interes = plan["interest"]
+    assert interes["rate_required"] is False
+    assert interes["rate_pct"] == 10.15
+    assert interes["amount"] == 12.86
+    assert interes["tramos"][0]["boe"] == "BOE-A-2025-27201"
+
+
+def test_dunning_overdue_se_abstiene_fuera_de_la_tabla():  # S-02: honestidad fuera del rango verificado
+    # Una factura de 2019 cae en un semestre que NO está en la tabla publicada → se abstiene.
+    plan = dunning_plan(total=1250.0, due_date="2019-05-01", today="2019-06-07")
+    assert plan["action"] == "reclamar"
+    assert plan["interest"]["rate_required"] is True
+    assert plan["interest"]["amount"] is None
 
 
 def test_dunning_partial_payment_claims_only_balance():  # S-03 trampa
