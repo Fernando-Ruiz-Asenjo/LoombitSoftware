@@ -127,4 +127,10 @@ Formato: **D-NN — decisión** · *contexto* · **elegido** vs alternativas · 
 - *Limitación honesta:* probado a escala 100% en monitor primario 5120×1440; en escalado DPI ≠ 100% o monitor secundario con offset negativo el posicionado podría necesitar ajuste (no bloquea; el Pilot opera el primario). El overlay **aún no está cableado al executor del agente** (solo a `pilot_demo.py`); cablearlo es el paso natural cuando el Pilot actúe de verdad.
 - *Reversible:* sí; `PilotOverlay` mantiene la API (`start()`/`stop()`, `texto`) y acepta flags `perimetro`/`cursor`/`cartel` para desactivar capas.
 
+**D-19 — El halo se cablea en el `executor`, no en cada llamador.** Estado **🟢** (verificado e2e en escritorio real, 2026-06-08).
+- *Elegido:* `execute_sequence` arranca `PilotOverlay` al inicio de un run real (`not dry_run and show_overlay`) y lo para en `finally` (también si un paso falla). Param nuevo `show_overlay=True`. El recibo registra `overlay_shown`. Así **toda** acción del Pilot (endpoint `/loombit/pilot/execute` y, cuando se cablee, el agente) muestra la señal de marca sin tocar cada llamador.
+- *Verificación 🟢:* el executor de producción escribió 175 caracteres (multilínea, vía portapapeles) en el Bloc de notas real con el halo activo; recibo `runtime/local/skill_pilot/pilot_16061017.json` (`overlay_shown:true`, `error_halted:false`, 3/3 pasos).
+- *Limitación honesta:* el paso `screenshot` del agente captura también el halo (perímetro en los bordes + anillo en el cursor); de momento aceptable (transparencia por color-clave, anillo fino). Si degrada la visión del agente, ocultar el overlay durante `screenshot` es el siguiente refinamiento. `show_overlay=False` lo desactiva por completo.
+- *Reversible:* sí; `show_overlay=False` restaura el comportamiento anterior.
+
 *(se irán añadiendo entradas según avance el bloque)*

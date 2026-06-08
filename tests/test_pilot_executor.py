@@ -54,10 +54,23 @@ def test_execute_new_steps_dispatches_to_pilot_layer():
             ex, "screen_changed", return_value={"changed": True, "fraction": 0.2}
         ) as m_screen,
     ):
-        receipt = _run(ex.execute_sequence("real", steps, dry_run=False))
+        receipt = _run(ex.execute_sequence("real", steps, dry_run=False, show_overlay=False))
 
     assert receipt["error_halted"] is False
     assert receipt["steps_executed"] == 3
     m_wait.assert_called_once()
     m_click.assert_called_once()
     m_screen.assert_called_once()
+
+
+def test_overlay_never_shown_in_dry_run():
+    receipt = _run(ex.execute_sequence("x", [{"type": "wait", "seconds": 0}], dry_run=True))
+    assert receipt["overlay_shown"] is False
+
+
+def test_overlay_can_be_disabled_on_real_run():
+    # show_overlay=False no arranca la señal visible (ni tkinter) aunque sea real.
+    steps = [{"type": "wait", "seconds": 0}]
+    receipt = _run(ex.execute_sequence("x", steps, dry_run=False, show_overlay=False))
+    assert receipt["overlay_shown"] is False
+    assert receipt["error_halted"] is False

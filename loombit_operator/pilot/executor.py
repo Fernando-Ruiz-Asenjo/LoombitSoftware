@@ -91,6 +91,7 @@ async def execute_sequence(
     dry_run: bool = False,
     receipt_dir: Path | None = None,
     operator_command: str = "",
+    show_overlay: bool = True,
 ) -> dict[str, Any]:
     """
     Ejecuta una secuencia de pasos.
@@ -101,6 +102,9 @@ async def execute_sequence(
         dry_run:         Si True, simula sin tocar el escritorio.
         receipt_dir:     Directorio donde guardar el recibo JSON.
         operator_command:Comando original del operador (para el recibo).
+        show_overlay:    Si True (y no dry_run), muestra la señal visible de marca
+                         Loombit (halo de perímetro + cursor + cartel) durante el run.
+                         Transparencia: cuando el Pilot controla, el usuario lo VE.
 
     Returns:
         dict con run_id, objective, results, receipt_path si se guardó.
@@ -110,38 +114,54 @@ async def execute_sequence(
     results: list[dict[str, Any]] = []
     error_halted = False
 
-    for i, step in enumerate(steps):
-        step_type = step.get("type", "")
-        step_result: dict[str, Any] = {
-            "step_index": i + 1,
-            "type": step_type,
-        }
+    # Señal visible de marca: el Pilot nunca controla en silencio.
+    overlay = None
+    if not dry_run and show_overlay:
+        try:
+            from .system import enable_dpi_awareness
+            from .overlay import PilotOverlay
 
-        if step_type not in SUPPORTED_STEPS:
-            step_result["error"] = f"Tipo de paso no soportado: {step_type!r}"
-            results.append(step_result)
-            error_halted = True
-            break
+            enable_dpi_awareness()  # alinear coordenadas con captura (per-monitor v2)
+            overlay = PilotOverlay("LOOMBIT PILOTANDO").start()
+        except Exception:
+            overlay = None
 
-        if dry_run:
-            step_result["dry_run"] = True
-            step_result["would_execute"] = {k: v for k, v in step.items() if k != "type"}
-        else:
-            try:
-                output = await _execute_step(step)
-                step_result.update(output)
-                if output.get("error"):
+    try:
+        for i, step in enumerate(steps):
+            step_type = step.get("type", "")
+            step_result: dict[str, Any] = {
+                "step_index": i + 1,
+                "type": step_type,
+            }
+
+            if step_type not in SUPPORTED_STEPS:
+                step_result["error"] = f"Tipo de paso no soportado: {step_type!r}"
+                results.append(step_result)
+                error_halted = True
+                break
+
+            if dry_run:
+                step_result["dry_run"] = True
+                step_result["would_execute"] = {k: v for k, v in step.items() if k != "type"}
+            else:
+                try:
+                    output = await _execute_step(step)
+                    step_result.update(output)
+                    if output.get("error"):
+                        error_halted = True
+                        results.append(step_result)
+                        break
+                except Exception as exc:
+                    logger.exception("Error en paso %d (%s)", i + 1, step_type)
+                    step_result["error"] = str(exc)
                     error_halted = True
                     results.append(step_result)
                     break
-            except Exception as exc:
-                logger.exception("Error en paso %d (%s)", i + 1, step_type)
-                step_result["error"] = str(exc)
-                error_halted = True
-                results.append(step_result)
-                break
 
-        results.append(step_result)
+            results.append(step_result)
+    finally:
+        if overlay is not None:
+            overlay.stop()
 
     receipt: dict[str, Any] = {
         "run_id": run_id,
@@ -150,6 +170,7 @@ async def execute_sequence(
         "started_at": started_at,
         "completed_at": datetime.now(UTC).isoformat(),
         "dry_run": dry_run,
+        "overlay_shown": overlay is not None,
         "steps_total": len(steps),
         "steps_executed": len(results),
         "error_halted": error_halted,
