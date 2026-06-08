@@ -542,6 +542,59 @@ a { color: inherit; text-decoration: none; }
     var(--lb-navy);
 }
 #galaxia-view.open { display: flex; }
+
+/* ═══════════════════════════════════════════════════════
+   FÁBRICA — la sala de auto-mejora gobernada
+═══════════════════════════════════════════════════════ */
+#fabrica-view {
+  position: absolute; inset: var(--header-h) 0 0 0; z-index: 30;
+  display: none; flex-direction: column; background: var(--lb-navy);
+}
+#fabrica-view.open { display: flex; }
+#fabrica-bar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 10px 16px; border-bottom: 1px solid var(--lb-border);
+  background: rgba(10,14,26,0.6); backdrop-filter: blur(6px); flex-shrink: 0;
+}
+#fabrica-bar .fb-title { font-weight: 700; font-size: 15px; }
+#fabrica-bar .fb-title small { color: var(--lb-text3,#64748b); font-weight: 400; font-size: 12px; }
+.fb-kpis { display: flex; gap: 12px; font-size: 12px; color: var(--lb-text2,#94a3b8); flex-wrap: wrap; }
+.fb-kpis b { color: var(--lb-text); }
+.fb-btn { margin-left: auto; background: var(--lb-purple-dim,#2d1f5e); color: #fff;
+  border: 1px solid var(--lb-purple,#8b5cf6); border-radius: 999px; padding: 6px 14px;
+  font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.fb-btn.ghost { margin-left: 0; background: none; }
+.fb-exit { background: none; border: 1px solid var(--lb-border2,#334155); color: var(--lb-text2);
+  border-radius: 999px; padding: 6px 12px; font-size: 12.5px; cursor: pointer; }
+.fb-exit:hover { border-color: var(--lb-red,#ef4444); color: var(--lb-red,#ef4444); }
+#fabrica-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.fb-cols { flex: 1; display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; padding: 14px; overflow: auto; }
+@media (max-width: 880px) { .fb-cols { grid-template-columns: 1fr; } }
+.fb-col h3 { font-size: 13px; margin: 0 0 8px; color: var(--lb-text); display: flex; align-items: center; gap: 6px; }
+.fb-count { font-size: 11px; color: var(--lb-text3,#64748b); font-weight: 400; }
+.fb-card { background: var(--lb-navy2,#111827); border: 1px solid var(--lb-border);
+  border-radius: var(--r-md,12px); padding: 10px 12px; margin-bottom: 9px; font-size: 12.5px; }
+.fb-card .t { font-weight: 600; color: var(--lb-text); margin-bottom: 4px; line-height: 1.35; }
+.fb-card .meta { font-size: 11px; color: var(--lb-text3,#64748b); }
+.fb-card a { color: var(--lb-cyan,#06b6d4); text-decoration: none; word-break: break-all; }
+.fb-card .acts { margin-top: 8px; display: flex; gap: 6px; }
+.fb-mini { border-radius: 999px; padding: 4px 11px; font-size: 11.5px; font-weight: 600; cursor: pointer; border: 1px solid transparent; }
+.fb-ok { background: rgba(34,197,94,0.15); color: var(--lb-green,#22c55e); border-color: rgba(34,197,94,0.4); }
+.fb-no { background: rgba(239,68,68,0.12); color: var(--lb-red,#ef4444); border-color: rgba(239,68,68,0.35); }
+.fb-tag { display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 999px;
+  background: var(--lb-navy3,#1a2235); color: var(--lb-text2); margin-left: 6px; }
+#fb-chat { border-top: 1px solid var(--lb-border); display: flex; flex-direction: column; height: 230px; flex-shrink: 0; }
+#fb-chat-log { flex: 1; overflow: auto; padding: 12px 16px; font-size: 13px; }
+.fb-msg { margin-bottom: 10px; }
+.fb-msg.u { text-align: right; }
+.fb-msg .b { display: inline-block; padding: 7px 12px; border-radius: 12px; max-width: 82%; text-align: left; white-space: pre-wrap; line-height: 1.4; }
+.fb-msg.u .b { background: var(--lb-user-bubble,#1e293b); }
+.fb-msg.a .b { background: var(--lb-agent-bubble,#111827); border: 1px solid var(--lb-border); }
+#fb-chat-input { display: flex; gap: 8px; padding: 10px 16px; border-top: 1px solid var(--lb-border); }
+#fb-chat-text { flex: 1; background: var(--lb-navy2,#111827); border: 1px solid var(--lb-border2,#334155);
+  border-radius: 999px; padding: 9px 14px; color: var(--lb-text); font-size: 13px; outline: none; }
+#fb-chat-input button { background: var(--lb-purple,#8b5cf6); color: #fff; border: none;
+  border-radius: 999px; padding: 0 18px; font-weight: 600; cursor: pointer; }
 #galaxia-bar {
   display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
   padding: 10px 16px; border-bottom: 1px solid var(--lb-border);
@@ -748,6 +801,7 @@ a { color: inherit; text-decoration: none; }
     </div>
 
     <div class="topbar-actions">
+      <button class="icon-btn" onclick="openFabrica()" title="Sala de la Fábrica — auto-mejora gobernada" style="font-size:16px;width:34px;height:34px;display:flex;align-items:center;justify-content:center">🏭</button>
       <button class="icon-btn" onclick="openGalaxia()" title="Galaxia — tu negocio como sistema estelar" style="font-size:17px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;position:relative">🌌<span id="gx-badge" style="display:none;position:absolute;top:3px;right:3px;min-width:8px;height:8px;border-radius:999px;background:var(--lb-red,#ef4444);box-shadow:0 0 0 2px var(--lb-navy2,#111827)"></span></button>
       <button class="icon-btn" onclick="clearChat()" title="Nueva conversación">
         <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
@@ -815,7 +869,43 @@ a { color: inherit; text-decoration: none; }
   </div>
 
   <!-- Galaxia: el negocio como sistema estelar -->
-  <div id="galaxia-view">
+  <div id="fabrica-view">
+  <div id="fabrica-bar">
+    <div class="fb-title">🏭 Sala de la Fábrica <small>· auto-mejora gobernada</small></div>
+    <div class="fb-kpis" id="fb-kpis"></div>
+    <button class="fb-btn" id="fb-ciclo-btn" onclick="fabRunCiclo()">Correr ciclo</button>
+    <button class="fb-btn ghost" onclick="fabLoad()" title="Refrescar">↻</button>
+    <button class="fb-exit" onclick="closeFabrica()">Salir ✕</button>
+  </div>
+  <div id="fabrica-body">
+    <div class="fb-cols">
+      <div class="fb-col">
+        <h3>📐 Propuestas de tool <span class="fb-count" id="fb-prop-count"></span></h3>
+        <div id="fb-propuestas"></div>
+      </div>
+      <div class="fb-col">
+        <h3>🛰️ Radar — oportunidades <span class="fb-count" id="fb-op-count"></span></h3>
+        <div id="fb-oportunidades"></div>
+      </div>
+      <div class="fb-col">
+        <h3>🩺 Salud del código <span class="fb-count" id="fb-salud-count"></span>
+          <button class="fb-mini" style="margin-left:auto" onclick="fabArreglarTodo()">🔧 Arreglar todo</button></h3>
+        <div id="fb-salud"></div>
+      </div>
+    </div>
+    <div id="fb-chat">
+      <div id="fb-chat-log"></div>
+      <div id="fb-chat-input">
+        <input id="fb-chat-text" autocomplete="off"
+          placeholder="Habla con la Fábrica: estado · busca &lt;tema&gt; · propón una tool para… · monetización · corre un ciclo"
+          onkeydown="if(event.key==='Enter')fabChatSend()">
+        <button onclick="fabChatSend()">Enviar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="galaxia-view">
     <div id="galaxia-bar">
       <button onclick="closeGalaxia()" title="Volver al chat (Esc)" style="display:flex;align-items:center;gap:6px;background:var(--lb-navy3,#1a2235);border:1px solid var(--lb-border2,rgba(255,255,255,.12));color:var(--lb-text,#f1f5f9);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer;flex-shrink:0">← Volver al chat</button>
       <div class="gx-title">🌌 <span id="gx-sol-nombre">Tu negocio</span> <small>· sistema estelar</small></div>
@@ -1593,6 +1683,158 @@ function gxMix(a, b, t) { // interpola dos colores hex
   return `rgb(${c[0]},${c[1]},${c[2]})`;
 }
 const GX_ESTADO_COLOR = { vencida:'#ef4444', proxima:'#f59e0b', pendiente:'#64748b' };
+
+/* ── Sala de la Fábrica (auto-mejora gobernada) ───────────────────────────── */
+let _fabBusy = false, _fabOps = [], _fabSalud = [];
+async function openFabrica() {
+  document.getElementById('fabrica-view').classList.add('open');
+  if (!document.getElementById('fb-chat-log').children.length)
+    fabChatAdd('a', 'Soy la Fábrica. Pídeme «estado», «busca <tema>» (competencia/mercado), «propón una tool para…», «salud del código», «monetización» o «corre un ciclo».');
+  fabLoad();
+}
+function closeFabrica() { document.getElementById('fabrica-view').classList.remove('open'); }
+
+async function fabGet(p) {
+  try { const r = await fetch(`${API}${p}`, { signal: AbortSignal.timeout(25000) }); return r.ok ? await r.json() : null; }
+  catch (e) { return null; }
+}
+async function fabPost(p, body) {
+  try {
+    const r = await fetch(`${API}${p}`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {}), signal: AbortSignal.timeout(180000) });
+    return r.ok ? await r.json() : null;
+  } catch (e) { return null; }
+}
+
+async function fabLoad() {
+  const [prop, op, sal] = await Promise.all([
+    fabGet('/fabrica/propuestas?estado=pendiente'),
+    fabGet('/fabrica/oportunidades'),
+    fabGet('/fabrica/marcar'),
+  ]);
+  fabRenderPropuestas(prop); fabRenderOportunidades(op); fabRenderSalud(sal);
+  const kp = document.getElementById('fb-kpis');
+  if (kp) kp.innerHTML = `<span><b>${(prop && prop.propuestas || []).length}</b> propuestas</span>`
+    + `<span><b>${(op && op.items || []).length}</b> oportunidades</span>`
+    + `<span><b>${(sal && sal.count) || 0}</b> señales de código</span>`;
+}
+function fabRenderPropuestas(d) {
+  const el = document.getElementById('fb-propuestas'); const props = (d && d.propuestas) || [];
+  document.getElementById('fb-prop-count').textContent = props.length;
+  if (!props.length) { el.innerHTML = '<div class="fb-card meta">Sin propuestas pendientes. Pide «propón una tool para…» o «corre un ciclo».</div>'; return; }
+  el.innerHTML = props.map(p => `<div class="fb-card"><div class="t">🔧 ${esc(p.tool || '')}</div>`
+    + `<div class="meta">${esc(p.necesidad || '')}</div>`
+    + `<div class="acts"><button class="fb-mini fb-ok" onclick="fabAprobar('${p.id}')">Aprobar</button>`
+    + `<button class="fb-mini fb-no" onclick="fabDescartar('${p.id}')">Descartar</button></div></div>`).join('');
+}
+function fabRenderOportunidades(d) {
+  const el = document.getElementById('fb-oportunidades'); const items = (d && d.items) || [];
+  document.getElementById('fb-op-count').textContent = items.length;
+  if (!items.length) { el.innerHTML = '<div class="fb-card meta">El radar aún no ha traído nada. Pide «busca &lt;tema&gt;» o «corre un ciclo».</div>'; _fabOps = []; return; }
+  _fabOps = items.slice(0, 40).map(i => i.necesidad || i);
+  el.innerHTML = _fabOps.map((n, idx) => {
+    const url = (n.procedencia || []).find(x => String(x).startsWith('http')) || '';
+    return `<div class="fb-card"><div class="t">${esc(n.titulo || '')}<span class="fb-tag">${esc(n.fuente || '')}</span></div>`
+      + (url ? `<div class="meta"><a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a></div>` : '')
+      + `<div class="acts"><button class="fb-mini" onclick="fabInvestigar(${idx})">🔎 Investigar</button></div></div>`;
+  }).join('');
+}
+function fabRenderSalud(d) {
+  const el = document.getElementById('fb-salud'); const items = (d && d.items) || [];
+  document.getElementById('fb-salud-count').textContent = items.length;
+  if (!items.length) { el.innerHTML = '<div class="fb-card meta">Sin señales (o no se pudo analizar).</div>'; _fabSalud = []; return; }
+  _fabSalud = items.slice(0, 40);
+  el.innerHTML = _fabSalud.map((i, idx) => `<div class="fb-card"><div class="t">${esc(i.titulo || '')}</div>`
+    + `<div class="meta">${esc(i.ref || '')}</div>`
+    + `<div class="acts"><button class="fb-mini" onclick="fabArreglar(${idx})">🔧 Arreglar</button></div></div>`).join('');
+}
+
+async function fabAprobar(id) {
+  fabChatAdd('a', `Aprobando y registrando la tool…`);
+  const r = await fabPost(`/fabrica/propuestas/${id}/aprobar`, { nota: 'aprobada desde la Sala' });
+  fabChatAdd('a', r && r.ok ? `✓ Registrada la tool «${esc(r.tool || '')}».` : 'No se pudo aprobar.');
+  fabLoad();
+}
+async function fabDescartar(id) {
+  await fabPost(`/fabrica/propuestas/${id}/descartar`, { nota: 'descartada desde la Sala' });
+  fabLoad();
+}
+async function fabRunCiclo() {
+  if (_fabBusy) return; _fabBusy = true;
+  const b = document.getElementById('fb-ciclo-btn'); b.textContent = 'Trabajando…';
+  fabChatAdd('a', 'Corriendo un ciclo (mira dentro, la Red y meta)… puede tardar.');
+  const inf = await fabPost('/fabrica/ciclo', {});
+  b.textContent = 'Correr ciclo'; _fabBusy = false;
+  if (inf) { const t = inf.tools || {};
+    fabChatAdd('a', `Ciclo hecho: ${(t.propuestas_pendientes_nuevas || []).length} tool(s) propuesta(s) · ${(inf.hallazgos_red_meta || {}).nuevos || 0} hallazgo(s) nuevos.`); }
+  else fabChatAdd('a', 'No pude completar el ciclo.');
+  fabLoad();
+}
+
+function fabChatAdd(role, text) {
+  const log = document.getElementById('fb-chat-log');
+  const d = document.createElement('div'); d.className = 'fb-msg ' + (role === 'u' ? 'u' : 'a');
+  d.innerHTML = `<span class="b">${esc(text)}</span>`; log.appendChild(d); log.scrollTop = log.scrollHeight;
+}
+async function fabChatSend() {
+  const inp = document.getElementById('fb-chat-text'); const t = inp.value.trim();
+  if (!t || _fabBusy) return; inp.value = ''; fabChatAdd('u', t);
+  _fabBusy = true; fabChatAdd('a', '…');
+  const res = await fabPost('/fabrica/chat', { mensaje: t });
+  const log = document.getElementById('fb-chat-log');
+  if (log.lastChild && log.lastChild.textContent === '…') log.removeChild(log.lastChild);
+  _fabBusy = false;
+  if (res) { fabChatAdd('a', res.respuesta || '(sin respuesta)'); fabLoad(); }
+  else fabChatAdd('a', 'No pude conectar con la Fábrica.');
+}
+
+async function fabInvestigar(idx) {
+  const n = _fabOps[idx]; if (!n) return;
+  if (_fabBusy) { fabChatAdd('a', '⏳ Estoy con otra acción, espera unos segundos…'); return; }
+  const url = (n.procedencia || []).find(x => String(x).startsWith('http')) || '';
+  _fabBusy = true;
+  fabChatAdd('a', `🔎 Investigando: ${n.titulo || ''}…`);
+  const r = await fabPost('/fabrica/investigar', { titulo: n.titulo || '', url });
+  _fabBusy = false;
+  fabChatAdd('a', r && r.analisis ? r.analisis : 'No pude investigar esto ahora.');
+}
+function _instruccionArreglo(it) {
+  const t = (it.titulo || '').toLowerCase();
+  if (t.includes('prompt')) return 'Mejora este prompt manteniendo su intención y la API pública.';
+  if (t.includes('400 líneas') || t.includes('400 lineas'))
+    return 'Este fichero es muy largo: añade al principio un comentario con un plan concreto de troceo por dominio (no cambies la lógica ni la API).';
+  if (t.includes('bug')) return 'Corrige el problema detectado por ruff manteniendo la API pública y el comportamiento.';
+  return 'Mejora esto manteniendo la API pública y el comportamiento.';
+}
+async function fabArreglar(idx) {
+  const it = _fabSalud[idx]; if (!it) return;
+  if (_fabBusy) { fabChatAdd('a', '⏳ Estoy con otra acción, espera unos segundos…'); return; }
+  const archivo = String(it.ref || '').split(':')[0];
+  const t = (it.titulo || '').toLowerCase();
+  if (t.includes('400 línea') || t.includes('400 linea')) {
+    fabChatAdd('a', `Trocear ${archivo} es un refactor MULTI-fichero, no un parche de un fichero — no lo hace el coder de un tirón. Lo dejo marcado como tarea de refactor.`);
+    return;
+  }
+  if (!archivo.endsWith('.py')) { fabChatAdd('a', 'Esta señal no apunta a un fichero concreto; dime cuál en el chat.'); return; }
+  _fabBusy = true;
+  fabChatAdd('a', `🔧 Proponiendo arreglo de ${archivo}… (el coder redacta, valido y NO escribo nada — tarda algo)`);
+  const r = await fabPost('/fabrica/reparar', { archivo, instruccion: _instruccionArreglo(it), validar_tests: false });
+  _fabBusy = false;
+  if (!r) { fabChatAdd('a', `El coder no produjo un parche usable para ${archivo}.`); return; }
+  if (r.ok) fabChatAdd('a', `✓ Parche VALIDADO (estático + guard de API) para ${archivo}. Revisa el diff y aplícalo en una rama — no he escrito nada.`);
+  else fabChatAdd('a', `✗ Parche RECHAZADO para ${archivo}: ${JSON.stringify(r.validacion || r.error || {})}. (El gate hizo su trabajo.)`);
+}
+async function fabArreglarTodo() {
+  if (_fabBusy) { fabChatAdd('a', '⏳ Estoy con otra acción, espera unos segundos…'); return; }
+  const fixables = _fabSalud.filter(i => {
+    const a = String(i.ref || '').split(':')[0]; const t = (i.titulo || '').toLowerCase();
+    return a.endsWith('.py') && !t.includes('400 línea') && !t.includes('400 linea');
+  }).slice(0, 5);
+  if (!fixables.length) { fabChatAdd('a', 'No hay señales arreglables con un parche de un fichero (los >400 líneas son refactor multi-fichero).'); return; }
+  fabChatAdd('a', `🔧 Propongo arreglo para ${fixables.length} fichero(s), uno a uno (valido cada parche, no escribo nada)…`);
+  for (const it of fixables) { await fabArreglar(_fabSalud.indexOf(it)); }
+  fabChatAdd('a', '✓ Listo: revisa los diffs propuestos arriba.');
+}
 
 async function openGalaxia() {
   document.getElementById('galaxia-view').classList.add('open');

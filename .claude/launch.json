@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "loombit",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "loombit_operator.launcher"],
+      "port": 8787
+    }
+  ]
+}

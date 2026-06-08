@@ -66,7 +66,7 @@ def _bugs_ruff(raiz: Path, limite: int) -> list[Necesidad]:
     for it in issues[:limite]:
         archivo = it.get("filename", "")
         linea = (it.get("location") or {}).get("row", "?")
-        ref = f"{Path(archivo).name}:{linea}"
+        ref = f"{_rel(Path(archivo), raiz)}:{linea}" if archivo else "?"
         necesidades.append(
             Necesidad(
                 titulo=f"Posible bug ({it.get('code')}): {it.get('message', '')[:90]} [{ref}]",

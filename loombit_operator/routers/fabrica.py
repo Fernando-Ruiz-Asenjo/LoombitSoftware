@@ -120,6 +120,53 @@ def proponer_reparacion(
     return resultado
 
 
+@router.post("/chat")
+def chat_fabrica(mensaje: str = Body(..., embed=True)) -> dict[str, Any]:
+    """Habla con la Fábrica en lenguaje natural: estado, busca en la Red, propón una tool, salud del
+    código, monetización, corre un ciclo… Es el canal de la Sala de la Fábrica."""
+    from ..fabrica.chat import responder
+
+    return responder(mensaje)
+
+
+@router.get("/estrategia")
+def estrategia_fabrica() -> dict[str, Any]:
+    """Destila las señales del radar en vías de producto/monetización para Loombit (instructor LLM)."""
+    from ..fabrica.estrategia import sintetizar_estrategia
+
+    return sintetizar_estrategia(OportunidadStore().list())
+
+
+@router.post("/investigar")
+def investigar_oportunidad(
+    titulo: str = Body(..., embed=True), url: str = Body("", embed=True)
+) -> dict[str, Any]:
+    """Investiga una señal del radar: la lee (si puede) y dice qué es y cómo traerla a Loombit."""
+    from ..fabrica.estrategia import analizar_oportunidad
+
+    return analizar_oportunidad(titulo, url)
+
+
+@router.get("/marcar")
+def marcar_codigo() -> dict[str, Any]:
+    """Salud del código en uso: bugs (ruff-B), TODO, ficheros >400 líneas, prompts, huecos de eval."""
+    from ..fabrica.interno import marcar
+
+    necs = marcar()
+    return {
+        "count": len(necs),
+        "items": [
+            {
+                "titulo": n.titulo,
+                "tipo": n.tipo.value,
+                "prioridad": n.prioridad,
+                "ref": n.procedencia[0] if n.procedencia else "",
+            }
+            for n in necs
+        ],
+    }
+
+
 @router.get("/oportunidades")
 def listar_oportunidades(estado: str | None = None) -> dict[str, Any]:
     """Hallazgos del radar externo (competencia/mercado/tech/normativa) + meta, para tu revisión."""

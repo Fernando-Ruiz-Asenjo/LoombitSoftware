@@ -53,9 +53,11 @@ def _get(http_get: Any, url: str, **kw: Any) -> Any | None:
 # ── Canal GitHub: ¿qué agentes/skills/tools construyen los demás? ────────────────
 
 
-def canal_github(http_get: Any = None, max_items: int = 3) -> list[Necesidad]:
+def canal_github(
+    http_get: Any = None, max_items: int = 3, queries: tuple[str, ...] = _Q_GITHUB
+) -> list[Necesidad]:
     necesidades: list[Necesidad] = []
-    for q in _Q_GITHUB:
+    for q in queries:
         resp = _get(
             http_get,
             "https://api.github.com/search/repositories",
@@ -87,9 +89,11 @@ def canal_github(http_get: Any = None, max_items: int = 3) -> list[Necesidad]:
 # ── Canal Hacker News: mercado, competencia, noticias ───────────────────────────
 
 
-def canal_hackernews(http_get: Any = None, max_items: int = 3) -> list[Necesidad]:
+def canal_hackernews(
+    http_get: Any = None, max_items: int = 3, queries: tuple[str, ...] = _Q_HN
+) -> list[Necesidad]:
     necesidades: list[Necesidad] = []
-    for q in _Q_HN:
+    for q in queries:
         resp = _get(
             http_get,
             "https://hn.algolia.com/api/v1/search",
@@ -245,4 +249,20 @@ def buscar_oportunidades_red(http_get: Any = None, max_items: int = 12) -> list[
         vistos.add(clave)
         unicas.append(n)
     unicas.sort(key=lambda n: n.prioridad, reverse=True)
+    return unicas[:max_items]
+
+
+def buscar_en_red(query: str, http_get: Any = None, max_items: int = 8) -> list[Necesidad]:
+    """Búsqueda LIBRE en la Red (GitHub + HackerNews) sobre `query` — para "ver qué hace la
+    competencia/el mercado en X" desde el chat. Best-effort, con cita. Dedup por URL."""
+    necesidades = canal_github(http_get, queries=(query,)) + canal_hackernews(
+        http_get, queries=(query,)
+    )
+    vistos: set[str] = set()
+    unicas: list[Necesidad] = []
+    for n in necesidades:
+        clave = n.procedencia[0] if n.procedencia else n.titulo
+        if clave and clave not in vistos:
+            vistos.add(clave)
+            unicas.append(n)
     return unicas[:max_items]
