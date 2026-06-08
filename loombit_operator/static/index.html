@@ -743,7 +743,7 @@ a { color: inherit; text-decoration: none; }
     <div class="topbar-divider"></div>
 
     <div class="topbar-user">
-      <span class="user-name" id="user-name-label">Fernando</span>
+      <span class="user-name" id="user-name-label"></span>
       <div class="user-avatar" id="user-avatar">F</div>
     </div>
 
@@ -767,7 +767,7 @@ a { color: inherit; text-decoration: none; }
       <div class="welcome-header">
         <div class="welcome-avatar">SB</div>
         <div class="welcome-text">
-          <h2>Hola, Fernando</h2>
+          <h2>Hola</h2>
           <p>Soy Skill Blanca Administrativo. Controlo el escritorio, gestiono ficheros, navego la web y ejecuto tareas complejas de forma autónoma.</p>
         </div>
       </div>
@@ -850,7 +850,7 @@ a { color: inherit; text-decoration: none; }
 // ═══════════════════════════════════════════════════════
 
 const API    = window.location.origin;
-const ME     = { name: 'Fernando', initial: 'F' };
+const ME     = { name: 'Tú', initial: '·' };   // BLANCO: lo rellena loadHomeContext desde el owner
 const SKILLS = {
   admin:  { name: 'Skill Blanca · Administrativo', sub: 'Loombit Operator v0.2', initial: 'SB', cls: 'admin', profile: 'administrativo' },
   coding: { name: 'Skill Blanca · Coding',         sub: 'Loombit Operator v0.2', initial: 'SC', cls: 'code',  profile: 'administrativo' },
@@ -1330,6 +1330,14 @@ async function loadHomeContext() {
     const r = await fetch(`${API}/home/context`, { signal: AbortSignal.timeout(15000) });
     if (!r.ok) return;
     const ctx = await r.json();
+    // BLANCO: el nombre del usuario viene del owner (configurable), no hardcodeado.
+    if (ctx.owner && ctx.owner.name) {
+      ME.name = ctx.owner.name;
+      ME.initial = ctx.owner.initial || ctx.owner.name[0].toUpperCase();
+      const lbl = document.getElementById('user-name-label'); if (lbl) lbl.textContent = ME.name;
+      const av = document.getElementById('user-avatar'); if (av) av.textContent = ME.initial;
+      const wh = document.querySelector('#welcome .welcome-text h2'); if (wh) wh.textContent = 'Hola, ' + ME.name;
+    }
     const procs = document.getElementById('procesos-list');
     procs.innerHTML = '';
     (ctx.procesos_diarios || []).forEach((p, i) => {
@@ -2087,7 +2095,7 @@ async function cargarTelar() {
       <div style="background:linear-gradient(135deg,rgba(139,92,246,.14),rgba(6,182,212,.10));border:1px solid var(--lb-border2,rgba(255,255,255,.12));border-radius:16px;padding:16px 18px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
           <span style="font-size:18px">☀️</span>
-          <span style="font-size:16px;font-weight:700">${esc(t.saludo||'Hola')}, Fernando</span>
+          <span style="font-size:16px;font-weight:700">${esc(t.saludo||'Hola')}${t.usuario ? ', '+esc(t.usuario) : ''}</span>
           <button onclick="document.getElementById('telar-panel').style.display='none'" title="Ocultar" style="margin-left:auto;background:none;border:none;color:var(--lb-text3,#475569);cursor:pointer;font-size:16px">✕</button>
         </div>
         <div style="font-size:13px;color:var(--lb-text2,#94a3b8);margin-bottom:10px">${esc(t.resumen||'')}</div>

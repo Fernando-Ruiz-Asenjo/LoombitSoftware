@@ -252,8 +252,9 @@ def reply_watch_executor(routine: Routine, now: datetime) -> str:
             continue
         task = (
             f"Responde al correo que te ha enviado {rsp['from']} (asunto: «{rsp['subject']}»). "
-            f"Su mensaje: «{rsp['snippet']}». Redacta una respuesta breve y natural COMO Fernando "
-            f"(primera persona, sin decir que eres IA) y envíala con gmail_send a {dest} "
+            f"Su mensaje: «{rsp['snippet']}». Redacta una respuesta breve y natural EN MI NOMBRE "
+            f"(en primera persona, firmando con mi nombre de la memoria; sin decir que eres IA) "
+            f"y envíala con gmail_send a {dest} "
             f"con asunto «RE: {rsp['subject']}»."
         )
         try:

@@ -117,9 +117,24 @@ def home_context() -> dict:
     aviso = ""
     if fuente != "gmail":
         aviso = "Re-autoriza Google (Conectar Google) para que analice tu correo y sepa a quién escribes más."
+    # BLANCO: el dueño (nombre/empresa) viene de la memoria del usuario, no hardcodeado.
+    owner: dict = {}
+    try:
+        from ..agent.memory import get_memory
+
+        o = get_memory().owner
+        nombre = (o.get("name") or "").strip()
+        owner = {
+            "name": nombre,
+            "initial": (nombre[:1].upper() if nombre else ""),
+            "company": (o.get("company") or "").strip(),
+        }
+    except Exception:
+        owner = {}
     return {
         "procesos_diarios": PROCESOS_DIARIOS,
         "contactos_habituales": contactos,
         "fuente_contactos": fuente,
         "aviso": aviso,
+        "owner": owner,
     }

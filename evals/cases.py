@@ -224,6 +224,8 @@ def _f4_contexto_lleva_identidad_del_dueno() -> tuple[bool, str]:
     from loombit_operator.agent.prompts import build_system_prompt
 
     mem = _mem_tmp()
+    mem.owner["name"] = "Juan Pérez"  # BLANCO: identidad configurada por el usuario (no baked-in)
+    mem.owner["company"] = "Acme SL"
     block = mem.to_context_block(task_hint="manda un correo a alguien")
     prompt = build_system_prompt("administrativo", block)
     owner = mem.owner.get("name", "")
@@ -245,7 +247,7 @@ def _e2e_correo_firma_como_el_dueno() -> tuple[bool, str]:
     run = AgentLoop(max_steps=5).run(
         "Manda un correo a destinatario.prueba@example.com avisando de que es una prueba."
     )
-    owner = get_memory().owner.get("name", "Fernando")
+    owner = get_memory().owner.get("name", "")  # BLANCO: sin fallback a un nombre concreto
     pa = run.pending_approval or {}
     m = _re.search(r"\{.*\}", pa.get("proposed_action", ""), _re.S)
     if not m:

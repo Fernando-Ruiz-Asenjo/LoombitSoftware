@@ -8,6 +8,21 @@ from types import SimpleNamespace
 from loombit_operator import telar
 
 
+def test_telar_es_blanco_expone_usuario_del_owner() -> None:
+    # BLANCO: el nombre NO está hardcodeado; viene del owner (clave `usuario`). El saludo es neutro.
+    tela = telar.tejer_dia(
+        now=datetime(2026, 2, 15, 9),
+        eventos=[],
+        correos=[],
+        inbox=[],
+        vencidas=[],
+        proximas=[],
+        aprobaciones=0,
+    )
+    assert "usuario" in tela
+    assert "Fernando" not in tela["saludo"]
+
+
 def test_saludo_por_hora() -> None:
     assert telar._saludo(datetime(2026, 6, 8, 9)) == "Buenos días"
     assert telar._saludo(datetime(2026, 6, 8, 16)) == "Buenas tardes"

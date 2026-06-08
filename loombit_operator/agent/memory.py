@@ -32,10 +32,12 @@ logger = logging.getLogger(__name__)
 
 _DEFAULT_MEMORY: dict[str, Any] = {
     "version": 3,
+    # BLANCO: la identidad del dueño nace vacía y la personaliza cada usuario en su máquina
+    # (onboarding / "Conectar Google" la rellena). Idioma/zona = defaults de la cuña (España).
     "owner": {
-        "name": "Fernando",
-        "email": "fernando.ruizasenjo@gmail.com",
-        "company": "LoomBit Software Inc.",
+        "name": "",
+        "email": "",
+        "company": "",
         "language": "es",
         "timezone": "Europe/Madrid",
     },

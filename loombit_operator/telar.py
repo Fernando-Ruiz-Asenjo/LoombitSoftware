@@ -316,6 +316,7 @@ def tejer_dia(
 
     return {
         "saludo": _saludo(ahora),
+        "usuario": _usuario(),  # BLANCO: el nombre lo pone el owner del usuario, no el código
         "hilos": hilos,
         "resumen": _resumen(hilos),
         "meta": {
@@ -324,6 +325,16 @@ def tejer_dia(
             "privado": "Nada de esto ha salido de tu máquina.",
         },
     }
+
+
+def _usuario() -> str:
+    """Nombre del dueño desde la memoria operativa (vacío si aún no se ha personalizado)."""
+    try:
+        from .agent.memory import get_memory
+
+        return (get_memory().owner.get("name") or "").strip()
+    except Exception:
+        return ""
 
 
 def _resumen(hilos: list[dict]) -> str:
