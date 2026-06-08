@@ -87,6 +87,7 @@ from .routers import (  # noqa: E402
     fiscal,
     health,
     home,
+    mcp,
     pilot,
     routines,
     skill_blanca_actions,
@@ -154,6 +155,7 @@ app.include_router(conciliacion.router)
 app.include_router(cuentas.router)
 app.include_router(home.router)
 app.include_router(credentials.router)
+app.include_router(mcp.router)
 
 # UI estatico y home
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
