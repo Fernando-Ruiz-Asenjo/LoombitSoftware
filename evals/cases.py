@@ -193,6 +193,25 @@ def _f7_normaliza_saltos() -> tuple[bool, str]:
     return ok, "saltos normalizados" if ok else f"sigue literal: {out[:40]!r}"
 
 
+# ── E2E — prueba REAL contra el 14B (no se da por hecho que funciona) ───────────
+def _e2e_correo_sin_bot_ni_invencion() -> tuple[bool, str]:
+    """Corre el agente de verdad y comprueba que NINGÚN gmail_send no-bloqueado se delata como
+    bot. Las guardas garantizan también que el destinatario no sea inventado. needs_llm."""
+    from loombit_operator.agent.loop import AgentLoop
+
+    run = AgentLoop(max_steps=6).run("Manda un correo a Jana presentándote brevemente.")
+    bot = ("agente autónomo", "loombit operator", "soy un agente", "soy tu asistente", "automático")
+    for s in run.steps:
+        if s.tool_name != "gmail_send":
+            continue
+        bloqueado = (s.result or "").startswith("[SISTEMA")
+        cuerpo = f"{s.arguments.get('subject', '')} {s.arguments.get('body', '')}".lower()
+        if not bloqueado and any(t in cuerpo for t in bot):
+            return False, f"correo NO bloqueado con auto-revelación: {cuerpo[:50]}"
+    estado_ok = run.status in ("pending_approval", "pending_question", "completed", "failed")
+    return estado_ok, f"status={run.status}, pasos={run.step_count} — sin envío bot/inventado"
+
+
 # ── F8 — runs huérfanos saneados al reiniciar ───────────────────────────────────
 def _f8_barre_huerfanos() -> tuple[bool, str]:
     import tempfile
@@ -247,6 +266,13 @@ CASES: list[Eval] = [
     ),
     Eval("F7.newlines", "F7", "Normalizar saltos literales", _f7_normaliza_saltos),
     Eval("F8.run_hygiene", "F8", "Sanear runs huérfanos al reiniciar", _f8_barre_huerfanos),
+    Eval(
+        "E2E.correo_real",
+        "F4",
+        "Correo real contra el 14B: sin bot ni destinatario inventado",
+        _e2e_correo_sin_bot_ni_invencion,
+        needs_llm=True,
+    ),
     # Hueco conocido restante (honestidad del proceso vivo): F3 está MITIGADO por la guarda F2
     # (no se inventa) + el prompt (elige el más probable / pregunta), pero el ranking determinista
     # por frecuencia aún no tiene su propio eval.

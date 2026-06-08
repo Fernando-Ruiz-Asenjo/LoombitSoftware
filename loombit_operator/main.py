@@ -111,6 +111,14 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass
 
+    # Auto-chequeo al arrancar: AVISA en el log si algún comportamiento esperado se ha roto.
+    try:
+        from .selfcheck import alert_if_red
+
+        alert_if_red()
+    except Exception:
+        pass
+
     daemon = None
     if settings.routines_daemon_enabled:
         from .routine_executors import build_default_scheduler

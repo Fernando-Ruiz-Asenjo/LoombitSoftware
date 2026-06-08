@@ -18,6 +18,15 @@ def health() -> dict[str, str]:
     return {"status": "ok", "service": "loombit-operator", "version": __version__}
 
 
+@router.get("/health/selfcheck")
+def selfcheck() -> dict:
+    """Auto-verificación: corre el eval-set determinista y dice si el comportamiento esperado
+    (taxonomía F1-F8) sigue verde. La UI/monitor lo consulta; se aplica solo, no a mano."""
+    from ..selfcheck import run_selfcheck
+
+    return run_selfcheck()
+
+
 @router.get("/health/python-env")
 def python_env() -> dict:
     """Debug: info del entorno Python del proceso servidor."""
