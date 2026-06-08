@@ -22,6 +22,7 @@ dist/
 .env
 .env.local
 runtime/local/
+runtime/*.log
 logs/
 *.eml
 *.ics
