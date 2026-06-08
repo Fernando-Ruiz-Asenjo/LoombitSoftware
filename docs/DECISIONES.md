@@ -84,4 +84,28 @@ Formato: **D-NN — decisión** · *contexto* · **elegido** vs alternativas · 
 - **Ningún endpoint presenta a la AEAT ni cierra sin acción humana** (regla legal inamovible).
 - 3 tests TestClient del flujo completo (suite 168).
 
+---
+
+## Conciliación bancaria (#1) y limpieza de proceso (bloque 2026-06-08, tarde)
+
+**D-14 — Conciliación bancaria IMPLEMENTADA e integrada en `main`** (`conciliacion.py` + `routers/conciliacion.py` + `skill_d_fiscal/conciliacion_cobros.py`). Estado **🟡**.
+- *Contexto:* es el pendiente ⭐ "meter primero" del roadmap; 100% determinista y local → se lleva a verificable **sin** LM Studio ni Google levantados. Reutiliza Expedientes (W), intake y cobros (multiplicador, no obra nueva).
+- **Dos piezas, ambas deterministas (el LLM no toca un número):**
+  1. **Parser Norma 43** (Cuaderno 43 AEB/CSB), registros 11/22/23/33/88 a posiciones reales, importes a `Decimal` (2 decimales implícitos, sin float), y **cuadre del registro 33** (saldo inicial + abonos − cargos == saldo final, + nº y sumas de apuntes). Si no cuadra **avisa y continúa** (no aborta): deja el aviso para que el humano escale, en vez de dejarlo tirado si su banco exporta un `33` fuera de norma.
+  2. **Matcher con semáforo de confianza** (innovación #2 acoplada): casa cada **abono** contra las facturas pendientes con tier explicable — **ALTA** (importe exacto + referencia en el concepto), **MEDIA** (importe exacto + contraparte, o candidato único), **BAJA** (pago parcial con referencia, o agrupado N:1 acotado), **ABSTENCIÓN** (sin candidato o ambigüedad → *no inventa*, escala). Referencias casadas en forma compacta (robusto a separadores).
+- **El flywheel (gate S-01):** al aprobar un match, `marcar_cobrada` pone la factura `cobrado` con traza inmutable (`cobro_conciliado`) → el cerebro de `cobros.py` deja de reclamar lo ya pagado. **Humano en el bucle:** el endpoint propone y queda `PENDING_APPROVAL`; solo el humano confirma qué matches aplicar.
+- **Alcance honesto (🟡):** código + 27 tests (13 parser + 14 matcher/router), fixture N43 a posiciones reales del estándar. **Para 🟢 falta** un extracto real de un banco de Fernando (anonimizado) parseado y conciliado de punta a punta.
+- *Alternativas descartadas:* APScheduler-style libs de conciliación (dependencia + caja negra) · matcher por ratio de importe (cola 5% como 4%) → se casa por **cuadre al céntimo** · que el LLM puntúe el match (viola "el número no lo pone el modelo") → reglas deterministas.
+- *Reversible:* sí; módulo nuevo + router nuevo, apenas toca ficheros compartidos (solo monta el router en `main.py`).
+
+**D-15 — Matcher en núcleo blanco (W) con costura `AliasResolver` no-op (flywheel *fenced*).**
+- `conciliacion.py` es **Skill W neutro**: no conoce "IVA" ni "303"; consume `Pendiente` (importe/referencia/contraparte). El adaptador dominio→neutro vive en `skill_d_fiscal/conciliacion_cobros.py` (D depende de W, no lo contamina).
+- El matcher acepta un `AliasResolver` inyectable — la idea de vanguardia de "aprender alias de pagador de los cobros que el humano confirma" (tabla determinista con procedencia, **sin fine-tuning, sin LLM**). En este slice se inyecta el **resolver no-op**: la costura existe y está testeada (un stub desambigua lo que de otro modo se abstiene), pero **construir el resolver que aprende es un turno aparte** → no infla el slice 🟡.
+- *Por qué fenced:* traer la idea sin prometer 🟢 lo que es 🟡. Reversible: el resolver real se enchufa después sin tocar el matcher.
+
+**D-16 — Retirado del repositorio el aparato de proceso "Hilo A/B/C".**
+- *Contexto:* un bloque previo montó un proceso dialéctico de dos agentes (A creativo, B crítico) debatiendo en `docs/DIALOGO_HILOS_AB.md` antes de construir, con resultados a `docs/BANDEJA_C.md` y ramas/worktrees `hilo-*`. Fernando pidió **eliminarlo del repositorio**.
+- *Hecho:* borrados `docs/DIALOGO_HILOS_AB.md` y `docs/BANDEJA_C.md`; eliminado el worktree `loombit-wt-a-conciliacion` y la rama `hilo-a/conciliacion-n43`. **El trabajo útil que vivía en ese worktree (el parser N43, sin commitear) se rescató a `main` despojado del envoltorio "Hilo A"** (ver D-14), no se perdió.
+- *Por qué:* el proceso es decisión del operador humano; el repo guarda producto y decisiones (este doc), no el andamiaje de cómo se debatió. Reversible: el patrón dialéctico puede re-adoptarse fuera del repo sin dejar rastro en él.
+
 *(se irán añadiendo entradas según avance el bloque)*

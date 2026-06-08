@@ -80,6 +80,7 @@ from .config import get_settings  # noqa: E402
 from .routers import (  # noqa: E402
     agent,
     computer,
+    conciliacion,
     docs,
     fiscal,
     health,
@@ -125,6 +126,7 @@ app.include_router(pilot.router)
 app.include_router(docs.router)
 app.include_router(routines.router)
 app.include_router(fiscal.router)
+app.include_router(conciliacion.router)
 
 # UI estatico y home
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

@@ -6,6 +6,10 @@ Regla de oro: el número NUNCA lo pone un LLM; aquí se calcula con Decimal y se
 `docs/PLATAFORMA_FISCAL_ANALISIS.md` y `docs/ARQUITECTURA_SKILLS.md`.
 """
 
+from .conciliacion_cobros import (
+    marcar_cobrada,
+    pendientes_de_cobro,
+)
 from .intake import (
     inferir_tipo_iva,
     linea_desde_factura,
@@ -29,6 +33,8 @@ __all__ = [
     "inferir_tipo_iva",
     "linea_desde_factura",
     "liquidar_303_periodo",
+    "marcar_cobrada",
+    "pendientes_de_cobro",
     "procesar_303",
     "recopilar_lineas",
     "registrar_factura",
