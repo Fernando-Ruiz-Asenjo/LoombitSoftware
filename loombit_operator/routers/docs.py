@@ -13,17 +13,20 @@ proveedor conocido NO se registra (se marca para verificación humana).
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from loombit_operator.agent.memory import get_memory
+from loombit_operator.config import get_settings
 from loombit_operator.docs_intel import (
     cross_check_amount,
     extract_invoice_fields,
     extract_text_from_pdf,
 )
+from loombit_operator.docs_intel_vision import _IMAGE_EXTS, ocr_document
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/docs-intel", tags=["docs-intel"])
@@ -39,17 +42,34 @@ class InvoiceRequest(BaseModel):
 @router.post("/invoice")
 async def read_invoice(body: InvoiceRequest) -> dict[str, Any]:
     text = body.text
+    via_ocr = False
     if not text and body.path:
-        pdf_info = extract_text_from_pdf(body.path)
-        if pdf_info.get("error"):
-            raise HTTPException(status_code=400, detail=pdf_info["error"])
-        text = pdf_info.get("text", "")
-        if pdf_info.get("needs_ocr"):
-            return {
-                "result": "El PDF parece escaneado (sin texto). Falta visión local (Qwen2.5-VL) para leerlo.",
-                "needs_ocr": True,
-                "fields": None,
-            }
+        suffix = Path(body.path).suffix.lower()
+        needs_ocr = suffix in _IMAGE_EXTS  # una imagen suelta siempre va a visión
+        if not needs_ocr:
+            pdf_info = extract_text_from_pdf(body.path)
+            if pdf_info.get("error"):
+                raise HTTPException(status_code=400, detail=pdf_info["error"])
+            text = pdf_info.get("text", "")
+            needs_ocr = bool(pdf_info.get("needs_ocr"))
+        if needs_ocr and not text:
+            # Escaneado: el VL transcribe (OCR literal); el regex saca los números.
+            try:
+                ocr = ocr_document(body.path, get_settings())
+            except Exception as exc:
+                return {
+                    "result": f"El documento parece escaneado y no pude leerlo con visión local: {exc}",
+                    "needs_ocr": True,
+                    "fields": None,
+                }
+            text = (ocr.get("text") or "").strip()
+            via_ocr = True
+            if not text:
+                return {
+                    "result": "El documento escaneado no devolvió texto legible (visión). Revísalo a mano.",
+                    "needs_ocr": True,
+                    "fields": None,
+                }
     if not text:
         raise HTTPException(status_code=400, detail="Indica `text` o `path`.")
 
@@ -57,6 +77,11 @@ async def read_invoice(body: InvoiceRequest) -> dict[str, Any]:
     fields = inv.to_dict()
     entity_name = inv.proveedor or ""
     warnings: list[str] = []
+    if via_ocr:
+        warnings.append(
+            "Leído por OCR de imagen (visión local): los importes y el IBAN pueden tener "
+            "errores de lectura — verifícalos antes de pagar o registrar."
+        )
     iban_verdict: dict[str, Any] | None = None
     learned = False
 
@@ -111,4 +136,5 @@ async def read_invoice(body: InvoiceRequest) -> dict[str, Any]:
         "cross_check": cross,
         "learned_entity": learned,
         "warnings": warnings,
+        "via_ocr": via_ocr,
     }
