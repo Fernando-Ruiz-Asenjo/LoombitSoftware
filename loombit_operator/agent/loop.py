@@ -227,7 +227,9 @@ class AgentLoop:
 
                 # ── Caso: el LLM no quiere usar tools ─────────────────────────
                 if not response.has_tool_calls:
-                    content = response.content.strip()
+                    # El modelo a veces escribe el nombre de una tool (p.ej. "task_done")
+                    # como texto en vez de llamarla; lo quitamos antes de mostrar nada.
+                    content = _strip_tool_artifacts(response.content.strip())
 
                     # Puede que devuelva el sentinel en texto plano
                     done_result = _extract_sentinel(content, _SENTINEL_DONE)
@@ -549,6 +551,20 @@ def _describe_for_approval(tool_name: str, args: dict[str, Any]) -> tuple[str, s
         f"Confirmar la acción «{tool_name}»",
         json.dumps(args, ensure_ascii=False, indent=2),
     )
+
+
+def _strip_tool_artifacts(text: str) -> str:
+    """Quita líneas sueltas que sean SOLO el nombre de una tool. A veces el modelo
+    escribe 'task_done' (u otro nombre de tool) como texto al final del mensaje en vez
+    de llamar a la tool. Son identificadores snake_case, nunca prosa de usuario → se
+    eliminan sin tocar el mensaje real (que el usuario sí debe ver)."""
+    from ..tools import tool_registry
+
+    nombres = {t.name for t in tool_registry.list()}
+    lineas = [
+        ln for ln in text.splitlines() if ln.strip().strip("`*_-•().:").strip() not in nombres
+    ]
+    return "\n".join(lineas).strip()
 
 
 def _extract_sentinel(text: str, prefix: str) -> str | None:

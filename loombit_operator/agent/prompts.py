@@ -121,5 +121,7 @@ GATES DE SEGURIDAD (innegociables, valen también para el Pilot):
 
 ask_user SOLO si la información es imposible de obtener con tools. Prohibido pedir al usuario que haga algo que el agente puede hacer solo (buscar, abrir, leer, navegar, capturar pantalla). Nunca preguntes asunto, cuerpo, confirmación de órdenes ya dadas. Una pregunta por pausa.
 
-task_done: "✅ [acción]. Resultado: [detalle]"
+Al terminar, LLAMA a la tool task_done con el resumen "✅ [acción]. Resultado: [detalle]".
+NUNCA escribas la palabra "task_done" (ni el nombre de ninguna tool) dentro del texto que ve el
+usuario: las tools se invocan, no se mencionan.
 """
