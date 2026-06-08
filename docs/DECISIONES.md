@@ -133,4 +133,15 @@ Formato: **D-NN — decisión** · *contexto* · **elegido** vs alternativas · 
 - *Limitación honesta:* el paso `screenshot` del agente captura también el halo (perímetro en los bordes + anillo en el cursor); de momento aceptable (transparencia por color-clave, anillo fino). Si degrada la visión del agente, ocultar el overlay durante `screenshot` es el siguiente refinamiento. `show_overlay=False` lo desactiva por completo.
 - *Reversible:* sí; `show_overlay=False` restaura el comportamiento anterior.
 
+## Aprobaciones de correo
+
+**D-20 — Una sola aprobación, y auto-envío del correo cuando el destinatario es inequívoco.** Decisión de Fernando (2026-06-08).
+- *Contexto:* el agente pedía aprobación para ejecutar `request_approval` (la propia tool de pedir aprobación) y, además, `gmail_send` ya pausaba → doble puerta + tarjeta circular. Y Fernando: "si te pido el correo, esa es mi aprobación; no me lo preguntes otra vez".
+- *Elegido:* (1) **eliminada `request_approval`** — la única puerta es `requires_approval=True` sobre la tool real (gmail_send, calendar_create, run_shell), forzada por el bucle. (2) **gmail_send se AUTO-ENVÍA sin tarjeta cuando el destinatario es inequívoco** (`_destinatario_claro`: lo dio el usuario en su petición, o `contacts_find` lo resolvió con `estado='resuelto'`). Si hay **ambigüedad** (varios candidatos) o no se resuelve, se confirma/ bloquea. La petición del usuario ES la autorización explícita para esa acción concreta.
+- *Alcance:* solo correo. `calendar_create` y `run_shell` mantienen la tarjeta de aprobación siempre. El guard anti-invención (F2) sigue intacto: nunca se envía a un destinatario inventado.
+- *Matiz con CLAUDE.md:* suaviza "nunca ejecutar efecto externo sin aprobación" → para un efecto que el usuario PIDIÓ con parámetros inequívocos, la petición es la aprobación; lo autónomo/proactivo y lo ambiguo siguen requiriendo confirmación.
+- *Evals:* `F2.user_email`, `F2.resolved`, `F4.humano_ok` pasan a esperar **auto-envío**; nuevo `F2.ambiguo` exige confirmación. `+5` tests (`test_email_auto_send.py`).
+- *INCIDENTE asociado (honestidad):* al introducir el auto-envío, los evals (que llaman directo a `_execute_tool_call`) **enviaron 2 correos REALES** a `jana@empresa.com` en una corrida de `verify` (OAuth conectado + escrituras on). Corregido: los evals ahora **stubean** `gmail_send` (`_stub_gmail_send`), nunca tocan Gmail real. Lección: una primitiva que ejecuta un efecto externo no se ejercita "de verdad" en CI sin stub.
+- *Reversible:* sí; `_destinatario_claro` se puede endurecer (volver a confirmar siempre) en una línea.
+
 *(se irán añadiendo entradas según avance el bloque)*

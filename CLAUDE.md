@@ -255,7 +255,9 @@ Fuente de migración más reciente:
 
 ## Lo que nunca hace este operador (sin excepción)
 
-- Ejecutar una acción externa sin aprobación explícita del humano.
+- Ejecutar una acción externa **autónoma/proactiva** sin aprobación del humano. (Matiz D-20: si el
+  usuario PIDE la acción con parámetros inequívocos —p.ej. un correo a un destinatario claro—, su
+  petición ES la autorización y se ejecuta sin tarjeta; lo ambiguo y lo proactivo sí se confirman.)
 - Subir datos del usuario a la nube sin consentimiento.
 - Marcar una capacidad como 🟢 sin recibo de ejecución real.
 - Fine-tuning de pesos de modelos.

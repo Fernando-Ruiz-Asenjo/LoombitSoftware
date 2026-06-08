@@ -400,7 +400,13 @@ class AgentLoop:
                 False,
             )
 
-        if tool_def.requires_approval:
+        # Política de aprobación: un correo que el USUARIO pidió y con destinatario inequívoco
+        # se envía SOLO (sin tarjeta) — su petición es la autorización. Si el destinatario es
+        # ambiguo, se confirma. Otros efectos externos (calendar_create, run_shell) siempre confirman.
+        auto_envio_correo = tc.tool_name == "gmail_send" and _destinatario_claro(
+            str(tc.arguments.get("to", "")), run
+        )
+        if tool_def.requires_approval and not auto_envio_correo:
             reason, proposed = _describe_for_approval(tc.tool_name, tc.arguments)
             payload = json.dumps({"reason": reason, "proposed_action": proposed})
             return f"{_SENTINEL_APPROVAL}{payload}", True
@@ -481,6 +487,31 @@ def _recipiente_resuelto(to: str, run: AgentRun) -> bool:
     return any(
         s.tool_name == "contacts_find" and to_l in (s.result or "").lower() for s in run.steps
     )
+
+
+def _destinatario_claro(to: str, run: AgentRun) -> bool:
+    """True si el destinatario es INEQUÍVOCO: lo escribió el usuario en su petición, o
+    contacts_find lo resolvió SIN ambigüedad (estado='resuelto' y es el `mejor`). Si hubo
+    ambigüedad (varios candidatos) devuelve False → se confirma con tarjeta. Más estricto que
+    `_recipiente_resuelto` (que solo descarta inventados): aquí exigimos que NO haya duda.
+    """
+    to_l = to.strip().lower()
+    if not to_l or "@" not in to_l:
+        return False
+    if to_l in (run.task or "").lower():
+        return True
+    for s in run.steps:
+        if s.tool_name != "contacts_find":
+            continue
+        try:
+            data = json.loads(s.result)
+        except Exception:
+            continue
+        if data.get("estado") == "resuelto":
+            mejor = data.get("mejor") or {}
+            if str(mejor.get("email", "")).strip().lower() == to_l:
+                return True
+    return False
 
 
 def _describe_for_approval(tool_name: str, args: dict[str, Any]) -> tuple[str, str]:
