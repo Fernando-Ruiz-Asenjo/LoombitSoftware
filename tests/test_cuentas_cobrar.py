@@ -2,7 +2,11 @@
 Store de cuentas a cobrar (Fase 2): pendientes, vencidas y próximas (con `today` fijo).
 """
 
-from loombit_operator.cuentas_cobrar import CuentaCobrar, CuentasCobrarStore
+from loombit_operator.cuentas_cobrar import (
+    CuentaCobrar,
+    CuentasCobrarStore,
+    cuenta_desde_factura,
+)
 
 
 def _store(tmp_path):
@@ -27,6 +31,16 @@ def test_vencidas_y_proximas(tmp_path):
     s.add(CuentaCobrar(cliente="Lejana", importe=70, vencimiento="2026-07-30"))  # lejos
     assert [c.cliente for c in s.vencidas(today)] == ["Vencida"]
     assert [c.cliente for c in s.proximas(7, today)] == ["Proxima"]
+
+
+def test_cuenta_desde_factura_solo_emitida():
+    c = cuenta_desde_factura(proveedor="Acme", total=500, sentido="devengado", numero="F-1")
+    assert c is not None
+    assert c.cliente == "Acme" and c.importe == 500 and "F-1" in c.concepto and c.vencimiento
+    # recibida (compra) → no se cobra
+    assert cuenta_desde_factura(proveedor="X", total=500, sentido="soportado") is None
+    # sin importe → nada
+    assert cuenta_desde_factura(proveedor="X", total=None, sentido="devengado") is None
 
 
 def test_marcar_cobrada(tmp_path):

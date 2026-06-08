@@ -32,6 +32,7 @@ class FacturaIn(BaseModel):
     base_imponible: float | None = None
     iva: float | None = None
     total: float | None = None
+    vencimiento: str | None = None  # ISO; si falta y es emitida → plazo estándar (30 días)
 
 
 class Liquidar303In(BaseModel):
@@ -92,7 +93,22 @@ def add_factura(entity_id: str, body: FacturaIn) -> dict:
         iva=body.iva,
         total=body.total,
     )
-    return _summary(registrar_factura(store, inv, body.sentido))
+    exp = registrar_factura(store, inv, body.sentido)
+
+    # Factura EMITIDA (venta) → alimenta el store de cuentas a cobrar (Fase 2, automático).
+    from ..cuentas_cobrar import CuentasCobrarStore, cuenta_desde_factura
+
+    cuenta = cuenta_desde_factura(
+        proveedor=body.proveedor,
+        total=body.total,
+        sentido=body.sentido,
+        numero=body.numero or "",
+        vencimiento=body.vencimiento,
+    )
+    if cuenta:
+        CuentasCobrarStore().add(cuenta)
+
+    return _summary(exp)
 
 
 @router.post("/{entity_id}/303")

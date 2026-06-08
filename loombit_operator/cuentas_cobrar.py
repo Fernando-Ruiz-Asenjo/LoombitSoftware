@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from uuid import uuid4
 
@@ -105,3 +105,26 @@ class CuentasCobrarStore:
         c.estado = "cobrada"
         self._save()
         return True
+
+
+def cuenta_desde_factura(
+    *,
+    proveedor: str | None,
+    total: float | None,
+    sentido: str,
+    numero: str = "",
+    vencimiento: str | None = None,
+    plazo_dias: int = 30,
+) -> CuentaCobrar | None:
+    """Crea una cuenta a cobrar SOLO si la factura es EMITIDA (sentido='devengado'=venta) y
+    tiene importe. Una factura recibida (compra) no se cobra. Si no hay vencimiento, plazo estándar.
+    """
+    if sentido != "devengado" or not total:
+        return None
+    venc = vencimiento or (date.today() + timedelta(days=plazo_dias)).isoformat()
+    return CuentaCobrar(
+        cliente=proveedor or "(sin nombre)",
+        importe=float(total),
+        vencimiento=venc,
+        concepto=f"Factura {numero}".strip(),
+    )
