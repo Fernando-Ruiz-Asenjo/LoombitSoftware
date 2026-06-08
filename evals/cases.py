@@ -181,6 +181,43 @@ def _f4_permite_correo_humano() -> tuple[bool, str]:
     return ok, "permitido (correo humano normal)" if ok else f"mal: stop={stop} out={out[:60]}"
 
 
+def _f4_contexto_lleva_identidad_del_dueno() -> tuple[bool, str]:
+    """El contexto del agente SIEMPRE lleva la identidad del dueño; sin ella el modelo inventa la
+    firma (firmó 'José Martínez' en vez de Fernando). El run() del loop ahora la inyecta."""
+    from loombit_operator.agent.prompts import build_system_prompt
+
+    mem = _mem_tmp()
+    block = mem.to_context_block(task_hint="manda un correo a alguien")
+    prompt = build_system_prompt("administrativo", block)
+    owner = mem.owner.get("name", "")
+    ok = bool(owner) and owner in prompt and "Trabajas para" in block
+    return ok, (
+        f"identidad del dueño '{owner}' en contexto" if ok else "FALTA la identidad del dueño"
+    )
+
+
+def _e2e_correo_firma_como_el_dueno() -> tuple[bool, str]:
+    """En vivo: un correo con destinatario dado se firma con el nombre del DUEÑO, no con una
+    identidad inventada. needs_llm."""
+    import json as _json
+    import re as _re
+
+    from loombit_operator.agent.loop import AgentLoop
+    from loombit_operator.agent.memory import get_memory
+
+    run = AgentLoop(max_steps=5).run(
+        "Manda un correo a destinatario.prueba@example.com avisando de que es una prueba."
+    )
+    owner = get_memory().owner.get("name", "Fernando")
+    pa = run.pending_approval or {}
+    m = _re.search(r"\{.*\}", pa.get("proposed_action", ""), _re.S)
+    if not m:
+        return False, f"no llegó a aprobación (status={run.status})"
+    body = _json.loads(m.group(0)).get("body", "")
+    ok = owner.lower() in body.lower()
+    return ok, f"firma incluye al dueño '{owner}'" if ok else f"NO firma como el dueño: {body[:60]}"
+
+
 # ── F5 — (definido arriba) ──────────────────────────────────────────────────────
 # ── F6 — aprendizaje general (Reflexion): memoria + recuperación relevante ──────
 def _mem_tmp():
@@ -337,6 +374,19 @@ CASES: list[Eval] = [
     ),
     Eval("F4.no_bot", "F4", "Bloquear correo que se delata como bot", _f4_bloquea_bot_reveal),
     Eval("F4.humano_ok", "F4", "Permitir correo humano normal", _f4_permite_correo_humano),
+    Eval(
+        "F4.identidad_contexto",
+        "F4",
+        "El contexto lleva la identidad del dueño (no inventa firma)",
+        _f4_contexto_lleva_identidad_del_dueno,
+    ),
+    Eval(
+        "E2E.firma_dueno",
+        "F4",
+        "Correo real firmado como el dueño, no inventado",
+        _e2e_correo_firma_como_el_dueno,
+        needs_llm=True,
+    ),
     Eval(
         "F5.provenance",
         "F5",

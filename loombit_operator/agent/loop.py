@@ -182,10 +182,13 @@ class AgentLoop:
         run.mark_running()
         self.store.save_run(run)
 
-        # Primer mensaje si es un run nuevo (sin historial)
+        # Primer mensaje si es un run nuevo (sin historial). SIEMPRE con la memoria (dueño +
+        # lecciones): sin ella el modelo se inventa la identidad (firmó "José Martínez" en vez de
+        # Fernando). El dueño/firma es contexto, no se deja al azar.
         if not run.messages:
+            memory_block = get_memory().to_context_block(task_hint=run.task)
             run.messages = [
-                {"role": "system", "content": build_system_prompt()},
+                {"role": "system", "content": build_system_prompt(run.profile, memory_block)},
                 {"role": "user", "content": run.task},
             ]
 
