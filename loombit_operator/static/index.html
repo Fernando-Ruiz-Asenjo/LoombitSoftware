@@ -1246,6 +1246,37 @@ async function disconnectGoogle() {
   refreshConnections();
 }
 
+// ── Aprobar todo ──────────────────────────────────────
+async function refreshApprovals() {
+  try {
+    const r = await fetch(`${API}/agent/runs?status=pending_approval`, { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return;
+    const runs = await r.json();
+    const bar = document.getElementById('approveAllBar');
+    if (runs.length > 0) {
+      document.getElementById('approveAllCount').textContent = runs.length;
+      bar.style.display = 'flex';
+    } else {
+      bar.style.display = 'none';
+    }
+  } catch { /* noop */ }
+}
+
+async function approveAll() {
+  const btn = document.getElementById('approveAllBtn');
+  btn.disabled = true;
+  try {
+    const r = await fetch(`${API}/agent/approve-all`, { method: 'POST', signal: AbortSignal.timeout(10000) });
+    const d = await r.json().catch(()=>({}));
+    addMsg('user', `✓ Aprobar todo (${d.approved ?? '?'})`);
+  } catch(e) {
+    addMsg('error', `Error al aprobar todo: ${e.message}`);
+  }
+  btn.disabled = false;
+  setTimeout(refreshApprovals, 1000);
+}
+setInterval(refreshApprovals, 3000);
+
 // ── Health check ──────────────────────────────────────
 (async () => {
   try {
@@ -1254,7 +1285,12 @@ async function disconnectGoogle() {
   } catch { setLLMStatus('offline'); }
   refreshConnections();
   loadHomeContext();
+  refreshApprovals();
 })();
 </script>
+<div id="approveAllBar" style="display:none;position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:9999;background:var(--lb-navy3,#1a2235);border:1px solid var(--lb-purple,#8b5cf6);border-radius:999px;padding:8px 10px 8px 18px;box-shadow:0 10px 30px rgba(0,0,0,.55);align-items:center;gap:14px;font-size:13px;color:var(--lb-text,#f1f5f9)">
+  <span>⚠ <strong id="approveAllCount">0</strong> aprobaciones pendientes</span>
+  <button id="approveAllBtn" onclick="approveAll()" style="background:linear-gradient(135deg,var(--lb-purple,#8b5cf6),var(--lb-cyan,#06b6d4));color:#fff;border:none;border-radius:999px;padding:8px 18px;font-weight:700;cursor:pointer;font-size:13px">Aprobar todo</button>
+</div>
 </body>
 </html>

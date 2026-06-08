@@ -203,10 +203,22 @@ async def approve_run(
         )
         store.save_run(run)
 
-    run.approve()
-    store.save_run(run)
-    background_tasks.add_task(loop.execute_run, run_id)
+    # resume() EJECUTA la tool aprobada (envía de verdad) y continúa. Antes se usaba
+    # execute_run, que re-preguntaba al LLM y volvía a pausar → la tarjeta salía otra vez.
+    background_tasks.add_task(loop.resume, run_id)
     return RunResponse.from_run(run)
+
+
+@router.post("/approve-all", summary="Aprobar y lanzar TODAS las acciones pendientes")
+async def approve_all(background_tasks: BackgroundTasks) -> dict:
+    """Aprueba y ejecuta de una vez todas las acciones en espera (sin diálogos)."""
+    store = _get_store()
+    loop = _get_loop()
+    pendientes = store.list(status=AgentStatus.PENDING_APPROVAL)
+    ids = [r.id for r in pendientes]
+    for run_id in ids:
+        background_tasks.add_task(loop.resume, run_id)
+    return {"approved": len(ids), "ids": ids}
 
 
 @router.post(
