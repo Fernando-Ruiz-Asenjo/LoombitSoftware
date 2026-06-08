@@ -609,6 +609,34 @@ a { color: inherit; text-decoration: none; }
 .gx-pal-item.active, .gx-pal-item:hover { background: var(--lb-navy3); }
 .gx-pal-item .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
 .gx-pal-item .sub { margin-left: auto; color: var(--lb-text3); font-size: 11px; }
+/* Panel de detalle (el "sistema" de un planeta: contexto REAL destilado) */
+#gx-detail {
+  position: absolute; top: 0; right: 0; bottom: 0; width: 340px; z-index: 8; display: none;
+  background: rgba(10,14,26,0.92); backdrop-filter: blur(8px);
+  border-left: 1px solid var(--lb-border2); padding: 18px 18px 24px; overflow-y: auto;
+  box-shadow: -16px 0 40px rgba(0,0,0,.4);
+}
+#gx-detail.open { display: block; }
+#gx-detail .d-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 4px; }
+#gx-detail .d-dot { width: 12px; height: 12px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+#gx-detail .d-name { font-size: 16px; font-weight: 700; letter-spacing: -.3px; }
+#gx-detail .d-sub { font-size: 11.5px; color: var(--lb-text2); word-break: break-all; }
+#gx-detail .d-x { margin-left: auto; color: var(--lb-text3); font-size: 18px; cursor: pointer; line-height: 1; }
+#gx-detail .d-x:hover { color: var(--lb-text); }
+#gx-detail .d-section { margin-top: 16px; }
+#gx-detail .d-label { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: var(--lb-text3); margin-bottom: 6px; }
+#gx-detail .d-resumen { font-size: 12.5px; color: var(--lb-text); line-height: 1.45; font-style: italic;
+  background: var(--lb-navy3); border-left: 2px solid var(--lb-purple); border-radius: 6px; padding: 8px 10px; }
+#gx-detail .d-amt { display: flex; align-items: baseline; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--lb-border); }
+#gx-detail .d-amt b { font-size: 14px; color: var(--lb-text); white-space: nowrap; }
+#gx-detail .d-amt .src { font-size: 11px; color: var(--lb-text2); line-height: 1.25; }
+#gx-detail .d-subj { font-size: 12px; color: var(--lb-text); padding: 5px 0; line-height: 1.35; }
+#gx-detail .d-subj .meta { color: var(--lb-text3); font-size: 10.5px; }
+#gx-detail .d-chip { display: inline-block; font-size: 10.5px; color: var(--lb-cyan); border: 1px solid var(--lb-border2);
+  border-radius: 999px; padding: 2px 8px; margin: 0 4px 4px 0; }
+#gx-detail .d-empty { font-size: 12px; color: var(--lb-text3); }
+#gx-detail .d-act { width: 100%; margin-top: 14px; padding: 9px; border-radius: var(--r-sm);
+  background: linear-gradient(135deg, var(--lb-purple), var(--lb-cyan)); color: #fff; font-weight: 700; font-size: 12.5px; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -797,6 +825,7 @@ a { color: inherit; text-decoration: none; }
     <div id="galaxia-canvas-wrap">
       <canvas id="galaxia-canvas"></canvas>
       <div id="gx-tooltip"></div>
+      <div id="gx-detail"></div>
       <div id="gx-empty"></div>
       <div id="gx-palette">
         <div class="gx-pal-box">
@@ -1550,6 +1579,7 @@ async function openGalaxia() {
 function closeGalaxia() {
   document.getElementById('galaxia-view').classList.remove('open');
   gxPaletteClose();
+  gxCloseDetail(); GXFocus = null;
   gxOpen = false;
   if (gxTimer) { clearInterval(gxTimer); gxTimer = null; }
   if (gxRAF) { cancelAnimationFrame(gxRAF); gxRAF = null; }
@@ -1786,12 +1816,82 @@ function gxTooltip(o, mx, my) {
   c.addEventListener('click', ev => {
     const { o } = gxHit(ev);
     GXFocus = (o && GXFocus!==o.id) ? o.id : null;   // clic en vacío o en el mismo = quitar foco
+    if (GXFocus && o) gxShowDetail(o); else gxCloseDetail();
   });
   c.addEventListener('dblclick', ev => {
     const { o } = gxHit(ev);
     if (o) gxOpenInChat(o.node, o.kind);
   });
 })();
+
+// ── Panel de detalle: el "sistema" del planeta con su contexto REAL destilado ──
+function gxCloseDetail() { document.getElementById('gx-detail').classList.remove('open'); }
+function gxShowDetail(o) {
+  const d = document.getElementById('gx-detail');
+  const n = o.node;
+  if (o.kind === 'cuenta') {
+    const tag = n.estado==='vencida' ? `<span style="color:#ef4444">VENCIDA (${-n.dias} días)</span>`
+              : n.estado==='proxima' ? `<span style="color:#f59e0b">vence en ${n.dias} días</span>`
+              : `pendiente (${n.dias} días)`;
+    d.innerHTML = `
+      <div class="d-head"><span class="d-dot" style="background:${o.color}"></span>
+        <div><div class="d-name">${esc(n.etiqueta)}</div><div class="d-sub">${Number(n.importe).toLocaleString('es-ES')} € · ${tag}</div></div>
+        <span class="d-x" onclick="GXFocus=null;gxCloseDetail()">✕</span></div>
+      <div class="d-section"><div class="d-label">Cuenta a cobrar</div>
+        <div class="d-subj">Vence <b>${esc(n.vencimiento)}</b></div>
+        ${n.concepto?`<div class="d-subj meta">${esc(n.concepto)}</div>`:''}</div>
+      <button class="d-act" onclick="gxOpenInChat(${gxJson(n)},'cuenta')">💶 Preparar reclamación de cobro</button>`;
+    d.classList.add('open');
+    return;
+  }
+  // contacto → cargar su contexto real (lazy)
+  d.innerHTML = `
+    <div class="d-head"><span class="d-dot" style="background:${o.color}"></span>
+      <div><div class="d-name">${esc(n.etiqueta)}</div><div class="d-sub">${esc(n.email||'')}</div></div>
+      <span class="d-x" onclick="GXFocus=null;gxCloseDetail()">✕</span></div>
+    <div class="d-section"><div class="d-label">Contexto real</div>
+      <div class="d-empty">Destilando tus correos con ${esc(n.etiqueta)}…</div></div>`;
+  d.classList.add('open');
+  gxLoadContacto(n, o.color);
+}
+function gxJson(obj){ return JSON.stringify(obj).replace(/"/g,'&quot;'); }
+async function gxLoadContacto(n, color) {
+  let intel = null;
+  try {
+    const r = await fetch(`${API}/galaxia/contacto?email=${encodeURIComponent(n.email)}&name=${encodeURIComponent(n.etiqueta)}`, { signal: AbortSignal.timeout(30000) });
+    if (r.ok) intel = await r.json();
+  } catch { /* best-effort */ }
+  const d = document.getElementById('gx-detail');
+  if (!d.classList.contains('open')) return;        // el usuario ya cerró
+  const eur = v => Number(v).toLocaleString('es-ES', {minimumFractionDigits:2});
+  let body = '';
+  if (!intel || !intel.disponible) {
+    body = `<div class="d-section"><div class="d-empty">No pude leer tus correos con este contacto (¿Google conectado con permiso de lectura?).</div></div>`;
+  } else {
+    if (intel.resumen) body += `<div class="d-section"><div class="d-label">Relación</div><div class="d-resumen">${esc(intel.resumen)}</div></div>`;
+    if ((intel.importes||[]).length) {
+      body += `<div class="d-section"><div class="d-label">Importes mencionados (de tus correos)</div>` +
+        intel.importes.map(im => `<div class="d-amt"><b>${eur(im.valor)} €</b><span class="src">${esc(im.raw)} € · ${esc(im.fecha||'')}<br>${esc(im.asunto)}</span></div>`).join('') +
+        `<div class="d-subj meta" style="margin-top:6px">Cifras extraídas literalmente del texto, con su correo de origen. No inventadas.</div></div>`;
+    }
+    if ((intel.ultimos_asuntos||[]).length) {
+      body += `<div class="d-section"><div class="d-label">Últimos asuntos</div>` +
+        intel.ultimos_asuntos.map(a => `<div class="d-subj">${a.mio?'↗ ':'↘ '}${esc(a.asunto)}<div class="meta">${esc(a.fecha||'')} · ${a.mio?'enviado':'recibido'}</div></div>`).join('') + `</div>`;
+    }
+    if ((intel.referencias||[]).length) {
+      body += `<div class="d-section"><div class="d-label">Referencias</div>` +
+        intel.referencias.map(r => `<span class="d-chip">${esc(r.ref)}</span>`).join('') + `</div>`;
+    }
+    if (!intel.resumen && !(intel.importes||[]).length && !(intel.ultimos_asuntos||[]).length)
+      body = `<div class="d-section"><div class="d-empty">Sin contexto destilable en los correos recientes.</div></div>`;
+  }
+  d.innerHTML = `
+    <div class="d-head"><span class="d-dot" style="background:${color}"></span>
+      <div><div class="d-name">${esc(n.etiqueta)}</div><div class="d-sub">${esc(n.email||'')}</div></div>
+      <span class="d-x" onclick="GXFocus=null;gxCloseDetail()">✕</span></div>
+    ${body}
+    <button class="d-act" onclick="gxOpenInChat(${gxJson(n)},'contacto')">✉️ Abrir relación en el chat</button>`;
+}
 
 function gxOpenInChat(n, kind) {
   const inp = document.getElementById('msg-input');
@@ -1831,6 +1931,7 @@ function gxPaletteGo(i) {
   const o = GXPalItems[i]; if (!o) return;
   GXFocus = o.id; GXPing = o.id; GXPingT = Date.now();
   gxPaletteClose();
+  gxShowDetail(o);
 }
 document.getElementById('gx-pal-input').addEventListener('input', e => gxPaletteFilter(e.target.value));
 
@@ -1838,7 +1939,7 @@ document.addEventListener('keydown', e => {
   if (!gxOpen) return;
   const palOpen = document.getElementById('gx-palette').classList.contains('open');
   if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='k') { e.preventDefault(); palOpen?gxPaletteClose():gxPaletteOpen(); return; }
-  if (e.key==='Escape') { if (palOpen) gxPaletteClose(); else if (GXFocus) GXFocus=null; else closeGalaxia(); return; }
+  if (e.key==='Escape') { if (palOpen) gxPaletteClose(); else if (GXFocus) { GXFocus=null; gxCloseDetail(); } else closeGalaxia(); return; }
   if (palOpen) {
     if (e.key==='ArrowDown') { e.preventDefault(); gxPalHover(Math.min(GXPalSel+1, GXPalItems.length-1)); }
     else if (e.key==='ArrowUp') { e.preventDefault(); gxPalHover(Math.max(GXPalSel-1, 0)); }
