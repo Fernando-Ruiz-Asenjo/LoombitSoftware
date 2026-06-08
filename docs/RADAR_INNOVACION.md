@@ -27,6 +27,44 @@ Primer barrido tech-radar (Claude + web), con fuentes.
 | L3 | **Qwen3-VL (2b/4b/8b)** disponible — sucesor del VL para leer facturas escaneadas, corre local | candidato a **upgrade del VL-7B** al cablear la visión (`docs_intel`); evaluar 4b/8b en la RTX 5080 | 🟡 | 3/6 | [SiliconFlow](https://www.siliconflow.com/articles/en/best-open-source-LLM-for-Document-screening) |
 | L4 | **Agentes contables autónomos** (Pilot "AI Accountant" feb-2026; Intuit+Anthropic; adopción agentic 6%→44% en 12 meses) | el mercado va a agentic ya; el foso de Loombit es **local + marco legal español + opera-sin-API**; los rivales son cloud/US | 🟢 | estratégico | [Beancount.io](https://beancount.io/blog/2026/05/10/agentic-ai-bookkeeping-2026-autonomous-finance-agents-month-end-close-ap-reconciliation-workflows-guide) · [Accounting Today](https://www.accountingtoday.com/news/a-big-year-for-ai-in-accounting) |
 
+## Barrido 2 — asistentes de IA de correo (2026-06-08)
+
+Destilado de ~20 productos (Gmelius, Superhuman, Shortwave, Lindy, Missive, Hiver, Front, MailMaestro,
+SaneBox, Fyxer, Perplexity-email, Canary, Ellie, alfred_…). **Qué hacen TODOS** (la mesa de juego):
+triaje por prioridad (Importante/Notif/Marketing), **redacción en tu voz** (aprende del «Enviados»),
+**resumen de hilos**, **brief de la mañana**, **extracción de tareas**, agendado y **send-time**,
+**seguimiento de respuestas pendientes**, **RAG sobre tu histórico**, detección de urgencia/sentimiento,
+y los punteros (Shortwave, Lindy) ya hacen **acciones autónomas multi-paso**.
+
+**La conclusión estratégica:** todos son **cloud, en inglés, genéricos**. NINGUNO es **local + español +
+administrativo profundo + cognición del oficio**. Ahí está el foso de Loombit — no competir en "redactar
+bonito", sino en **comprender y GESTIONAR** el día de un autónomo español sin que sus datos salgan de su
+máquina. Lo que ellos hacen, lo hacemos local; lo que ellos no pueden (fiscal/cobros/trámites España), es
+nuestro.
+
+| # | Idea robada/mejorada | Cómo en Loombit (cruzando skills) | Madurez | Acción |
+|---|---|---|---|---|
+| E1 | **Triaje tipado + silenciar ruido** (SaneBox) | `comprension` YA clasifica; añadir auto-etiqueta/archivado LOCAL del ruido (newsletters/promos) y subir solo lo importante al telar | 🟢 | extensión de `comprension` |
+| E2 | **Redacción con TU voz** (Ghostwriter/Meli/Ellie) | RAG **local** sobre tu carpeta «Enviados» → los borradores suenan a ti (no a IA). Cruza `comprension`×`gmail_send` | 🟡 | nueva primitiva `estilo_propio` |
+| E3 | **Seguimiento de respuestas pendientes** (Superhuman) | "este correo lleva 5 días sin respuesta" — **es el mismo motor que el seguimiento de cobros**: unificar `cobros`×`comprension` en un "perseguidor" genérico | 🟢 | cruce de skills existentes |
+| E4 | **Privacidad como bandera #1** (Canary local Copilot) | Loombit YA es local: convertirlo en el argumento de venta y un sello visible en la UI ("nada sale de tu máquina") | 🟢 | producto/marketing + badge UI |
+| E5 | **Acción autónoma multi-paso** (Shortwave/Lindy) | de un asunto comprendido → cadena: agendar + calcular ruta + recordatorio de salida + preparar doc. Cruza `comprension`×`calendar`×Rutas×`pilot` | 🟡 | el "día gestionado" (objetivo) |
+| E6 | **Composición con procedencia** (Perplexity-email) | para lo fiscal/admin, citar la fuente (BOE/AEAT) en la respuesta — ya es R3; aplicarlo a respuestas de correo | 🟡 | `Skill D Fiscal` × correo |
+
+**Experimento concreto propuesto (ya):** el "**día gestionado**" (E5) sobre el caso David — Loombit
+comprende la reunión (hecho), y de ahí encadena: ruta desde casa (Skill A Maps) → "sal a las 8:15" →
+recordatorio → y prepara el hilo para que llegues listo. Es cruzar 4 skills en un flujo que ningún
+competidor cloud puede hacer con tus datos locales.
+
+**Sobre el propio radar (autocrítica):** hoy lo mantengo a mano. Para que VIVA de verdad, convertirlo en
+una **routine `tech-radar`** (existe el motor de routines): barrido web periódico → destila → propone
+filas aquí, con aprobación. Es el siguiente enganche natural del flywheel.
+
+*Fuentes barrido 2: [Gmelius](https://gmelius.com/es/blog/asistentes-ia-correo-electronico) ·
+[read.ai](https://www.read.ai/articles/the-7-best-ai-email-tools-in-2026) ·
+[alfred_](https://get-alfred.ai/blog/best-ai-email-assistants) ·
+[Fyxer](https://www.fyxer.com/blog/best-ai-email-assistant).*
+
 ## Cómo se alimenta este radar
 1. **Claude (yo), de forma continua** — al trabajar, propongo aquí lo que veo de vanguardia aplicable.
 2. **Routine "tech/normativa radar"** (futura) — barrido periódico de normativa (BOE/AEAT) y estado del arte → nuevas filas con fuente.
