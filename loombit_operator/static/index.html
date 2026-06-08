@@ -1169,14 +1169,16 @@ function useContact(name, email) {
   msgInput.value = `Escribe un correo a ${quien}: `;
   msgInput.focus(); msgInput.dispatchEvent(new Event('input'));
 }
-function _navItem(icon, label, onclick, title) {
+function _navItem(icon, label, onclick, title, color) {
   const d = document.createElement('div');
   d.className = 'nav-item';
   d.title = title || '';
   d.onclick = onclick;
+  if (color) { d.style.borderLeft = `3px solid ${color}`; d.style.paddingLeft = '9px'; }
   d.innerHTML = `<span class="nav-icon">${icon}</span><span class="nav-label">${label}</span>`;
   return d;
 }
+const PROC_COLORS = ['#06b6d4','#3b82f6','#8b5cf6','#22c55e','#f59e0b','#ef4444','#a78bfa'];
 async function loadHomeContext() {
   try {
     const r = await fetch(`${API}/home/context`, { signal: AbortSignal.timeout(15000) });
@@ -1184,8 +1186,8 @@ async function loadHomeContext() {
     const ctx = await r.json();
     const procs = document.getElementById('procesos-list');
     procs.innerHTML = '';
-    (ctx.procesos_diarios || []).forEach(p => {
-      procs.appendChild(_navItem(p.icon, p.label, () => useQuickAction(p.prompt, !!p.auto), p.label));
+    (ctx.procesos_diarios || []).forEach((p, i) => {
+      procs.appendChild(_navItem(p.icon, p.label, () => useQuickAction(p.prompt, !!p.auto), p.label, PROC_COLORS[i % PROC_COLORS.length]));
     });
     setSecCount('cnt-procesos', (ctx.procesos_diarios || []).length, false);
     const conts = document.getElementById('contactos-list');
@@ -1333,16 +1335,25 @@ async function loadFeed() {
       el.innerHTML = '<div style="color:var(--lb-text3,#888);font-size:11.5px;padding:2px;">Sin novedades por ahora.</div>';
       return;
     }
-    el.innerHTML = d.items.map(it => {
+    window._feed = d.items;
+    el.innerHTML = d.items.map((it, i) => {
       const s = _feedStyle(it);
       const snippet = esc((it.output || '').replace(/\s+/g,' ').slice(0, 120));
       const pend = it.status === 'pending_approval' ? ' · pendiente' : '';
-      return `<div style="border-left:3px solid ${s.color};background:var(--lb-navy2,#111827);border-radius:6px;padding:6px 8px;margin:4px 0;font-size:11.5px;line-height:1.35;">
+      return `<div onclick="showNovedad(${i})" title="Abrir en el chat" style="cursor:pointer;border-left:3px solid ${s.color};background:var(--lb-navy2,#111827);border-radius:6px;padding:6px 8px;margin:4px 0;font-size:11.5px;line-height:1.35;">
         <div style="color:var(--lb-text,#f1f5f9);font-weight:600;">${s.icon} ${esc(it.name)} <span style="color:${s.color};">· ${s.tag}${pend}</span></div>
         <div style="color:var(--lb-text2,#94a3b8);margin-top:2px;">${snippet}</div>
       </div>`;
     }).join('');
   } catch { /* noop */ }
+}
+function showNovedad(i) {
+  const it = (window._feed || [])[i];
+  if (!it) return;
+  const cab = `📌 ${it.name}${it.importante ? '  ⚠ IMPORTANTE' : ''}${it.status === 'pending_approval' ? '  · pendiente' : ''}`;
+  addMsg('agent', `${cab}\n\n${it.output || '(sin contenido)'}`);
+  const chat = document.getElementById('chat') || document.querySelector('.chat-scroll');
+  if (chat) chat.scrollTop = chat.scrollHeight;
 }
 setInterval(loadFeed, 10000);
 
