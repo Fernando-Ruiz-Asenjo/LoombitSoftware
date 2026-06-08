@@ -7,7 +7,8 @@ candidatos, se confirma con tarjeta. Se prueba el discriminador `_destinatario_c
 import json
 from types import SimpleNamespace
 
-from loombit_operator.agent.loop import _destinatario_claro
+from loombit_operator.agent.loop import AgentLoop, _destinatario_claro
+from loombit_operator.llm import ToolCall
 
 
 def _run(task, steps=()):
@@ -43,3 +44,16 @@ def test_no_resuelto_no_es_claro():
 def test_email_vacio_no_es_claro():
     assert _destinatario_claro("", _run("hola")) is False
     assert _destinatario_claro("no-es-email", _run("hola")) is False
+
+
+def test_run_proactivo_nunca_auto_envia():
+    # destinatario CLARO (lo da la tarea) pero proactive=True → SIEMPRE pide aprobación, no envía.
+    loop = AgentLoop(llm=SimpleNamespace())
+    run = SimpleNamespace(
+        id="x", task="responde a jana@x.com", steps=[], messages=[], proactive=True
+    )
+    tc = ToolCall(
+        id="tc", tool_name="gmail_send", arguments={"to": "jana@x.com", "subject": "s", "body": "b"}
+    )
+    out, stop = loop._execute_tool_call(tc, 1, run)
+    assert stop is True and out.startswith("PENDING_APPROVAL:")

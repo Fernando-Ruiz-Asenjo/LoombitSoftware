@@ -403,8 +403,10 @@ class AgentLoop:
         # Política de aprobación: un correo que el USUARIO pidió y con destinatario inequívoco
         # se envía SOLO (sin tarjeta) — su petición es la autorización. Si el destinatario es
         # ambiguo, se confirma. Otros efectos externos (calendar_create, run_shell) siempre confirman.
-        auto_envio_correo = tc.tool_name == "gmail_send" and _destinatario_claro(
-            str(tc.arguments.get("to", "")), run
+        auto_envio_correo = (
+            tc.tool_name == "gmail_send"
+            and not getattr(run, "proactive", False)  # lo proactivo SIEMPRE se confirma
+            and _destinatario_claro(str(tc.arguments.get("to", "")), run)
         )
         if tool_def.requires_approval and not auto_envio_correo:
             reason, proposed = _describe_for_approval(tc.tool_name, tc.arguments)

@@ -84,6 +84,7 @@ class AgentRun:
     completed_at: str = ""
     max_steps: int = 20
     profile: str = "administrativo"  # perfil del agente; antes era atributo dinámico (rompía run())
+    proactive: bool = False  # creado por el daemon → NUNCA auto-envía, siempre pide aprobación
 
     # ── Transiciones de estado ────────────────────────────────────────────────
 
@@ -172,6 +173,7 @@ class AgentRun:
             "completed_at": self.completed_at,
             "max_steps": self.max_steps,
             "profile": self.profile,
+            "proactive": self.proactive,
         }
 
     def snapshot(self) -> dict[str, Any]:
@@ -207,6 +209,7 @@ class AgentRun:
             completed_at=str(d.get("completed_at", "")),
             max_steps=int(d.get("max_steps", 20)),
             profile=str(d.get("profile", "administrativo")),
+            proactive=bool(d.get("proactive", False)),
         )
         return run
 

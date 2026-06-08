@@ -8,6 +8,7 @@ executor real basado en el LLM instructor (14B) y el armado del scheduler por de
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
 
 from .llm import LLMClient
@@ -123,13 +124,9 @@ def mejora_continua_executor(routine: Routine, now: datetime) -> str:
     return LLMClient().chat(messages, max_tokens=400).content.strip()
 
 
-_REPLY_SYSTEM = (
-    "Eres Loombit y escribes COMO Fernando (primera persona), nunca como IA/bot. Te paso un "
-    "correo que alguien le ha enviado a Fernando y el contexto de quién es. Devuelve SOLO un "
-    "borrador de respuesta breve, natural y profesional en español, firmado por Fernando. "
-    "Si el correo trata algo DELICADO o importante (dinero, plazos legales, decisiones, quejas), "
-    "empieza la respuesta con la marca '[IMPORTANTE]' para que Fernando lo revise."
-)
+def _email_de(header: str) -> str:
+    m = re.search(r"[\w.+-]+@[\w-]+\.[\w.-]+", header or "")
+    return m.group(0) if m else ""
 
 
 def _buscar_respuestas(token: str, contactos: list, dias: int = 2, maximo: int = 10) -> list[dict]:
@@ -164,6 +161,7 @@ def _buscar_respuestas(token: str, contactos: list, dias: int = 2, maximo: int =
                 hdrs = {x["name"]: x["value"] for x in data.get("payload", {}).get("headers", [])}
                 out.append(
                     {
+                        "id": m["id"],
                         "from": hdrs.get("From", ""),
                         "subject": hdrs.get("Subject", ""),
                         "snippet": data.get("snippet", "")[:300],
@@ -206,27 +204,54 @@ def reply_watch_executor(routine: Routine, now: datetime) -> str:
     if not respuestas:
         return "Sin respuestas nuevas de tus contactos."
 
-    llm = LLMClient()
-    lineas: list[str] = []
-    for rsp in respuestas:
-        quien = rsp["from"]
-        ctx = f"De: {quien}\nAsunto: {rsp['subject']}\nMensaje: {rsp['snippet']}"
-        try:
-            borrador = llm.chat(
-                [
-                    {"role": "system", "content": _REPLY_SYSTEM},
-                    {"role": "user", "content": ctx},
-                ],
-                max_tokens=300,
-            ).content.strip()
-        except Exception as exc:
-            borrador = f"(no pude redactar el borrador: {exc})"
-        marca = "  ⚠ IMPORTANTE" if "[IMPORTANTE]" in borrador else ""
-        lineas.append(
-            f"• {quien} — «{rsp['subject']}»{marca}\n  Te dijo: {rsp['snippet'][:140]}\n  Borrador: {borrador}"
-        )
+    # Dedup: no volver a preparar un borrador del mismo correo cada minuto.
+    import json as _json
 
-    return f"Tienes {len(respuestas)} respuesta(s) de contactos:\n\n" + "\n\n".join(lineas)
+    seen_path = settings.routine_receipt_dir.parent / "replied_ids.json"
+    try:
+        seen = set(_json.loads(seen_path.read_text(encoding="utf-8")))
+    except Exception:
+        seen = set()
+
+    # Crea un run PROACTIVO por cada respuesta nueva: redacta y se queda en pending_approval
+    # (nunca auto-envía) → aparece en "Aprobar todo" para que el humano lo mande de un clic.
+    from .routers.agent import _get_loop
+
+    loop = _get_loop()
+    nuevas = 0
+    for rsp in respuestas:
+        if rsp["id"] in seen:
+            continue
+        dest = _email_de(rsp["from"])
+        if not dest:
+            continue
+        task = (
+            f"Responde al correo que te ha enviado {rsp['from']} (asunto: «{rsp['subject']}»). "
+            f"Su mensaje: «{rsp['snippet']}». Redacta una respuesta breve y natural COMO Fernando "
+            f"(primera persona, sin decir que eres IA) y envíala con gmail_send a {dest} "
+            f"con asunto «RE: {rsp['subject']}»."
+        )
+        try:
+            run = loop.create(task=task, profile="administrativo")
+            run.proactive = True
+            loop.store.save_run(run)
+            loop.execute_run(run.id)  # redacta + gmail_send → pending_approval
+            nuevas += 1
+        except Exception:
+            pass
+        seen.add(rsp["id"])
+
+    try:
+        seen_path.write_text(_json.dumps(sorted(seen)), encoding="utf-8")
+    except Exception:
+        pass
+
+    if nuevas:
+        return (
+            f"Detecté {nuevas} respuesta(s) nueva(s) y preparé el borrador. "
+            "Pendiente de tu aprobación en «Aprobar todo»."
+        )
+    return "Respuestas ya gestionadas (sin borradores nuevos)."
 
 
 def vigilar_respuestas_routine() -> Routine:
