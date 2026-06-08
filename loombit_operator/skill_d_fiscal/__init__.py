@@ -6,6 +6,13 @@ Regla de oro: el número NUNCA lo pone un LLM; aquí se calcula con Decimal y se
 `docs/PLATAFORMA_FISCAL_ANALISIS.md` y `docs/ARQUITECTURA_SKILLS.md`.
 """
 
+from .intake import (
+    inferir_tipo_iva,
+    linea_desde_factura,
+    liquidar_303_periodo,
+    recopilar_lineas,
+    registrar_factura,
+)
 from .modelo_303 import (
     LineaIVA,
     Resultado303,
@@ -19,5 +26,10 @@ __all__ = [
     "Resultado303",
     "borrador_303_texto",
     "calcular_303",
+    "inferir_tipo_iva",
+    "linea_desde_factura",
+    "liquidar_303_periodo",
     "procesar_303",
+    "recopilar_lineas",
+    "registrar_factura",
 ]

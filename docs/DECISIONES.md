@@ -73,4 +73,10 @@ Formato: **D-NN — decisión** · *contexto* · **elegido** vs alternativas · 
 - `procesar_303` une W+D: abre Expediente `fiscal_303`, calcula, deja trazabilidad y lo pone **PENDING_APPROVAL** (la IA nunca da por presentado).
 - 11 tests (suite 157). Pendiente: extracción de facturas (14B/visión) que alimente las líneas, y router/UI.
 
+**D-12 — Intake fiscal (factura → línea del 303) IMPLEMENTADO** (`skill_d_fiscal/intake.py`).
+- Infiere el tipo por **cuadre de cuota al céntimo** (no por ratio): evita colar 5% como 4% y es robusto al tamaño de la base.
+- **Abstención** si el tipo no es estándar o faltan base/IVA (no inventa; lo deja como aviso a revisar).
+- `registrar_factura` (Expediente `factura_intake` + PDF con huella) y `liquidar_303_periodo` (reúne facturas → 303 → `PENDING_APPROVAL`, arrastrando avisos de facturas ilegibles).
+- 8 tests (suite 165). Extracción con 14B/visión para difíciles/escaneadas: pendiente.
+
 *(se irán añadiendo entradas según avance el bloque)*
