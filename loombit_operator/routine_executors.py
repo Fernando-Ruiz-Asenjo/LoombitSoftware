@@ -84,10 +84,116 @@ def mejora_continua_executor(routine: Routine, now: datetime) -> str:
     return LLMClient().chat(messages, max_tokens=400).content.strip()
 
 
+_REPLY_SYSTEM = (
+    "Eres Loombit y escribes COMO Fernando (primera persona), nunca como IA/bot. Te paso un "
+    "correo que alguien le ha enviado a Fernando y el contexto de quién es. Devuelve SOLO un "
+    "borrador de respuesta breve, natural y profesional en español, firmado por Fernando. "
+    "Si el correo trata algo DELICADO o importante (dinero, plazos legales, decisiones, quejas), "
+    "empieza la respuesta con la marca '[IMPORTANTE]' para que Fernando lo revise."
+)
+
+
+def _buscar_respuestas(token: str, contactos: list, dias: int = 2, maximo: int = 10) -> list[dict]:
+    """Lee correos SIN LEER recientes de los contactos conocidos (read-only). Devuelve remitente,
+    asunto y snippet. Es percepción: no envía nada."""
+    import httpx
+
+    emails = {c.email.lower(): c.name for c in contactos if getattr(c, "email", "")}
+    if not emails:
+        return []
+    h = {"Authorization": f"Bearer {token}"}
+    q = f"is:unread newer_than:{dias}d from:(" + " OR ".join(emails.keys()) + ")"
+    out: list[dict] = []
+    try:
+        with httpx.Client(timeout=12) as c:
+            r = c.get(
+                "https://gmail.googleapis.com/gmail/v1/users/me/messages",
+                headers=h,
+                params={"q": q, "maxResults": maximo},
+            )
+            if r.status_code != 200:
+                return []
+            for m in r.json().get("messages", [])[:maximo]:
+                mr = c.get(
+                    f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{m['id']}",
+                    headers=h,
+                    params={"format": "metadata", "metadataHeaders": ["From", "Subject"]},
+                )
+                if mr.status_code != 200:
+                    continue
+                data = mr.json()
+                hdrs = {x["name"]: x["value"] for x in data.get("payload", {}).get("headers", [])}
+                out.append(
+                    {
+                        "from": hdrs.get("From", ""),
+                        "subject": hdrs.get("Subject", ""),
+                        "snippet": data.get("snippet", "")[:300],
+                    }
+                )
+    except Exception:
+        return out
+    return out
+
+
+def reply_watch_executor(routine: Routine, now: datetime) -> str:
+    """Vigila respuestas: detecta correos sin leer de contactos conocidos y prepara un borrador
+    de respuesta para cada uno (no envía; el humano aprueba). Memoria persistente del contacto."""
+    from .agent.memory import get_memory
+    from .config import get_settings
+    from .skill_blanca_oauth import fresh_access_token
+
+    token = fresh_access_token(get_settings(), "google")
+    if not token:
+        return "No puedo vigilar respuestas: Google no está conectado."
+
+    mem = get_memory()
+    contactos = [c for c in mem.contacts if getattr(c, "email", "")]
+    respuestas = _buscar_respuestas(token, contactos)
+    if not respuestas:
+        return "Sin respuestas nuevas de tus contactos."
+
+    llm = LLMClient()
+    lineas: list[str] = []
+    for rsp in respuestas:
+        quien = rsp["from"]
+        ctx = f"De: {quien}\nAsunto: {rsp['subject']}\nMensaje: {rsp['snippet']}"
+        try:
+            borrador = llm.chat(
+                [
+                    {"role": "system", "content": _REPLY_SYSTEM},
+                    {"role": "user", "content": ctx},
+                ],
+                max_tokens=300,
+            ).content.strip()
+        except Exception as exc:
+            borrador = f"(no pude redactar el borrador: {exc})"
+        marca = "  ⚠ IMPORTANTE" if "[IMPORTANTE]" in borrador else ""
+        lineas.append(
+            f"• {quien} — «{rsp['subject']}»{marca}\n  Te dijo: {rsp['snippet'][:140]}\n  Borrador: {borrador}"
+        )
+
+    return f"Tienes {len(respuestas)} respuesta(s) de contactos:\n\n" + "\n\n".join(lineas)
+
+
+def vigilar_respuestas_routine() -> Routine:
+    """Routine proactiva: cada 15 min en horario laboral, mira si tus contactos te han respondido
+    y prepara borradores. ASSISTED (el humano aprueba el envío con 'Aprobar todo')."""
+    return Routine(
+        name="Vigilar respuestas",
+        schedule=CronSchedule("*/15 8-20 * * 1-5"),
+        objective="Detecta respuestas nuevas de tus contactos y prepara el borrador de cada una.",
+        safety=SkillSafetyClass.ASSISTED,
+        output_kind="reply_watch",
+        enabled=False,  # opt-in: se activa cuando el daemon proactivo esté en marcha
+    )
+
+
 def default_executor(routine: Routine, now: datetime) -> str:
     """Despacha al executor según el tipo de routine (un solo punto de entrada para el scheduler)."""
     if routine.output_kind == "mejora":
         return mejora_continua_executor(routine, now)
+    if routine.output_kind == "reply_watch":
+        return reply_watch_executor(routine, now)
     return brief_executor(routine, now)
 
 
@@ -98,6 +204,8 @@ def ensure_default_routines(store: RoutineStore) -> RoutineStore:
         store.add(brief_diario_routine())
     if "Mejora continua" not in nombres:
         store.add(mejora_continua_routine())
+    if "Vigilar respuestas" not in nombres:
+        store.add(vigilar_respuestas_routine())
     return store
 
 
