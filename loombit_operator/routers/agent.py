@@ -203,9 +203,11 @@ async def approve_run(
         )
         store.save_run(run)
 
-    # resume() EJECUTA la tool aprobada (envía de verdad) y continúa. Antes se usaba
-    # execute_run, que re-preguntaba al LLM y volvía a pausar → la tarjeta salía otra vez.
-    background_tasks.add_task(loop.resume, run_id)
+    # Aceptamos la aprobación de forma SÍNCRONA (run → running) y dejamos la ejecución de la tool
+    # aprobada + la continuación del LLM para background. Así la respuesta ya NO devuelve el estado
+    # viejo (pending_approval) y la UI no vuelve a pintar la misma tarjeta; hace polling al estado real.
+    run = loop.accept_approval(run_id)
+    background_tasks.add_task(loop._resume_execute, run_id)
     return RunResponse.from_run(run)
 
 
@@ -249,9 +251,11 @@ async def answer_run(
             detail=f"El run no está en pending_question (status={run.status})",
         )
 
-    # answer() inyecta la respuesta EN EL SITIO de la pregunta y continúa. Antes se usaba
-    # execute_run, que re-preguntaba lo mismo en bucle ignorando tu respuesta.
-    background_tasks.add_task(loop.answer, run_id, body.answer)
+    # Aceptamos la respuesta de forma SÍNCRONA (inyecta la respuesta + run → running) y dejamos la
+    # continuación del LLM para background. Así la respuesta ya NO devuelve el estado viejo
+    # (pending_question) y la UI no vuelve a pintar la misma pregunta; hace polling al estado real.
+    run = loop.accept_answer(run_id, body.answer)
+    background_tasks.add_task(loop.execute_run, run_id)
     return RunResponse.from_run(run)
 
 

@@ -118,15 +118,28 @@ class AgentLoop:
         run = self.store.get(run_id)
         return self._execute(run)
 
-    def resume(self, run_id: str) -> AgentRun:
-        """Reanuda un AgentRun en pending_approval tras recibir aprobación humana.
-
-        Ejecuta la tool aprobada y reemplaza el placeholder PENDING_APPROVAL
-        en el historial de mensajes con el resultado real antes de continuar.
-        """
+    def accept_approval(self, run_id: str) -> AgentRun:
+        """SÍNCRONO y rápido: acepta la aprobación humana y deja el run en RUNNING. NO ejecuta la
+        tool aprobada ni el LLM — de eso se encarga `_resume_execute` (en background). Separar la
+        ACEPTACIÓN (instantánea) de la EJECUCIÓN evita la ventana de carrera en la que la UI recibía
+        el run aún en `pending_approval` y volvía a pintar la misma tarjeta."""
         run = self.store.get(run_id)
         if run.status != AgentStatus.PENDING_APPROVAL:
             raise ValueError(f"El run {run_id} no está en pending_approval (status={run.status})")
+        run.approve()  # → RUNNING; limpia pending_approval. Los steps a ejecutar siguen marcados.
+        self.store.save_run(run)
+        return run
+
+    def resume(self, run_id: str) -> AgentRun:
+        """Acepta la aprobación y ejecuta hasta el siguiente hito (uso directo y en tests)."""
+        self.accept_approval(run_id)
+        return self._resume_execute(run_id)
+
+    def _resume_execute(self, run_id: str) -> AgentRun:
+        """Ejecuta la(s) tool(s) ya aprobada(s) y continúa el bucle. Asume que el run YA está en
+        RUNNING (lo dejó `accept_approval`). Reemplaza cada placeholder PENDING_APPROVAL del
+        historial por el resultado real antes de seguir."""
+        run = self.store.get(run_id)
 
         # Ejecutar TODOS los steps que están esperando aprobación
         pending_steps = [
@@ -161,7 +174,6 @@ class AgentLoop:
         # de volver a sacar la misma tarjeta a ciegas (el bug de "la ventanita que reaparece").
         fallos_aprobados = [s for s in pending_steps if _is_error_result(s.result)]
 
-        run.approve()
         if fallos_aprobados:
             detalle = "; ".join(
                 f"«{s.tool_name}» → {_error_brief(s.result)}" for s in fallos_aprobados
@@ -181,8 +193,11 @@ class AgentLoop:
         self.store.save_run(run)
         return self._execute(run)
 
-    def answer(self, run_id: str, answer_text: str) -> AgentRun:
-        """Inyecta la respuesta del usuario a una pregunta y reanuda el agente."""
+    def accept_answer(self, run_id: str, answer_text: str) -> AgentRun:
+        """SÍNCRONO y rápido: inyecta la respuesta del usuario EN EL SITIO de la pregunta y deja el
+        run en RUNNING. NO ejecuta el LLM — de eso se encarga `execute_run` (en background). Separar
+        la ACEPTACIÓN de la EJECUCIÓN evita que la UI reciba el run aún en `pending_question` y vuelva
+        a pintar la misma pregunta (el bug de «me preguntó la hora dos veces»)."""
         run = self.store.get(run_id)
         if run.status != AgentStatus.PENDING_QUESTION:
             raise ValueError(f"El run {run_id} no está en pending_question (status={run.status})")
@@ -204,13 +219,15 @@ class AgentLoop:
         # Añadir la respuesta como mensaje de usuario al historial del LLM
         run.messages.append({"role": "user", "content": answer_text})
 
-        run.answer()
+        run.answer()  # → RUNNING; limpia pending_question
         self.store.save_run(run)
-
-        # Guardar en memoria conversacional
         _log_conversation_event(run, "user_answer", answer_text)
+        return run
 
-        return self._execute(run)
+    def answer(self, run_id: str, answer_text: str) -> AgentRun:
+        """Inyecta la respuesta y reanuda el agente hasta el siguiente hito (uso directo y tests)."""
+        self.accept_answer(run_id, answer_text)
+        return self.execute_run(run_id)
 
     # ── Motor interno ─────────────────────────────────────────────────────────
 

@@ -733,9 +733,9 @@ a { color: inherit; text-decoration: none; }
     </button>
 
     <div class="topbar-skill">
-      <div class="skill-avatar admin" id="skill-avatar">SB</div>
+      <div class="skill-avatar admin" id="skill-avatar">OL</div>
       <div class="skill-meta">
-        <span class="skill-name" id="skill-name">Skill Blanca · Administrativo</span>
+        <span class="skill-name" id="skill-name">Oficina Loombit</span>
         <span class="skill-sub" id="skill-sub">Loombit Operator v0.2</span>
       </div>
     </div>
@@ -765,10 +765,10 @@ a { color: inherit; text-decoration: none; }
       <!-- La tela de la mañana: lo importante de hoy + lo ya preparado (se llena al abrir) -->
       <div id="telar-panel" style="display:none;margin-bottom:18px"></div>
       <div class="welcome-header">
-        <div class="welcome-avatar">SB</div>
+        <div class="welcome-avatar">OL</div>
         <div class="welcome-text">
           <h2>Hola</h2>
-          <p>Soy Skill Blanca Administrativo. Controlo el escritorio, gestiono ficheros, navego la web y ejecuto tareas complejas de forma autónoma.</p>
+          <p>Soy Oficina Loombit. Controlo el escritorio, gestiono ficheros, navego la web y ejecuto tareas complejas de forma autónoma.</p>
         </div>
       </div>
       <div class="suggestions">
@@ -852,8 +852,8 @@ a { color: inherit; text-decoration: none; }
 const API    = window.location.origin;
 const ME     = { name: 'Tú', initial: '·' };   // BLANCO: lo rellena loadHomeContext desde el owner
 const SKILLS = {
-  admin:  { name: 'Skill Blanca · Administrativo', sub: 'Loombit Operator v0.2', initial: 'SB', cls: 'admin', profile: 'administrativo' },
-  coding: { name: 'Skill Blanca · Coding',         sub: 'Loombit Operator v0.2', initial: 'SC', cls: 'code',  profile: 'administrativo' },
+  admin:  { name: 'Oficina Loombit',          sub: 'Loombit Operator v0.2', initial: 'OL', cls: 'admin', profile: 'administrativo' },
+  coding: { name: 'Oficina Loombit · Coding', sub: 'Loombit Operator v0.2', initial: 'OL', cls: 'code',  profile: 'administrativo' },
 };
 
 // Category icons for tool names
@@ -1150,15 +1150,15 @@ async function answerRun(runId, inputEl) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ answer: text }),
     });
-    removeThinking();
     if (!res.ok) {
+      removeThinking();
       addMsg('error', `Error al responder: ${(await res.json().catch(() => ({}))).detail || res.statusText}`);
       setBusy(false);
       return;
     }
-    const run = await res.json();
-    if (run.status === 'running') { await pollRun(runId); }
-    else { renderRun(run); setBusy(false); }
+    // La respuesta ya quedó aceptada (run → running). Hacemos polling al estado REAL en vez de
+    // re-pintar el estado devuelto: así no reaparece la misma pregunta ni hay carrera de estados.
+    await pollRun(runId);
   } catch (e) {
     removeThinking();
     addMsg('error', `Error de red: ${e.message}`);
@@ -1279,17 +1279,20 @@ async function approveRun(runId, btn) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ comment: 'Aprobado desde Loombit UI.' }),
     });
-    removeThinking();
     if (!res.ok) {
+      removeThinking();
       addMsg('error', `Error al aprobar: ${(await res.json().catch(()=>({}))).detail || res.statusText}`);
-    } else {
-      renderRun(await res.json());
+      setBusy(false);
+      return;
     }
+    // La aprobación ya quedó aceptada (run → running). Polling al estado REAL en vez de re-pintar
+    // el estado devuelto: así no reaparece la misma tarjeta de aprobación.
+    await pollRun(runId);
   } catch(e) {
     removeThinking();
     addMsg('error', `Error de red: ${e.message}`);
+    setBusy(false);
   }
-  setBusy(false);
 }
 
 function denyRun(btn) {
