@@ -1,12 +1,20 @@
 """
-Loombit Operator — Launcher con icono en bandeja del sistema.
+Loombit Operator — Launcher con icono en la bandeja del sistema.
 
-Arranca el servidor FastAPI (uvicorn) en un hilo daemon y muestra
-un icono en la bandeja de Windows con menú de control.
+Arranca el servidor FastAPI (uvicorn) en un hilo daemon, abre la UI en el navegador
+y muestra un icono en la bandeja de Windows con menú de control.
+
+Diseñado para ser **sólido y diagnosticable**:
+- Escribe SIEMPRE a `runtime/local/launcher.log` (con `pythonw` no hay consola; sin este
+  log, un fallo sería invisible — esa era la causa de "se rompe y no sé por qué").
+- Hace *preflight* de las dependencias y del código antes de arrancar; si algo falta,
+  muestra un MessageBox claro en vez de morir en silencio.
+- Si el puerto ya está en uso, abre la UI existente en vez de reventar.
 
 Uso:
-    python -m loombit_operator.launcher
-    (o desde el exe compilado con PyInstaller)
+    python -m loombit_operator.launcher     (consola, ves logs en vivo)
+    pythonw -m loombit_operator.launcher    (sin consola; logs en launcher.log)
+    (o vía el acceso directo del escritorio → scripts/start_loombit.ps1)
 """
 
 from __future__ import annotations
@@ -25,18 +33,15 @@ HOST = "127.0.0.1"
 PORT = 8787
 UI_URL = f"http://{HOST}:{PORT}"
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s  %(levelname)-8s  %(name)s  %(message)s",
-)
 logger = logging.getLogger("loombit.launcher")
+_LOG_FMT = "%(asctime)s  %(levelname)-8s  %(name)s  %(message)s"
 
 
 # ── Rutas (funciona tanto en desarrollo como en exe congelado) ────────────────
 
 
 def _base_dir() -> Path:
-    """Directorio base del exe/proceso."""
+    """Directorio raíz del proyecto/proceso (donde viven `static/` y `runtime/`)."""
     if getattr(sys, "frozen", False):
         return Path(sys.executable).parent
     return Path(__file__).parent.parent
@@ -51,7 +56,45 @@ def _asset(name: str) -> Path:
     return base / "assets" / name
 
 
-# ── Comprobación de puerto libre ──────────────────────────────────────────────
+def _log_path(base_dir: Path) -> Path:
+    return base_dir / "runtime" / "local" / "launcher.log"
+
+
+# ── Logging y errores visibles ────────────────────────────────────────────────
+
+
+def _setup_logging(base_dir: Path) -> None:
+    """Log a consola (si la hay) y SIEMPRE a fichero — clave con `pythonw` (sin consola)."""
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+    fmt = logging.Formatter(_LOG_FMT)
+    root.addHandler(logging.StreamHandler())
+    try:
+        path = _log_path(base_dir)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fh = logging.FileHandler(path, encoding="utf-8")
+        fh.setFormatter(fmt)
+        root.addHandler(fh)
+    except OSError as exc:  # nunca debe impedir el arranque
+        logger.warning("No se pudo abrir el log de fichero: %s", exc)
+    for h in root.handlers:
+        h.setFormatter(fmt)
+
+
+def _fatal(message: str) -> None:
+    """Registra un error fatal y lo muestra en un MessageBox (sin dependencias extra)."""
+    logger.error("FATAL: %s", message)
+    try:
+        import ctypes
+
+        ctypes.windll.user32.MessageBoxW(  # type: ignore[attr-defined]
+            0, message, "Loombit Operator — error", 0x10  # MB_ICONERROR
+        )
+    except Exception:
+        pass
+
+
+# ── Comprobación de puerto ────────────────────────────────────────────────────
 
 
 def _port_free(port: int) -> bool:
@@ -60,7 +103,7 @@ def _port_free(port: int) -> bool:
         return s.connect_ex((HOST, port)) != 0
 
 
-def _wait_server_ready(port: int, timeout: float = 15.0) -> bool:
+def _wait_server_ready(port: int, timeout: float = 20.0) -> bool:
     start = time.monotonic()
     while time.monotonic() - start < timeout:
         if not _port_free(port):
@@ -74,30 +117,26 @@ def _wait_server_ready(port: int, timeout: float = 15.0) -> bool:
 _server: object = None  # uvicorn.Server
 
 
-def _start_server(base_dir: Path) -> None:
-    """Arranca uvicorn en un hilo daemon. Cambia cwd al directorio base."""
+def _start_server() -> None:
+    """Arranca uvicorn (el cwd ya se fijó en main). Cualquier fallo va al log."""
     global _server
-    os.chdir(base_dir)
-
     try:
         import uvicorn
-        from loombit_operator.main import app  # noqa: F401 — importado para registrar routers
-    except Exception as exc:
-        logger.exception("Error importando app: %s", exc)
-        return
 
-    config = uvicorn.Config(
-        "loombit_operator.main:app",
-        host=HOST,
-        port=PORT,
-        log_level="info",
-        access_log=False,
-    )
-    _server = uvicorn.Server(config)
-    try:
+        config = uvicorn.Config(
+            "loombit_operator.main:app",
+            host=HOST,
+            port=PORT,
+            log_level="info",
+            access_log=False,
+            # log_config=None: con `pythonw` no hay stdout y el formatter de color de uvicorn
+            # crashea (sys.stdout.isatty sobre None). Usamos nuestro logging (root + fichero).
+            log_config=None,
+        )
+        _server = uvicorn.Server(config)
         _server.run()
-    except Exception as exc:
-        logger.exception("Error en uvicorn: %s", exc)
+    except Exception:
+        logger.exception("El servidor uvicorn se detuvo con error")
 
 
 # ── Icono de la bandeja ───────────────────────────────────────────────────────
@@ -105,23 +144,18 @@ def _start_server(base_dir: Path) -> None:
 
 def _load_tray_icon():
     """Carga el icono desde assets/ o genera uno mínimo si no existe."""
-    try:
-        from PIL import Image
+    from PIL import Image
 
-        ico_path = _asset("loombit.ico")
-        if ico_path.exists():
+    ico_path = _asset("loombit.ico")
+    if ico_path.exists():
+        try:
             return Image.open(ico_path)
-        # Fallback: cuadrado teal si no existe el fichero
-        img = Image.new("RGB", (64, 64), (0, 210, 175))
-        return img
-    except Exception:
-        from PIL import Image
-
-        return Image.new("RGB", (64, 64), (0, 210, 175))
+        except Exception:
+            pass
+    return Image.new("RGB", (64, 64), (0, 210, 175))  # fallback teal
 
 
-def _make_tray_menu(icon_ref: list):
-    """Construye el menú de la bandeja."""
+def _make_tray_menu(base_dir: Path):
     import pystray
 
     def on_open(icon, item):
@@ -131,22 +165,18 @@ def _make_tray_menu(icon_ref: list):
         global _server
         logger.info("Deteniendo Loombit Operator...")
         if _server and hasattr(_server, "should_exit"):
-            _server.should_exit = True
+            _server.should_exit = True  # type: ignore[attr-defined]
         icon.stop()
 
     def on_logs(icon, item):
-        log_path = _base_dir() / "runtime" / "local" / "loombit.log"
-        if log_path.exists():
-            os.startfile(str(log_path))
+        path = _log_path(base_dir)
+        if path.exists():
+            os.startfile(str(path))  # noqa: S606 — abrir el log local del usuario
         else:
             webbrowser.open(f"{UI_URL}/health")
 
     return pystray.Menu(
-        pystray.MenuItem(
-            f"Loombit Operator  ·  :{PORT}",
-            None,
-            enabled=False,
-        ),
+        pystray.MenuItem(f"Loombit Operator  ·  :{PORT}", None, enabled=False),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Abrir UI  ↗", on_open, default=True),
         pystray.MenuItem("Abrir logs", on_logs),
@@ -158,61 +188,90 @@ def _make_tray_menu(icon_ref: list):
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 
-def main() -> None:
-    base_dir = _base_dir()
-    logger.info("Loombit Operator — base dir: %s", base_dir)
+def _ensure_std_streams() -> None:
+    """Con `pythonw` (sin consola) sys.stdout/stderr son None; cualquier librería que asuma
+    que existen (uvicorn, prints) crashea. Los redirige a un sumidero seguro."""
+    devnull = open(os.devnull, "w")  # noqa: SIM115 — vive lo que dure el proceso
+    if sys.stdout is None:
+        sys.stdout = devnull
+    if sys.stderr is None:
+        sys.stderr = devnull
 
-    # Comprobar que el puerto no está ya ocupado
+
+def main() -> None:
+    _ensure_std_streams()
+    base_dir = _base_dir()
+    _setup_logging(base_dir)
+    logger.info("Loombit Operator — base dir: %s — python: %s", base_dir, sys.executable)
+
+    # cwd al raíz: `static/` y `runtime/` se resuelven igual desde cualquier acceso directo.
+    try:
+        os.chdir(base_dir)
+    except OSError as exc:
+        _fatal(f"No se pudo entrar al directorio del proyecto:\n{base_dir}\n\n{exc}")
+        return
+
+    # Preflight: carga uvicorn y la app ANTES de arrancar; si falla, error visible.
+    try:
+        import uvicorn  # noqa: F401
+        from loombit_operator.main import app  # noqa: F401
+    except Exception as exc:
+        _fatal(
+            "Loombit no pudo cargar (dependencias o código). Revisa el log:\n"
+            f"{_log_path(base_dir)}\n\n{exc!r}"
+        )
+        logger.exception("Fallo en el preflight de carga")
+        return
+
+    # Si ya hay una instancia, abre la UI existente y sal (instancia única).
     if not _port_free(PORT):
-        logger.warning("Puerto %d ya en uso — abriendo UI existente", PORT)
+        logger.info("Puerto %d ya en uso — abriendo la UI existente", PORT)
         webbrowser.open(UI_URL)
         return
 
-    # Arrancar servidor en hilo daemon
-    server_thread = threading.Thread(
-        target=_start_server,
-        args=(base_dir,),
-        daemon=True,
-        name="uvicorn",
-    )
-    server_thread.start()
+    threading.Thread(target=_start_server, daemon=True, name="uvicorn").start()
 
-    # Esperar hasta que el servidor esté listo (máx 15s)
-    logger.info("Esperando servidor en puerto %d...", PORT)
-    if _wait_server_ready(PORT, timeout=15.0):
+    logger.info("Esperando al servidor en %s ...", UI_URL)
+    if _wait_server_ready(PORT):
         logger.info("Servidor listo en %s", UI_URL)
+        webbrowser.open(UI_URL)
     else:
-        logger.warning("El servidor no respondió en 15s — continuando de todas formas")
+        _fatal(
+            "El servidor no respondió a tiempo. Puede que falte una dependencia "
+            f"o haya un error de arranque. Revisa el log:\n{_log_path(base_dir)}"
+        )
+        return
 
-    # Abrir UI en el navegador al arrancar
-    webbrowser.open(UI_URL)
-
-    # Mostrar icono en la bandeja
+    # Icono en la bandeja. Sin pystray/PIL: el servidor sigue vivo en primer plano.
     try:
-        import pystray
+        import pystray  # noqa: F401
+        from PIL import Image  # noqa: F401
     except ImportError:
-        logger.error("pystray no instalado. Ejecuta: pip install pystray")
-        # Fallback: mantener el hilo del servidor vivo
+        logger.warning("pystray/Pillow no disponibles: sin icono de bandeja (servidor activo).")
         try:
-            server_thread.join()
+            threading.Event().wait()  # mantener el proceso vivo
         except KeyboardInterrupt:
             pass
         return
 
-    icon_img = _load_tray_icon()
-    icon_ref: list = []
-    menu = _make_tray_menu(icon_ref)
+    try:
+        import pystray
 
-    icon = pystray.Icon(
-        name="Loombit",
-        icon=icon_img,
-        title="Loombit Operator",
-        menu=menu,
-    )
-    icon_ref.append(icon)
-
-    logger.info("Icono en bandeja activo. Click derecho para el menú.")
-    icon.run()  # bloquea hasta que se llama icon.stop()
+        icon = pystray.Icon(
+            name="Loombit",
+            icon=_load_tray_icon(),
+            title="Loombit Operator",
+            menu=_make_tray_menu(base_dir),
+        )
+        logger.info("Icono en bandeja activo. Click derecho para el menú.")
+        icon.run()  # bloquea hasta on_stop → icon.stop()
+    except Exception:
+        logger.exception("El icono de bandeja falló; mantengo el servidor vivo")
+        try:
+            threading.Event().wait()
+        except KeyboardInterrupt:
+            pass
+        return
 
     logger.info("Loombit Operator detenido.")
 
