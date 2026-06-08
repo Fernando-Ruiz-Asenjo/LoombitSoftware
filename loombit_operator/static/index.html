@@ -554,16 +554,30 @@ a { color: inherit; text-decoration: none; }
       <span class="nav-badge">pronto</span>
     </div>
 
-    <div class="nav-section-label" style="margin-top:10px;">Procesos diarios</div>
-    <div id="procesos-list"></div>
+    <div class="nav-section-label" onclick="toggleSection('sec-procesos', this)"
+         style="cursor:pointer;margin-top:10px;display:flex;align-items:center;gap:5px;">
+      <span class="chev">▸</span><span>Procesos diarios</span>
+      <span class="sec-count" id="cnt-procesos" style="margin-left:auto;font-size:10px;color:var(--lb-text3,#888);"></span>
+    </div>
+    <div id="sec-procesos" style="display:none;"><div id="procesos-list"></div></div>
 
-    <div class="nav-section-label" style="margin-top:10px;">Contactos habituales</div>
-    <div id="contactos-list"></div>
-    <div id="contactos-aviso" style="display:none;margin:2px 12px 4px;font-size:11px;
-         color:var(--lb-text3,#888);line-height:1.4;"></div>
+    <div class="nav-section-label" onclick="toggleSection('sec-contactos', this)"
+         style="cursor:pointer;margin-top:10px;display:flex;align-items:center;gap:5px;">
+      <span class="chev">▸</span><span>Contactos habituales</span>
+      <span class="sec-count" id="cnt-contactos" style="margin-left:auto;font-size:10px;color:var(--lb-text3,#888);"></span>
+    </div>
+    <div id="sec-contactos" style="display:none;">
+      <div id="contactos-list"></div>
+      <div id="contactos-aviso" style="display:none;margin:2px 12px 4px;font-size:11px;
+           color:var(--lb-text3,#888);line-height:1.4;"></div>
+    </div>
 
-    <div class="nav-section-label" style="margin-top:10px;">Novedades del operador</div>
-    <div id="novedades-list" style="padding:2px 10px;"></div>
+    <div class="nav-section-label" onclick="toggleSection('sec-novedades', this)"
+         style="cursor:pointer;margin-top:10px;display:flex;align-items:center;gap:5px;">
+      <span class="chev">▸</span><span>Novedades del operador</span>
+      <span class="sec-count" id="cnt-novedades" style="margin-left:auto;font-size:10px;color:var(--lb-text3,#888);"></span>
+    </div>
+    <div id="sec-novedades" style="display:none;"><div id="novedades-list" style="padding:2px 10px;"></div></div>
 
     <div class="nav-section-label" style="margin-top:8px;">Historial</div>
 
@@ -670,14 +684,14 @@ a { color: inherit; text-decoration: none; }
         <textarea
           id="msg-input"
           rows="1"
-          placeholder="Escribe una tarea o pregunta… (Ctrl+Enter para enviar)"
+          placeholder="Escribe una tarea o pregunta… (Enter para enviar)"
         ></textarea>
-        <button class="send-btn" id="send-btn" onclick="sendMessage()" title="Enviar (Ctrl+Enter)">
+        <button class="send-btn" id="send-btn" onclick="sendMessage()" title="Enviar (Enter)">
           <svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
         </button>
       </div>
       <div class="input-hint">
-        <span><kbd>Ctrl</kbd>+<kbd>Enter</kbd> enviar · <kbd>Shift</kbd>+<kbd>Enter</kbd> nueva línea</span>
+        <span><kbd>Enter</kbd> enviar · <kbd>Shift</kbd>+<kbd>Enter</kbd> nueva línea</span>
       </div>
     </div>
   </div>
@@ -725,7 +739,8 @@ msgInput.addEventListener('input', () => {
   msgInput.style.height = Math.min(msgInput.scrollHeight, 140) + 'px';
 });
 msgInput.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); sendMessage(); }
+  // Enter envía; Shift+Enter (o Ctrl/Cmd+Enter) = nueva línea.
+  if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) { e.preventDefault(); sendMessage(); }
 });
 
 // ── Sidebar toggle ────────────────────────────────────
@@ -1172,10 +1187,12 @@ async function loadHomeContext() {
     (ctx.procesos_diarios || []).forEach(p => {
       procs.appendChild(_navItem(p.icon, p.label, () => useQuickAction(p.prompt, !!p.auto), p.label));
     });
+    setSecCount('cnt-procesos', (ctx.procesos_diarios || []).length, false);
     const conts = document.getElementById('contactos-list');
     const aviso = document.getElementById('contactos-aviso');
     conts.innerHTML = '';
     const lista = ctx.contactos_habituales || [];
+    setSecCount('cnt-contactos', lista.length, false);
     if (lista.length) {
       lista.forEach(c => {
         const sub = c.veces ? ` ·${c.veces}` : '';
@@ -1289,6 +1306,20 @@ function _feedStyle(it) {
   if (it.kind === 'brief') return { color:'#3b82f6', icon:'📋', tag:'Brief' };
   return { color:'#94a3b8', icon:'•', tag:'Nota' };
 }
+function toggleSection(id, el) {
+  const box = document.getElementById(id);
+  if (!box) return;
+  const hidden = box.style.display === 'none';
+  box.style.display = hidden ? '' : 'none';
+  const chev = el.querySelector('.chev');
+  if (chev) chev.textContent = hidden ? '▾' : '▸';
+}
+function setSecCount(id, n, alert) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = n ? String(n) : '';
+  el.style.color = alert ? '#ef4444' : 'var(--lb-text3,#888)';
+}
 async function loadFeed() {
   try {
     const r = await fetch(`${API}/routines/feed?limit=20`, { signal: AbortSignal.timeout(8000) });
@@ -1296,6 +1327,8 @@ async function loadFeed() {
     const d = await r.json();
     const el = document.getElementById('novedades-list');
     if (!el) return;
+    const hayImp = (d.items || []).some(it => it.importante);
+    setSecCount('cnt-novedades', (d.items || []).length, hayImp);
     if (!d.items || d.items.length === 0) {
       el.innerHTML = '<div style="color:var(--lb-text3,#888);font-size:11.5px;padding:2px;">Sin novedades por ahora.</div>';
       return;
