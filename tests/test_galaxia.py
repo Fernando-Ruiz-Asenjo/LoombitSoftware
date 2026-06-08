@@ -90,7 +90,7 @@ def test_endpoint_galaxia_cachea(monkeypatch):
     """El router devuelve la forma esperada y cachea (no reconstruye en cada poll)."""
     from fastapi.testclient import TestClient
 
-    import loombit_operator.routers.galaxia as router_mod
+    from loombit_operator import galaxia_cache
     from loombit_operator.main import app
 
     llamadas = {"n": 0}
@@ -99,9 +99,11 @@ def test_endpoint_galaxia_cachea(monkeypatch):
         llamadas["n"] += 1
         return {"sol": {"nombre": "X", "kpis": {}}, "nodos": [], "aristas": [], "meta": {}}
 
-    monkeypatch.setattr(router_mod, "build_galaxia", _fake_build)
-    router_mod._cache["ts"] = 0.0
-    router_mod._cache["data"] = None
+    # La caché ahora vive en galaxia_cache (pre-carga stale-while-revalidate).
+    monkeypatch.setattr(galaxia_cache, "build_galaxia", _fake_build)
+    galaxia_cache._snap = None
+    galaxia_cache._ts = 0.0
+    galaxia_cache._refreshing = False
 
     with TestClient(app) as client:
         r1 = client.get("/galaxia")
