@@ -199,6 +199,29 @@ def _calendar_create(
 # ── contacts_find ─────────────────────────────────────────────────────────────
 
 
+def _people_search(client, headers: dict, endpoint: str, name: str, out: list) -> None:
+    """Llama a un endpoint de búsqueda de People API y añade los candidatos con email a `out`."""
+    from ..recipients import Candidato
+
+    try:
+        resp = client.get(
+            f"https://people.googleapis.com/v1/{endpoint}",
+            headers=headers,
+            params={"query": name, "readMask": "names,emailAddresses", "pageSize": 10},
+        )
+        if resp.status_code != 200:
+            return
+        for res in resp.json().get("results", []):
+            p = res.get("person", {})
+            names = p.get("names", [{}])
+            display_name = names[0].get("displayName", "") if names else ""
+            for em in p.get("emailAddresses", []):
+                if em.get("value"):
+                    out.append(Candidato(display_name, em["value"], "google"))
+    except Exception:
+        pass
+
+
 def _contacts_find(name: str) -> str:
     """Resuelve un destinatario por nombre: fusiona Google Contacts + memoria FIABLE, rankea por
     confianza y frecuencia (F3) y devuelve `mejor` (el más probable) + `estado` (ambiguo → pregunta).
@@ -217,22 +240,22 @@ def _contacts_find(name: str) -> str:
 
         token = fresh_access_token(get_settings(), "google")
         if token:
+            headers = {"Authorization": f"Bearer {token}"}
             with httpx.Client(timeout=10) as client:
-                resp = client.get(
-                    "https://people.googleapis.com/v1/people:searchContacts",
-                    headers={"Authorization": f"Bearer {token}"},
-                    params={"query": name, "readMask": "names,emailAddresses", "pageSize": 5},
-                )
-            if resp.status_code == 200:
-                for person in resp.json().get("results", []):
-                    p = person.get("person", {})
-                    names = p.get("names", [{}])
-                    display_name = names[0].get("displayName", "") if names else ""
-                    for em in p.get("emailAddresses", []):
-                        if em.get("value"):
-                            candidatos.append(Candidato(display_name, em["value"], "google"))
-            else:
-                aviso = f"Google Contacts {resp.status_code}"
+                # 1) Libreta de contactos. 2) "Otros contactos" (gente a la que has escrito): ahí
+                # vive el email de un destinatario habitual no guardado. Su API exige un warm-up
+                # (una llamada con query vacía) o devuelve vacío en frío.
+                _people_search(client, headers, "people:searchContacts", name, candidatos)
+                try:
+                    client.get(
+                        "https://people.googleapis.com/v1/otherContacts:search",
+                        headers=headers,
+                        params={"query": "", "readMask": "names,emailAddresses"},
+                    )
+                    _people_search(client, headers, "otherContacts:search", name, candidatos)
+                except Exception as exc:
+                    # 403 si falta el scope contacts.other.readonly (hay que re-autorizar Google)
+                    aviso = f"otros contactos no disponibles ({exc}); re-autoriza Google"
         else:
             aviso = "Google OAuth no conectado (solo memoria)."
     except Exception as exc:

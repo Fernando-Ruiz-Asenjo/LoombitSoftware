@@ -851,14 +851,10 @@ class AgentMemory:
             task_type = _classify_task_type(run.task, tools_used)
             if not task_type:
                 return False
-            steps_desc = []
-            seen_tools: list[str] = []
-            for step in run.steps:
-                if step.tool_name not in seen_tools:
-                    seen_tools.append(step.tool_name)
-                    steps_desc.append(
-                        step.tool_name + ": " + json.dumps(step.arguments, ensure_ascii=False)[:80]
-                    )
+            # Un procedimiento es la SECUENCIA DE TOOLS (el "cómo"), NUNCA los argumentos literales:
+            # guardar args memorizaría datos de un solo uso (un destinatario, un asunto) y los
+            # reinyectaría como si fueran la receta — así se coló 'jana.espinal@…' como procedimiento.
+            steps_desc = list(dict.fromkeys(tools_used))
             self.add_procedure(
                 task_type=task_type,
                 steps=steps_desc,

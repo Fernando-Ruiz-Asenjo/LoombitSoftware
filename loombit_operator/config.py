@@ -68,8 +68,12 @@ class AppSettings(BaseSettings):
     )
     skill_blanca_google_scopes: str = (
         "https://www.googleapis.com/auth/gmail.send "
+        "https://www.googleapis.com/auth/gmail.readonly "
         "https://www.googleapis.com/auth/calendar.events "
-        "https://www.googleapis.com/auth/contacts.readonly"
+        "https://www.googleapis.com/auth/contacts.readonly "
+        # "otros contactos": gente a la que has escrito (auto-guardada por Gmail), donde vive el
+        # email de un destinatario habitual aunque no esté en la libreta. Requiere re-autorizar.
+        "https://www.googleapis.com/auth/contacts.other.readonly"
     )
 
     # Microsoft

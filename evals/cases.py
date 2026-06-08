@@ -111,6 +111,30 @@ def _f5_no_lava_contacts_find() -> tuple[bool, str]:
     return ok, "no se lava contacts_find→memoria" if ok else "LAVADO: contacts_find cacheado"
 
 
+def _f5_procedimiento_sin_datos_literales() -> tuple[bool, str]:
+    """Un procedimiento aprendido guarda la SECUENCIA DE TOOLS, no argumentos literales (que
+    memorizarían un destinatario/asunto de un solo uso y los reinyectarían). Raíz del 'Espinal'."""
+    import json as _json
+
+    mem = _mem_tmp()
+    run = SimpleNamespace(
+        task="manda un correo a Jana",
+        result="ok",
+        steps=[
+            SimpleNamespace(
+                tool_name="gmail_send",
+                arguments={"to": "jana.espinal@gmail.com", "subject": "", "body": "Hola"},
+            )
+        ],
+    )
+    mem.extract_procedure_from_run(run)
+    blob = _json.dumps([p.to_dict() for p in mem.procedures.values()], ensure_ascii=False).lower()
+    ok = "@" not in blob and "espinal" not in blob
+    return ok, (
+        "procedimiento sin datos literales" if ok else "LITERALES colados en el procedimiento"
+    )
+
+
 def _f5_procedencia_auto_vs_google(tmp=None) -> tuple[bool, str]:
     import tempfile
     from pathlib import Path
@@ -302,6 +326,12 @@ CASES: list[Eval] = [
         "F5",
         "No cachear contacts_find (evita el lavado)",
         _f5_no_lava_contacts_find,
+    ),
+    Eval(
+        "F5.proc_sin_datos",
+        "F5",
+        "Procedimientos sin datos literales (no memoriza emails)",
+        _f5_procedimiento_sin_datos_literales,
     ),
     Eval(
         "F6.foundational",
