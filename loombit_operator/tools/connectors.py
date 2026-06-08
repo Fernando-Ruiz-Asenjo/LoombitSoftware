@@ -200,53 +200,68 @@ def _calendar_create(
 
 
 def _contacts_find(name: str) -> str:
-    """Busca un contacto por nombre en Google Contacts para obtener su email."""
+    """Resuelve un destinatario por nombre: fusiona Google Contacts + memoria FIABLE, rankea por
+    confianza y frecuencia (F3) y devuelve `mejor` (el más probable) + `estado` (ambiguo → pregunta).
+    Excluye contactos `auto` (capturados de envíos): no son verdad confirmada."""
+    from ..recipients import Candidato, resolver_destinatario
+
+    candidatos: list[Candidato] = []
+    aviso = ""
+
+    # 1) Google Contacts (best-effort: sin OAuth, seguimos solo con memoria)
     try:
-        from ..skill_blanca_oauth import fresh_access_token
-        from ..config import get_settings
         import httpx
 
-        settings = get_settings()
-        token = fresh_access_token(settings, "google")
-        if not token:
-            return json.dumps(
-                {
-                    "ok": False,
-                    "error": "Google OAuth no conectado.",
-                },
-                ensure_ascii=False,
-            )
+        from ..config import get_settings
+        from ..skill_blanca_oauth import fresh_access_token
 
-        with httpx.Client(timeout=10) as client:
-            resp = client.get(
-                "https://people.googleapis.com/v1/people:searchContacts",
-                headers={"Authorization": f"Bearer {token}"},
-                params={"query": name, "readMask": "names,emailAddresses", "pageSize": 5},
-            )
-
-        if resp.status_code != 200:
-            return json.dumps(
-                {"ok": False, "error": f"Contacts API {resp.status_code}"}, ensure_ascii=False
-            )
-
-        results = []
-        for person in resp.json().get("results", []):
-            p = person.get("person", {})
-            names = p.get("names", [{}])
-            emails = p.get("emailAddresses", [])
-            display_name = names[0].get("displayName", "") if names else ""
-            for email_entry in emails:
-                results.append(
-                    {
-                        "name": display_name,
-                        "email": email_entry.get("value", ""),
-                    }
+        token = fresh_access_token(get_settings(), "google")
+        if token:
+            with httpx.Client(timeout=10) as client:
+                resp = client.get(
+                    "https://people.googleapis.com/v1/people:searchContacts",
+                    headers={"Authorization": f"Bearer {token}"},
+                    params={"query": name, "readMask": "names,emailAddresses", "pageSize": 5},
                 )
-
-        return json.dumps({"ok": True, "query": name, "contacts": results}, ensure_ascii=False)
-
+            if resp.status_code == 200:
+                for person in resp.json().get("results", []):
+                    p = person.get("person", {})
+                    names = p.get("names", [{}])
+                    display_name = names[0].get("displayName", "") if names else ""
+                    for em in p.get("emailAddresses", []):
+                        if em.get("value"):
+                            candidatos.append(Candidato(display_name, em["value"], "google"))
+            else:
+                aviso = f"Google Contacts {resp.status_code}"
+        else:
+            aviso = "Google OAuth no conectado (solo memoria)."
     except Exception as exc:
-        return json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False)
+        aviso = f"Google Contacts no disponible: {exc}"
+
+    # 2) Memoria: SOLO contactos cacheados de Google (source="google"). NO los 'auto' (capturados
+    # de envíos) NI los 'manual' heredados sin procedencia real — en la práctica son auto-capturas
+    # mal etiquetadas (la raíz del bug `jana.espinal`). El directorio fiable es Google.
+    try:
+        from ..agent.memory import get_memory
+
+        for c in get_memory().find_contact(name):
+            if c.source == "google" and c.email:
+                candidatos.append(Candidato(c.name, c.email, c.source, c.times_contacted))
+    except Exception:
+        pass
+
+    estado, mejor, ranking = resolver_destinatario(candidatos)
+    return json.dumps(
+        {
+            "ok": True,
+            "query": name,
+            "estado": estado,  # resuelto | ambiguo | vacio
+            "mejor": ({"name": mejor.name, "email": mejor.email} if mejor else None),
+            "contacts": [{"name": c.name, "email": c.email} for c in ranking],
+            "aviso": aviso,
+        },
+        ensure_ascii=False,
+    )
 
 
 # ── Registro ──────────────────────────────────────────────────────────────────

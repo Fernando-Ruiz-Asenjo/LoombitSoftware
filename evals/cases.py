@@ -97,6 +97,20 @@ def _f2_permite_email_de_contacts_find() -> tuple[bool, str]:
 
 
 # ── F5 — procedencia: no cristalizar como verdad lo auto-capturado ──────────────
+def _f5_no_lava_contacts_find() -> tuple[bool, str]:
+    """Los resultados de contacts_find NO se cachean en memoria (evita el bucle de lavado que
+    convertía un contacto dudoso en 'google' y resucitaba jana.espinal)."""
+    mem = _mem_tmp()
+    step = SimpleNamespace(
+        tool_name="contacts_find",
+        arguments={},
+        result='{"ok":true,"contacts":[{"name":"X","email":"x@dudoso.com"}]}',
+    )
+    mem.extract_contacts_from_steps([step])
+    ok = all(c.email != "x@dudoso.com" for c in mem.contacts)
+    return ok, "no se lava contacts_find→memoria" if ok else "LAVADO: contacts_find cacheado"
+
+
 def _f5_procedencia_auto_vs_google(tmp=None) -> tuple[bool, str]:
     import tempfile
     from pathlib import Path
@@ -186,6 +200,40 @@ def _f6_reflexion_produce_leccion() -> tuple[bool, str]:
     return ok, f"lección={leccion!r}" if ok else "reflexión no produjo lección"
 
 
+# ── F3 — resolver el contacto más probable (confianza + frecuencia), nunca 'auto' ──
+def _f3_ranking_y_exclusion_auto() -> tuple[bool, str]:
+    from loombit_operator.recipients import Candidato, resolver_destinatario
+
+    # 'jana.espinal' (auto) NO debe ganar a 'Jana Wall' (google) — ni siquiera aparecer
+    estado, mejor, ranking = resolver_destinatario(
+        [
+            Candidato("jana.espinal", "jana.espinal@gmail.com", "auto", 1),
+            Candidato("Jana Wall", "jana.wall@acme.com", "google", 5),
+        ]
+    )
+    ok_resuelto = (
+        estado == "resuelto"
+        and mejor is not None
+        and mejor.email == "jana.wall@acme.com"
+        and all(c.source != "auto" for c in ranking)
+    )
+    # frecuencia desempata entre fuentes fiables
+    _, mejor2, _ = resolver_destinatario(
+        [
+            Candidato("Jana Vieja", "vieja@x.com", "google", 1),
+            Candidato("Jana Habitual", "habitual@x.com", "google", 9),
+        ]
+    )
+    ok_frecuencia = mejor2 is not None and mejor2.email == "habitual@x.com"
+    # empate real → ambiguo (preguntar, no adivinar)
+    estado3, _, _ = resolver_destinatario(
+        [Candidato("Jana A", "a@x.com", "google", 2), Candidato("Jana B", "b@x.com", "google", 2)]
+    )
+    ok_ambiguo = estado3 == "ambiguo"
+    ok = ok_resuelto and ok_frecuencia and ok_ambiguo
+    return ok, f"resuelto={ok_resuelto}, frecuencia={ok_frecuencia}, ambiguo={ok_ambiguo}"
+
+
 # ── F7 — saltos de línea literales del modelo ───────────────────────────────────
 def _f7_normaliza_saltos() -> tuple[bool, str]:
     out = normalize_email_text("Hola Jana,\\n\\nMensaje.\\n\\nUn saludo")
@@ -250,6 +298,12 @@ CASES: list[Eval] = [
         _f5_procedencia_auto_vs_google,
     ),
     Eval(
+        "F5.no_laundering",
+        "F5",
+        "No cachear contacts_find (evita el lavado)",
+        _f5_no_lava_contacts_find,
+    ),
+    Eval(
         "F6.foundational",
         "F6",
         "Lecciones fundacionales sembradas (retroactivo)",
@@ -273,8 +327,10 @@ CASES: list[Eval] = [
         _e2e_correo_sin_bot_ni_invencion,
         needs_llm=True,
     ),
-    # Hueco conocido restante (honestidad del proceso vivo): F3 está MITIGADO por la guarda F2
-    # (no se inventa) + el prompt (elige el más probable / pregunta), pero el ranking determinista
-    # por frecuencia aún no tiene su propio eval.
-    Eval("F3.ranking", "F3", "Ranking de contacto por frecuencia (mejora futura)", None),
+    Eval(
+        "F3.ranking",
+        "F3",
+        "Resolver el contacto más probable (confianza+frecuencia), nunca 'auto'",
+        _f3_ranking_y_exclusion_auto,
+    ),
 ]

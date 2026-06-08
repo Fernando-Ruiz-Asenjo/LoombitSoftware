@@ -824,21 +824,21 @@ class AgentMemory:
                     # se cristaliza como contacto fiable (raíz del bug de `jana.espinal`).
                     self.add_contact(name=name, email=email, source="auto")
                     added += 1
-            elif tool_name == "contacts_find":
-                try:
-                    result = json.loads(getattr(step, "result", "{}") or "{}")
-                    for contact in result.get("contacts", []):
-                        if contact.get("email"):
-                            # Viene de Google Contacts → fuente fiable.
-                            self.add_contact(
-                                name=contact.get("name", ""),
-                                email=contact["email"],
-                                source="google",
-                            )
-                            added += 1
-                except (json.JSONDecodeError, AttributeError):
-                    pass
+            # NO se cachean los resultados de contacts_find en memoria: contacts_find ya mezcla
+            # memoria + Google, así que re-ingerirlos "lavaría" un contacto dudoso a source="google"
+            # y se reforzaría solo (el bucle que resucitaba `jana.espinal`). Google se consulta en vivo.
         return added
+
+    def remove_contact(self, email: str) -> bool:
+        """Elimina un contacto por email (p.ej. uno fabricado/erróneo). True si existía."""
+        email_l = email.lower().strip()
+        contacts = self._data.get("contacts", [])
+        nuevos = [c for c in contacts if c.get("email", "").lower() != email_l]
+        if len(nuevos) != len(contacts):
+            self._data["contacts"] = nuevos
+            self._save()
+            return True
+        return False
 
     def extract_procedure_from_run(self, run: Any) -> bool:
         """Guarda el procedimiento aprendido de un run exitoso."""
