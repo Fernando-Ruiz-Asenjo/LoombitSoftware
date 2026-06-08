@@ -61,4 +61,10 @@ Formato: **D-NN — decisión** · *contexto* · **elegido** vs alternativas · 
 - **Diseñar para la gestoría** (multi-entidad día 1); **email como entrada real**; **el número nunca lo pone el LLM** (cálculo determinista + procedencia + abstención).
 - Estas son **propuestas a validar por Fernando** (cambian el planteamiento del brief); documentadas para que decida.
 
+**D-10 — Motor de Expedientes (Skill W Core) IMPLEMENTADO** (`expedientes.py`).
+- Tras el "sigue con todo mi ok, tú decides": doy por validadas las 4 propuestas fiscales (D-09) y construyo la base.
+- **SQLite por entidad** (aislamiento físico multi-tenant); **trazabilidad inmutable** por cadena de hashes (`verify_chain` detecta manipulación); documentos con `sha256`.
+- **Neutro** (núcleo blanco; sin vocabulario fiscal) → reutilizable por laboral/mercantil/DGT.
+- 8 tests (suite 146). Pendiente: router/UI y el `Skill D Fiscal` (cálculo 303) encima.
+
 *(se irán añadiendo entradas según avance el bloque)*

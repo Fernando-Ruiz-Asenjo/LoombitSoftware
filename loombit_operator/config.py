@@ -50,6 +50,9 @@ class AppSettings(BaseSettings):
     routines_daemon_enabled: bool = False
     routines_daemon_interval_seconds: int = 60
 
+    # ── Expedientes (Skill W Administration Core) — SQLite por entidad ────────
+    entities_dir: Path = Path("runtime/local/entities")
+
     # ── Skill Blanca — OAuth ──────────────────────────────────────────────────
     skill_blanca_oauth_token_store_path: Path = Path("runtime/local/skill_blanca_oauth_tokens.json")
     skill_blanca_oauth_local_config_path: Path = Path(
