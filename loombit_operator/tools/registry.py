@@ -20,7 +20,9 @@ from typing import Any, Callable
 
 # ── Activación de tools por intención (on-demand, no las 44 de golpe) ──────────
 # Núcleo SIEMPRE disponible (control del bucle).
-CORE_TOOLS: set[str] = {"task_done", "ask_user", "request_approval", "propose_improvement"}
+# La aprobación de efectos externos la fuerza el bucle sobre la tool real
+# (requires_approval=True), no una tool aparte → una sola puerta, sin redundancia.
+CORE_TOOLS: set[str] = {"task_done", "ask_user", "propose_improvement"}
 
 # Grupos que se activan cuando la petición casa con sus palabras clave.
 TOOL_GROUPS: list[tuple[tuple[str, ...], set[str]]] = [

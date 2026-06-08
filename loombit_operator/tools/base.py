@@ -9,9 +9,11 @@ Las 7 tools que desbloquean autonomía real desde el primer día:
   web_fetch       — obtener el contenido de una URL (httpx)
   run_shell       — ejecutar un comando de shell [requires_approval]
   task_done       — marcar la tarea como completada (para el loop)
-  request_approval — pausar y pedir confirmación humana
 
-Con estas 7 herramientas Loombit puede:
+La aprobación humana de efectos externos la fuerza el bucle sobre la tool real
+(requires_approval=True); no hay una tool aparte para pedirla.
+
+Con estas herramientas Loombit puede:
   - Leer y escribir ficheros (facturas, informes, datos)
   - Navegar la web (buscar información, verificar datos)
   - Ejecutar comandos (con aprobación del humano)
@@ -134,12 +136,6 @@ def _task_done(summary: str) -> str:
     return f"TASK_DONE:{summary}"
 
 
-def _request_approval(reason: str, proposed_action: str) -> str:
-    """Señal especial — el loop la detecta y pausa esperando confirmación."""
-    payload = json.dumps({"reason": reason, "proposed_action": proposed_action}, ensure_ascii=False)
-    return f"PENDING_APPROVAL:{payload}"
-
-
 def _ask_user(question: str) -> str:
     """Hace una pregunta al usuario en el chat. El loop pausa y espera la respuesta."""
     payload = json.dumps({"question": question}, ensure_ascii=False)
@@ -239,25 +235,6 @@ tool_registry.register(
             "required": ["summary"],
         },
         fn=_task_done,
-        category="base",
-    )
-)
-
-tool_registry.register(
-    ToolDefinition(
-        name="request_approval",
-        description="Pausa y pide aprobacion humana. Usar antes de enviar email, borrar ficheros, etc.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "reason": {"type": "string"},
-                "proposed_action": {"type": "string"},
-            },
-            "required": ["reason", "proposed_action"],
-        },
-        fn=_request_approval,
-        requires_approval=True,
-        safety_class="assisted",
         category="base",
     )
 )

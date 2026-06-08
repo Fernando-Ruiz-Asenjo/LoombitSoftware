@@ -401,12 +401,8 @@ class AgentLoop:
             )
 
         if tool_def.requires_approval:
-            payload = json.dumps(
-                {
-                    "reason": f"La tool '{tc.tool_name}' requiere aprobacion antes de ejecutarse.",
-                    "proposed_action": f"Ejecutar {tc.tool_name} con: {json.dumps(tc.arguments, ensure_ascii=False)}",
-                }
-            )
+            reason, proposed = _describe_for_approval(tc.tool_name, tc.arguments)
+            payload = json.dumps({"reason": reason, "proposed_action": proposed})
             return f"{_SENTINEL_APPROVAL}{payload}", True
 
         logger.info("Ejecutando tool '%s' step=%d run=%s", tc.tool_name, step_num, run.id)
@@ -484,6 +480,37 @@ def _recipiente_resuelto(to: str, run: AgentRun) -> bool:
         return True
     return any(
         s.tool_name == "contacts_find" and to_l in (s.result or "").lower() for s in run.steps
+    )
+
+
+def _describe_for_approval(tool_name: str, args: dict[str, Any]) -> tuple[str, str]:
+    """Texto HUMANO para la tarjeta de aprobación: describe la acción real, no la tool.
+
+    Devuelve (reason, proposed_action). El usuario aprueba "enviar este correo a X", no
+    "ejecutar la tool gmail_send".
+    """
+    if tool_name == "gmail_send":
+        to = str(args.get("to", "")).strip()
+        subject = str(args.get("subject", "")).strip()
+        body = str(args.get("body", "")).strip()
+        cuerpo = body if len(body) <= 600 else body[:600] + "…"
+        return (
+            f"Enviar un correo a {to}" if to else "Enviar un correo",
+            f"Para: {to}\nAsunto: {subject}\n\n{cuerpo}",
+        )
+    if tool_name == "calendar_create":
+        summary = str(args.get("summary", "")).strip()
+        start = str(args.get("start_iso", "")).strip()
+        return (
+            "Crear un evento en tu calendario",
+            f"Evento: {summary}\nInicio: {start}",
+        )
+    if tool_name == "run_shell":
+        return ("Ejecutar un comando en tu equipo", str(args.get("command", "")))
+    # Genérico para cualquier otra tool sensible.
+    return (
+        f"Confirmar la acción «{tool_name}»",
+        json.dumps(args, ensure_ascii=False, indent=2),
     )
 
 

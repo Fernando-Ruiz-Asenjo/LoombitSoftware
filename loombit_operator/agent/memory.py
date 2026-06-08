@@ -917,7 +917,7 @@ def _classify_task_type(task: str, tools: list[str]) -> str:
     for pattern_tools, label in _TASK_PATTERNS:
         if all(t in tool_set for t in pattern_tools):
             return label
-    significant = [t for t in tools if t not in ("task_done", "ask_user", "request_approval")]
+    significant = [t for t in tools if t not in ("task_done", "ask_user")]
     return significant[0] if significant else ""
 
 

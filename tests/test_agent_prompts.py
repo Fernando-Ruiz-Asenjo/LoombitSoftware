@@ -14,7 +14,8 @@ def test_prompt_includes_execution_hierarchy_and_pilot_tools():
 def test_prompt_includes_security_gates():
     low = build_system_prompt().lower()
     for kw in (
-        "request_approval",
+        "pausa",  # los efectos externos pausan para que el usuario apruebe (sin tool aparte)
+        "apruebe",
         "credenciales",
         "no inventes datos",
         "fraude",
