@@ -748,7 +748,7 @@ a { color: inherit; text-decoration: none; }
     </div>
 
     <div class="topbar-actions">
-      <button class="icon-btn" onclick="openGalaxia()" title="Galaxia — tu negocio como sistema estelar" style="font-size:17px;width:34px;height:34px;display:flex;align-items:center;justify-content:center">🌌</button>
+      <button class="icon-btn" onclick="openGalaxia()" title="Galaxia — tu negocio como sistema estelar" style="font-size:17px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;position:relative">🌌<span id="gx-badge" style="display:none;position:absolute;top:3px;right:3px;min-width:8px;height:8px;border-radius:999px;background:var(--lb-red,#ef4444);box-shadow:0 0 0 2px var(--lb-navy2,#111827)"></span></button>
       <button class="icon-btn" onclick="clearChat()" title="Nueva conversación">
         <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
       </button>
@@ -833,6 +833,10 @@ a { color: inherit; text-decoration: none; }
           <div class="gx-pal-list" id="gx-pal-list"></div>
         </div>
       </div>
+      <!-- Drag-to-act: chips arrastrables + fantasma de acción + aviso -->
+      <div id="gx-dock" style="position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;gap:8px;align-items:center;max-width:92%;flex-wrap:wrap;justify-content:center;z-index:4"></div>
+      <div id="gx-ghost" style="position:absolute;display:none;padding:7px 13px;border-radius:999px;background:rgba(10,14,26,.92);border:1px solid var(--lb-purple,#8b5cf6);font-size:12.5px;font-weight:600;color:#fff;pointer-events:none;z-index:6;white-space:nowrap"></div>
+      <div id="gx-toast" style="position:absolute;left:50%;bottom:72px;transform:translateX(-50%);display:none;padding:10px 16px;border-radius:12px;background:var(--lb-navy3,#1a2235);border:1px solid var(--lb-purple,#8b5cf6);font-size:13px;color:var(--lb-text,#f1f5f9);box-shadow:0 10px 30px rgba(0,0,0,.55);z-index:7;max-width:82%;text-align:center"></div>
     </div>
   </div>
 
@@ -1572,7 +1576,8 @@ async function openGalaxia() {
   document.getElementById('galaxia-view').classList.add('open');
   gxOpen = true;
   gxResize();
-  await gxFetch(true);
+  gxRenderDock();
+  await gxFetch(false);   // usa la pre-carga caliente → apertura instantánea
   if (!gxTimer) gxTimer = setInterval(() => gxFetch(false), 30000);
   if (!gxRAF) gxRAF = requestAnimationFrame(gxTick);
 }
@@ -1607,6 +1612,7 @@ function gxRenderKpis() {
     { v: k.aprobaciones ?? 0, l: 'aprobar', cls: (k.aprobaciones>0?'warn':'') },
   ];
   if (k.correos_sin_leer != null) items.push({ v: k.correos_sin_leer, l: 'sin leer', cls: '' });
+  gxSetBadge(k);
   document.getElementById('gx-kpis').innerHTML = items.map(it =>
     `<div class="gx-kpi ${it.cls}"><b>${esc(String(it.v))}</b><span>${esc(it.l)}</span></div>`).join('');
 }
@@ -1947,6 +1953,113 @@ document.addEventListener('keydown', e => {
   }
 });
 
+// ═══════════════════════════════════════════════════════
+// GALAXIA · drag-to-act — arrastra una conversación a un planeta y Loombit hace la acción.
+// El efecto externo NO se dispara solo: se enruta al agente, que pausa para tu aprobación
+// (aparece arriba en "Aprobar todo"). Acompañado de doble-clic→chat como vía descubrible.
+// ═══════════════════════════════════════════════════════
+let GXDragSource = null;
+
+// Pre-carga: al cargar la página calentamos la Galaxia en el servidor y pintamos el badge,
+// así al pulsar 🌌 ya está fresca con lo de hoy.
+async function gxPrewarm() {
+  try {
+    const r = await fetch(`${API}/galaxia`, { signal: AbortSignal.timeout(12000) });
+    if (r.ok) gxSetBadge((await r.json())?.sol?.kpis || {});
+  } catch { /* el panel es complementario */ }
+}
+function gxSetBadge(k) {
+  const b = document.getElementById('gx-badge'); if (!b) return;
+  const hay = (k.vencidas|0) > 0 || (k.aprobaciones|0) > 0;
+  b.style.display = hay ? 'block' : 'none';
+}
+
+// Chips arrastrables (lo que sueltas sobre un planeta). MVP: la conversación actual.
+function gxRenderDock() {
+  const dock = document.getElementById('gx-dock'); if (!dock) return;
+  const ultimo = [...document.querySelectorAll('#messages .msg.user, #messages .msg-user, .msg.user')]
+    .map(el => (el.textContent || '').trim()).filter(Boolean).pop() || '';
+  const chips = [];
+  if (ultimo) chips.push({ kind:'conversacion', id:'actual', etiqueta: ultimo.slice(0,40), titulo:'💬 Conversación actual' });
+  const intro = `<span style="font-size:11.5px;color:var(--lb-text3)">Arrastra a un planeta →</span>`;
+  dock.innerHTML = (chips.length ? intro : `<span style="font-size:11.5px;color:var(--lb-text3)">Habla en el chat y podrás arrastrar la conversación a un cliente o cobro.</span>`)
+    + chips.map(c => `<span class="gx-chip" draggable="true" data-chip='${esc(JSON.stringify(c))}' title="Arrástrame a un planeta"
+        style="display:inline-flex;align-items:center;gap:6px;background:var(--lb-navy3,#1a2235);border:1px solid var(--lb-border2,rgba(255,255,255,.14));border-radius:999px;padding:6px 12px;font-size:12.5px;cursor:grab;user-select:none">${esc(c.titulo)}</span>`).join('');
+  dock.querySelectorAll('.gx-chip').forEach(el => {
+    el.addEventListener('dragstart', ev => {
+      GXDragSource = JSON.parse(el.getAttribute('data-chip'));
+      ev.dataTransfer.setData('application/json', JSON.stringify(GXDragSource));
+      ev.dataTransfer.effectAllowed = 'copy';
+      el.style.cursor = 'grabbing';
+    });
+    el.addEventListener('dragend', () => { GXDragSource = null; el.style.cursor='grab'; gxGhostHide(); GXHover=null; });
+  });
+}
+
+function gxDragSource(ev) {
+  if (ev.dataTransfer?.files?.length) { const f = ev.dataTransfer.files[0]; return { kind:'documento', etiqueta:f.name, nombre:f.name, path:f.name }; }
+  try { const j = ev.dataTransfer.getData('application/json'); if (j) return JSON.parse(j); } catch {}
+  return GXDragSource;
+}
+function gxGhostText(src, o) {
+  if (!o) return '';
+  const t = o.node.etiqueta || '';
+  const k = src?.kind;
+  if (o.kind==='contacto') return k==='documento' ? `Enviar a ${t}` : `Retomar con ${t}`;
+  if (o.kind==='cuenta')   return k==='conversacion' ? `Recordar cobro a ${t}` : `Vincular a ${t}`;
+  return `Soltar sobre ${t}`;
+}
+function gxGhostShow(text, x, y) {
+  const g = document.getElementById('gx-ghost'); if (!g) return;
+  g.textContent = text; g.style.display = text ? 'block' : 'none';
+  g.style.left = Math.min(x+16, GXW-g.offsetWidth-8) + 'px';
+  g.style.top  = Math.min(y+16, GXH-g.offsetHeight-8) + 'px';
+}
+function gxGhostHide(){ const g=document.getElementById('gx-ghost'); if(g) g.style.display='none'; }
+
+(function gxBindDrop(){
+  const c = document.getElementById('galaxia-canvas'); if (!c) return;
+  c.addEventListener('dragover', ev => {
+    ev.preventDefault(); ev.dataTransfer.dropEffect='copy';
+    const { o, mx, my } = gxHit(ev);
+    GXHover = o ? o.id : null;                 // reusa el resalte existente como "halo" del destino
+    gxGhostShow(o ? gxGhostText(GXDragSource, o) : '', mx, my);
+  });
+  c.addEventListener('dragleave', () => { GXHover=null; gxGhostHide(); });
+  c.addEventListener('drop', async ev => {
+    ev.preventDefault(); gxGhostHide();
+    const { o } = gxHit(ev); GXHover=null;
+    const src = gxDragSource(ev);
+    if (!o || !src) return;
+    await gxAct(src, o.node);
+  });
+})();
+
+async function gxAct(source, targetNode) {
+  const target = { ...targetNode, kind: targetNode.kind || targetNode.tipo };
+  try {
+    const r = await fetch(`${API}/galaxia/act`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ source, target }), signal: AbortSignal.timeout(12000),
+    });
+    const d = await r.json();
+    const a = d.action || {};
+    if (d.run_id) {
+      gxToast(`✅ Preparé: ${a.titulo}. Lo dejé arriba en “Aprobar todo” para que lo apruebes.`);
+      refreshApprovals();
+    } else if (a.modo === 'navigate') {
+      gxToast(a.titulo || 'Hecho');
+    } else {
+      gxToast(`✅ ${a.titulo || 'Hecho'}`);
+    }
+  } catch (e) { gxToast('No pude hacer esa acción: ' + e.message); }
+}
+function gxToast(text) {
+  const t = document.getElementById('gx-toast'); if (!t) return;
+  t.textContent = text; t.style.display='block';
+  clearTimeout(gxToast._t); gxToast._t = setTimeout(()=>{ t.style.display='none'; }, 5000);
+}
+
 // ── Health check ──────────────────────────────────────
 (async () => {
   try {
@@ -1958,6 +2071,7 @@ document.addEventListener('keydown', e => {
   refreshApprovals();
   loadFeed();
   loadCuentas();
+  gxPrewarm();
 })();
 </script>
 <div id="approveAllBar" style="display:none;position:fixed;top:64px;right:20px;z-index:9999;background:var(--lb-navy3,#1a2235);border:1px solid var(--lb-purple,#8b5cf6);border-radius:12px;padding:10px 14px;box-shadow:0 10px 30px rgba(0,0,0,.55);flex-direction:column;align-items:stretch;gap:8px;font-size:13px;color:var(--lb-text,#f1f5f9);max-width:340px">
