@@ -7,7 +7,7 @@ herramientas reales usaremos en cada fase, y dónde están mis límites. Sin ado
 
 | Capacidad | Qué hace | Límite honesto |
 |---|---|---|
-| Ficheros (read/edit) + shell Linux | Crear/editar código, correr Python 3.10/Node, git **local**, tests | Sandbox aislado; **sin push a GitHub** (proxy bloquea git remoto) |
+| Ficheros (read/edit) + shell | Crear/editar código, correr Python/Node, **git local y push a GitHub**, tests | El entorno actual SÍ permite push al remoto (verificado 2026-06-08) |
 | Búsqueda y fetch web | Investigar docs, APIs, mercado | Algunas páginas JS no renderizan en fetch simple |
 | Sub-agentes | Lanzar revisores/QA en paralelo (p. ej. revisión de seguridad) | Cada uno arranca sin contexto previo |
 | Tareas programadas (cron) | Ejecutar trabajo recurrente (briefing diario, daemon de aprendizaje) | Corre en este entorno, no en tu máquina aún |
@@ -38,7 +38,7 @@ Doble uso estratégico:
 ## C. Tu stack (lo que ya tienes)
 
 - FastAPI + Python, núcleo blanco + skills (buena base, ya verificada).
-- LM Studio + Qwen local (`qwen2.5-7b-instruct-1m` instructor, `qwen-coder` coder).
+- LM Studio + Qwen local (`qwen2.5-14b-instruct` instructor, `qwen2.5-coder-7b-instruct` coder).
 - Capa de conectores con modos local_outbox/SMTP/Google/Microsoft (código real 🟡).
 - Jetson Orin NX como objetivo de despliegue (hardware aún no comprado).
 
@@ -57,9 +57,9 @@ Doble uso estratégico:
 
 ## E. Mis límites (para que nunca te mienta sobre lo que puedo)
 
-- **No puedo crear ni hacer push a un repo de GitHub** desde aquí (no hay conector
-  de GitHub en el registro y el proxy bloquea git remoto). Creo el repo en tu carpeta
-  y tú lo subes con un comando.
+- **Push a GitHub:** en el entorno actual SÍ puedo commitear y hacer push al remoto
+  (verificado el 2026-06-08). El push directo a `main` puede pedir tu autorización
+  explícita según el clasificador de permisos.
 - **No tengo tus credenciales**: cada conector Google/Microsoft requiere que TÚ
   autorices el OAuth. Yo no puedo "auto-conectarme" a tu correo.
 - **No tengo Jetson**: cualquier número de rendimiento sobre la placa lo mides tú.

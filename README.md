@@ -28,6 +28,8 @@ El plan detallado está en `docs/PLAN_MAESTRO_100.md`.
 
 ## Documentos fuente de verdad
 
+- `docs/DESTILADO_LOOMBIT.md` — **norte**: qué es Loombit, filosofía y operativa (leer primero).
+- `docs/ESTADO_Y_ROADMAP.md` — estado vivo y roadmap (fuente canónica de avance).
 - `docs/PLAN_MAESTRO_100.md` — hoja de ruta hacia 100% operatividad + autonomía supervisada.
 - `docs/CAPACIDADES_Y_HERRAMIENTAS.md` — con qué construimos cada fase (conectores, skills, runtime).
 - `docs/DEFINITION_OF_DONE.md` — qué significa "hecho" (regla de honestidad).
@@ -50,4 +52,6 @@ python -m pytest
 
 ## Estado
 
-Fase 0 — fundación limpia. Ver `docs/PLAN_MAESTRO_100.md` para el avance por fases.
+**Fase 1-2 en curso** (Fase 0 cerrada). OAuth Google conectado y **primer correo real enviado 🟢**;
+instructor local = Qwen2.5-14B. Estado vivo en `docs/ESTADO_Y_ROADMAP.md`; visión integrada en
+`docs/DESTILADO_LOOMBIT.md`.

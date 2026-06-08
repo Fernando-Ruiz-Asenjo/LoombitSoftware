@@ -2,6 +2,9 @@
 
 Fecha: 2026-06-07. Documento vivo. Honestidad obligatoria (ver DEFINITION_OF_DONE.md).
 
+> **Nota (2026-06-08):** estado vivo en `docs/ESTADO_Y_ROADMAP.md`; síntesis en `docs/DESTILADO_LOOMBIT.md`.
+> Avances desde esta fecha: OAuth conectado, **1 correo real enviado 🟢**, instructor = **Qwen2.5-14B**.
+
 ## 0. Qué significa "100%" (sin ambigüedad)
 
 Dos métricas separadas. No se mezclan.
@@ -56,7 +59,7 @@ no se borra, pero sale del camino crítico hasta cerrar la cuña 1.
 Este es el paso que convierte el "humo honesto" en producto.
 - Crear app OAuth real en Google Cloud (cliente, redirect, scopes mínimos: Gmail send, Calendar events, People readonly).
 - Flujo OAuth local: authorization-url -> callback -> token store redactado -> refresh -> disconnect.
-- **Enviar 1 correo real** a una cuenta de prueba. **Crear 1 evento real.** Probar refresh y 3 rutas de fallo.
+- ✅ **1 correo real enviado** (recibo con message_id, 2026-06-07). Falta: **crear 1 evento real** + probar refresh y 3 rutas de fallo.
 - **Hecho cuando:** existen recibos 🟢 de envío de correo y creación de evento contra cuenta real, y la ruta de fallo bloquea limpio.
 
 ### Fase 2 — Percepción real (read-only)  ·  Salida: brief real del día

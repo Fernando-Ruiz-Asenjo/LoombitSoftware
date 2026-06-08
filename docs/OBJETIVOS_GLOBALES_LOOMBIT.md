@@ -3,6 +3,11 @@
 Fuente de verdad consolidada extraída de `jetson-ai-operator` y `loombit-operator`.
 Honestidad obligatoria: nada marcado como "hecho" sin recibo real.
 
+> **Nota (2026-06-08):** este documento es la **visión original**. El estado vivo (qué está 🟢/🟡)
+> se lleva en `docs/ESTADO_Y_ROADMAP.md` y la síntesis actual en `docs/DESTILADO_LOOMBIT.md`.
+> Algunas líneas de estado de abajo son históricas: hoy el OAuth está conectado, el **primer
+> correo real está enviado 🟢** y el instructor es **Qwen2.5-14B**.
+
 ---
 
 ## 1. Misión central del producto
@@ -80,7 +85,7 @@ Una caja local, muchas skills. El mismo runtime sirve para:
 - Inteligencia de empresa: CompanyProfile, ServiceCatalog, RoleMap, SkillOpportunity.
 
 ### 4.3 Conectores de oficina
-- **Gmail:** send real (OAuth Google) — actualmente 🟡 fake-tested.
+- **Gmail:** send real (OAuth Google) — 🟢 **verificado** (envío real 2026-06-07, recibo con message_id).
 - **Google Calendar:** create event real — actualmente 🟡 fake-tested.
 - **Microsoft Graph:** sendMail y createEvent — actualmente 🟡 fake-tested.
 - **Gmail read-only:** pendiente.
@@ -104,7 +109,7 @@ Una caja local, muchas skills. El mismo runtime sirve para:
 - Pendiente: ejecutor y verificador de secuencias de navegador sobre Skill Pilot.
 
 ### 4.5 Modelos de lenguaje locales
-- Rol `instructor`: Qwen2.5-7B long-context — razonamiento administrativo.
+- Rol `instructor`: Qwen2.5-14B-Instruct — razonamiento administrativo (fallback largo: Qwen2.5-7B-1M).
 - Rol `coder`: Qwen2.5-Coder 7B — código, esquemas, tests.
 - Cola de LM jobs persistente y auditable.
 - Skill Coding Blanca: deliberación local de dos modelos con consensus validator.
@@ -178,8 +183,8 @@ Una caja local, muchas skills. El mismo runtime sirve para:
 ## 7. Pendiente prioritario (próximos pasos reales)
 
 ### Inmediato (desbloquea Fase 1)
-- Crear app OAuth real en Google Cloud (scopes mínimos: Gmail send, Calendar events, People readonly).
-- Piloto real: 1 correo enviado + 1 evento creado contra cuenta de prueba + recibos 🟢.
+- ✅ App OAuth real en Google Cloud creada y **cuenta conectada** (2026-06-08).
+- ✅ **1 correo real enviado** con recibo 🟢 (message_id). Falta: 1 evento real en Calendar.
 - Probar refresh de token y 3 rutas de fallo (token caducado, permiso faltante, destinatario inválido).
 
 ### Conectores read-only (Fase 2)
