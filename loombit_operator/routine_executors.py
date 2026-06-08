@@ -31,10 +31,22 @@ _MEJORA_SYSTEM = (
 )
 
 
-def _señales_reales() -> list[str]:
-    """Señales REALES de hoy para el brief: respuestas sin leer de contactos + aprobaciones
-    pendientes. Sin inventar nada; si una fuente falla, simplemente no aporta señal."""
+def _señales_reales(now: datetime | None = None) -> list[str]:
+    """Señales REALES de hoy para el brief: agenda de hoy + respuestas sin leer de contactos
+    + aprobaciones pendientes + cuentas a cobrar. Sin inventar nada; si una fuente falla,
+    simplemente no aporta señal."""
     señales: list[str] = []
+    try:
+        from .skill_blanca_calendar_read import eventos_de_hoy
+
+        eventos = eventos_de_hoy(now=now)
+        if eventos:
+            titulos = "; ".join(e.get("summary", "") for e in eventos[:5])
+            señales.append(f"{len(eventos)} evento(s) hoy en tu agenda: {titulos}")
+        else:
+            señales.append("sin eventos en tu calendario hoy")
+    except Exception:
+        pass
     try:
         from types import SimpleNamespace
 

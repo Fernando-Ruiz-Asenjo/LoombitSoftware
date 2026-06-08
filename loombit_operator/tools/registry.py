@@ -68,6 +68,28 @@ TOOL_GROUPS: list[tuple[tuple[str, ...], set[str]]] = [
     ),
     (
         (
+            "resumen",
+            "resúmeme",
+            "resumeme",
+            "brief",
+            "del día",
+            "del dia",
+            "de hoy",
+            "qué tengo",
+            "que tengo",
+            "agenda",
+            "foco",
+            "cómo va",
+            "como va",
+            "en qué centrar",
+            "en que centrar",
+            "organiza mi día",
+            "organiza mi dia",
+        ),
+        {"daily_brief", "calendar_today", "gmail_search"},
+    ),
+    (
+        (
             "factura",
             "albaran",
             "albarán",

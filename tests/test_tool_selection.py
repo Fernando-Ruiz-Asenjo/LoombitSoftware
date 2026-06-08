@@ -27,9 +27,15 @@ def test_calendar_task_selects_calendar():
 
 
 def test_unmatched_task_gets_default_admin_set():
-    names = select_tool_names("hazme un resumen")
+    names = select_tool_names("échame una mano con una gestión")
     assert "gmail_send" in names  # set básico por defecto
     assert CORE_TOOLS <= names
+
+
+def test_brief_task_selects_daily_brief():
+    names = select_tool_names("hazme un resumen de hoy con el foco recomendado")
+    assert "daily_brief" in names  # el resumen enruta al brief, no al correo
+    assert "calendar_today" in names
 
 
 def test_to_openai_task_sends_fewer_tools_than_all():
