@@ -15,7 +15,7 @@
 | Fase | Objetivo | Estado | Qué falta para cerrarla |
 |---|---|---|---|
 | 0 · Fundación limpia | Repo, CI, estructura | ✅ Cerrada | — |
-| 1 · Verdad de conectores | OAuth real Google + 1 correo + 1 evento reales | 🟠 Correo 🟢 enviado | #28 resuelto. Correo real enviado con recibo (`message_id` 19ea478e791867b0, 2026-06-07). Falta: crear 1 evento real (con recibo) |
+| 1 · Verdad de conectores | OAuth real Google + 1 correo + 1 evento reales | ✅ **Cerrada (2026-06-08)** | Correo real (`message_id` 19ea478e791867b0) + evento real (`event_id` vmovd103mbb40u7ek3ehb5jsa0), ambos con recibo |
 | 2 · Percepción real (Morning Brief) | Brief diario con datos reales | 🟠 En curso | Store de cuentas a cobrar + servicio de brief (las 3 piezas base ya están) |
 | 3 · Bucle e2e cuña 1 (cobros) | Flujo cobros completo ×5 sin intervención | 🟠 Cerebro listo | Orquestación e2e + recibos 🟢 |
 | 4 · UI humana | Dashboard no técnico | 🟠 Parcial | Home + botón Conectar Google hechos; falta dashboard |
@@ -29,7 +29,7 @@
 |---|---|
 | OAuth Google (escritorio: PKCE, auto-refresh, token cifrado, botón home) | 🟢 **CONECTADO con cuenta real (2026-06-08)**; token cifrado en disco; refresh presente |
 | Gmail send | 🟢 **ENVÍO REAL VERIFICADO (2026-06-07)** — recibo en `runtime/local/skill_blanca_connector_outbox/` (`message_id` `19ea478e791867b0`, respuesta API Gmail) |
-| Calendar create | 🟡 (ya conectado; falta el primer evento real con recibo) |
+| Calendar create | 🟢 **EVENTO REAL VERIFICADO (2026-06-08)** — `event_id` `vmovd103mbb40u7ek3ehb5jsa0`, recibo en `runtime/local/skill_blanca_connector_outbox/` |
 | Outbox local (.eml) / Calendario local (.ics) | 🟢 |
 
 ## Adopción de tendencias IA 2025-2026 (ver `ROADMAP_TENDENCIAS_IA.md`)

@@ -55,8 +55,8 @@ de evento contra cuenta real, y la ruta de fallo bloquea limpio.**
 
 > **✅ #28 resuelto (2026-06-08):** la app OAuth "App de escritorio" está creada en Google
 > Cloud Console, la cuenta real está conectada y el token está cifrado en disco. **Gmail send
-> ya está 🟢** (envío real verificado el 2026-06-07, recibo con `message_id`). Para cerrar la
-> Fase 1 solo falta **crear 1 evento real en Calendar** (mismo patrón) y validar las rutas de fallo.
+> ya está 🟢** (envío real verificado el 2026-06-07, recibo con `message_id`). **Calendar create
+> también 🟢** (evento real 2026-06-08, `event_id` `vmovd103mbb40u7ek3ehb5jsa0`). **Fase 1 CERRADA.**
 
 ### Qué NO tocar ahora
 - Industrial, inspección, rover, acuático, deportes → están en `docs/PARKED.md`.
@@ -180,7 +180,7 @@ loombit_operator/
 | Conector | Estado | Notas |
 |---|---|---|
 | Gmail send | 🟢 **verificado** | Envío real a cuenta de prueba el 2026-06-07; recibo en `runtime/local/skill_blanca_connector_outbox/` (message_id `19ea478e791867b0`, respuesta API Gmail) |
-| Google Calendar create | 🟡 fake-tested | OAuth conectado; falta el primer evento real con recibo |
+| Google Calendar create | 🟢 **verificado** | Evento real creado el 2026-06-08 (`event_id` `vmovd103mbb40u7ek3ehb5jsa0`); recibo en `runtime/local/skill_blanca_connector_outbox/` |
 | Microsoft Graph sendMail | 🟡 fake-tested | Ídem |
 | Microsoft Graph createEvent | 🟡 fake-tested | Ídem |
 | Outbox local (.eml) | 🟢 | Sin credenciales cloud |
@@ -190,7 +190,7 @@ loombit_operator/
 | Calendar read-only | ⬜ pendiente | No implementado |
 | Google Contacts | ⬜ pendiente | No implementado |
 
-Gmail send ya está 🟢 (verificado 2026-06-07). El objetivo inmediato es llevar Google Calendar create de 🟡 a 🟢 y cerrar la Fase 1.
+Gmail send 🟢 (2026-06-07) y Calendar create 🟢 (2026-06-08, `event_id` `vmovd103mbb40u7ek3ehb5jsa0`). **Fase 1 CERRADA** (envío de correo + creación de evento reales, con recibo).
 
 ---
 

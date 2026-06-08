@@ -165,4 +165,10 @@ Formato: **D-NN — decisión** · *contexto* · **elegido** vs alternativas · 
 - *Pendiente:* alimentar el store desde intake de facturas / conciliación (hoy se añade por API); UI del brief.
 - *Reversible:* sí; store y router son aditivos.
 
+## Fase 1 cerrada
+
+**D-24 — Fase 1 (Verdad de conectores) CERRADA.** Estado 🟢 (2026-06-08).
+- *Hecho:* con OK explícito de Fernando, creado **1 evento real** en Google Calendar (`create_event`): `event_id` `vmovd103mbb40u7ek3ehb5jsa0`, recibo en `runtime/local/skill_blanca_connector_outbox/`. Junto al envío real de correo ya 🟢 (`message_id` 19ea478e791867b0), la Fase 1 queda cerrada: OAuth real + 1 correo + 1 evento, ambos con recibo.
+- *Nota:* efecto externo aprobado por el humano (no autónomo). El evento es de prueba, borrable.
+
 *(se irán añadiendo entradas según avance el bloque)*
