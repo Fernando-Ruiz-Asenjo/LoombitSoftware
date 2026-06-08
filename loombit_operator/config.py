@@ -44,6 +44,11 @@ class AppSettings(BaseSettings):
     agent_run_store_path: Path = Path("runtime/local/agent_runs.json")
     skill_manifest_dir: Path = Path("skills")
 
+    # ── Fábrica de Skills (Skill X) — auto-autoría gobernada ───────────────────
+    # Cargar al arrancar las tools que un humano APROBÓ (gate sagrado): off por defecto.
+    # Solo se cargan propuestas en estado APROBADA, re-verificadas por el gate de seguridad.
+    fabrica_autocargar_generadas: bool = False
+
     # ── Routines (agentes proactivos programados) ─────────────────────────────
     routine_store_path: Path = Path("runtime/local/routines.json")
     routine_receipt_dir: Path = Path("runtime/local/routine_receipts")

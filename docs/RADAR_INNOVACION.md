@@ -110,6 +110,56 @@ local + gobernado, frente a la automejora cloud sin auditoría.
 
 *Fuentes barrido 3: [Gödel Agent](https://arxiv.org/abs/2410.04444) · [Voyager](https://blog.pebblous.ai/report/voyager-lifelong-agent-2023/en/) · [GEPA](https://arxiv.org/pdf/2507.19457) · [Hermes Self-Evolution](https://github.com/NousResearch/hermes-agent-self-evolution) · [Survey Self-Evolving Agents](https://arxiv.org/pdf/2508.07407) · [ERL](https://arxiv.org/abs/2603.24639) · [Self-Healing CI](https://dagger.io/blog/automate-your-ci-fixes-self-healing-pipelines-with-ai-agents/).*
 
+## Barrido 4 — IA que se automejora, a FONDO + ingeniería de cómo se construye (2026-06-08)
+
+Profundización del barrido 3 con los sistemas EMPÍRICOS punteros 2025 y, sobre todo, **cómo se
+construyen** (la diferencia entre "potente" y chorrada). Esto se **destiló ANTES de programar** y
+fundó la **Fábrica de Skills** (D-39, `loombit_operator/fabrica/`).
+
+**Lo nuevo del estado del arte:**
+- **Darwin Gödel Machine** (Sakana/UBC, may-25): versión empírica de Gödel — reescribe su propio
+  código y se valida en benchmarks; **archivo evolutivo (linaje abierto)**; SWE-bench 20%→50%.
+- **SICA** (Bristol, ICLR'25): edita su propia base de código; bucle **evaluar→seleccionar→revisar**
+  con archivo; el mejor del archivo siembra la siguiente revisión; 17%→53% SWE-bench Verified.
+- **ADAS / Meta Agent Search** (ICLR'25): un meta-agente **programa agentes en código** y archiva
+  los que baten a los hechos a mano; transfieren entre dominios.
+- **AlphaEvolve** (DeepMind, may-25) + **OpenEvolve/CodeEvolve** (open): agente evolutivo que mejoró
+  algoritmos reales (4×4 en 48 productos, batió a Strassen). **Evaluación en cascada** + **canal de
+  artefactos** (realimenta el error al siguiente prompt).
+- **SEAL** (MIT, jun-25), **Absolute Zero** (NeurIPS'25), **R-Zero** (ago-25): self-play / self-edits
+  que tocan **pesos** → ⚠️ la línea que Loombit **no cruza** (sin fine-tuning, por brújula).
+- **TextGrad**: "diferenciación vía texto" — backprop de feedback NL por un sistema compuesto.
+- **APR 2025** (survey + SWE-bench ~63%): self-debugging; ⚠️ **test-overfitting** (los LLM gaman los
+  tests) → exige evals held-out. **A-MEM/Mem0**: memoria que se auto-organiza por reflexión.
+- **Gobernanza** (AGENTSAFE/AURA/Oversight Game): piden trazabilidad + least-privilege + humano en el
+  lazo; **<10% de orgs lo tiene**. **SkillsBench**: la auto-generación SIN verificación **empeora**
+  el sistema (-1,3pp) → la prueba de que solo el gate riguroso la vuelve positiva.
+
+**La ingeniería que importa (barrido específico):** sandbox por **AST + allowlist + builtins
+recortados** (smolagents/LLM-Sandbox) · **cascada** de evaluación barato→caro fail-fast · **canal de
+artefactos** para auto-reparar · **archivo/linaje** con fitness · contenedor (gVisor) como hardening.
+
+**Mini-hoja de ruta (→ implementada como la Fábrica, D-39):**
+
+| # | Idea del barrido | Dónde quedó en el código |
+|---|---|---|
+| **S4** | El **verificador es el foso** (evaluador con verdad de tierra) | `fabrica/validacion.py` (7 puertas en cascada) ✅ |
+| **S5** | **Archivo/linaje** (DGM/ADAS), no hill-climbing | `PropuestaSkill.fitness` + `PropuestaStore` ✅ |
+| **S6** | Auto-currículo / Challenger (R-Zero/AZR) | *pendiente* (siguiente: casos adversarios fiscales) 🔵 |
+| **S7** | Optimización reflexiva (GEPA/TextGrad) + auto-reparación | `fabrica/autoria.py` (feedback del arnés) ✅ |
+| **S8** | Anti-overfit (held-out) | puerta `sin_regresion` del arnés ✅ |
+| **S9** | Memoria auto-organizada (A-MEM/Mem0) | *pendiente* (engancha el RAG local P1) 🔵 |
+| **S10** | **Gobernanza = producto** (gate, local, andamiaje≠pesos) | `fabrica/seguridad.py` + gate sagrado ✅ |
+
+*Fuentes barrido 4: [DGM](https://arxiv.org/abs/2505.22954) · [SICA](https://arxiv.org/abs/2504.15228) ·
+[ADAS](https://arxiv.org/abs/2408.08435) · [AlphaEvolve](https://arxiv.org/abs/2506.13131) ·
+[OpenEvolve](https://github.com/algorithmicsuperintelligence/openevolve) · [SEAL](https://arxiv.org/abs/2506.10943) ·
+[Absolute Zero](https://arxiv.org/abs/2505.03335) · [R-Zero](https://arxiv.org/abs/2508.05004) ·
+[TextGrad](https://arxiv.org/abs/2406.07496) · [survey APR](https://arxiv.org/abs/2506.23749) ·
+[A-MEM](https://arxiv.org/abs/2502.12110) · [Survey self-evolving](https://arxiv.org/abs/2508.07407) ·
+[smolagents secure exec](https://huggingface.co/docs/smolagents/en/tutorials/secure_code_execution) ·
+[Agent Skills SoK](https://arxiv.org/html/2602.12430v4).*
+
 ## Cómo se alimenta este radar
 1. **Claude (yo), de forma continua** — al trabajar, propongo aquí lo que veo de vanguardia aplicable.
 2. **Routine "tech/normativa radar"** (futura) — barrido periódico de normativa (BOE/AEAT) y estado del arte → nuevas filas con fuente.

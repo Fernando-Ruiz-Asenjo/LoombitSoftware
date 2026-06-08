@@ -1,0 +1,24 @@
+{
+  "name": "fabrica_de_skills",
+  "display_name": "Skill X · Fábrica de Skills",
+  "version": "0.1.0",
+  "category": "core",
+  "description": "Auto-autoría gobernada: detecta huecos útiles, redacta una tool con el coder local, la valida con un arnés grado-foso (seguridad AST + black + ruff + eval + sin regresión) y la PROPONE con gate humano. Nunca se auto-aplica. Evoluciona el andamiaje, nunca los pesos.",
+  "capabilities": [
+    "detectar_necesidades",
+    "redactar_tool",
+    "validar_grado_foso",
+    "proponer_con_gate",
+    "archivo_linaje"
+  ],
+  "requires_llm": true,
+  "required_hardware": [],
+  "safety_class": "safety_sensitive",
+  "enabled_by_default": false,
+  "metadata": {
+    "skill_code": "Skill X",
+    "estado": "experimental",
+    "promocion": "no gobierna comportamiento estable hasta promoverse (regla de la taxonomía)",
+    "doc": "docs/FABRICA_DE_SKILLS.md"
+  }
+}

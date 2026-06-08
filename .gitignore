@@ -43,3 +43,7 @@ Thumbs.db
 
 # ---- Misc dev artifacts ----
 .write_probe
+
+# Fábrica de Skills — tools auto-generadas en runtime (no se versionan)
+loombit_operator/fabrica/generadas/*.py
+!loombit_operator/fabrica/generadas/__init__.py

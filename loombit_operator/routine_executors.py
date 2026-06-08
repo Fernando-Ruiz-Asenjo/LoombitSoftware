@@ -321,12 +321,53 @@ def vigilar_respuestas_routine() -> Routine:
     )
 
 
+def fabrica_skills_routine() -> Routine:
+    """Routine de la Fábrica de Skills (Skill X): en 2º plano detecta huecos útiles, redacta y valida
+    una tool con el coder local y PROPONE con gate. Nunca aplica. OPT-IN (enabled=False)."""
+    return Routine(
+        name="Fábrica de Skills",
+        schedule=CronSchedule("0 4 * * *", tz="Europe/Madrid"),
+        objective=(
+            "Detecta huecos útiles (tools que el agente pidió o que fallan), redacta y valida una "
+            "tool nueva con el arnés grado-foso y propónla para aprobación. No apliques nada."
+        ),
+        safety=SkillSafetyClass.SAFETY_SENSITIVE,
+        output_kind="fabrica",
+        enabled=False,
+    )
+
+
+def fabrica_skills_executor(routine: Routine, now: datetime) -> str:
+    """Corre un ciclo de la Fábrica y resume las propuestas pendientes nuevas (no aplica nada)."""
+    try:
+        from .fabrica.ciclo import ejecutar_ciclo
+
+        informe = ejecutar_ciclo(max_necesidades=3, max_intentos=2)
+    except Exception as exc:  # noqa: BLE001
+        return f"Fábrica: no pude correr el ciclo: {exc!r}"
+    nuevas = informe.get("tools", {}).get("propuestas_pendientes_nuevas", [])
+    hallazgos = informe.get("hallazgos_red_meta", {}).get("nuevos", 0)
+    if not nuevas and not hallazgos:
+        n = informe.get("oportunidades_detectadas", 0)
+        return f"Fábrica: {n} oportunidad(es) analizada(s); sin novedad que aprobar/revisar."
+    partes = []
+    if nuevas:
+        partes.append(f"{len(nuevas)} propuesta(s) de tool para aprobar (/fabrica/propuestas)")
+    if hallazgos:
+        partes.append(
+            f"{hallazgos} hallazgo(s) de la Red/meta para revisar (/fabrica/oportunidades)"
+        )
+    return "Fábrica: " + " · ".join(partes) + "."
+
+
 def default_executor(routine: Routine, now: datetime) -> str:
     """Despacha al executor según el tipo de routine (un solo punto de entrada para el scheduler)."""
     if routine.output_kind == "mejora":
         return mejora_continua_executor(routine, now)
     if routine.output_kind == "reply_watch":
         return reply_watch_executor(routine, now)
+    if routine.output_kind == "fabrica":
+        return fabrica_skills_executor(routine, now)
     return brief_executor(routine, now)
 
 
@@ -339,6 +380,8 @@ def ensure_default_routines(store: RoutineStore) -> RoutineStore:
         store.add(mejora_continua_routine())
     if "Vigilar respuestas" not in nombres:
         store.add(vigilar_respuestas_routine())
+    if "Fábrica de Skills" not in nombres:
+        store.add(fabrica_skills_routine())
     return store
 
 
