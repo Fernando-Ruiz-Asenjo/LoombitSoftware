@@ -265,7 +265,7 @@ tool_registry.register(
 tool_registry.register(
     ToolDefinition(
         name="ask_user",
-        description="Pregunta algo al usuario en el chat y espera su respuesta. Usar cuando falta informacion para continuar (asunto de correo, fecha, destinatario, etc).",
+        description="Pregunta al usuario SOLO si falta un dato IMPOSIBLE de obtener con tools (p.ej. el email de un destinatario que no aparece en contactos, o una preferencia personal suya). NUNCA preguntes el asunto ni el cuerpo de un correo: esos los REDACTAS tú a partir del encargo.",
         parameters={
             "type": "object",
             "properties": {

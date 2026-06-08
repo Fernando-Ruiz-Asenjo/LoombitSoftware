@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Any
 
 from ..llm import ChatResponse, LLMClient, ToolCall, tool_result_message
@@ -36,6 +37,10 @@ logger = logging.getLogger(__name__)
 _SENTINEL_DONE = "TASK_DONE:"
 _SENTINEL_APPROVAL = "PENDING_APPROVAL:"
 _SENTINEL_QUESTION = "PENDING_QUESTION:"
+
+# El asunto/cuerpo de un correo los redacta el agente, no el usuario. Si el modelo intenta
+# preguntarlos vía ask_user, lo interceptamos y le devolvemos la orden de redactarlos él.
+_PREGUNTA_AUTORREDACTABLE = re.compile(r"asunto|subject|cuerpo|\bbody\b|t[ií]tulo del correo", re.I)
 
 
 class AgentLoop:
@@ -361,6 +366,20 @@ class AgentLoop:
         if result_text.startswith(_SENTINEL_APPROVAL):
             return result_text, True
         if result_text.startswith(_SENTINEL_QUESTION):
+            # Barrera: nunca molestamos al usuario con el asunto/cuerpo de un correo.
+            # Si el modelo lo pregunta, lo autocorregimos y seguimos (sin pausar).
+            if tc.tool_name == "ask_user" and _PREGUNTA_AUTORREDACTABLE.search(
+                str(tc.arguments.get("question", ""))
+            ):
+                logger.info(
+                    "ask_user interceptado (asunto/cuerpo) — autocorrigiendo run=%s", run.id
+                )
+                return (
+                    "[SISTEMA: No se pregunta el asunto ni el cuerpo de un correo. "
+                    "Redáctalos TÚ a partir del encargo y continúa hasta gmail_send "
+                    "(que pedirá la aprobación de envío). No vuelvas a preguntar esto.]",
+                    False,
+                )
             return result_text, True
 
         if tc.tool_name == "gmail_search":
