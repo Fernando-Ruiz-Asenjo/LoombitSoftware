@@ -46,6 +46,19 @@ _RE_FECHA_NUM = re.compile(r"\b(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?\b")
 _RE_FECHA_TXT = re.compile(r"\b(\d{1,2})\s+de\s+([a-záéíóú]+)\b", re.I)
 
 
+_DIAS_ES = ("lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo")
+
+
+def _cuando_humano(fecha_iso: str, hora: str = "") -> str:
+    """'2026-06-11' + '09:00' → 'jueves 11/6 · 09:00'."""
+    try:
+        d = date.fromisoformat(fecha_iso)
+        base = f"{_DIAS_ES[d.weekday()]} {d.day}/{d.month}"
+    except ValueError:
+        base = fecha_iso
+    return f"{base} · {hora}" if hora else base
+
+
 def _saludo(now: datetime) -> str:
     h = now.hour
     if h < 6:
@@ -279,6 +292,7 @@ def tejer_dia(
     settings: Any = None,
     now: datetime | None = None,
     eventos: list[dict] | None = None,
+    proximos: list[dict] | None = None,
     correos: list[dict] | None = None,
     inbox: list[dict] | None = None,
     vencidas: list | None = None,
@@ -296,10 +310,13 @@ def tejer_dia(
     # Fuentes reales (best-effort; si una falla, no aporta hilo — nunca inventa).
     if eventos is None:
         eventos = _fuente_eventos(settings, ahora)
+    if proximos is None:
+        proximos = _fuente_eventos_proximos(settings, ahora)
     if correos is None:
         correos = _fuente_correos(settings)
     if inbox is None:
-        inbox = _fuente_inbox(settings)
+        # incluir_leidos: una reunión/plazo en un correo YA leído sigue siendo contexto a no perder.
+        inbox = _fuente_inbox(settings, incluir_leidos=True)
     if vencidas is None or proximas is None:
         v, p = _fuente_cobros(settings)
         vencidas = vencidas if vencidas is not None else v
@@ -398,6 +415,62 @@ def tejer_dia(
             )
         )
 
+    # 📆 Próximas citas del CALENDARIO (próximos días, no solo hoy) — la fuente autoritativa: aquí
+    # vive la reunión del jueves. Antes el telar solo miraba HOY y se la perdía.
+    fechas_calendario: set = set()
+    for ev in (proximos or [])[:6]:
+        inicio = str(ev.get("start", ""))
+        fecha = inicio[:10]
+        if not fecha:
+            continue
+        fechas_calendario.add(fecha)
+        hora = inicio[11:16] if not ev.get("all_day") else ""
+        cuando = _cuando_humano(fecha, hora)
+        hilos.append(
+            _hilo(
+                "reunion",
+                "📆",
+                f"{ev.get('summary', '(evento)')} · {cuando}",
+                urgencia=2,
+                accion={"modo": "navigate", "label": "Ver"},
+                detalle=f"En tu calendario · {cuando}"
+                + (f" · {ev['location']}" if ev.get("location") else ""),
+            )
+        )
+
+    # 📆 Reuniones acordadas en CORREO que aún NO están en el calendario (destilar lo informal: el
+    # hilo donde quedasteis pero nadie creó el evento). Dedup contra el calendario y contra tu propio
+    # nombre (un correo "Confirmación" que TÚ enviaste no es una reunión "con" otra persona).
+    from .percepcion_correo import detectar_reuniones
+
+    yo = (_usuario() or "").lower()
+    for r in detectar_reuniones((correos or []) + (inbox or []), hoy)[:4]:
+        if r["fecha"] in fechas_calendario:
+            continue  # ya está en tu calendario → no lo duplicamos
+        de = r["de"]
+        if de and yo and (de.lower() in yo or yo in de.lower()):
+            continue  # lo enviaste tú; no es una cita "con" otra persona
+        quien = f"con {de}" if de else ""
+        hora_iso = f"{r['fecha']}T{r['hora']}:00" if r["hora"] else r["fecha"]
+        hilos.append(
+            _hilo(
+                "reunion",
+                "📆",
+                f"Reunión {quien} · {r['cuando']} (sin agendar)".replace("  ", " ").strip(),
+                urgencia=2,
+                accion={
+                    "modo": "agent_task",
+                    "label": "Agendar",
+                    "task": (
+                        f"Crea un evento en mi calendario el {hora_iso} titulado "
+                        f"«Reunión{(' con ' + de) if de else ''}» (lo acordamos en un correo). Antes "
+                        "comprueba con calendar_today/gmail_search que no esté ya creado."
+                    ),
+                },
+                detalle=f"Según un correo de {de}: «{r['snippet']}»",
+            )
+        )
+
     # ✅ Aprobaciones pendientes
     if aprobaciones:
         hilos.append(
@@ -457,6 +530,16 @@ def _fuente_eventos(settings: Any, ahora: datetime) -> list[dict]:
         return []
 
 
+def _fuente_eventos_proximos(settings: Any, ahora: datetime) -> list[dict]:
+    """Eventos del calendario en los próximos 7 días (no hoy). Para no perder la reunión del jueves."""
+    try:
+        from .skill_blanca_calendar_read import eventos_proximos
+
+        return eventos_proximos(settings=settings, now=ahora, dias=7)
+    except Exception:
+        return []
+
+
 def _fuente_correos(settings: Any) -> list[dict]:
     try:
         from types import SimpleNamespace
@@ -478,9 +561,13 @@ def _fuente_correos(settings: Any) -> list[dict]:
         return []
 
 
-def _fuente_inbox(settings: Any, dias: int = 6, maximo: int = 18) -> list[dict]:
-    """Correos recientes SIN LEER de toda la bandeja (read-only) — para detectar plazos
-    vengan de quien vengan (gestoría, AEAT, bancos…). Devuelve from/subject/snippet."""
+def _fuente_inbox(
+    settings: Any, dias: int = 6, maximo: int = 18, incluir_leidos: bool = False
+) -> list[dict]:
+    """Correos recientes de toda la bandeja (read-only) — para detectar plazos y reuniones vengan
+    de quien vengan (gestoría, AEAT, bancos, un proveedor nuevo…). Por defecto solo NO leídos; con
+    `incluir_leidos=True` también los ya leídos (una reunión que YA acordaste y leíste sigue siendo
+    contexto que no se puede perder). Devuelve from/subject/snippet."""
     try:
         import httpx
 
@@ -492,12 +579,13 @@ def _fuente_inbox(settings: Any, dias: int = 6, maximo: int = 18) -> list[dict]:
         if not token:
             return []
         h = {"Authorization": f"Bearer {token}"}
+        q = f"newer_than:{dias}d" if incluir_leidos else f"is:unread newer_than:{dias}d"
         out: list[dict] = []
         with httpx.Client(timeout=12) as c:
             r = c.get(
                 "https://gmail.googleapis.com/gmail/v1/users/me/messages",
                 headers=h,
-                params={"q": f"is:unread newer_than:{dias}d", "maxResults": maximo},
+                params={"q": q, "maxResults": maximo},
             )
             if r.status_code != 200:
                 return []

@@ -253,4 +253,13 @@ Formato: **D-NN — decisión** · *contexto* · **elegido** vs alternativas · 
 - *Pendiente (lo siguiente):* el **fallo de destilación** del mismo episodio — el `daily_brief` dijo "no hay correos ni vencimientos" cuando Fernando tenía un hilo con David y una reunión el jueves. Eso NO es este fix; es la mejora de percepción/contexto ("destilar mejor que Google"), que se aborda aparte.
 - *Reversible:* sí; `loop.py` (split accept/execute) + 6 líneas en `routers/agent.py` + 2 funciones JS en `index.html` + rename de strings de UI + tests.
 
+**D-36 — Destilación: Loombit SÍ sabe de tus reuniones (caso David).** Estado **🟡** (rama `feat/destilacion-reuniones`, +20 tests; espera OK). Cierra el fallo del mismo episodio de Fernando: tenía un hilo con David y una reunión cerrada para el jueves, y el `daily_brief` dijo "no tienes nada". "Destilar y poner contexto mejor que Google".
+- *Causa raíz:* la percepción era estrecha — el brief/telar solo miraban (a) la agenda de **HOY** (la reunión era el jueves) y (b) correos **sin leer** de **contactos conocidos** (David no era contacto y el hilo estaba leído). Todo lo demás era invisible.
+- *Arreglo (3 frentes):*
+  1. **Agenda próxima** (autoritativo): `calendar_read.eventos_proximos(dias=7)` — el telar y el brief muestran las citas de los **próximos días**, no solo hoy. Aquí vive la reunión con David. (Verificado en vivo: el telar real sacó «Reunión con David · lun 15/6 · 09:00» y «con David Valentin · 11:00».)
+  2. **Reuniones acordadas en correo** (`percepcion_correo.detectar_reuniones`): destila citas pactadas por email aunque NO estén en el calendario (palabra de cita + día reconocible —día de la semana/fecha/mañana— + hora opcional). Conservador y honesto ("según un correo de X"); dedup contra el calendario y filtra correos que enviaste tú. `_fuente_inbox` ahora puede incluir **leídos** (`incluir_leidos`): una reunión que ya leíste sigue siendo contexto.
+  3. **El agente se fundamenta en la bandeja**: nuevo nudge en el prompt — si mencionas "tengo un mail con David", BUSCA con `gmail_search` antes de preguntar, no preguntes lo que puede leer.
+- *Honestidad (regla nº1):* cero invención. El calendario es fuente autoritativa; lo de email se marca "según un correo" y se propone agendar (gate de aprobación intacto).
+- *Reversible:* sí; módulo nuevo `percepcion_correo.py` + `eventos_proximos` en `calendar_read.py` + hilos en `telar.py` + señales en `routine_executors.py` + 1 nudge en `prompts.py` + tests. Aditivo.
+
 *(se irán añadiendo entradas según avance el bloque)*

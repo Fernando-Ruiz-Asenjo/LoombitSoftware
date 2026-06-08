@@ -75,3 +75,40 @@ def test_eventos_de_hoy_token_caducado(monkeypatch) -> None:
 
     with pytest.raises(ValueError, match="unauthorized"):
         cr.eventos_de_hoy(settings=object(), http_get=lambda *a, **k: _Resp())
+
+
+def test_eventos_proximos_cubre_desde_manana_hasta_n_dias(monkeypatch) -> None:
+    # El hueco que se perdía la reunión del jueves: el brief/telar solo miraban HOY.
+    monkeypatch.setattr(cr, "fresh_access_token", lambda s, p: "tok")
+    captured: dict = {}
+
+    class _Resp:
+        status_code = 200
+
+        def json(self):
+            return {
+                "items": [
+                    {
+                        "summary": "Reunión con David Valentin",
+                        "start": {"dateTime": "2026-06-11T09:00:00+02:00"},
+                        "end": {"dateTime": "2026-06-11T10:00:00+02:00"},
+                    }
+                ]
+            }
+
+    def fake_get(url, headers=None, params=None, timeout=None):
+        captured["params"] = params
+        return _Resp()
+
+    now = datetime(2026, 6, 8, 15, 0, tzinfo=ZoneInfo("Europe/Madrid"))  # lunes
+    out = cr.eventos_proximos(settings=object(), now=now, dias=7, http_get=fake_get)
+    assert out[0]["summary"] == "Reunión con David Valentin"
+    # por defecto NO incluye hoy: la ventana empieza mañana (martes 9)
+    assert captured["params"]["timeMin"].startswith("2026-06-09T00:00")
+    assert captured["params"]["timeMax"].startswith("2026-06-16T00:00")  # hoy + 7 + 1
+
+
+def test_eventos_proximos_sin_token_lanza(monkeypatch) -> None:
+    monkeypatch.setattr(cr, "fresh_access_token", lambda s, p: None)
+    with pytest.raises(ValueError, match="no_token"):
+        cr.eventos_proximos(settings=object())

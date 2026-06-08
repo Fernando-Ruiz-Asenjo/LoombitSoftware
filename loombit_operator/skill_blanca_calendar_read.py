@@ -52,15 +52,10 @@ def _parse_events(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return out
 
 
-def eventos_de_hoy(
-    settings: AppSettings | None = None,
-    now: datetime | None = None,
-    http_get: Any = None,
+def _listar_eventos(
+    active: AppSettings, time_min: str, time_max: str, http_get: Any = None
 ) -> list[dict[str, Any]]:
-    """Devuelve los eventos del calendario primario para HOY (Europe/Madrid).
-
-    Lanza ValueError('calendar_read_no_token') si Google no está conectado."""
-    active = settings or get_settings()
+    """GET de eventos del calendario primario en [time_min, time_max). Núcleo compartido."""
     try:
         token = fresh_access_token(active, "google")
     except Exception:
@@ -68,8 +63,6 @@ def eventos_de_hoy(
     if not token:
         raise ValueError("calendar_read_no_token")
 
-    ahora = now or datetime.now(MADRID)
-    time_min, time_max = _dia_bounds(ahora)
     get = http_get or httpx.get
     resp = get(
         CALENDAR_LIST_URL,
@@ -88,3 +81,38 @@ def eventos_de_hoy(
     if not (200 <= resp.status_code < 300):
         raise ValueError(f"calendar_read_failed:{resp.status_code}")
     return _parse_events(resp.json().get("items", []))
+
+
+def eventos_de_hoy(
+    settings: AppSettings | None = None,
+    now: datetime | None = None,
+    http_get: Any = None,
+) -> list[dict[str, Any]]:
+    """Devuelve los eventos del calendario primario para HOY (Europe/Madrid).
+
+    Lanza ValueError('calendar_read_no_token') si Google no está conectado."""
+    active = settings or get_settings()
+    ahora = now or datetime.now(MADRID)
+    time_min, time_max = _dia_bounds(ahora)
+    return _listar_eventos(active, time_min, time_max, http_get)
+
+
+def eventos_proximos(
+    settings: AppSettings | None = None,
+    now: datetime | None = None,
+    dias: int = 7,
+    incluir_hoy: bool = False,
+    http_get: Any = None,
+) -> list[dict[str, Any]]:
+    """Eventos del calendario en los PRÓXIMOS `dias` (por defecto desde mañana). El brief y el telar
+    solo miraban HOY → una reunión cerrada para el jueves no aparecía. Esto cierra ese hueco con la
+    fuente autoritativa (el calendario). Lanza ValueError('calendar_read_no_token') si no hay token.
+    """
+    active = settings or get_settings()
+    ahora = (now or datetime.now(MADRID)).astimezone(MADRID)
+    desde = ahora.date() if incluir_hoy else ahora.date() + timedelta(days=1)
+    time_min = datetime.combine(desde, time.min, tzinfo=MADRID).isoformat()
+    time_max = datetime.combine(
+        ahora.date() + timedelta(days=dias + 1), time.min, tzinfo=MADRID
+    ).isoformat()
+    return _listar_eventos(active, time_min, time_max, http_get)

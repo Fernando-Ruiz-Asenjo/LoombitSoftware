@@ -47,6 +47,30 @@ def _señales_reales(now: datetime | None = None) -> list[str]:
             señales.append("sin eventos en tu calendario hoy")
     except Exception:
         pass
+    # Próximas citas (no solo hoy): que NO se pierda la reunión cerrada para el jueves. Autoritativo.
+    try:
+        from datetime import date as _date
+
+        from .skill_blanca_calendar_read import eventos_proximos
+
+        prox = eventos_proximos(now=now, dias=7)
+        for ev in prox[:4]:
+            inicio = str(ev.get("start", ""))
+            dia = inicio[:10]
+            hora = inicio[11:16] if not ev.get("all_day") else ""
+            try:
+                d = _date.fromisoformat(dia)
+                cuando = ("lun", "mar", "mié", "jue", "vie", "sáb", "dom")[
+                    d.weekday()
+                ] + f" {d.day}/{d.month}"
+            except ValueError:
+                cuando = dia
+            señales.append(
+                f"próxima cita: «{ev.get('summary', 'evento')}» {cuando}"
+                + (f" {hora}" if hora else "")
+            )
+    except Exception:
+        pass
     try:
         from types import SimpleNamespace
 
@@ -70,6 +94,27 @@ def _señales_reales(now: datetime | None = None) -> list[str]:
                 if n
                 else "ningún correo sin leer de contactos"
             )
+    except Exception:
+        pass
+    # Percepción AMPLIA (no solo contactos conocidos): correos recientes de CUALQUIERA + reuniones
+    # acordadas en correo aunque no estén en el calendario. Esto es "destilar" — que no se nos escape
+    # un hilo nuevo (p. ej. un proveedor con el que acabas de cerrar una reunión). Honesto: marcado
+    # "según un correo"; no inventa. Best-effort: si falla la red, no aporta señal.
+    try:
+        from .percepcion_correo import detectar_reuniones
+        from .telar import _fuente_inbox
+
+        inbox = _fuente_inbox(None, incluir_leidos=True)  # también leídos: la reunión ya la leíste
+        hoy = (now or datetime.now()).date()
+        for r in detectar_reuniones(inbox, hoy)[:3]:
+            quien = f"con {r['de']}" if r.get("de") else ""
+            señales.append(
+                f"posible reunión {quien} {r['cuando']} (según un correo)".replace(
+                    "  ", " "
+                ).strip()
+            )
+        if inbox:
+            señales.append(f"{len(inbox)} correo(s) reciente(s) en tu bandeja")
     except Exception:
         pass
     try:
