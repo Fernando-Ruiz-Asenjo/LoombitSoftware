@@ -33,7 +33,9 @@ def galaxia_contacto(email: str, name: str = "", resumen: bool = True) -> dict:
 
 
 class DropRequest(BaseModel):
-    source: dict = Field(default_factory=dict)  # lo que se arrastra (conversacion/documento/contacto)
+    source: dict = Field(
+        default_factory=dict
+    )  # lo que se arrastra (conversacion/documento/contacto)
     target: dict = Field(default_factory=dict)  # dónde se suelta (contacto/cuenta/sol)
 
 
