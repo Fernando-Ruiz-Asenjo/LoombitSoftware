@@ -228,12 +228,20 @@ Formato: **D-NN — decisión** · *contexto* · **elegido** vs alternativas · 
 - *Por qué cortar:* fricción cero y honestidad (regla DoD) — mejor parar y decir la verdad que simular trabajo gastando pasos. La reflexión (`_aprender_de_fallo`) aprende del corte para tareas futuras.
 - *Reversible:* sí; cambio acotado a `loop.py` (+helpers `_is_error_result`/`_error_brief`/`_consecutive_tool_errors`/`_maybe_cut_for_flailing`) + `tests/test_loop_reliability.py`. Sin tocar routers, UI ni estado persistido.
 
-**D-33 — Cobros: el interés de demora deja de abstenerse (tabla oficial BOE).** Estado **🟡** (construido en rama `feat/cobros-interes-bce`, 19 tests; espera OK para fundir). Primer trozo del frente "cobros e2e". Sale de Investigación 6.
+**D-33 — Cobros: el interés de demora deja de abstenerse (tabla oficial BOE).** Estado **🟢** (fundida a main `6fcb25f`, 19 tests). Primer trozo del frente "cobros e2e". Sale de Investigación 6.
 - *Problema:* `cobros.late_interest` se abstenía SIEMPRE que no le pasaran un tipo (`rate_required=True`), porque el interés de demora (Ley 3/2004, art. 7) es variable por semestre y el código no inventa cifras legales. Resultado: el operador nunca podía afirmar el interés por su cuenta.
 - *Solución:* `tipos_demora.py` — tabla de los tipos **publicados en el BOE** (BCE + 8 puntos), una entrada por semestre **con su referencia de resolución** (1S2023…1S2026), verificada contra el BOE el 2026-06-08. `dunning_plan`, cuando no recibe tipo explícito, resuelve el tipo legal de la tabla y **reparte el interés por tramos** (cada semestre a su tipo vigente). Un tipo explícito sigue teniendo prioridad.
 - *Honestidad mantenida (S-02):* no se inventa nada — cada cifra es la oficial y lleva su `boe`. Si algún tramo del periodo cae **fuera de la tabla verificada**, se sigue absteniendo (`rate_required=True`) y nombra el semestre que falta. Invariante testada: `tipo_pct == bce_pct + 8`.
 - *Cifras verificadas (tipo · BCE · BOE):* 1S23 10,50·2,50·A-2022-24416 · 2S23 12,00·4,00·A-2023-15221 · 1S24 12,50·4,50·A-2023-26709 · 2S24 12,25·4,25·A-2024-13089 · 1S25 11,15·3,15·A-2024-27618 · 2S25 10,15·2,15·A-2025-13217 · 1S26 10,15·2,15·A-2025-27201.
 - *Pendiente del frente (no en este trozo):* `Skill A Banca N43` (lectura de extractos) + lazo factura→cuenta candidata + surfacing en router/UI/telar; mantenimiento de la tabla cuando el Tesoro publique nuevos semestres (futura routine).
 - *Reversible:* sí; módulo nuevo `tipos_demora.py` + 7 líneas en `cobros.py` + tests. Sin tocar routers, UI ni estado.
+
+**D-34 — Cobros visibles: el telar muestra el cobro vencido con su desglose legal.** Estado **🟡** (rama `feat/cobros-visible`, +4 tests; espera OK para fundir). Continúa D-33 (segundo trozo del frente). Sale de "hazlo visible".
+- *Problema:* el cerebro de cobros (`dunning_plan` + interés legal de D-33) ya calculaba todo, pero **no se veía**: el hilo de cobro del telar solo decía "Cliente · X € VENCIDA" y la UI ni siquiera pintaba el campo `detalle`.
+- *Solución (telar):* `_hilo_cobro_vencida` construye el hilo de la factura vencida con su **desglose legal honesto** en `detalle` — días vencidos · saldo · 40 € compensación (art. 8) · interés de demora con su tipo y **cita BOE** · total reclamable —, y modula el **tono** de la acción según la etapa (`escalation_stage`): cordial / firme / formal y, en `via_judicial`, escala a un profesional (no litiga; recuerda el MASC L.O. 1/2025). Degrada con gracia: sin vencimiento → recordatorio básico, sin inventar.
+- *Solución (API):* `GET /cuentas` adjunta el `plan` de cobro a cada vencida + nuevo `GET /cuentas/{id}/plan`.
+- *Solución (UI):* el panel del telar ahora **renderiza `detalle`** (una línea atenuada bajo el título) — beneficia también a los hilos fiscal y de plazo, que ya lo traían y no se mostraba.
+- *Verificación:* 393 tests verdes; `/telar` real (server aislado :8799) devolvió el hilo enriquecido con `BOE-A-2025-27201` y reclamable correcto; `index.html` servido incluye el render. (Screenshot del panel no capturado: el preview-MCP colisiona con el :8787 vivo.)
+- *Reversible:* sí; `telar.py` (+helpers `_eur`/`_TONO_ETAPA`/`_hilo_cobro_vencida`) + 2 endpoints en `routers/cuentas.py` + 1 línea de render en `index.html` + tests. Aditivo.
 
 *(se irán añadiendo entradas según avance el bloque)*

@@ -171,3 +171,41 @@ def test_plazo_genera_hilo_de_agendar() -> None:
     plazo = next(h for h in tela["hilos"] if h["tipo"] == "plazo")
     assert plazo["accion"]["label"] == "Agendar"
     assert "2026-07-20" in plazo["accion"]["task"]
+
+
+def test_cobro_vencido_muestra_desglose_legal_con_cita_boe() -> None:
+    # Una vencida CON vencimiento → el hilo lleva su desglose legal (saldo + 40 € + interés con BOE).
+    tela = telar.tejer_dia(
+        now=datetime(2026, 6, 7, 9),
+        eventos=[],
+        correos=[],
+        vencidas=[SimpleNamespace(cliente="Acme", importe=1250.0, vencimiento="2026-05-01")],
+        proximas=[],
+        aprobaciones=0,
+    )
+    cobro = next(h for h in tela["hilos"] if h["tipo"] == "cobro")
+    assert "VENCIDA (37d)" in cobro["titulo"]
+    # el detalle nombra la compensación, el interés con su tipo y la fuente BOE, y lo reclamable
+    det = cobro["detalle"]
+    assert "40,00 €" in det
+    assert "interés demora" in det and "10,15%" in det and "BOE-A-2025-27201" in det
+    assert "reclamable" in det
+    # la acción es una reclamación formal (37 días) que cita la base legal, en nombre del usuario
+    assert cobro["accion"]["label"] == "Reclamación formal"
+    assert "Acme" in cobro["accion"]["task"] and "Ley 3/2004" in cobro["accion"]["task"]
+
+
+def test_cobro_sin_vencimiento_degrada_a_recordatorio_basico() -> None:
+    # Sin vencimiento no se puede calcular el desglose → recordatorio básico, sin inventar nada.
+    tela = telar.tejer_dia(
+        now=datetime(2026, 6, 7, 9),
+        eventos=[],
+        correos=[],
+        vencidas=[SimpleNamespace(cliente="Beta", importe=900.0)],
+        proximas=[],
+        aprobaciones=0,
+    )
+    cobro = next(h for h in tela["hilos"] if h["tipo"] == "cobro")
+    assert "detalle" not in cobro  # sin desglose legal
+    assert cobro["accion"]["label"] == "Preparar recordatorio"
+    assert "Beta" in cobro["accion"]["task"]

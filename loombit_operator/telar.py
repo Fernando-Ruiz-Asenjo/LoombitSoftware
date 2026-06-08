@@ -152,6 +152,117 @@ def _obligaciones_fiscales(hoy: date, ventana_dias: int = 45) -> list[dict]:
     return cands[:1]
 
 
+def _eur(x: float) -> str:
+    """Formato monetario español: 1302.86 → '1.302,86'."""
+    s = f"{float(x or 0):,.2f}"  # '1,302.86'
+    return s.replace(",", "\x00").replace(".", ",").replace("\x00", ".")
+
+
+_TONO_ETAPA = {
+    "vence_hoy": ("cordial", "Preparar recordatorio"),
+    "recordatorio_amistoso": ("cordial", "Preparar recordatorio"),
+    "recordatorio_firme": ("firme pero cordial", "Recordatorio firme"),
+    "reclamacion_formal": ("formal", "Reclamación formal"),
+}
+
+
+def _hilo_cobro_vencida(cu: Any, hoy: date) -> dict:
+    """Hilo de una factura vencida con su desglose legal (Ley 3/2004): saldo + 40 € de
+    compensación + interés de demora con tipo y cita BOE, y el tono según la etapa de escalado.
+    Degrada con gracia: si falta/!parsea el vencimiento, cae al recordatorio básico (sin inventar).
+    """
+    imp = getattr(cu, "importe", 0) or 0
+    cliente = getattr(cu, "cliente", "") or ""
+    venc = getattr(cu, "vencimiento", "") or ""
+
+    plan = None
+    try:
+        if venc:
+            from .cobros import dunning_plan
+
+            plan = dunning_plan(total=float(imp), due_date=venc, today=hoy.isoformat())
+    except Exception:
+        plan = None
+
+    # Sin plan (sin vencimiento o no procede reclamar) → recordatorio básico, sin desglose.
+    if not plan or plan.get("action") != "reclamar":
+        return _hilo(
+            "cobro",
+            "💰",
+            f"{cliente} · {imp:.0f} € VENCIDA",
+            urgencia=2,
+            accion={
+                "modo": "agent_task",
+                "label": "Preparar recordatorio",
+                "task": (
+                    f"Prepara un recordatorio de cobro cordial para {cliente} por {imp:.0f} € "
+                    "(factura vencida), en mi nombre."
+                ),
+            },
+        )
+
+    dias = plan["overdue_days"]
+    stage = plan["stage"]
+    saldo = plan["outstanding"]
+    fee = plan.get("fixed_compensation_eur", 0) or 0
+    interes = plan.get("interest", {}) or {}
+    int_amt = interes.get("amount") or 0
+
+    # Desglose legal honesto, con cita de la fuente.
+    partes = [f"Vencida hace {dias} días.", f"Saldo {_eur(saldo)} € + {_eur(fee)} € comp. (art. 8)"]
+    cita_interes = ""
+    if interes.get("rate_required"):
+        partes.append("+ interés de demora a verificar (fuera de la tabla BOE)")
+    elif int_amt:
+        if interes.get("rate_pct") is not None and interes.get("tramos"):
+            tr = interes["tramos"][0]
+            tipo_txt = f"{interes['rate_pct']:.2f}".replace(".", ",")
+            partes.append(
+                f"+ {_eur(int_amt)} € interés demora ({tipo_txt}% {tr['semestre']}, {tr['boe']})"
+            )
+            cita_interes = (
+                f" Conforme a la Ley 3/2004 se podrían añadir {_eur(fee)} € de compensación y "
+                f"{_eur(int_amt)} € de interés de demora (tipo legal {tipo_txt}%)."
+            )
+        else:
+            partes.append(f"+ {_eur(int_amt)} € interés demora (por tramos, Ley 3/2004)")
+    reclamable = round(float(saldo) + float(fee) + float(int_amt), 2)
+    detalle = " ".join(partes) + f" → reclamable ≈ {_eur(reclamable)} €."
+
+    if stage == "via_judicial":
+        # No se redacta una reclamación más: se ESCALA a un profesional (el operador no litiga).
+        accion = {
+            "modo": "agent_task",
+            "label": "Escalar a un profesional",
+            "task": (
+                f"La factura vencida de {cliente} por {imp:.0f} € supera el plazo (vencida hace "
+                f"{dias} días). Prepárame un resumen para escalar la vía judicial a un profesional; "
+                "recuerda que desde la L.O. 1/2025 hay que intentar/documentar un MASC antes de "
+                "demandar. No envíes nada todavía."
+            ),
+        }
+    else:
+        tono, label = _TONO_ETAPA.get(stage, ("cordial", "Preparar recordatorio"))
+        accion = {
+            "modo": "agent_task",
+            "label": label,
+            "task": (
+                f"Prepara un recordatorio de cobro {tono} para {cliente} por {imp:.0f} € "
+                f"(factura vencida hace {dias} días; saldo {_eur(saldo)} €).{cita_interes} "
+                "Hazlo en mi nombre, claro y respetuoso."
+            ),
+        }
+
+    return _hilo(
+        "cobro",
+        "💰",
+        f"{cliente} · {imp:.0f} € VENCIDA ({dias}d)",
+        urgencia=2,
+        accion=accion,
+        detalle=detalle,
+    )
+
+
 def _hilo(tipo: str, icono: str, titulo: str, urgencia: int, accion: dict, **extra: Any) -> dict:
     return {
         "tipo": tipo,
@@ -204,23 +315,10 @@ def tejer_dia(
             _hilo("agenda", "📅", titulo, urgencia=1, accion={"modo": "navigate", "label": "Ver"})
         )
 
-    # 💰 Cobros
+    # 💰 Cobros — el hilo vencido lleva su desglose LEGAL (saldo + 40 € art. 8 + interés de demora
+    # con su tipo y cita BOE) y un tono de reclamación según la etapa. Cifras deterministas (cobros).
     for cu in (vencidas or [])[:6]:
-        imp = getattr(cu, "importe", 0)
-        cliente = getattr(cu, "cliente", "")
-        hilos.append(
-            _hilo(
-                "cobro",
-                "💰",
-                f"{cliente} · {imp:.0f} € VENCIDA",
-                urgencia=2,
-                accion={
-                    "modo": "agent_task",
-                    "label": "Preparar recordatorio",
-                    "task": f"Prepara un recordatorio de cobro cordial para {cliente} por {imp:.0f} € (factura vencida), en mi nombre.",
-                },
-            )
-        )
+        hilos.append(_hilo_cobro_vencida(cu, hoy))
     for cu in (proximas or [])[:4]:
         imp = getattr(cu, "importe", 0)
         cliente = getattr(cu, "cliente", "")
