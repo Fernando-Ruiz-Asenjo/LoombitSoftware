@@ -1387,6 +1387,31 @@ async function refreshApprovals() {
     const bar = document.getElementById('approveAllBar');
     if (runs.length > 0) {
       document.getElementById('approveAllCount').textContent = runs.length;
+      const noun = document.getElementById('approveAllNoun');
+      if (noun) noun.textContent = runs.length === 1 ? 'acción pendiente de aprobar' : 'acciones pendientes de aprobar';
+      // Vistazo rápido: QUÉ hay que aprobar (la acción en humano, pa.reason). textContent → sin HTML.
+      const list = document.getElementById('approveAllList');
+      if (list) {
+        list.replaceChildren();
+        runs.slice(0, 4).forEach(run => {
+          const pa = run.pending_approval || {};
+          let label = String(pa.reason || run.task || 'Acción pendiente').trim();
+          if (label.length > 64) label = label.slice(0, 61) + '…';
+          const li = document.createElement('li');
+          li.style.cssText = 'display:flex;gap:6px;align-items:flex-start';
+          const dot = document.createElement('span');
+          dot.textContent = '•'; dot.style.color = 'var(--lb-cyan,#06b6d4)';
+          const txt = document.createElement('span'); txt.textContent = label;
+          li.append(dot, txt);
+          list.appendChild(li);
+        });
+        if (runs.length > 4) {
+          const more = document.createElement('li');
+          more.style.cssText = 'opacity:.7;font-style:italic';
+          more.textContent = `+ ${runs.length - 4} más`;
+          list.appendChild(more);
+        }
+      }
       bar.style.display = 'flex';
     } else {
       bar.style.display = 'none';
@@ -1833,8 +1858,9 @@ document.addEventListener('keydown', e => {
   loadCuentas();
 })();
 </script>
-<div id="approveAllBar" style="display:none;position:fixed;top:64px;right:20px;z-index:9999;background:var(--lb-navy3,#1a2235);border:1px solid var(--lb-purple,#8b5cf6);border-radius:12px;padding:8px 10px 8px 14px;box-shadow:0 10px 30px rgba(0,0,0,.55);align-items:center;gap:12px;font-size:13px;color:var(--lb-text,#f1f5f9)">
-  <span>⚠ <strong id="approveAllCount">0</strong> aprobaciones pendientes</span>
+<div id="approveAllBar" style="display:none;position:fixed;top:64px;right:20px;z-index:9999;background:var(--lb-navy3,#1a2235);border:1px solid var(--lb-purple,#8b5cf6);border-radius:12px;padding:10px 14px;box-shadow:0 10px 30px rgba(0,0,0,.55);flex-direction:column;align-items:stretch;gap:8px;font-size:13px;color:var(--lb-text,#f1f5f9);max-width:340px">
+  <span>⚠ <strong id="approveAllCount">0</strong> <span id="approveAllNoun">acciones pendientes de aprobar</span></span>
+  <ul id="approveAllList" style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:12px;opacity:.92"></ul>
   <button id="approveAllBtn" onclick="approveAll()" style="background:linear-gradient(135deg,var(--lb-purple,#8b5cf6),var(--lb-cyan,#06b6d4));color:#fff;border:none;border-radius:999px;padding:8px 18px;font-weight:700;cursor:pointer;font-size:13px">Aprobar todo</button>
 </div>
 </body>
