@@ -59,7 +59,7 @@
 1. **Crear 1 evento real en Calendar** → cierra la Fase 1 🟢 (mismo patrón que el correo; OAuth y recibos ya están). *(siguiente)*
 2. ✅ **Swap del instructor a Qwen2.5-14B-Instruct (Q4_K_M)** — HECHO 2026-06-08, verificado contra la API real (genera asunto/cuerpo y llama a la tool sin preguntar). Ver `MODELOS_LOOMBIT.md`.
 3. **WhatsApp como objetivo del Pilot** — canal de negocio real (92% lo usa a diario, 68% prefiere WhatsApp a email/teléfono). Ver `INSIGHTS_PRODUCTO_Y_SUPUESTOS.md`.
-4. **Morning Brief + store de cuentas a cobrar** (cierra el MVP de Fase 2).
+4. **Routines (scheduler) + Brief diario + store de cuentas a cobrar** — motor de agentes proactivos programados; cierra el MVP de Fase 2. Ver `ROUTINES_LOOMBIT.md`.
 5. **Piloto real de cobros** end-to-end → primer recibo 🟢 (necesita LM Studio + datos).
 6. Qwen2.5-VL local (facturas escaneadas), servidor MCP, adaptador navegador.
 7. Convertir los supuestos (S-01…S-15 + los nuevos A-G/I-X de investigación de campo) en **tests de comportamiento**.

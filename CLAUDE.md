@@ -146,6 +146,7 @@ loombit_operator/
 | `docs/INSIGHTS_PRODUCTO_Y_SUPUESTOS.md` | Insights accionables: datos de mercado verificados, caso WhatsApp, supuestos sectoriales como tests de comportamiento, mapa de capacidades |
 | `docs/MODELOS_LOOMBIT.md` | Inventario funcional de modelos locales (instructor 14B / coder / visión), mapeo a config, comandos de carga y estrategia de VRAM |
 | `docs/INNOVACIONES.md` | Innovaciones aplicables de la investigación, mapeadas a fase, código existente y criterio DoD |
+| `docs/ROUTINES_LOOMBIT.md` | Diseño del motor de agentes proactivos programados (cron/evento), traspaso desde las Routines de Claude Code sobre el código existente |
 | `docs/investigacion/INFORME_GLOBAL_TRABAJO_OFICINA.md` | Investigación global del trabajo de oficina: 15 roles, país por país, herramientas, supuestos I-X, mapa de capacidades |
 | `docs/investigacion/OPERATIVA_PYMES_AUTONOMOS_ORDENADOR.md` | Operativa sector por sector de PYMEs/autónomos con el ordenador + ecosistema WhatsApp + supuestos A-G |
 | `docs/investigacion/OPERATIVA_EN_PANTALLA_DIA_A_DIA.md` | Nivel pantalla: qué hace cada perfil con el ordenador, ciclo de cada documento, 5 niveles de capacidad de Loombit |
