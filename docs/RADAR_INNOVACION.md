@@ -65,6 +65,51 @@ filas aquí, con aprobación. Es el siguiente enganche natural del flywheel.
 [alfred_](https://get-alfred.ai/blog/best-ai-email-assistants) ·
 [Fyxer](https://www.fyxer.com/blog/best-ai-email-assistant).*
 
+## Barrido 3 — IA que se automejora (2026-06-08)
+
+Destilado de papers/proyectos 2025-2026 sobre **automejora, autoprogramación, autorreparación y
+autoaprendizaje**. La fusión:
+
+- **Reflexion** — autocrítica verbal tras un fallo, guardada y antepuesta al siguiente intento, **sin
+  reentrenar pesos**. → Loombit YA lo tiene (`agent/reflexion.py` + `_aprender_de_fallo`). ✅
+- **Voyager / Skill Library + SAGE (2025/26)** — el agente **escribe código/skills reutilizables**, los
+  prueba contra casos de validación, **guarda los que funcionan** en una librería y los **recupera y
+  compone**. Es el patrón central de la autoprogramación. → Loombit: `Skill D` + `propose_improvement`
+  + Fábrica de Skills son la semilla; falta la librería viva con auto-guardado validado. 🟡
+- **GEPA (DSPy, ICLR'26)** — **evolución reflexiva de prompts/skills/tool-descriptions** por reflexión en
+  lenguaje natural sobre las TRAZAS de ejecución; gradient-free, **supera a RL ~20% con 35× menos
+  rollouts**, sin GPU. *Hermes Agent Self-Evolution* (DSPy+GEPA) muta los ficheros de skill y **propone
+  mejoras vía PR, validadas por gates de restricción**. → **Encaje altísimo con Loombit:** evolucionar
+  nuestros prompts/skills reflexionando sobre los `agent_runs`, **validado por los evals + el pre-commit
+  gate, propuesto como RAMA** (nunca auto-aplicado).
+- **Experiential learning (ERL, EvolveR)** — guardar trayectorias → reflexionar → **abstraer en
+  heurísticas/skills reutilizables**; mejora paramétrica-libre por experiencia acumulada. → memoria +
+  reflexión de Loombit es la base; falta la abstracción a skills.
+- **Self-healing / code-repair loops** — leer código roto → tests fallan → LLM depura → parchea → repite
+  hasta verde; disparado por CI. *Intent-based healing* 75-90%+ en cambios de UI. → Loombit: anti-flailing
+  + puerta `verify.py` + reflexión son la semilla; un **bucle de autorreparación** (evals/tests en rojo →
+  propone rama de arreglo) es implementable.
+- **Gödel Agent** — modifica recursivamente su propia lógica guiado por objetivos de alto nivel
+  (potente pero **arriesgado**; la literatura insiste en evals/gobernanza antes de soltarlo).
+- **Metacognición** — el agente evalúa su propio desempeño, planea qué aprender y comprueba si funcionó.
+  → `selfcheck.py` + routine de mejora continua es la semilla.
+
+**La gran lectura para Loombit:** el campo avisa de que la automejora SIN gobernanza es lo que "quita el
+sueño a los investigadores". **Loombit ya tiene justo el andamiaje seguro que piden:** supuestos→evals,
+puerta de verificación (`verify.py`/pre-commit), **rama + aprobación de Fernando**, reflexión y memoria.
+La oportunidad concreta: **un bucle de auto-evolución estilo GEPA/Voyager** — reflexiona sobre las trazas
+de los runs → propone mejoras de skill/prompt **como rama** → las valida con los evals + el gate → Fernando
+aprueba. Eso es la **Fábrica de Skills hecha real, en su versión segura** (autoría con freno de mano). Foso:
+local + gobernado, frente a la automejora cloud sin auditoría.
+
+| # | Idea | Madurez | Acción |
+|---|---|---|---|
+| S1 | **Auto-evolución GEPA-style** (reflexión sobre `agent_runs` → propone prompt/skill como rama, valida con evals+gate) | 🟡 | prototipo en `agent/reflexion` + routine; el gate ya es el freno |
+| S2 | **Skill Library viva** (Voyager): el agente guarda skills que pasan sus evals y las recupera | 🟡 | extender `propose_improvement` + Fábrica de Skills |
+| S3 | **Bucle de autorreparación** (evals/tests rojos → rama de arreglo propuesta) | 🟡 | engancha `selfcheck` + el agente coder |
+
+*Fuentes barrido 3: [Gödel Agent](https://arxiv.org/abs/2410.04444) · [Voyager](https://blog.pebblous.ai/report/voyager-lifelong-agent-2023/en/) · [GEPA](https://arxiv.org/pdf/2507.19457) · [Hermes Self-Evolution](https://github.com/NousResearch/hermes-agent-self-evolution) · [Survey Self-Evolving Agents](https://arxiv.org/pdf/2508.07407) · [ERL](https://arxiv.org/abs/2603.24639) · [Self-Healing CI](https://dagger.io/blog/automate-your-ci-fixes-self-healing-pipelines-with-ai-agents/).*
+
 ## Cómo se alimenta este radar
 1. **Claude (yo), de forma continua** — al trabajar, propongo aquí lo que veo de vanguardia aplicable.
 2. **Routine "tech/normativa radar"** (futura) — barrido periódico de normativa (BOE/AEAT) y estado del arte → nuevas filas con fuente.
