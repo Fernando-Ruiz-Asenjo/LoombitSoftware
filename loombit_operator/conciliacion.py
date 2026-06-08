@@ -251,6 +251,12 @@ def _tokens_significativos(nombre: str) -> list[str]:
     return [t for t in _norm(nombre).split() if len(t) >= 3 and t not in _TOKENS_RUIDO]
 
 
+def tokens_contraparte(texto: str) -> list[str]:
+    """Tokens significativos (sin ruido ni forma jurídica) de un nombre o concepto bancario.
+    Público para que el `AliasResolver` comparta exactamente esta tokenización."""
+    return _tokens_significativos(texto)
+
+
 class ConfianzaTier(StrEnum):
     ALTA = "alta"  # importe exacto + referencia/nº de factura en el concepto
     MEDIA = "media"  # importe exacto + contraparte, o candidato único

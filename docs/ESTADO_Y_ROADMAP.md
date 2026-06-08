@@ -7,7 +7,7 @@
 
 ## Foto global
 - **Repo**: limpio y profesional, historial sano, LICENSE propietaria, `.gitignore`/`.gitattributes`.
-- **CI**: verde (black + ruff + pytest). **195 tests**.
+- **CI**: verde (black + ruff + pytest). **204 tests**.
 - **Arquitectura**: núcleo blanco + skills + ReAct; FastAPI en `:8787`; LLM local (instructor **Qwen2.5-14B**, coder 7B, vía LM Studio). Ver `MODELOS_LOOMBIT.md`.
 
 ## Avance por fases
@@ -38,6 +38,7 @@
 |---|---|---|
 | 1 | Proactividad (morning brief) | 🟠 cerebro de cobros listo; falta el brief |
 | — | **Conciliación bancaria (innovación #1)** | 🟡 parser N43 + matcher con semáforo + Expediente + router (27 tests); falta extracto de banco real → 🟢 |
+| 7 | **Plantillas que aprenden — AliasResolver de pagador (flywheel)** | 🟡 tabla determinista por entidad, aprende de cobros confirmados, con procedencia/revocación (9 tests); el LLM no interviene |
 | 3 | Memoria de empresa (`EntityProfile`) | 🟡 hecho (IBANs, pago, incidencias, **gate antifraude**) |
 | 4 | Inteligencia documental (facturas) | 🟡 hecho (extractor + endpoint + tool, cruce albarán) |
 | 6 | Computer Use / Pilot | 🟡 reforzado (DPI, UIA accesibilidad-primero, gates) |
@@ -58,6 +59,7 @@
 
 ## Próximos pasos (orden sugerido)
 0. ✅ **Conciliación bancaria (#1)** — HECHO 2026-06-08 (🟡): parser Norma 43 con cuadre del registro 33 + matcher determinista con semáforo (ALTA/MEDIA/BAJA/abstención) + Expediente `conciliacion_bancaria` (`PENDING_APPROVAL`) + `routers/conciliacion.py`; al aprobar marca facturas cobradas y alimenta el gate S-01 de cobros. 27 tests. **Para 🟢:** un extracto N43 real de un banco de Fernando (anonimizado) conciliado e2e. Ver D-14/D-15 en `DECISIONES.md`.
+0b. ✅ **AliasResolver que aprende (flywheel)** — HECHO 2026-06-08 (🟡): `alias_resolver.py`, tabla determinista por entidad que aprende `concepto→contraparte` de cobros confirmados por el humano (procedencia + revocación, sin LLM); desambigua conciliaciones futuras (abstención→MEDIA). 9 tests. Ver D-17. **Para 🟢:** extractos reales repetidos de un mismo pagador.
 1. **Crear 1 evento real en Calendar** → cierra la Fase 1 🟢 (mismo patrón que el correo; OAuth y recibos ya están). *(siguiente)*
 2. ✅ **Swap del instructor a Qwen2.5-14B-Instruct (Q4_K_M)** — HECHO 2026-06-08, verificado contra la API real (genera asunto/cuerpo y llama a la tool sin preguntar). Ver `MODELOS_LOOMBIT.md`.
 3. **WhatsApp como objetivo del Pilot** — canal de negocio real (92% lo usa a diario, 68% prefiere WhatsApp a email/teléfono). Ver `INSIGHTS_PRODUCTO_Y_SUPUESTOS.md`.

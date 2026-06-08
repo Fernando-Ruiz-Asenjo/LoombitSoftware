@@ -17,11 +17,13 @@ en la propuesta y el humano decide.
 
 from __future__ import annotations
 
+from dataclasses import asdict
 from decimal import Decimal
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from ..alias_resolver import AliasStore
 from ..conciliacion import Conciliacion, ConfianzaTier, Movimiento, conciliar, parse_norma43
 from ..expedientes import (
     ExpedienteNotFoundError,
@@ -51,9 +53,20 @@ class AprobarConciliacionIn(BaseModel):
     actor: str = "human"
 
 
+class RevocarAliasIn(BaseModel):
+    actor: str = "human"
+
+
 def _store(entity_id: str) -> ExpedienteStore:
     try:
         return ExpedienteStore(entity_id=entity_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+def _alias_store(entity_id: str) -> AliasStore:
+    try:
+        return AliasStore(entity_id=entity_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -70,12 +83,9 @@ def _serializar(idx: int, c: Conciliacion) -> dict:
         "score": c.score,
         "factura_id": c.pendiente.id if c.pendiente else None,
         "factura_referencia": c.pendiente.referencia if c.pendiente else None,
+        "factura_contraparte": c.pendiente.contraparte if c.pendiente else None,
         "grupo_ids": [p.id for p in c.grupo],
     }
-
-
-def _banco_ref(mov: Movimiento, idx: int) -> str:
-    return f"extracto mov#{idx} {mov.fecha_operacion.isoformat()} {mov.texto[:40]}".strip()
 
 
 @router.post("/{entity_id}/conciliacion")
@@ -92,8 +102,10 @@ def proponer_conciliacion(entity_id: str, body: ConciliarIn) -> dict:
     store = _store(entity_id)
     pendientes = pendientes_de_cobro(store)
 
+    # El resolver aporta los alias de pagador ya aprendidos de cobros confirmados (flywheel).
+    resolver = _alias_store(entity_id)
     movimientos: list[Movimiento] = [m for c in cuentas for m in c.movimientos]
-    conciliaciones = conciliar(movimientos, pendientes)
+    conciliaciones = conciliar(movimientos, pendientes, alias_resolver=resolver)
     propuesta = [_serializar(i, c) for i, c in enumerate(conciliaciones)]
 
     avisos_cuadre = [a for c in cuentas for a in c.avisos]
@@ -133,7 +145,9 @@ def aprobar_conciliacion(entity_id: str, expediente_id: str, body: AprobarConcil
         raise HTTPException(status_code=400, detail="el expediente no es de conciliación bancaria")
 
     propuesta = {p["idx"]: p for p in exp.data.get("propuesta", [])}
+    resolver = _alias_store(entity_id)
     aplicados: list[dict] = []
+    aliases_aprendidos = 0
     for m in body.matches:
         prop = propuesta.get(m.movimiento_idx)
         if prop is None:
@@ -165,12 +179,39 @@ def aprobar_conciliacion(entity_id: str, expediente_id: str, body: AprobarConcil
             },
             body.actor,
         )
+        # Flywheel: aprende el puente concepto-bancario → contraparte de ESTE cobro confirmado.
+        contraparte = factura.data.get("fields", {}).get("proveedor") or ""
+        if resolver.aprender(
+            prop["concepto"],
+            contraparte,
+            referencia=prop.get("factura_referencia") or "",
+            actor=body.actor,
+        ):
+            aliases_aprendidos += 1
         aplicados.append({"movimiento_idx": m.movimiento_idx, "factura_id": factura.id})
 
+    if aliases_aprendidos:
+        store.add_event(expediente_id, "alias_aprendido", {"count": aliases_aprendidos}, body.actor)
     cerrado = store.set_status(expediente_id, ExpedienteStatus.CLOSED, body.actor)
     return {
         "expediente_id": cerrado.id,
         "status": cerrado.status.value,
         "matches_aplicados": aplicados,
+        "aliases_aprendidos": aliases_aprendidos,
         "trazabilidad_integra": store.verify_chain(expediente_id),
     }
+
+
+@router.get("/{entity_id}/aliases")
+def listar_aliases(entity_id: str, incluir_revocados: bool = False) -> dict:
+    """Auditoría de la tabla de alias aprendidos (transparencia del flywheel)."""
+    aliases = _alias_store(entity_id).aliases(incluir_revocados=incluir_revocados)
+    return {"entity_id": entity_id, "count": len(aliases), "aliases": [asdict(a) for a in aliases]}
+
+
+@router.post("/{entity_id}/aliases/{alias_id}/revocar")
+def revocar_alias(entity_id: str, alias_id: str, body: RevocarAliasIn) -> dict:
+    """Revoca un alias mal aprendido. No se borra: queda auditado (procedencia append-only)."""
+    if not _alias_store(entity_id).revocar(alias_id, actor=body.actor):
+        raise HTTPException(status_code=404, detail="alias no encontrado o ya revocado")
+    return {"entity_id": entity_id, "alias_id": alias_id, "revocado": True}

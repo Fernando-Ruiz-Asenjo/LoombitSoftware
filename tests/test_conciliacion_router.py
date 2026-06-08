@@ -152,6 +152,46 @@ def test_flujo_conciliacion_propuesta_y_aprobacion(eid):
     assert prop2["resumen_tiers"]["abstencion"] == 1
 
 
+def test_aprobar_aprende_alias_y_se_puede_auditar_y_revocar(eid):
+    fac = client.post(
+        f"/entidades/{eid}/facturas",
+        json={
+            "sentido": "devengado",
+            "numero": "E-200",
+            "proveedor": "GARCIA HERMANOS SL",
+            "base_imponible": 1000.0,
+            "iva": 210.0,
+        },
+    ).json()
+    fid = fac["id"]
+    extracto = _extracto_un_abono("00000000121000", "E-200", "GARCIA HERMANOS SL")
+    exp_id = client.post(
+        f"/entidades/{eid}/conciliacion", json={"formato": "n43", "contenido": extracto}
+    ).json()["expediente_id"]
+
+    apr = client.post(
+        f"/entidades/{eid}/conciliacion/{exp_id}/aprobar",
+        json={"matches": [{"movimiento_idx": 0, "factura_id": fid}]},
+    ).json()
+    assert apr["aliases_aprendidos"] == 1  # el flywheel aprendió de la confirmación humana
+
+    # auditoría: el alias aparece y apunta a la contraparte de la factura
+    aliases = client.get(f"/entidades/{eid}/aliases").json()
+    assert aliases["count"] == 1
+    alias = aliases["aliases"][0]
+    assert alias["canonico"] == "GARCIA HERMANOS SL"
+    assert "GARCIA" in alias["clave_tokens"]
+
+    # revocación: queda fuera de los activos
+    rev = client.post(f"/entidades/{eid}/aliases/{alias['id']}/revocar", json={})
+    assert rev.status_code == 200
+    assert client.get(f"/entidades/{eid}/aliases").json()["count"] == 0
+    # revocar de nuevo → 404
+    assert (
+        client.post(f"/entidades/{eid}/aliases/{alias['id']}/revocar", json={}).status_code == 404
+    )
+
+
 def test_formato_no_soportado_da_400(eid):
     r = client.post(f"/entidades/{eid}/conciliacion", json={"formato": "ofx", "contenido": "x"})
     assert r.status_code == 400
