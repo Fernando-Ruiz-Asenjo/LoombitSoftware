@@ -148,6 +148,7 @@ loombit_operator/
 | `docs/MODELOS_LOOMBIT.md` | Inventario funcional de modelos locales (instructor 14B / coder / visión), mapeo a config, comandos de carga y estrategia de VRAM |
 | `docs/INNOVACIONES.md` | Innovaciones aplicables de la investigación, mapeadas a fase, código existente y criterio DoD |
 | `docs/ROUTINES_LOOMBIT.md` | Diseño del motor de agentes proactivos programados (cron/evento), traspaso desde las Routines de Claude Code sobre el código existente |
+| `docs/SKILLS.md` | Taxonomía canónica de skills (C/W/G/D/A/X), precedencia, skills activas y familia Skill D |
 | `docs/ARQUITECTURA_SKILLS.md` | Descomposición del dominio admin en familia de Skill D + Skill W Core + Skill A; las 3 capas (conocimiento/primitiva/conector) |
 | `docs/PLATAFORMA_FISCAL_ANALISIS.md` | Análisis de arquitecto de la plataforma fiscal/administrativa (303 como entrada): encaje, datos, IA local, Sede/certificado, slice, gestoría, riesgos, oportunidades |
 | `docs/DECISIONES.md` | Bitácora de decisiones de los bloques autónomos (con alternativas descartadas y reversibilidad) |
