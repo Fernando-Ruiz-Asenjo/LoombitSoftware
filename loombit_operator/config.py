@@ -50,6 +50,11 @@ class AppSettings(BaseSettings):
     routines_daemon_enabled: bool = False
     routines_daemon_interval_seconds: int = 60
 
+    # Observador Pilot: aprendizaje SEMÁNTICO de la actividad (app/ventana), local y OPT-IN.
+    # OFF por defecto. NUNCA captura teclas ni pantalla (no es un keylogger). Ver pilot/observer.py.
+    observer_enabled: bool = False
+    observer_interval_seconds: int = 30
+
     # ── Expedientes (Skill W Administration Core) — SQLite por entidad ────────
     entities_dir: Path = Path("runtime/local/entities")
 
