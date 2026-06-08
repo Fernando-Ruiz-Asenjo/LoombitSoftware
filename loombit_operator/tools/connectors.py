@@ -229,6 +229,43 @@ def _people_search(client, headers: dict, endpoint: str, name: str, out: list) -
         pass
 
 
+def _sent_frequency(token: str, max_msgs: int = 80) -> dict[str, int]:
+    """Cuenta a qué direcciones has escrito MÁS en Enviados → {email: nº de correos}.
+    Sirve para desempatar candidatos casi idénticos (jatabu-9 vs jatabu-09): gana el real."""
+    import re
+
+    import httpx
+
+    email_re = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
+    counts: dict[str, int] = {}
+    try:
+        h = {"Authorization": f"Bearer {token}"}
+        with httpx.Client(timeout=12) as c:
+            r = c.get(
+                "https://gmail.googleapis.com/gmail/v1/users/me/messages",
+                headers=h,
+                params={"q": "in:sent", "maxResults": max_msgs},
+            )
+            if r.status_code != 200:
+                return counts
+            for m in r.json().get("messages", [])[:max_msgs]:
+                mr = c.get(
+                    f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{m['id']}",
+                    headers=h,
+                    params={"format": "metadata", "metadataHeaders": ["To"]},
+                )
+                if mr.status_code != 200:
+                    continue
+                hdrs = {
+                    x["name"]: x["value"] for x in mr.json().get("payload", {}).get("headers", [])
+                }
+                for em in email_re.findall(hdrs.get("To", "")):
+                    counts[em.lower()] = counts.get(em.lower(), 0) + 1
+    except Exception:
+        return counts
+    return counts
+
+
 def _contacts_find(name: str) -> str:
     """Resuelve un destinatario por nombre: fusiona Google Contacts + memoria FIABLE, rankea por
     confianza y frecuencia (F3) y devuelve `mejor` (el más probable) + `estado` (ambiguo → pregunta).
@@ -237,6 +274,7 @@ def _contacts_find(name: str) -> str:
 
     candidatos: list[Candidato] = []
     aviso = ""
+    sent_counts: dict[str, int] = {}
 
     # 1) Google Contacts (best-effort: sin OAuth, seguimos solo con memoria)
     try:
@@ -263,6 +301,7 @@ def _contacts_find(name: str) -> str:
                 except Exception as exc:
                     # 403 si falta el scope contacts.other.readonly (hay que re-autorizar Google)
                     aviso = f"otros contactos no disponibles ({exc}); re-autoriza Google"
+            sent_counts = _sent_frequency(token)
         else:
             aviso = "Google OAuth no conectado (solo memoria)."
     except Exception as exc:
@@ -279,6 +318,15 @@ def _contacts_find(name: str) -> str:
                 candidatos.append(Candidato(c.name, c.email, c.source, c.times_contacted))
     except Exception:
         pass
+
+    # Desempate por uso real: la dirección que MÁS has usado en Enviados gana (jatabu-9 vs jatabu-09).
+    if sent_counts:
+        candidatos = [
+            Candidato(
+                c.name, c.email, c.source, max(c.veces, sent_counts.get(c.email.lower().strip(), 0))
+            )
+            for c in candidatos
+        ]
 
     estado, mejor, ranking = resolver_destinatario(candidatos)
     return json.dumps(

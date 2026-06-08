@@ -249,11 +249,9 @@ async def answer_run(
             detail=f"El run no está en pending_question (status={run.status})",
         )
 
-    run.messages.append({"role": "user", "content": body.answer})
-    run.status = AgentStatus.RUNNING
-    run.pending_question = {}
-    store.save_run(run)
-    background_tasks.add_task(loop.execute_run, run_id)
+    # answer() inyecta la respuesta EN EL SITIO de la pregunta y continúa. Antes se usaba
+    # execute_run, que re-preguntaba lo mismo en bucle ignorando tu respuesta.
+    background_tasks.add_task(loop.answer, run_id, body.answer)
     return RunResponse.from_run(run)
 
 

@@ -500,6 +500,10 @@ def _destinatario_claro(to: str, run: AgentRun) -> bool:
         return False
     if to_l in (run.task or "").lower():
         return True
+    # el usuario lo escribió en alguna respuesta del chat (p.ej. al desambiguar)
+    for m in getattr(run, "messages", None) or []:
+        if m.get("role") == "user" and to_l in (m.get("content", "") or "").lower():
+            return True
     for s in run.steps:
         if s.tool_name != "contacts_find":
             continue
