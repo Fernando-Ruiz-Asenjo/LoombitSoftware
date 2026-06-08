@@ -562,6 +562,9 @@ a { color: inherit; text-decoration: none; }
     <div id="contactos-aviso" style="display:none;margin:2px 12px 4px;font-size:11px;
          color:var(--lb-text3,#888);line-height:1.4;"></div>
 
+    <div class="nav-section-label" style="margin-top:10px;">Novedades del operador</div>
+    <div id="novedades-list" style="padding:2px 10px;"></div>
+
     <div class="nav-section-label" style="margin-top:8px;">Historial</div>
 
     <div class="nav-item" id="history-placeholder" style="pointer-events:none;">
@@ -1277,6 +1280,39 @@ async function approveAll() {
 }
 setInterval(refreshApprovals, 3000);
 
+// ── Novedades del operador (lo que detecta el daemon) ──
+function _feedStyle(it) {
+  if (it.importante) return { color:'#ef4444', icon:'⚠', tag:'Importante' };
+  if (it.status === 'failed' || it.error) return { color:'#ef4444', icon:'⚠', tag:'Error' };
+  if (it.kind === 'reply_watch') return { color:'#06b6d4', icon:'📨', tag:'Respuesta' };
+  if (it.kind === 'mejora') return { color:'#8b5cf6', icon:'💡', tag:'Mejora' };
+  if (it.kind === 'brief') return { color:'#3b82f6', icon:'📋', tag:'Brief' };
+  return { color:'#94a3b8', icon:'•', tag:'Nota' };
+}
+async function loadFeed() {
+  try {
+    const r = await fetch(`${API}/routines/feed?limit=20`, { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return;
+    const d = await r.json();
+    const el = document.getElementById('novedades-list');
+    if (!el) return;
+    if (!d.items || d.items.length === 0) {
+      el.innerHTML = '<div style="color:var(--lb-text3,#888);font-size:11.5px;padding:2px;">Sin novedades por ahora.</div>';
+      return;
+    }
+    el.innerHTML = d.items.map(it => {
+      const s = _feedStyle(it);
+      const snippet = esc((it.output || '').replace(/\s+/g,' ').slice(0, 120));
+      const pend = it.status === 'pending_approval' ? ' · pendiente' : '';
+      return `<div style="border-left:3px solid ${s.color};background:var(--lb-navy2,#111827);border-radius:6px;padding:6px 8px;margin:4px 0;font-size:11.5px;line-height:1.35;">
+        <div style="color:var(--lb-text,#f1f5f9);font-weight:600;">${s.icon} ${esc(it.name)} <span style="color:${s.color};">· ${s.tag}${pend}</span></div>
+        <div style="color:var(--lb-text2,#94a3b8);margin-top:2px;">${snippet}</div>
+      </div>`;
+    }).join('');
+  } catch { /* noop */ }
+}
+setInterval(loadFeed, 10000);
+
 // ── Health check ──────────────────────────────────────
 (async () => {
   try {
@@ -1286,6 +1322,7 @@ setInterval(refreshApprovals, 3000);
   refreshConnections();
   loadHomeContext();
   refreshApprovals();
+  loadFeed();
 })();
 </script>
 <div id="approveAllBar" style="display:none;position:fixed;top:64px;right:20px;z-index:9999;background:var(--lb-navy3,#1a2235);border:1px solid var(--lb-purple,#8b5cf6);border-radius:12px;padding:8px 10px 8px 14px;box-shadow:0 10px 30px rgba(0,0,0,.55);align-items:center;gap:12px;font-size:13px;color:var(--lb-text,#f1f5f9)">

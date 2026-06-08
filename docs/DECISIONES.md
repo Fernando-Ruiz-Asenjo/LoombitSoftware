@@ -153,4 +153,8 @@ Formato: **D-NN — decisión** · *contexto* · **elegido** vs alternativas · 
 - *Pendiente (honesto):* el **auto-envío** de la respuesta sigue gateado (queda como borrador `pending_approval` → tu "Aprobar todo"); abrirlo es el siguiente paso cuando esté probado. Memoria del hilo más rica = siguiente.
 - *Reversible:* sí; `routines_daemon_enabled=false` en `.env` apaga todo; la routine se puede desactivar o volver a 15 min.
 
+**D-22 — Panel "Novedades del operador" en la UI (feed del daemon).** Estado 🟢 (endpoint en vivo; UI pendiente de ver con datos reales).
+- *Elegido:* `GET /routines/feed` (helper `build_feed`) lee los recibos del daemon, **descarta los ticks vacíos de vigilancia** (ruido) y marca lo importante; el panel lateral los pinta cada 10 s con **distintivo visual por tipo** (📨 respuesta/cian · ⚠ importante/rojo · 💡 mejora/violeta · 📋 brief/azul · pendiente). +2 tests del feed.
+- *Reversible:* sí; el panel y el endpoint son aditivos.
+
 *(se irán añadiendo entradas según avance el bloque)*
