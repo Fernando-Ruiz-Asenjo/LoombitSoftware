@@ -16,7 +16,7 @@ skills y el hardware instalados.
 
 - Desarrollo: Windows + WSL + Docker.
 - Despliegue objetivo: NVIDIA Jetson Orin NX 16GB.
-- LLM local: Qwen2.5-7B-Instruct-1M (rol `instructor`) + Qwen2.5-Coder-7B (rol `coder`)
+- LLM local: Qwen2.5-14B-Instruct (rol `instructor`) + Qwen2.5-Coder-7B (rol `coder`)
   vía LM Studio en `http://localhost:1234/v1`.
 - Servidor: FastAPI en `http://127.0.0.1:8787`. UI single-page en `loombit_operator/static/index.html`.
 - Arranque: `python -m loombit_operator.launcher` (si el puerto 8787 está ocupado por una
@@ -118,7 +118,7 @@ loombit_operator/
 | Runtime | FastAPI + uvicorn + httpx, Python 3.10+ |
 | Servidor / UI | `http://127.0.0.1:8787` + single-page `static/index.html` |
 | Settings | Pydantic Settings |
-| LLM local (instructor) | Qwen2.5-7B-Instruct-1M vía LM Studio (`http://localhost:1234/v1`) |
+| LLM local (instructor) | Qwen2.5-14B-Instruct vía LM Studio (`http://localhost:1234/v1`) (fallback largo: Qwen2.5-7B-Instruct-1M) |
 | LLM local (coder) | Qwen2.5-Coder-7B-Instruct vía LM Studio (`http://localhost:1234/v1`) |
 | Conectores cloud | Google OAuth2 (Gmail, Calendar, Drive, People) |
 | Conectores cloud | Microsoft Graph (Outlook, Calendar) |
@@ -144,6 +144,7 @@ loombit_operator/
 | `docs/IA_TENDENCIAS_INSPIRACION_LOOMBIT.md` | Inspiración estratégica: tendencias IA 2025-2026 aplicadas a Loombit |
 | `docs/ROADMAP_TENDENCIAS_IA.md` | Traducción de esas tendencias a trabajo de código concreto y orden de ataque |
 | `docs/INSIGHTS_PRODUCTO_Y_SUPUESTOS.md` | Insights accionables: datos de mercado verificados, caso WhatsApp, supuestos sectoriales como tests de comportamiento, mapa de capacidades |
+| `docs/MODELOS_LOOMBIT.md` | Inventario funcional de modelos locales (instructor 14B / coder / visión), mapeo a config, comandos de carga y estrategia de VRAM |
 | `docs/investigacion/INFORME_GLOBAL_TRABAJO_OFICINA.md` | Investigación global del trabajo de oficina: 15 roles, país por país, herramientas, supuestos I-X, mapa de capacidades |
 | `docs/investigacion/OPERATIVA_PYMES_AUTONOMOS_ORDENADOR.md` | Operativa sector por sector de PYMEs/autónomos con el ordenador + ecosistema WhatsApp + supuestos A-G |
 | `docs/investigacion/OPERATIVA_EN_PANTALLA_DIA_A_DIA.md` | Nivel pantalla: qué hace cada perfil con el ordenador, ciclo de cada documento, 5 niveles de capacidad de Loombit |

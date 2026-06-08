@@ -24,7 +24,7 @@ class AppSettings(BaseSettings):
         "disabled", "llama_cpp", "ollama", "vllm", "sglang", "lm_studio", "openai_compatible"
     ] = "lm_studio"
     llm_base_url: str = "http://localhost:1234/v1"
-    llm_model_name: str = "qwen2.5-7b-instruct-1m"
+    llm_model_name: str = "qwen2.5-14b-instruct"
     llm_request_timeout_seconds: float = Field(default=30.0, gt=0)
     llm_temperature: float = Field(default=0.2, ge=0, le=2)
     llm_max_tokens: int = Field(default=512, gt=0)
