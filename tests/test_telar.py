@@ -19,6 +19,7 @@ def test_telar_es_blanco_expone_usuario_del_owner() -> None:
         vencidas=[],
         proximas=[],
         aprobaciones=0,
+        asuntos=[],
     )
     assert "usuario" in tela
     assert "Fernando" not in tela["saludo"]
@@ -94,6 +95,7 @@ def test_tejer_dia_ordena_por_urgencia() -> None:
         vencidas=[SimpleNamespace(cliente="Z", importe=500.0)],  # urgencia 2
         proximas=[],
         aprobaciones=0,
+        asuntos=[],
     )
     assert tela["hilos"][0]["urgencia"] >= tela["hilos"][-1]["urgencia"]
     assert tela["hilos"][0]["tipo"] == "cobro"  # lo urgente, primero
@@ -110,6 +112,7 @@ def test_tejer_dia_vacio_es_amable() -> None:
         vencidas=[],
         proximas=[],
         aprobaciones=0,
+        asuntos=[],
     )
     assert tela["hilos"] == []
     assert "despejado" in tela["resumen"]
@@ -138,6 +141,7 @@ def test_telar_surface_hilo_fiscal() -> None:
         vencidas=[],
         proximas=[],
         aprobaciones=0,
+        asuntos=[],
     )
     fiscal = next(h for h in tela["hilos"] if h["tipo"] == "fiscal")
     assert "303" in fiscal["titulo"]
@@ -155,6 +159,7 @@ def test_cobro_vencido_muestra_desglose_legal_con_cita_boe() -> None:
         vencidas=[SimpleNamespace(cliente="Acme", importe=1250.0, vencimiento="2026-05-01")],
         proximas=[],
         aprobaciones=0,
+        asuntos=[],
     )
     cobro = next(h for h in tela["hilos"] if h["tipo"] == "cobro")
     assert "VENCIDA (37d)" in cobro["titulo"]
@@ -178,6 +183,7 @@ def test_cobro_sin_vencimiento_degrada_a_recordatorio_basico() -> None:
         vencidas=[SimpleNamespace(cliente="Beta", importe=900.0)],
         proximas=[],
         aprobaciones=0,
+        asuntos=[],
     )
     cobro = next(h for h in tela["hilos"] if h["tipo"] == "cobro")
     assert "detalle" not in cobro  # sin desglose legal
