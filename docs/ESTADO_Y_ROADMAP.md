@@ -16,9 +16,9 @@
 |---|---|---|---|
 | 0 · Fundación limpia | Repo, CI, estructura | ✅ Cerrada | — |
 | 1 · Verdad de conectores | OAuth real Google + 1 correo + 1 evento reales | ✅ **Cerrada (2026-06-08)** | Correo real (`message_id` 19ea478e791867b0) + evento real (`event_id` vmovd103mbb40u7ek3ehb5jsa0), ambos con recibo |
-| 2 · Percepción real (Morning Brief) | Brief diario con datos reales | 🟠 En curso | Store de cuentas a cobrar + servicio de brief (las 3 piezas base ya están) |
+| 2 · Percepción real (Morning Brief) | Brief diario con datos reales | 🟢 **Brief con datos reales** (store de cuentas a cobrar D-23 + `daily_brief` en el chat con agenda/correos/cobros D-28) | Daemon programado del brief (hoy es invocable, no aún cron diario) |
 | 3 · Bucle e2e cuña 1 (cobros) | Flujo cobros completo ×5 sin intervención | 🟠 Cerebro listo | Orquestación e2e + recibos 🟢 |
-| 4 · UI humana | Dashboard no técnico | 🟠 Parcial | Home + botón Conectar Google + **Galaxia MVP 🟢** (mapa relacional del negocio, D-26); falta drag-to-act, latido y órbitas correo/calendario/Drive |
+| 4 · UI humana | Dashboard no técnico | 🟢 **Galaxia + drag-to-act** | Home + Conectar Google + **Galaxia MVP** (D-26/D-27) + **drag-to-act + pre-carga + badge** (D-31, arrastrar conversación → acción vía agente); falta: arrastrar documentos, persistir acciones locales, latido por novedad, órbitas correo/calendario/Drive |
 | 5 · Memoria y aprendizaje | Daemon de memoria proactiva | 🟡 Memoria lista | Scheduler/daemon proactivo |
 | 6 · Endurecimiento + navegador | Consentimiento, export, Skill Pilot navegador | ⬜ | Adaptador Playwright/CDP, contrato de coordenadas |
 | 7 · Edge / Jetson | Benchmark en Jetson Orin NX | ⬜ | Comprar hardware |
@@ -30,20 +30,22 @@
 | OAuth Google (escritorio: PKCE, auto-refresh, token cifrado, botón home) | 🟢 **CONECTADO con cuenta real (2026-06-08)**; token cifrado en disco; refresh presente |
 | Gmail send | 🟢 **ENVÍO REAL VERIFICADO (2026-06-07)** — recibo en `runtime/local/skill_blanca_connector_outbox/` (`message_id` `19ea478e791867b0`, respuesta API Gmail) |
 | Calendar create | 🟢 **EVENTO REAL VERIFICADO (2026-06-08)** — `event_id` `vmovd103mbb40u7ek3ehb5jsa0`, recibo en `runtime/local/skill_blanca_connector_outbox/` |
+| Calendar read (agenda de hoy) | 🟡 `eventos_de_hoy` (read-only, auto-refresh) cableado al brief (D-28); falta recibo de lectura real con token vivo |
+| Gmail search (lectura para contexto) | 🟢 corregido el bug de cliente cerrado (D-30); lee contexto real |
 | Outbox local (.eml) / Calendario local (.ics) | 🟢 |
 
 ## Adopción de tendencias IA 2025-2026 (ver `ROADMAP_TENDENCIAS_IA.md`)
 
 | # | Tendencia | Estado |
 |---|---|---|
-| 1 | Proactividad (morning brief) | 🟠 cerebro de cobros listo; falta el brief |
+| 1 | Proactividad (morning brief) | 🟢 brief invocable desde el chat (`daily_brief`: agenda + correos + cobros) + patrón "propón un plan, no preguntes" en el prompt (D-28). El daemon programado sigue pendiente |
 | — | **Conciliación bancaria (innovación #1)** | 🟡 parser N43 + matcher con semáforo + Expediente + router (27 tests); falta extracto de banco real → 🟢 |
 | 7 | **Plantillas que aprenden — AliasResolver de pagador (flywheel)** | 🟡 tabla determinista por entidad, aprende de cobros confirmados, con procedencia/revocación (9 tests); el LLM no interviene |
 | 3 | Memoria de empresa (`EntityProfile`) | 🟡 hecho (IBANs, pago, incidencias, **gate antifraude**) |
 | 4 | Inteligencia documental (facturas) | 🟡 hecho (extractor + endpoint + tool, cruce albarán) |
 | 6 | Computer Use / Pilot | 🟡 reforzado (DPI, UIA accesibilidad-primero, gates) |
 | 8 | Qwen2.5-VL (escaneados) | ⬜ pendiente (modelo descargado, **sin cablear**) |
-| 5 | Servidor MCP | ⬜ pendiente |
+| 5 | Servidor MCP | 🟢 **protocolo** / 🟡 capacidades — adaptador sobre el `tool_registry`, `POST /mcp` (Streamable HTTP) con gate server-side, verificado con el MCP Inspector real (D-29). Ver `MCP_SERVER_LOOMBIT.md` |
 | 7 | Voz (Whisper local) | ⬜ pendiente |
 | 10 | VeriFactu, grafo temporal, A2A | ⬜ futuro |
 

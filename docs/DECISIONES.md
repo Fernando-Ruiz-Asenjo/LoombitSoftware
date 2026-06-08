@@ -191,4 +191,35 @@ Formato: **D-NN — decisión** · *contexto* · **elegido** vs alternativas · 
 - *Siguiente:* convertir un importe real detectado (p.ej. una factura emitida tuya hallada en Enviados) en **cuenta a cobrar candidata** que el humano aprueba (no auto-creada) → cierra el lazo "percibir → proponer → cobrar" con datos reales. Y `temperatura`=recencia real (ya tenemos la fecha del último correo por contacto).
 - *Reversible:* sí; módulo + endpoint + panel aditivos.
 
+## Sesión paralela 2026-06-08 (constructor) — desplegado a main y verificado en vivo
+
+> Construido en sesión paralela aislada (worktrees + ramas), fundido a `main` con OK
+> explícito de Fernando y reiniciando `:8787`. Cada entrada se verificó EN VIVO.
+
+**D-28 — Operador proactivo y humano: resumen del día en el chat + capacidades en lenguaje humano.** Estado **🟢** (verificado en vivo).
+- *Elegido:* (a) `tool_labels.py` traduce el nombre técnico de cada tool a una etiqueta humana; el prompt instruye a presentarse en lenguaje humano, NUNCA con el nombre de la tool. (b) `skill_blanca_calendar_read.eventos_de_hoy` — LECTURA de la agenda (faltaba; el conector solo escribía). (c) `tools/brief.py` (`daily_brief`, `calendar_today`) expone al chat el MISMO cerebro de señales del daemon (`_señales_reales`, ahora con agenda); cifras por código, el LLM solo narra (fallback determinista sin LM Studio). (d) patrón **PROACTIVIDAD** en el prompt: ante peticiones de alto nivel, preparar y proponer un plan ("voy a (1)…(2)… ¿lo hago?") en vez de preguntar; las lecturas se ejecutan directas.
+- *Verificación 🟢:* el agente real responde "¿qué herramientas tienes?" con nombres humanos (cero técnicos) y "resumen de hoy" junta agenda + correos + cobros. 19 tests.
+- *Reversible:* sí; módulos nuevos + ediciones aditivas en prompt/registry.
+
+**D-29 — Servidor MCP: Loombit como servidor del Model Context Protocol (`Skill A`).** Estado **🟢 protocolo · 🟡 capacidades envueltas**. (Cierra la tendencia #5, antes ⬜.)
+- *Elegido:* adaptador PURO sobre el `tool_registry` (`mcp_server.py` = JSON-RPC 2.0; `routers/mcp.py` = transporte Streamable HTTP en `POST /mcp` + `GET /mcp/info`). **Cero dependencias nuevas** (no se añade el SDK `mcp`). Gate server-side (regla nº1): `tools/call` bloquea sin ejecutar toda tool con `requires_approval` o categoría `pilot`/`computer` o `safety_class` sensible — el human-in-the-loop vive en el servidor, no en el cliente. Hallazgo: las `desktop_*` son categoría `pilot` (no `computer`) → incluida explícitamente para no dejar abierto ratón/teclado por MCP.
+- *Verificación 🟢:* contra el server real, con el **MCP Inspector oficial** (cliente independiente) + un cliente httpx: handshake + `tools/list` + `tools/call` (lectura ejecuta, `gmail_send` bloqueado). 22 tests. Ver `docs/MCP_SERVER_LOOMBIT.md`.
+- *Alternativas descartadas:* SDK `mcp` como server stdio (dep pesada, proceso aparte, peor para reusar el registry); SSE completo (innecesario para un server de solo-tools).
+- *Reversible:* sí; 1 módulo + 1 router + 1 línea de montaje.
+
+**D-30 — Fixes del flujo del agente + UI.** Estado **🟢** (verificados en vivo).
+- *Aprobar un evento ya no re-pausa en bucle:* causa raíz — `calendar._parse_dt` no aceptaba ISO con `Z`/offset (el modelo emite `2026-06-15T09:00:00+02:00`) → `calendar_create` fallaba y, al aprobar, re-pausaba. Ahora usa `datetime.fromisoformat`.
+- *`gmail_search`* usaba el cliente httpx fuera del `with` → "client has been closed"; ahora el bucle va dentro.
+- *`daily_brief`/`calendar_today`* toleran args extra del modelo (`**kwargs`).
+- *El nombre de la tool ("task_done") no se muestra como texto:* `_strip_tool_artifacts` quita líneas sueltas que sean solo el nombre de una tool.
+- *UI:* botón "← Volver al chat" claro en la Galaxia; la barra "Aprobar todo" lista **qué** hay que aprobar (la acción en humano).
+- *Reversible:* sí; correcciones acotadas + tests de cada bug.
+
+**D-31 — Galaxia viva + drag-to-act.** Estado **🟢** (verificado en vivo). Continúa D-26/D-27.
+- *Galaxia viva:* `galaxia_cache.py` (stale-while-revalidate) → `GET /galaxia` instantáneo + revalidación en background (sin daemon que machaque Gmail); `gxPrewarm()` calienta al cargar la página; badge en 🌌 si hay vencidas/aprobaciones hoy.
+- *Drag-to-act:* `galaxia_actions.resolve_drop` mapea de forma DETERMINISTA (qué arrastras: conversación/documento/contacto) × (dónde sueltas: contacto/cuenta/sol) → `DropAction`. `POST /galaxia/act` resuelve y, si hay efecto externo, lo enruta como TAREA al agente (aprobación + firma + proactividad ya existentes; gate intacto). Frontend: dock de chips arrastrables, halo del destino (reusa `GXHover`), fantasma con la acción, toast; doble-clic→chat como vía descubrible (recomendación NN/G). Referencias: React Flow/JsPlumb DropManager, DragApp.
+- *Verificación 🟢:* en vivo, 8 contactos reales, pre-carga sirviendo instantánea, `/galaxia/act` correcto. 35 tests galaxia.
+- *Pendiente (no en el MVP):* arrastrar documentos (subir fichero, no solo el nombre); persistir las acciones locales (vincular doc↔cuenta, asignar pagador — el resolutor las da, falta el guardado); doble-vía por clic en cada planeta.
+- *Reversible:* sí; módulos nuevos + endpoint + vista aditivos.
+
 *(se irán añadiendo entradas según avance el bloque)*
