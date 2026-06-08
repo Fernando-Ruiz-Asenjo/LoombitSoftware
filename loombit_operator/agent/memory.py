@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -50,7 +51,46 @@ _DEFAULT_MEMORY: dict[str, Any] = {
     "proposals": [],  # ProposalEntry[] — carencias del agente
     "history": [],  # HistoryEntry[] — SIN LÍMITE
     "entities": {},  # {clave: EntityProfile} — memoria semántica por empresa
+    "lessons": [],  # LessonEntry[] — aprendizaje GENERAL (Reflexion), agnóstico al dominio
 }
+
+# Lecciones fundacionales: el conocimiento destilado del análisis de error (F1-F8). Hacen que la
+# memoria NO nazca vacía/tonta — es la aplicación retroactiva del aprendizaje (sin deuda).
+_FOUNDATIONAL_LESSONS: list[dict[str, Any]] = [
+    {
+        "text": "Al enviar un correo, NUNCA inventes el email del destinatario: resuélvelo con "
+        "contacts_find o pregunta al usuario. Mejor preguntar que acertar por suerte.",
+        "tags": ["correo", "email", "destinatario", "contacto", "enviar", "jana"],
+        "outcome": "fallo",
+        "source": "analisis_error_F2",
+    },
+    {
+        "text": "En un correo escribes COMO el usuario: no te presentes como IA, agente, bot ni "
+        "'Loombit', ni digas que es automático. Fírmalo con el nombre del usuario.",
+        "tags": ["correo", "email", "redactar", "presentar", "firma"],
+        "outcome": "fallo",
+        "source": "analisis_error_F4",
+    },
+    {
+        "text": "El asunto y el cuerpo del correo los deduces TÚ del encargo; nunca se los preguntes al usuario.",
+        "tags": ["correo", "email", "asunto", "cuerpo"],
+        "outcome": "fallo",
+        "source": "analisis_error_F1",
+    },
+    {
+        "text": "No inventes datos del usuario (cargo, méritos, motivos) que no te haya dado: usa solo lo que sabes.",
+        "tags": ["correo", "datos", "usuario", "presentar"],
+        "outcome": "fallo",
+        "source": "analisis_error_F4",
+    },
+    {
+        "text": "Si una acción falla o no avanza, CAMBIA de estrategia; no repitas la misma llamada "
+        "esperando otro resultado. Si la capacidad no existe, dilo honestamente y termina.",
+        "tags": ["general", "bucle", "fallo", "estrategia"],
+        "outcome": "fallo",
+        "source": "analisis_error_F6",
+    },
+]
 
 
 # ── Tipos de datos ────────────────────────────────────────────────────────────
@@ -244,6 +284,53 @@ class ProposalEntry:
         return f"[{self.category}] {self.issue} → {self.suggestion}"
 
 
+class LessonEntry:
+    """Una lección GENERAL aprendida (Reflexion). Agnóstica al dominio: vale para correos,
+    facturas o lo que sea. Se recupera por relevancia a la tarea (no se vuelca todo: aviso de ExpeL).
+    """
+
+    def __init__(
+        self,
+        text: str,
+        tags: list[str] | None = None,
+        outcome: str = "",
+        source: str = "reflexion",
+        created: str = "",
+        times_used: int = 0,
+    ) -> None:
+        self.text = text.strip()
+        self.tags = [t.lower() for t in (tags or [])]
+        self.outcome = outcome  # "exito" | "fallo" | "correccion_humana" | ""
+        self.source = source
+        self.created = created or datetime.now(UTC).strftime("%Y-%m-%d")
+        self.times_used = times_used
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "text": self.text,
+            "tags": self.tags,
+            "outcome": self.outcome,
+            "source": self.source,
+            "created": self.created,
+            "times_used": self.times_used,
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict[str, Any]) -> "LessonEntry":
+        return cls(
+            text=str(d.get("text", "")),
+            tags=list(d.get("tags", [])),
+            outcome=str(d.get("outcome", "")),
+            source=str(d.get("source", "reflexion")),
+            created=str(d.get("created", "")),
+            times_used=int(d.get("times_used", 0)),
+        )
+
+    def tokens(self) -> set[str]:
+        words = (self.text + " " + " ".join(self.tags)).lower()
+        return {w for w in re.findall(r"[a-záéíóúñ0-9]+", words) if len(w) >= 4}
+
+
 def _norm_iban(iban: str) -> str:
     """Normaliza un IBAN: sin espacios, en mayúsculas."""
     return "".join(iban.split()).upper()
@@ -363,6 +450,7 @@ class AgentMemory:
         self.store_path = store_path or Path("runtime/local/agent_memory.json")
         self._data: dict[str, Any] = {}
         self._load()
+        self._ensure_foundational_lessons()  # aplica retroactivamente el aprendizaje (F1-F8)
 
     # ── Propiedades ───────────────────────────────────────────────────────────
 
@@ -599,6 +687,52 @@ class AgentMemory:
             or any(q in c.lower() for c in prof.contacts)
         ]
 
+    # ── Lecciones (aprendizaje general — Reflexion) ───────────────────────────
+
+    @property
+    def lessons(self) -> list[LessonEntry]:
+        return [LessonEntry.from_dict(x) for x in self._data.get("lessons", [])]
+
+    def add_lesson(
+        self, text: str, tags: list[str] | None = None, outcome: str = "", source: str = "reflexion"
+    ) -> None:
+        """Guarda una lección general. Deduplicada por texto (refuerza la existente)."""
+        text = (text or "").strip()
+        if len(text) < 8:
+            return
+        lessons = self._data.setdefault("lessons", [])
+        for x in lessons:
+            if x.get("text", "").strip().lower() == text.lower():
+                x["times_used"] = x.get("times_used", 0) + 1
+                if tags:
+                    x["tags"] = sorted({*x.get("tags", []), *[t.lower() for t in tags]})
+                self._save()
+                return
+        lessons.append(LessonEntry(text, tags, outcome, source).to_dict())
+        self._save()
+
+    def relevant_lessons(self, task: str, k: int = 4) -> list[LessonEntry]:
+        """Recupera las lecciones MÁS RELEVANTES a la tarea (no todas — aviso de ExpeL)."""
+        task_tokens = {w for w in re.findall(r"[a-záéíóúñ0-9]+", task.lower()) if len(w) >= 4}
+        if not task_tokens:
+            return []
+        puntuadas = [(len(le.tokens() & task_tokens), le) for le in self.lessons]
+        puntuadas = [(s, le) for s, le in puntuadas if s > 0]
+        puntuadas.sort(key=lambda p: (p[0], p[1].times_used), reverse=True)
+        return [le for _, le in puntuadas[:k]]
+
+    def _ensure_foundational_lessons(self) -> None:
+        """Aplica retroactivamente el conocimiento del análisis de error (sin deuda)."""
+        existentes = {x.get("text", "").strip().lower() for x in self._data.get("lessons", [])}
+        faltan = [
+            le for le in _FOUNDATIONAL_LESSONS if le["text"].strip().lower() not in existentes
+        ]
+        if faltan:
+            self._data.setdefault("lessons", []).extend(
+                LessonEntry(**le).to_dict() for le in faltan
+            )
+            self._save()
+
     def to_context_block(self, task_hint: str = "") -> str:
         """Genera el bloque de contexto para el system prompt."""
         lines: list[str] = []
@@ -643,6 +777,13 @@ class AgentMemory:
         recent = self.history[:8]
         if recent:
             lines.append("Historial reciente:\n" + "\n".join("  • " + str(h) for h in recent))
+        if task_hint:
+            relevantes = self.relevant_lessons(task_hint)
+            if relevantes:
+                lines.append(
+                    "LECCIONES APRENDIDAS (aplícalas):\n"
+                    + "\n".join("  • " + le.text for le in relevantes)
+                )
         if not lines:
             return ""
         return "\n\nMEMORIA OPERATIVA:\n" + "\n".join(lines)
@@ -664,6 +805,8 @@ class AgentMemory:
             "history_recent": [h.to_dict() for h in self.history[:20]],
             "entities_count": len(self._data.get("entities", {})),
             "entities": {k: v.to_dict() for k, v in self.entities.items()},
+            "lessons_count": len(self._data.get("lessons", [])),
+            "lessons": [le.to_dict() for le in self.lessons],
         }
 
     def extract_contacts_from_steps(self, steps: list[Any]) -> int:

@@ -112,11 +112,105 @@ def _f5_procedencia_auto_vs_google(tmp=None) -> tuple[bool, str]:
         )
 
 
+# ── F4 — no delatarse como IA/bot en el correo ──────────────────────────────────
+def _f4_bloquea_bot_reveal() -> tuple[bool, str]:
+    out, stop = _loop()._execute_tool_call(
+        _tc(
+            "gmail_send",
+            to="jana@empresa.com",
+            subject="Presentación",
+            body="Hola, soy un agente autónomo llamado Loombit Operator que ha enviado este correo.",
+        ),
+        1,
+        _run("manda un correo a jana@empresa.com presentándote"),
+    )
+    ok = stop is False and "como el usuario" in out.lower()
+    return ok, "bloqueado (no se delata)" if ok else f"NO bloqueado: stop={stop} out={out[:60]}"
+
+
+def _f4_permite_correo_humano() -> tuple[bool, str]:
+    out, stop = _loop()._execute_tool_call(
+        _tc(
+            "gmail_send",
+            to="jana@empresa.com",
+            subject="Reunión la próxima semana",
+            body="Hola Jana,\n\n¿Tienes un hueco para vernos? Un saludo, Fernando.",
+        ),
+        1,
+        _run("manda un correo a jana@empresa.com proponiendo vernos"),
+    )
+    ok = stop is True and out.startswith("PENDING_APPROVAL:")
+    return ok, "permitido (correo humano normal)" if ok else f"mal: stop={stop} out={out[:60]}"
+
+
+# ── F5 — (definido arriba) ──────────────────────────────────────────────────────
+# ── F6 — aprendizaje general (Reflexion): memoria + recuperación relevante ──────
+def _mem_tmp():
+    import tempfile
+    from pathlib import Path
+
+    from loombit_operator.agent.memory import AgentMemory
+
+    d = tempfile.mkdtemp()
+    return AgentMemory(store_path=Path(d) / "m.json")
+
+
+def _f6_fundacionales_sembradas() -> tuple[bool, str]:
+    mem = _mem_tmp()  # al construirse, siembra las lecciones del análisis de error (retroactivo)
+    textos = " ".join(le.text.lower() for le in mem.lessons)
+    ok = len(mem.lessons) >= 5 and "inventes el email" in textos
+    return ok, f"{len(mem.lessons)} lecciones sembradas" if ok else "fundacionales NO sembradas"
+
+
+def _f6_recupera_relevante_y_filtra() -> tuple[bool, str]:
+    mem = _mem_tmp()
+    rel = mem.relevant_lessons("manda un correo a Jana sin asunto")
+    hay_correo = any("correo" in le.text.lower() for le in rel)
+    no_rel = mem.relevant_lessons("calcula la raíz cuadrada de 9")
+    filtra = all("correo" not in le.text.lower() for le in no_rel)
+    ok = bool(rel) and hay_correo and filtra
+    return ok, f"relevantes={len(rel)}, filtra_no_relacionadas={filtra}"
+
+
+def _f6_reflexion_produce_leccion() -> tuple[bool, str]:
+    from loombit_operator.agent.reflexion import reflexionar
+
+    stub = SimpleNamespace(
+        chat=lambda **k: SimpleNamespace(content="No reutilices un contacto sin verificarlo antes.")
+    )
+    run = SimpleNamespace(
+        task="manda un correo a Jana", status="failed", steps=[], error="no encontrado", result=""
+    )
+    leccion = reflexionar(run, stub)
+    ok = leccion is not None and "verific" in leccion.lower()
+    return ok, f"lección={leccion!r}" if ok else "reflexión no produjo lección"
+
+
 # ── F7 — saltos de línea literales del modelo ───────────────────────────────────
 def _f7_normaliza_saltos() -> tuple[bool, str]:
     out = normalize_email_text("Hola Jana,\\n\\nMensaje.\\n\\nUn saludo")
     ok = "\\n" not in out and "\n\n" in out
     return ok, "saltos normalizados" if ok else f"sigue literal: {out[:40]!r}"
+
+
+# ── F8 — runs huérfanos saneados al reiniciar ───────────────────────────────────
+def _f8_barre_huerfanos() -> tuple[bool, str]:
+    import tempfile
+    from pathlib import Path
+
+    from loombit_operator.agent.run import AgentStatus, AgentStore
+
+    with tempfile.TemporaryDirectory() as d:
+        path = Path(d) / "runs.json"
+        store = AgentStore(store_path=path)
+        r = store.create("tarea de prueba")
+        r.mark_running()
+        store.save_run(r)
+        store2 = AgentStore(store_path=path)  # simula un reinicio
+        n = store2.sweep_orphans()
+        estado = store2.get(r.id).status
+        ok = n >= 1 and estado == AgentStatus.FAILED
+        return ok, f"barridos={n}, estado={estado.value}"
 
 
 CASES: list[Eval] = [
@@ -128,16 +222,33 @@ CASES: list[Eval] = [
     Eval(
         "F2.resolved", "F2", "Permitir email de contacts_find", _f2_permite_email_de_contacts_find
     ),
+    Eval("F4.no_bot", "F4", "Bloquear correo que se delata como bot", _f4_bloquea_bot_reveal),
+    Eval("F4.humano_ok", "F4", "Permitir correo humano normal", _f4_permite_correo_humano),
     Eval(
         "F5.provenance",
         "F5",
         "Marcar auto-capturado como no fiable",
         _f5_procedencia_auto_vs_google,
     ),
+    Eval(
+        "F6.foundational",
+        "F6",
+        "Lecciones fundacionales sembradas (retroactivo)",
+        _f6_fundacionales_sembradas,
+    ),
+    Eval(
+        "F6.retrieval",
+        "F6",
+        "Recuperar lección relevante y filtrar el resto",
+        _f6_recupera_relevante_y_filtra,
+    ),
+    Eval(
+        "F6.reflexion", "F6", "Reflexión produce lección del fallo", _f6_reflexion_produce_leccion
+    ),
     Eval("F7.newlines", "F7", "Normalizar saltos literales", _f7_normaliza_saltos),
-    # Huecos conocidos (aún sin eval automatizado — honestidad del proceso vivo):
-    Eval("F3.single_source", "F3", "Resolución de contacto única y rankeada", None),
-    Eval("F4.no_bot", "F4", "No presentarse como bot (juez de calidad)", None, needs_llm=True),
-    Eval("F6.reflexion", "F6", "Aprender del fallo (Reflexion) en vez de repetir", None),
-    Eval("F8.run_hygiene", "F8", "Ciclo de vida de runs sin huérfanos", None),
+    Eval("F8.run_hygiene", "F8", "Sanear runs huérfanos al reiniciar", _f8_barre_huerfanos),
+    # Hueco conocido restante (honestidad del proceso vivo): F3 está MITIGADO por la guarda F2
+    # (no se inventa) + el prompt (elige el más probable / pregunta), pero el ranking determinista
+    # por frecuencia aún no tiene su propio eval.
+    Eval("F3.ranking", "F3", "Ranking de contacto por frecuencia (mejora futura)", None),
 ]

@@ -238,6 +238,19 @@ class AgentStore:
         self._runs[run.id] = run
         self._save()
 
+    def sweep_orphans(self) -> int:
+        """Marca como fallidos los runs que quedaron 'running'/'pending' tras un reinicio: sus
+        hilos murieron con el proceso, son huérfanos. Evita la pila que martillea el modelo (F8).
+        Se llama UNA vez al arrancar el servidor (no en cada carga, para no pisar runs vivos)."""
+        huerfanos = [
+            r for r in self._runs.values() if r.status in (AgentStatus.RUNNING, AgentStatus.PENDING)
+        ]
+        for r in huerfanos:
+            r.mark_failed("Interrumpido por reinicio del servidor (run huérfano).")
+        if huerfanos:
+            self._save()
+        return len(huerfanos)
+
     def list(self, status: AgentStatus | None = None) -> list[AgentRun]:
         runs = list(self._runs.values())
         if status:

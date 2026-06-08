@@ -98,6 +98,19 @@ STATIC_DIR = Path(__file__).parent / "static"
 async def lifespan(app: FastAPI):
     """Arranca el daemon de Routines si está habilitado (opt-in por config)."""
     settings = get_settings()
+
+    # F8 — al arrancar, sanea los runs huérfanos (quedaron "running" tras un reinicio).
+    try:
+        from .agent.run import AgentStore
+
+        n = AgentStore().sweep_orphans()
+        if n:
+            import logging
+
+            logging.getLogger("loombit").info("Saneados %d runs huérfanos al arrancar", n)
+    except Exception:
+        pass
+
     daemon = None
     if settings.routines_daemon_enabled:
         from .routine_executors import build_default_scheduler

@@ -42,6 +42,17 @@ _SENTINEL_QUESTION = "PENDING_QUESTION:"
 # preguntarlos vía ask_user, lo interceptamos y le devolvemos la orden de redactarlos él.
 _PREGUNTA_AUTORREDACTABLE = re.compile(r"asunto|subject|cuerpo|\bbody\b|t[ií]tulo del correo", re.I)
 
+# F4 — el correo lo firma el usuario; el agente NO se delata como IA/bot. Guarda determinista
+# que bloquea un correo que se auto-identifica como automático (apunta a la auto-revelación, no a
+# menciones temáticas de "IA": Fernando podría vender servicios de IA).
+_DELATA_BOT = re.compile(
+    r"soy (un |una )?(agente|asistente virtual|bot|ia\b|inteligencia artificial|operador (de ia|aut))"
+    r"|asistid[oa] por (un|una) (agente|ia)|agente aut[oó]nomo|agente virtual|loombit operator"
+    r"|correo autom[aá]tico|mensaje autom[aá]tico|enviado por un agente"
+    r"|generad[oa] autom[aá]ticamente|soy tu asistente (personal|virtual)",
+    re.I,
+)
+
 
 class AgentLoop:
     """
@@ -191,6 +202,7 @@ class AgentLoop:
                     run.mark_failed(
                         f"Límite de {run.max_steps} pasos alcanzado sin completar la tarea."
                     )
+                    self._aprender_de_fallo(run)
                     self.store.save_run(run)
                     return run
 
@@ -335,6 +347,7 @@ class AgentLoop:
         except Exception as exc:
             logger.exception("AgentLoop error en run=%s", run.id)
             run.mark_failed(f"Error inesperado: {exc}")
+            self._aprender_de_fallo(run)
             self.store.save_run(run)
             return run
 
@@ -356,6 +369,18 @@ class AgentLoop:
                 "usuario te haya dado ni uno resuelto con contacts_find. NO inventes destinatarios. "
                 "Llama a contacts_find con el nombre y usa el email del contacto correcto; si hay "
                 "varios, elige el más probable o pregunta; si no aparece, pregunta al usuario.]",
+                False,
+            )
+
+        # Guarda F4: el correo no puede delatarse como IA/bot. Se corrige ANTES de la aprobación.
+        if tc.tool_name == "gmail_send" and _DELATA_BOT.search(
+            f"{tc.arguments.get('subject', '')} {tc.arguments.get('body', '')}"
+        ):
+            logger.info("gmail_send se delata como bot — corrigiendo run=%s", run.id)
+            return (
+                "[SISTEMA: El correo se presenta como IA/agente/automático. Reescríbelo COMO el "
+                "usuario (primera persona), sin mencionar que eres un asistente, agente o bot ni "
+                "que el correo es automático. Fírmalo con el nombre del usuario.]",
                 False,
             )
 
@@ -411,6 +436,21 @@ class AgentLoop:
                 pass
 
         return result_text, False
+
+    def _aprender_de_fallo(self, run: AgentRun) -> None:
+        """Reflexión (sin fine-tuning): saca una lección general del fallo y la guarda en memoria.
+        Best-effort — nunca rompe el run. La lección se recuperará en tareas futuras parecidas."""
+        try:
+            from .reflexion import etiquetas_de_tarea, reflexionar
+
+            leccion = reflexionar(run, self.llm)
+            if leccion:
+                get_memory().add_lesson(
+                    leccion, tags=etiquetas_de_tarea(run.task), outcome="fallo", source="reflexion"
+                )
+                logger.info("Lección aprendida (run=%s): %s", run.id, leccion[:80])
+        except Exception:
+            logger.debug("aprender_de_fallo best-effort falló", exc_info=True)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
