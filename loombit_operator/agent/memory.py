@@ -68,6 +68,7 @@ class ContactEntry:
         notes: str = "",
         last_contact: str = "",
         times_contacted: int = 0,
+        source: str = "manual",
     ) -> None:
         self.name = name
         self.email = email
@@ -76,6 +77,9 @@ class ContactEntry:
         self.notes = notes
         self.last_contact = last_contact or datetime.now(UTC).isoformat()
         self.times_contacted = times_contacted
+        # Procedencia (F5 — no cristalizar datos falsos): "manual"/"google" = verdad confirmada;
+        # "auto" = capturado de un envío pasado, NO se trata como fuente fiable de resolución.
+        self.source = source
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -86,6 +90,7 @@ class ContactEntry:
             "notes": self.notes,
             "last_contact": self.last_contact,
             "times_contacted": self.times_contacted,
+            "source": self.source,
         }
 
     @classmethod
@@ -98,6 +103,7 @@ class ContactEntry:
             notes=str(d.get("notes", "")),
             last_contact=str(d.get("last_contact", "")),
             times_contacted=int(d.get("times_contacted", 0)),
+            source=str(d.get("source", "manual")),
         )
 
     def __str__(self) -> str:
@@ -397,8 +403,12 @@ class AgentMemory:
         company: str = "",
         role: str = "",
         notes: str = "",
+        source: str = "manual",
     ) -> None:
-        """Añade o actualiza un contacto. Deduplicado por email. Sin límite."""
+        """Añade o actualiza un contacto. Deduplicado por email. Sin límite.
+
+        `source` registra la procedencia (F5): "manual"/"google" = confirmado; "auto" = capturado
+        de un envío. Un contacto NUNCA se degrada de confirmado a auto al re-verse."""
         contacts = self._data.setdefault("contacts", [])
         email_lower = email.lower().strip()
         for c in contacts:
@@ -409,9 +419,11 @@ class AgentMemory:
                 c["notes"] = notes or c.get("notes", "")
                 c["last_contact"] = datetime.now(UTC).isoformat()
                 c["times_contacted"] = c.get("times_contacted", 0) + 1
+                if source != "auto":  # no degradar verdad confirmada
+                    c["source"] = source
                 self._save()
                 return
-        contacts.append(ContactEntry(name, email, company, role, notes).to_dict())
+        contacts.append(ContactEntry(name, email, company, role, notes, source=source).to_dict())
         self._save()
 
     def find_contact(self, query: str) -> list[ContactEntry]:
@@ -665,14 +677,21 @@ class AgentMemory:
                 if "@" in email:
                     raw = args.get("to", "")
                     name = raw.split("<")[0].strip() if "<" in raw else email.split("@")[0]
-                    self.add_contact(name=name, email=email)
+                    # Capturado de un envío → procedencia "auto" (no es verdad confirmada): así no
+                    # se cristaliza como contacto fiable (raíz del bug de `jana.espinal`).
+                    self.add_contact(name=name, email=email, source="auto")
                     added += 1
             elif tool_name == "contacts_find":
                 try:
                     result = json.loads(getattr(step, "result", "{}") or "{}")
                     for contact in result.get("contacts", []):
                         if contact.get("email"):
-                            self.add_contact(name=contact.get("name", ""), email=contact["email"])
+                            # Viene de Google Contacts → fuente fiable.
+                            self.add_contact(
+                                name=contact.get("name", ""),
+                                email=contact["email"],
+                                source="google",
+                            )
                             added += 1
                 except (json.JSONDecodeError, AttributeError):
                     pass

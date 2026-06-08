@@ -344,6 +344,21 @@ class AgentLoop:
         except KeyError:
             return f"ERROR: tool desconocida '{tc.tool_name}'", False
 
+        # Guarda 12-factor (F2): el destinatario es un IDENTIFICADOR, no se confía al modelo.
+        # Solo se permite enviar a un email que el usuario escribió o que se resolvió con
+        # contacts_find en este run. Inventarlo se bloquea ANTES de la tarjeta de aprobación.
+        if tc.tool_name == "gmail_send" and not _recipiente_resuelto(
+            str(tc.arguments.get("to", "")), run
+        ):
+            logger.info("gmail_send a destinatario no resuelto run=%s", run.id)
+            return (
+                f"[SISTEMA: No envíes a «{tc.arguments.get('to', '')}»: no es un email que el "
+                "usuario te haya dado ni uno resuelto con contacts_find. NO inventes destinatarios. "
+                "Llama a contacts_find con el nombre y usa el email del contacto correcto; si hay "
+                "varios, elige el más probable o pregunta; si no aparece, pregunta al usuario.]",
+                False,
+            )
+
         if tool_def.requires_approval:
             payload = json.dumps(
                 {
@@ -399,6 +414,21 @@ class AgentLoop:
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+
+def _recipiente_resuelto(to: str, run: AgentRun) -> bool:
+    """True si el email destinatario es legítimo: lo escribió el usuario en su petición, o se
+    resolvió con contacts_find en este run. Nunca se acepta un email "inventado" por el modelo
+    ni uno auto-capturado en memoria (eso fue el bug de `jana.espinal`). Determinista, fail-closed.
+    """
+    to_l = to.strip().lower()
+    if not to_l or "@" not in to_l:
+        return False
+    if to_l in (run.task or "").lower():
+        return True
+    return any(
+        s.tool_name == "contacts_find" and to_l in (s.result or "").lower() for s in run.steps
+    )
 
 
 def _extract_sentinel(text: str, prefix: str) -> str | None:
