@@ -75,7 +75,7 @@ def _f1_no_pregunta_asunto() -> tuple[bool, str]:
 def _f2_bloquea_email_inventado() -> tuple[bool, str]:
     # el modelo se saca un email que el usuario NO dio y que no salió de contacts_find
     out, stop = _loop()._execute_tool_call(
-        _tc("gmail_send", to="jana.espinal@gmail.com", subject="x", body="y"),
+        _tc("gmail_send", to="jana.espinal@example.com", subject="x", body="y"),
         1,
         _run("manda un correo a Jana dando las buenas noches"),
     )
@@ -87,9 +87,9 @@ def _f2_permite_email_del_usuario() -> tuple[bool, str]:
     # el usuario escribió el email en su petición → destinatario CLARO → se auto-envía (sin tarjeta)
     with _stub_gmail_send():
         out, stop = _loop()._execute_tool_call(
-            _tc("gmail_send", to="jana@empresa.com", subject="x", body="y"),
+            _tc("gmail_send", to="jana@example.com", subject="x", body="y"),
             1,
-            _run("manda un correo a jana@empresa.com dando las buenas noches"),
+            _run("manda un correo a jana@example.com dando las buenas noches"),
         )
     ok = stop is False and "message_id" in out and not out.startswith("PENDING_APPROVAL:")
     return ok, "auto-enviado (lo dio el usuario)" if ok else f"mal: stop={stop} out={out[:60]}"
@@ -99,11 +99,11 @@ def _f2_permite_email_de_contacts_find() -> tuple[bool, str]:
     # contacts_find lo resolvió SIN ambigüedad → destinatario CLARO → se auto-envía
     step = SimpleNamespace(
         tool_name="contacts_find",
-        result='{"estado": "resuelto", "mejor": {"name": "Jana Wall", "email": "jana.wall@acme.com"}}',
+        result='{"estado": "resuelto", "mejor": {"name": "Jana Wall", "email": "jana.wall@example.com"}}',
     )
     with _stub_gmail_send():
         out, stop = _loop()._execute_tool_call(
-            _tc("gmail_send", to="jana.wall@acme.com", subject="x", body="y"),
+            _tc("gmail_send", to="jana.wall@example.com", subject="x", body="y"),
             2,
             _run("manda un correo a Jana", steps=[step]),
         )
@@ -117,10 +117,10 @@ def _f2_confirma_email_ambiguo() -> tuple[bool, str]:
     # contacts_find devolvió AMBIGUO (varios candidatos) → NO se auto-envía: se confirma con tarjeta
     step = SimpleNamespace(
         tool_name="contacts_find",
-        result='{"estado": "ambiguo", "mejor": {"name": "Jana Wall", "email": "jana.wall@acme.com"}}',
+        result='{"estado": "ambiguo", "mejor": {"name": "Jana Wall", "email": "jana.wall@example.com"}}',
     )
     out, stop = _loop()._execute_tool_call(
-        _tc("gmail_send", to="jana.wall@acme.com", subject="x", body="y"),
+        _tc("gmail_send", to="jana.wall@example.com", subject="x", body="y"),
         2,
         _run("manda un correo a Jana", steps=[step]),
     )
@@ -157,7 +157,7 @@ def _f5_procedimiento_sin_datos_literales() -> tuple[bool, str]:
         steps=[
             SimpleNamespace(
                 tool_name="gmail_send",
-                arguments={"to": "jana.espinal@gmail.com", "subject": "", "body": "Hola"},
+                arguments={"to": "jana.espinal@example.com", "subject": "", "body": "Hola"},
             )
         ],
     )
@@ -175,9 +175,11 @@ def _f5_procedencia_auto_vs_google(tmp=None) -> tuple[bool, str]:
 
     with tempfile.TemporaryDirectory() as d:
         mem = AgentMemory(store_path=Path(d) / "m.json")
-        envio = SimpleNamespace(tool_name="gmail_send", arguments={"to": "jana.espinal@gmail.com"})
+        envio = SimpleNamespace(
+            tool_name="gmail_send", arguments={"to": "jana.espinal@example.com"}
+        )
         mem.extract_contacts_from_steps([envio])
-        c = next((x for x in mem.contacts if x.email == "jana.espinal@gmail.com"), None)
+        c = next((x for x in mem.contacts if x.email == "jana.espinal@example.com"), None)
         ok = c is not None and c.source == "auto"
         return ok, (
             f"auto-capturado marcado source={c.source if c else '?'}" if ok else "no marcado auto"
@@ -189,12 +191,12 @@ def _f4_bloquea_bot_reveal() -> tuple[bool, str]:
     out, stop = _loop()._execute_tool_call(
         _tc(
             "gmail_send",
-            to="jana@empresa.com",
+            to="jana@example.com",
             subject="Presentación",
             body="Hola, soy un agente autónomo llamado Loombit Operator que ha enviado este correo.",
         ),
         1,
-        _run("manda un correo a jana@empresa.com presentándote"),
+        _run("manda un correo a jana@example.com presentándote"),
     )
     ok = stop is False and "como el usuario" in out.lower()
     return ok, "bloqueado (no se delata)" if ok else f"NO bloqueado: stop={stop} out={out[:60]}"
@@ -205,12 +207,12 @@ def _f4_permite_correo_humano() -> tuple[bool, str]:
         out, stop = _loop()._execute_tool_call(
             _tc(
                 "gmail_send",
-                to="jana@empresa.com",
+                to="jana@example.com",
                 subject="Reunión la próxima semana",
                 body="Hola Jana,\n\n¿Tienes un hueco para vernos? Un saludo, Fernando.",
             ),
             1,
-            _run("manda un correo a jana@empresa.com proponiendo vernos"),
+            _run("manda un correo a jana@example.com proponiendo vernos"),
         )
     ok = stop is False and "message_id" in out and not out.startswith("PENDING_APPROVAL:")
     return ok, "auto-enviado (correo humano normal)" if ok else f"mal: stop={stop} out={out[:60]}"
@@ -303,14 +305,14 @@ def _f3_ranking_y_exclusion_auto() -> tuple[bool, str]:
     # 'jana.espinal' (auto) NO debe ganar a 'Jana Wall' (google) — ni siquiera aparecer
     estado, mejor, ranking = resolver_destinatario(
         [
-            Candidato("jana.espinal", "jana.espinal@gmail.com", "auto", 1),
-            Candidato("Jana Wall", "jana.wall@acme.com", "google", 5),
+            Candidato("jana.espinal", "jana.espinal@example.com", "auto", 1),
+            Candidato("Jana Wall", "jana.wall@example.com", "google", 5),
         ]
     )
     ok_resuelto = (
         estado == "resuelto"
         and mejor is not None
-        and mejor.email == "jana.wall@acme.com"
+        and mejor.email == "jana.wall@example.com"
         and all(c.source != "auto" for c in ranking)
     )
     # frecuencia desempata entre fuentes fiables
@@ -343,12 +345,12 @@ def _f3_otros_contactos_resuelve() -> tuple[bool, str]:
         {
             "person": {
                 "names": [{"displayName": "Jana Wall"}],
-                "emailAddresses": [{"value": "jana.wall@acme.com"}],
+                "emailAddresses": [{"value": "jana.wall@example.com"}],
             }
         }
     ]
     estado, mejor, _ = resolver_destinatario(candidatos_de_people(results))
-    ok = estado == "resuelto" and mejor is not None and mejor.email == "jana.wall@acme.com"
+    ok = estado == "resuelto" and mejor is not None and mejor.email == "jana.wall@example.com"
     return ok, f"otros-contactos → {mejor.email if mejor else None}"
 
 
