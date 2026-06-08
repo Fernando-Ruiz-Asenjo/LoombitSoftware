@@ -353,12 +353,25 @@ class AgentLoop:
             self._aprender_de_fallo(run)
             self.store.save_run(run)
             return run
+        finally:
+            # Fin de la ejecución (completado, pausa o error): cerrar la sesión de halo;
+            # el halo se apaga solo poco después. Al reanudar se reabre si vuelve a pilotar.
+            from ..pilot import overlay_manager
+
+            overlay_manager.stop_session()
 
     def _execute_tool_call(self, tc: ToolCall, step_num: int, run: AgentRun) -> tuple[str, bool]:
         try:
             tool_def = self.registry.get(tc.tool_name)
         except KeyError:
             return f"ERROR: tool desconocida '{tc.tool_name}'", False
+
+        # Señal visible PERSISTENTE: si el agente usa una tool de pilotaje (escritorio/navegador),
+        # abre la sesión de halo → el usuario VE a Loombit pilotando durante todo el run.
+        if tool_def.category in ("pilot", "computer"):
+            from ..pilot import overlay_manager
+
+            overlay_manager.start_session()
 
         # Guarda 12-factor (F2): el destinatario es un IDENTIFICADOR, no se confía al modelo.
         # Solo se permite enviar a un email que el usuario escribió o que se resolvió con

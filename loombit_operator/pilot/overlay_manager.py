@@ -18,6 +18,7 @@ import os
 import subprocess
 import sys
 import threading
+import time
 from pathlib import Path
 
 # Segundos sin acciones tras los cuales el proceso del halo se cierra (fin de "sesión").
@@ -32,6 +33,12 @@ _KEEPALIVE = (
 
 _lock = threading.Lock()
 _proc: subprocess.Popen | None = None
+
+# Sesión de pilotaje: mientras está activa, un heartbeat refresca el keepalive cada
+# segundo → el halo se mantiene PERSISTENTE durante todo el run del agente (aunque el
+# 14B tarde entre pasos), no parpadea por acción suelta.
+_session_active = False
+_heartbeat: threading.Thread | None = None
 
 
 def _disabled() -> bool:
@@ -73,6 +80,36 @@ def touch() -> None:
                 _proc = None
 
 
+def start_session() -> None:
+    """Abre una sesión de pilotaje: el halo se mantiene encendido (heartbeat) hasta `stop_session`."""
+    global _session_active, _heartbeat
+    if _disabled():
+        return
+    with _lock:
+        _session_active = True
+        if _heartbeat is None or not _heartbeat.is_alive():
+            _heartbeat = threading.Thread(target=_beat, daemon=True)
+            _heartbeat.start()
+    touch()  # enciende ya, sin esperar al primer latido
+
+
+def _beat() -> None:
+    while True:
+        with _lock:
+            active = _session_active
+        if not active:
+            return
+        touch()
+        time.sleep(1.0)
+
+
+def stop_session() -> None:
+    """Cierra la sesión de pilotaje: el halo se apaga solo tras IDLE_TIMEOUT sin latidos."""
+    global _session_active
+    with _lock:
+        _session_active = False
+
+
 def is_active() -> bool:
     """True si el proceso del halo está vivo ahora mismo."""
     with _lock:
@@ -81,8 +118,9 @@ def is_active() -> bool:
 
 def force_stop() -> None:
     """Apaga el halo de inmediato (limpieza/tests): borra el keepalive y termina el proceso."""
-    global _proc
+    global _proc, _session_active
     with _lock:
+        _session_active = False
         try:
             if _KEEPALIVE.exists():
                 _KEEPALIVE.unlink()

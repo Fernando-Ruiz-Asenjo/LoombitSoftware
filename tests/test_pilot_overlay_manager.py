@@ -71,6 +71,19 @@ def test_touch_respawns_if_process_died(monkeypatch, tmp_path):
     om.force_stop()
 
 
+def test_session_keeps_overlay_active(monkeypatch, tmp_path):
+    _wire(monkeypatch, tmp_path)
+    om.start_session()
+    assert om.is_active() is True
+    assert om._session_active is True
+
+    om.stop_session()
+    assert om._session_active is False  # el halo se apaga solo tras IDLE_TIMEOUT
+
+    om.force_stop()
+    assert om.is_active() is False
+
+
 def test_force_stop_is_safe_when_idle():
     om.force_stop()
     om.force_stop()  # idempotente, no lanza
