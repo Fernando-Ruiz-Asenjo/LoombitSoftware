@@ -140,6 +140,7 @@ def tejer_dia(
     now: datetime | None = None,
     eventos: list[dict] | None = None,
     correos: list[dict] | None = None,
+    inbox: list[dict] | None = None,
     vencidas: list | None = None,
     proximas: list | None = None,
     aprobaciones: int | None = None,
@@ -157,6 +158,8 @@ def tejer_dia(
         eventos = _fuente_eventos(settings, ahora)
     if correos is None:
         correos = _fuente_correos(settings)
+    if inbox is None:
+        inbox = _fuente_inbox(settings)
     if vencidas is None or proximas is None:
         v, p = _fuente_cobros(settings)
         vencidas = vencidas if vencidas is not None else v
@@ -225,8 +228,16 @@ def tejer_dia(
             )
         )
 
-    # ⏰ Plazos detectados (lo que se adelanta)
-    for pl in _plazos_en_correos(correos or [], hoy)[:5]:
+    # ⏰ Plazos detectados — escanea correos de contactos + bandeja reciente (gestoría/AEAT/quien
+    # sea es justo donde viven los plazos). Dedup por asunto+fecha.
+    _vistos: set = set()
+    _plazos: list[dict] = []
+    for pl in _plazos_en_correos((correos or []) + (inbox or []), hoy):
+        clave = (pl["asunto"], pl["fecha"])
+        if clave not in _vistos:
+            _vistos.add(clave)
+            _plazos.append(pl)
+    for pl in _plazos[:5]:
         hilos.append(
             _hilo(
                 "plazo",
@@ -307,6 +318,51 @@ def _fuente_correos(settings: Any) -> list[dict]:
             SimpleNamespace(name=c["name"], email=c["email"]) for c in _contactos_de_gmail(st)
         ]
         return _buscar_respuestas(token, contactos)
+    except Exception:
+        return []
+
+
+def _fuente_inbox(settings: Any, dias: int = 6, maximo: int = 18) -> list[dict]:
+    """Correos recientes SIN LEER de toda la bandeja (read-only) — para detectar plazos
+    vengan de quien vengan (gestoría, AEAT, bancos…). Devuelve from/subject/snippet."""
+    try:
+        import httpx
+
+        from .config import get_settings
+        from .skill_blanca_oauth import fresh_access_token
+
+        st = settings or get_settings()
+        token = fresh_access_token(st, "google")
+        if not token:
+            return []
+        h = {"Authorization": f"Bearer {token}"}
+        out: list[dict] = []
+        with httpx.Client(timeout=12) as c:
+            r = c.get(
+                "https://gmail.googleapis.com/gmail/v1/users/me/messages",
+                headers=h,
+                params={"q": f"is:unread newer_than:{dias}d", "maxResults": maximo},
+            )
+            if r.status_code != 200:
+                return []
+            for m in r.json().get("messages", [])[:maximo]:
+                mr = c.get(
+                    f"https://gmail.googleapis.com/gmail/v1/users/me/messages/{m['id']}",
+                    headers=h,
+                    params={"format": "metadata", "metadataHeaders": ["From", "Subject"]},
+                )
+                if mr.status_code != 200:
+                    continue
+                data = mr.json()
+                hdrs = {x["name"]: x["value"] for x in data.get("payload", {}).get("headers", [])}
+                out.append(
+                    {
+                        "from": hdrs.get("From", ""),
+                        "subject": hdrs.get("Subject", ""),
+                        "snippet": data.get("snippet", "")[:300],
+                    }
+                )
+        return out
     except Exception:
         return []
 

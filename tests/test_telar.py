@@ -91,6 +91,27 @@ def test_tejer_dia_vacio_es_amable() -> None:
     assert "despejado" in tela["resumen"]
 
 
+def test_plazo_desde_la_bandeja_no_solo_contactos() -> None:
+    # El caso de oro: la gestoría/AEAT manda un plazo aunque no sea un contacto frecuente.
+    tela = telar.tejer_dia(
+        now=datetime(2026, 6, 8, 9),
+        eventos=[],
+        correos=[],
+        inbox=[
+            {
+                "from": "AEAT <no-reply@aeat.es>",
+                "subject": "Modelo 303",
+                "snippet": "plazo hasta el 20/07",
+            }
+        ],
+        vencidas=[],
+        proximas=[],
+        aprobaciones=0,
+    )
+    plazo = next(h for h in tela["hilos"] if h["tipo"] == "plazo")
+    assert "2026-07-20" in plazo["accion"]["task"]
+
+
 def test_plazo_genera_hilo_de_agendar() -> None:
     tela = telar.tejer_dia(
         now=datetime(2026, 6, 8, 9),
