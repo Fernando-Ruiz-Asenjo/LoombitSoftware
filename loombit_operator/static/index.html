@@ -1426,12 +1426,21 @@ async function disconnectGoogle() {
 }
 
 // ── Aprobar todo ──────────────────────────────────────
+let _approvalsDismissed = '';   // firma del conjunto de aprobaciones que el usuario cerró
+function dismissApprovals() {
+  const bar = document.getElementById('approveAllBar');
+  _approvalsDismissed = (bar && bar._sig) || '';  // recordar QUÉ se cerró
+  if (bar) bar.style.display = 'none';            // reaparece solo si cambian las pendientes
+}
 async function refreshApprovals() {
   try {
     const r = await fetch(`${API}/agent/runs?status=pending_approval`, { signal: AbortSignal.timeout(8000) });
     if (!r.ok) return;
     const runs = await r.json();
     const bar = document.getElementById('approveAllBar');
+    const sig = runs.map(r => r.id).sort().join(',');
+    bar._sig = sig;
+    if (runs.length > 0 && sig === _approvalsDismissed) { bar.style.display = 'none'; return; }
     if (runs.length > 0) {
       document.getElementById('approveAllCount').textContent = runs.length;
       const noun = document.getElementById('approveAllNoun');
@@ -2146,7 +2155,10 @@ async function telarAccion(i) {
 })();
 </script>
 <div id="approveAllBar" style="display:none;position:fixed;top:64px;right:20px;z-index:9999;background:var(--lb-navy3,#1a2235);border:1px solid var(--lb-purple,#8b5cf6);border-radius:12px;padding:10px 14px;box-shadow:0 10px 30px rgba(0,0,0,.55);flex-direction:column;align-items:stretch;gap:8px;font-size:13px;color:var(--lb-text,#f1f5f9);max-width:340px">
-  <span>⚠ <strong id="approveAllCount">0</strong> <span id="approveAllNoun">acciones pendientes de aprobar</span></span>
+  <div style="display:flex;align-items:flex-start;gap:8px">
+    <span style="flex:1">⚠ <strong id="approveAllCount">0</strong> <span id="approveAllNoun">acciones pendientes de aprobar</span></span>
+    <button onclick="dismissApprovals()" title="Cerrar (no cancela nada; reaparece si cambian)" style="background:none;border:none;color:var(--lb-text3,#64748b);cursor:pointer;font-size:16px;line-height:1;padding:0 2px">✕</button>
+  </div>
   <ul id="approveAllList" style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:12px;opacity:.92"></ul>
   <button id="approveAllBtn" onclick="approveAll()" style="background:linear-gradient(135deg,var(--lb-purple,#8b5cf6),var(--lb-cyan,#06b6d4));color:#fff;border:none;border-radius:999px;padding:8px 18px;font-weight:700;cursor:pointer;font-size:13px">Aprobar todo</button>
 </div>
