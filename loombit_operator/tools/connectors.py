@@ -199,25 +199,32 @@ def _calendar_create(
 # ── contacts_find ─────────────────────────────────────────────────────────────
 
 
-def _people_search(client, headers: dict, endpoint: str, name: str, out: list) -> None:
-    """Llama a un endpoint de búsqueda de People API y añade los candidatos con email a `out`."""
+def candidatos_de_people(results: list) -> list:
+    """Parsea `results[]` de People API (searchContacts u otherContacts:search) a Candidatos con
+    email. Pública y pura → testeable sin red (así se prueba el camino de 'otros contactos')."""
     from ..recipients import Candidato
 
+    out = []
+    for res in results or []:
+        p = res.get("person", {})
+        names = p.get("names", [{}])
+        display_name = names[0].get("displayName", "") if names else ""
+        for em in p.get("emailAddresses", []):
+            if em.get("value"):
+                out.append(Candidato(display_name, em["value"], "google"))
+    return out
+
+
+def _people_search(client, headers: dict, endpoint: str, name: str, out: list) -> None:
+    """Llama a un endpoint de búsqueda de People API y añade los candidatos con email a `out`."""
     try:
         resp = client.get(
             f"https://people.googleapis.com/v1/{endpoint}",
             headers=headers,
             params={"query": name, "readMask": "names,emailAddresses", "pageSize": 10},
         )
-        if resp.status_code != 200:
-            return
-        for res in resp.json().get("results", []):
-            p = res.get("person", {})
-            names = p.get("names", [{}])
-            display_name = names[0].get("displayName", "") if names else ""
-            for em in p.get("emailAddresses", []):
-                if em.get("value"):
-                    out.append(Candidato(display_name, em["value"], "google"))
+        if resp.status_code == 200:
+            out.extend(candidatos_de_people(resp.json().get("results", [])))
     except Exception:
         pass
 

@@ -258,6 +258,28 @@ def _f3_ranking_y_exclusion_auto() -> tuple[bool, str]:
     return ok, f"resuelto={ok_resuelto}, frecuencia={ok_frecuencia}, ambiguo={ok_ambiguo}"
 
 
+# ── F3b — el camino "otros contactos" resuelve a la Jana con email (probado con mock) ──
+def _f3_otros_contactos_resuelve() -> tuple[bool, str]:
+    """Demuestra que cuando 'otros contactos' de Google devuelve a Jana Wall (con email), el parser
+    + resolver la eligen. Lo único pendiente en real es el consentimiento del scope (acción humana).
+    """
+    from loombit_operator.recipients import resolver_destinatario
+    from loombit_operator.tools.connectors import candidatos_de_people
+
+    # payload tal cual lo devuelve otherContacts:search (gente a la que has escrito)
+    results = [
+        {
+            "person": {
+                "names": [{"displayName": "Jana Wall"}],
+                "emailAddresses": [{"value": "jana.wall@acme.com"}],
+            }
+        }
+    ]
+    estado, mejor, _ = resolver_destinatario(candidatos_de_people(results))
+    ok = estado == "resuelto" and mejor is not None and mejor.email == "jana.wall@acme.com"
+    return ok, f"otros-contactos → {mejor.email if mejor else None}"
+
+
 # ── F7 — saltos de línea literales del modelo ───────────────────────────────────
 def _f7_normaliza_saltos() -> tuple[bool, str]:
     out = normalize_email_text("Hola Jana,\\n\\nMensaje.\\n\\nUn saludo")
@@ -332,6 +354,12 @@ CASES: list[Eval] = [
         "F5",
         "Procedimientos sin datos literales (no memoriza emails)",
         _f5_procedimiento_sin_datos_literales,
+    ),
+    Eval(
+        "F3.otros_contactos",
+        "F3",
+        "Resolver desde 'otros contactos' de Google (probado con mock)",
+        _f3_otros_contactos_resuelve,
     ),
     Eval(
         "F6.foundational",
