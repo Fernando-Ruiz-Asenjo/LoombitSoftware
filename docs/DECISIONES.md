@@ -157,4 +157,12 @@ Formato: **D-NN — decisión** · *contexto* · **elegido** vs alternativas · 
 - *Elegido:* `GET /routines/feed` (helper `build_feed`) lee los recibos del daemon, **descarta los ticks vacíos de vigilancia** (ruido) y marca lo importante; el panel lateral los pinta cada 10 s con **distintivo visual por tipo** (📨 respuesta/cian · ⚠ importante/rojo · 💡 mejora/violeta · 📋 brief/azul · pendiente). +2 tests del feed.
 - *Reversible:* sí; el panel y el endpoint son aditivos.
 
+## Fase 2 — Morning Brief con datos reales
+
+**D-23 — Store de cuentas a cobrar + el Brief usa vencimientos reales.** Estado 🟢 (verificado en vivo).
+- *Elegido:* `cuentas_cobrar.py` (Skill D Cobros): store JSON `runtime/local/cuentas_cobrar.json` con `CuentaCobrar` (cliente, importe, vencimiento, estado) y `pendientes/vencidas/proximas` (reusa `cobros.days_overdue`). Router `routers/cuentas.py` (GET/POST + marcar cobrada). El Brief (`_señales_reales`) suma la señal real: "N cuenta(s) a cobrar VENCIDA(s) por X €" y "N vencen en 7 días".
+- *Verificación 🟢:* POST /cuentas (vencida 1250 €) → el brief generó la señal real "1 cuenta(s) a cobrar VENCIDA(s) por 1250 €". +3 tests del store.
+- *Pendiente:* alimentar el store desde intake de facturas / conciliación (hoy se añade por API); UI del brief.
+- *Reversible:* sí; store y router son aditivos.
+
 *(se irán añadiendo entradas según avance el bloque)*

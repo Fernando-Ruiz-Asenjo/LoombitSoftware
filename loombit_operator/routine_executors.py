@@ -69,6 +69,19 @@ def _señales_reales() -> list[str]:
             señales.append(f"{len(pend)} aprobación(es) pendiente(s)")
     except Exception:
         pass
+    try:
+        from .cuentas_cobrar import CuentasCobrarStore
+
+        cc = CuentasCobrarStore()
+        venc = cc.vencidas()
+        prox = cc.proximas(7)
+        if venc:
+            total = sum(c.importe for c in venc)
+            señales.append(f"{len(venc)} cuenta(s) a cobrar VENCIDA(s) por {total:.0f} €")
+        if prox:
+            señales.append(f"{len(prox)} cuenta(s) a cobrar vencen en 7 días")
+    except Exception:
+        pass
     return señales
 
 
