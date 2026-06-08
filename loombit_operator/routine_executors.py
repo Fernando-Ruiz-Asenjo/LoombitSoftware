@@ -195,11 +195,11 @@ def vigilar_respuestas_routine() -> Routine:
     y prepara borradores. ASSISTED (el humano aprueba el envío con 'Aprobar todo')."""
     return Routine(
         name="Vigilar respuestas",
-        schedule=CronSchedule("*/15 8-20 * * 1-5"),
+        schedule=CronSchedule("* * * * *"),  # cada minuto: flujo rápido y efectivo
         objective="Detecta respuestas nuevas de tus contactos y prepara el borrador de cada una.",
         safety=SkillSafetyClass.ASSISTED,
         output_kind="reply_watch",
-        enabled=False,  # opt-in: se activa cuando el daemon proactivo esté en marcha
+        enabled=True,
     )
 
 

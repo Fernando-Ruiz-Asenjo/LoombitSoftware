@@ -144,4 +144,13 @@ Formato: **D-NN — decisión** · *contexto* · **elegido** vs alternativas · 
 - *INCIDENTE asociado (honestidad):* al introducir el auto-envío, los evals (que llaman directo a `_execute_tool_call`) **enviaron 2 correos REALES** a `jana@empresa.com` en una corrida de `verify` (OAuth conectado + escrituras on). Corregido: los evals ahora **stubean** `gmail_send` (`_stub_gmail_send`), nunca tocan Gmail real. Lección: una primitiva que ejecuta un efecto externo no se ejercita "de verdad" en CI sin stub.
 - *Reversible:* sí; `_destinatario_claro` se puede endurecer (volver a confirmar siempre) en una línea.
 
+## Proactivo / daemon
+
+**D-21 — Daemon proactivo ENCENDIDO + "Vigilar respuestas" cada minuto.** Estado **🟢** (verificado en vivo, 2026-06-08).
+- *Elegido:* la routine `Vigilar respuestas` (cron `* * * * *`, ASSISTED) detecta correos sin leer de tus contactos reales (de Enviados, incluye a Jana), redacta borrador como Fernando y marca `[IMPORTANTE]` lo delicado. El `SchedulerDaemon` (hilo de fondo, ya existía) se **activa por `.env`** (`LOOMBIT_OPERATOR_ROUTINES_DAEMON_ENABLED=true`, intervalo 30 s) — NO por defecto en el repo (CI/tests no deben arrancar daemon).
+- *Por qué cada minuto:* Fernando quiere flujo rápido; 15 min era demasiado.
+- *Verificación 🟢:* el daemon disparó la routine solo al arrancar (recibo `routine_receipts/...`, `status=pending_approval`, output honesto "Sin respuestas nuevas"); el pipeline detectar→redactar→clasificar se probó sobre un correo REAL (David Valentín → borrador humano, IMPORTANTE=No). +2 tests del daemon, +1 del reply-watch.
+- *Pendiente (honesto):* el **auto-envío** de la respuesta sigue gateado (queda como borrador `pending_approval` → tu "Aprobar todo"); abrirlo es el siguiente paso cuando esté probado. Memoria del hilo más rica = siguiente.
+- *Reversible:* sí; `routines_daemon_enabled=false` en `.env` apaga todo; la routine se puede desactivar o volver a 15 min.
+
 *(se irán añadiendo entradas según avance el bloque)*

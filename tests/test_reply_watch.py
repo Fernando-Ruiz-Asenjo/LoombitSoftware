@@ -13,7 +13,8 @@ def test_routine_config():
     r = rx.vigilar_respuestas_routine()
     assert r.name == "Vigilar respuestas"
     assert r.output_kind == "reply_watch"
-    assert r.enabled is False  # opt-in
+    assert r.enabled is True  # activa (daemon proactivo)
+    assert r.schedule.expr == "* * * * *"  # cada minuto
     assert r.safety == SkillSafetyClass.ASSISTED
 
 
