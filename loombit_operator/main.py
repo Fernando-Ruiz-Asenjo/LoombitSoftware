@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 
@@ -75,12 +76,14 @@ enable_dpi_awareness()
 from fastapi import FastAPI  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 
+from .config import get_settings  # noqa: E402
 from .routers import (  # noqa: E402
     agent,
     computer,
     docs,
     health,
     pilot,
+    routines,
     skill_blanca_actions,
     skill_blanca_oauth,
     ui,
@@ -88,7 +91,28 @@ from .routers import (  # noqa: E402
 
 STATIC_DIR = Path(__file__).parent / "static"
 
-app = FastAPI(title="Loombit Operator", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Arranca el daemon de Routines si está habilitado (opt-in por config)."""
+    settings = get_settings()
+    daemon = None
+    if settings.routines_daemon_enabled:
+        from .routine_executors import build_default_scheduler
+        from .scheduler import SchedulerDaemon
+
+        daemon = SchedulerDaemon(
+            build_default_scheduler(), settings.routines_daemon_interval_seconds
+        )
+        daemon.start()
+    try:
+        yield
+    finally:
+        if daemon is not None:
+            daemon.stop()
+
+
+app = FastAPI(title="Loombit Operator", version="0.1.0", lifespan=lifespan)
 
 # Rutas API
 app.include_router(health.router)
@@ -98,6 +122,7 @@ app.include_router(agent.router)
 app.include_router(computer.router)
 app.include_router(pilot.router)
 app.include_router(docs.router)
+app.include_router(routines.router)
 
 # UI estatico y home
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

@@ -110,9 +110,12 @@ Checklist de robustez (la solidez a traspasar):
 
 ---
 
-## 6. Primer corte vertical propuesto (para empezar "muy bien hecho")
+## 6. Primer corte vertical — ✅ IMPLEMENTADO y verificado (2026-06-08)
 
-Lo más pequeño que demuestra el patrón completo de punta a punta:
+Implementado en `routines.py` + `scheduler.py` + `routers/routines.py` (+ daemon opt-in y
+`lifespan` en `main.py`), con **15 tests** y **ejecución real verificada contra el 14B** (el
+Brief diario generó un brief real vía `POST /routines/{id}/run`, recibo en `runtime/local/`).
+Lo más pequeño que demostró el patrón completo de punta a punta:
 
 1. `Routine` (modelo + store JSON) + cablear `lm_jobs` al `llm.py` real.
 2. `scheduler.py` con **una** rutina cron: **Brief diario** a las 08:00 Europe/Madrid.

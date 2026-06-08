@@ -7,7 +7,7 @@
 
 ## Foto global
 - **Repo**: limpio y profesional, historial sano, LICENSE propietaria, `.gitignore`/`.gitattributes`.
-- **CI**: verde (black + ruff + pytest). **123 tests**.
+- **CI**: verde (black + ruff + pytest). **138 tests**.
 - **Arquitectura**: núcleo blanco + skills + ReAct; FastAPI en `:8787`; LLM local (instructor **Qwen2.5-14B**, coder 7B, vía LM Studio). Ver `MODELOS_LOOMBIT.md`.
 
 ## Avance por fases
@@ -59,7 +59,7 @@
 1. **Crear 1 evento real en Calendar** → cierra la Fase 1 🟢 (mismo patrón que el correo; OAuth y recibos ya están). *(siguiente)*
 2. ✅ **Swap del instructor a Qwen2.5-14B-Instruct (Q4_K_M)** — HECHO 2026-06-08, verificado contra la API real (genera asunto/cuerpo y llama a la tool sin preguntar). Ver `MODELOS_LOOMBIT.md`.
 3. **WhatsApp como objetivo del Pilot** — canal de negocio real (92% lo usa a diario, 68% prefiere WhatsApp a email/teléfono). Ver `INSIGHTS_PRODUCTO_Y_SUPUESTOS.md`.
-4. **Routines (scheduler) + Brief diario + store de cuentas a cobrar** — motor de agentes proactivos programados; cierra el MVP de Fase 2. Ver `ROUTINES_LOOMBIT.md`.
+4. 🟢 **Routines: scheduler + Brief diario** — verificado end-to-end (2026-06-08): motor + cron + recibo + semáforo + 15 tests + brief real contra el 14B. **Falta**: cablear fuentes reales (banco/Gmail) al brief + store de cuentas a cobrar (cierra MVP Fase 2). Ver `ROUTINES_LOOMBIT.md`.
 5. **Piloto real de cobros** end-to-end → primer recibo 🟢 (necesita LM Studio + datos).
 6. Qwen2.5-VL local (facturas escaneadas), servidor MCP, adaptador navegador.
 7. Convertir los supuestos (S-01…S-15 + los nuevos A-G/I-X de investigación de campo) en **tests de comportamiento**.
