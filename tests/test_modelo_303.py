@@ -1,0 +1,115 @@
+"""Tests del Skill D Fiscal — cálculo determinista del 303 + integración con Expediente."""
+
+from decimal import Decimal
+
+from loombit_operator.expedientes import ExpedienteStatus, ExpedienteStore
+from loombit_operator.skill_d_fiscal import (
+    LineaIVA,
+    borrador_303_texto,
+    calcular_303,
+    procesar_303,
+)
+
+
+def test_devengado_simple():
+    res = calcular_303([LineaIVA(base=1000, tipo=0.21, sentido="devengado")])
+    assert res.iva_devengado == Decimal("210.00")
+    assert res.iva_deducible == Decimal("0.00")
+    assert res.resultado == Decimal("210.00")
+    assert res.a_ingresar is True
+
+
+def test_devengado_menos_deducible():
+    res = calcular_303(
+        [
+            LineaIVA(base=1000, tipo=0.21, sentido="devengado"),
+            LineaIVA(base=500, tipo=0.21, sentido="soportado", deducible=True),
+        ]
+    )
+    assert res.iva_devengado == Decimal("210.00")
+    assert res.iva_deducible == Decimal("105.00")
+    assert res.resultado == Decimal("105.00")
+
+
+def test_resultado_a_compensar():
+    res = calcular_303(
+        [
+            LineaIVA(base=100, tipo=0.21, sentido="devengado"),
+            LineaIVA(base=1000, tipo=0.21, sentido="soportado"),
+        ]
+    )
+    assert res.resultado == Decimal("-189.00")
+    assert res.a_ingresar is False
+
+
+def test_redondeo_half_up():
+    # 33.33 * 0.21 = 6.9993 -> 7.00
+    res = calcular_303([LineaIVA(base="33.33", tipo="0.21", sentido="devengado")])
+    assert res.iva_devengado == Decimal("7.00")
+
+
+def test_aviso_discrepancia_de_cuota():
+    res = calcular_303(
+        [LineaIVA(base=1000, tipo=0.21, sentido="devengado", cuota=200, concepto="Factura A")]
+    )
+    assert any("Discrepancia de cuota" in a for a in res.avisos)
+
+
+def test_soportado_no_deducible_excluido():
+    res = calcular_303(
+        [LineaIVA(base=500, tipo=0.21, sentido="soportado", deducible=False, concepto="Comida")]
+    )
+    assert res.iva_deducible == Decimal("0.00")
+    assert any("NO deducible" in a for a in res.avisos)
+
+
+def test_regimen_no_general_avisa():
+    res = calcular_303([LineaIVA(base=100, tipo=0.21, sentido="devengado")], regimen="caja")
+    assert any("requiere revisión del asesor" in a for a in res.avisos)
+
+
+def test_tipo_no_estandar_avisa():
+    res = calcular_303([LineaIVA(base=100, tipo=0.052, sentido="devengado", concepto="Recargo")])
+    assert any("Tipo de IVA no estándar" in a for a in res.avisos)
+
+
+def test_casillas_principales():
+    res = calcular_303(
+        [
+            LineaIVA(base=1000, tipo=0.21, sentido="devengado"),
+            LineaIVA(base=200, tipo=0.10, sentido="devengado"),
+            LineaIVA(base=300, tipo=0.21, sentido="soportado"),
+        ]
+    )
+    assert res.casillas["01"] == "1000.00"  # base 21%
+    assert res.casillas["03"] == "210.00"  # cuota 21%
+    assert res.casillas["04"] == "200.00"  # base 10%
+    assert res.casillas["29"] == "63.00"  # cuota deducible
+
+
+def test_borrador_deja_claro_que_no_es_presentacion():
+    res = calcular_303([LineaIVA(base=1000, tipo=0.21, sentido="devengado")])
+    texto = borrador_303_texto(res, "2026-T2")
+    assert "BORRADOR" in texto
+    assert "no una presentación" in texto
+
+
+def test_procesar_303_abre_expediente_pendiente_de_aprobacion(tmp_path):
+    store = ExpedienteStore(entity_id="acme", base_dir=tmp_path)
+    exp, res = procesar_303(
+        store,
+        [
+            LineaIVA(base=1000, tipo=0.21, sentido="devengado"),
+            LineaIVA(base=500, tipo=0.21, sentido="soportado"),
+        ],
+        periodo="2026-T2",
+    )
+    # fiscal nunca se auto-completa: queda esperando validación humana
+    assert exp.status == ExpedienteStatus.PENDING_APPROVAL
+    assert exp.kind == "fiscal_303"
+    assert exp.data["resultado"] == "105.00"
+    assert "borrador" in exp.data
+    # trazabilidad íntegra con el evento del cálculo
+    kinds = [e.kind for e in store.events(exp.id)]
+    assert "calculo_303" in kinds
+    assert store.verify_chain(exp.id) is True

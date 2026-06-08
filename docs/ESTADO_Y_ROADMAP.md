@@ -7,7 +7,7 @@
 
 ## Foto global
 - **Repo**: limpio y profesional, historial sano, LICENSE propietaria, `.gitignore`/`.gitattributes`.
-- **CI**: verde (black + ruff + pytest). **146 tests**.
+- **CI**: verde (black + ruff + pytest). **157 tests**.
 - **Arquitectura**: núcleo blanco + skills + ReAct; FastAPI en `:8787`; LLM local (instructor **Qwen2.5-14B**, coder 7B, vía LM Studio). Ver `MODELOS_LOOMBIT.md`.
 
 ## Avance por fases
@@ -90,7 +90,10 @@ intake de factura + borrador de 303 (el humano presenta), cero riesgo legal.
 
 **Construido ya** (con OK de Fernando para decidir y avanzar): el **motor de Expedientes**
 (Skill W Core) — `expedientes.py`, SQLite por entidad + **trazabilidad inmutable** (cadena de
-hashes) + documentos con sha256, 8 tests. 🟡 (sin router/UI todavía). Es la base del fiscal.
+hashes) + documentos con sha256, 8 tests. 🟡 (sin router/UI todavía). Y encima, el
+**`Skill D Fiscal`**: cálculo **determinista** del 303 (Decimal + casillas principales + avisos de
+casuística) y `procesar_303` (abre Expediente → calcula → `PENDING_APPROVAL`), 11 tests. La IA
+prepara; el humano valida y presenta. Pendiente: intake/extracción de facturas y router/UI.
 
 ## Bloqueadores / dependen de Fernando
 - ~~**#28**: crear el cliente OAuth "App de escritorio"~~ → ✅ **RESUELTO** el 2026-06-08

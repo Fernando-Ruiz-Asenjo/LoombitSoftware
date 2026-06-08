@@ -46,7 +46,7 @@ Ver `ARQUITECTURA_SKILLS.md` para el detalle (supuestos/tests/código por skill)
 | `Skill D Cobros` | 🟡 motor (dunning Ley 3/2004) | cuña activa |
 | `Skill D Documental` | 🟡 extractor (`docs_intel`) | facturas/albaranes |
 | `Skill D Banca/Tesorería` | ⬜ | conciliación (innovación #1) |
-| `Skill D Fiscal` | ⬜ análisis hecho | 303 + AEAT; ver `PLATAFORMA_FISCAL_ANALISIS.md` |
+| `Skill D Fiscal` | 🟡 cálculo 303 determinista | sobre Expediente (W); falta intake/extracción; ver `PLATAFORMA_FISCAL_ANALISIS.md` |
 | `Skill D Laboral` | ⬜ | nóminas, Sistema RED, IT |
 | `Skill D` sectoriales | ⬜ | salud/mutuas, transporte/eCMR, hostelería… |
 

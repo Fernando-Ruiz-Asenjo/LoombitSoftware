@@ -67,4 +67,10 @@ Formato: **D-NN — decisión** · *contexto* · **elegido** vs alternativas · 
 - **Neutro** (núcleo blanco; sin vocabulario fiscal) → reutilizable por laboral/mercantil/DGT.
 - 8 tests (suite 146). Pendiente: router/UI y el `Skill D Fiscal` (cálculo 303) encima.
 
+**D-11 — `Skill D Fiscal` (cálculo del 303) IMPLEMENTADO** (`skill_d_fiscal/modelo_303.py`).
+- Cálculo **determinista** con `Decimal` (ROUND_HALF_UP), cuadre contra la cuota declarada, casillas principales del régimen general.
+- Casuística especial (inversión sujeto pasivo, recargo equivalencia, criterio de caja, prorrata) **se señala, no se adivina** (avisos + régimen no general → escala).
+- `procesar_303` une W+D: abre Expediente `fiscal_303`, calcula, deja trazabilidad y lo pone **PENDING_APPROVAL** (la IA nunca da por presentado).
+- 11 tests (suite 157). Pendiente: extracción de facturas (14B/visión) que alimente las líneas, y router/UI.
+
 *(se irán añadiendo entradas según avance el bloque)*
