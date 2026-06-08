@@ -554,6 +554,14 @@ a { color: inherit; text-decoration: none; }
       <span class="nav-badge">pronto</span>
     </div>
 
+    <div class="nav-section-label" style="margin-top:10px;">Procesos diarios</div>
+    <div id="procesos-list"></div>
+
+    <div class="nav-section-label" style="margin-top:10px;">Contactos habituales</div>
+    <div id="contactos-list"></div>
+    <div id="contactos-aviso" style="display:none;margin:2px 12px 4px;font-size:11px;
+         color:var(--lb-text3,#888);line-height:1.4;"></div>
+
     <div class="nav-section-label" style="margin-top:8px;">Historial</div>
 
     <div class="nav-item" id="history-placeholder" style="pointer-events:none;">
@@ -1132,6 +1140,50 @@ function useSuggestion(el) {
   sendMessage();
 }
 
+// ── Panel izquierdo: procesos diarios + contactos habituales ──────────
+function useQuickAction(prompt, auto) {
+  msgInput.value = prompt;
+  if (auto) { sendMessage(); }
+  else { msgInput.focus(); msgInput.dispatchEvent(new Event('input')); }
+}
+function useContact(name, email) {
+  const quien = email ? `${name} (${email})` : name;
+  msgInput.value = `Escribe un correo a ${quien}: `;
+  msgInput.focus(); msgInput.dispatchEvent(new Event('input'));
+}
+function _navItem(icon, label, onclick, title) {
+  const d = document.createElement('div');
+  d.className = 'nav-item';
+  d.title = title || '';
+  d.onclick = onclick;
+  d.innerHTML = `<span class="nav-icon">${icon}</span><span class="nav-label">${label}</span>`;
+  return d;
+}
+async function loadHomeContext() {
+  try {
+    const r = await fetch(`${API}/home/context`, { signal: AbortSignal.timeout(15000) });
+    if (!r.ok) return;
+    const ctx = await r.json();
+    const procs = document.getElementById('procesos-list');
+    procs.innerHTML = '';
+    (ctx.procesos_diarios || []).forEach(p => {
+      procs.appendChild(_navItem(p.icon, p.label, () => useQuickAction(p.prompt, !!p.auto), p.label));
+    });
+    const conts = document.getElementById('contactos-list');
+    const aviso = document.getElementById('contactos-aviso');
+    conts.innerHTML = '';
+    const lista = ctx.contactos_habituales || [];
+    if (lista.length) {
+      lista.forEach(c => {
+        const sub = c.veces ? ` ·${c.veces}` : '';
+        conts.appendChild(_navItem('👤', c.name + sub, () => useContact(c.name, c.email), c.email));
+      });
+    }
+    if (ctx.aviso) { aviso.textContent = ctx.aviso; aviso.style.display = 'block'; }
+    else { aviso.style.display = 'none'; }
+  } catch { /* silencioso: el panel es complementario */ }
+}
+
 // ── Conexiones (OAuth) ────────────────────────────────
 let googleConnected = false;
 
@@ -1201,6 +1253,7 @@ async function disconnectGoogle() {
     setLLMStatus(r.ok ? 'online' : 'offline');
   } catch { setLLMStatus('offline'); }
   refreshConnections();
+  loadHomeContext();
 })();
 </script>
 </body>
