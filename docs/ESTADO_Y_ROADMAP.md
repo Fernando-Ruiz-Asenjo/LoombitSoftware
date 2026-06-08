@@ -7,8 +7,8 @@
 
 ## Foto global
 - **Repo**: limpio y profesional, historial sano, LICENSE propietaria, `.gitignore`/`.gitattributes`.
-- **CI**: verde (black + ruff + pytest). **115 tests**.
-- **Arquitectura**: núcleo blanco + skills + ReAct; FastAPI en `:8787`; LLM local (Qwen vía LM Studio).
+- **CI**: verde (black + ruff + pytest). **123 tests**.
+- **Arquitectura**: núcleo blanco + skills + ReAct; FastAPI en `:8787`; LLM local (instructor **Qwen2.5-14B**, coder 7B, vía LM Studio). Ver `MODELOS_LOOMBIT.md`.
 
 ## Avance por fases
 
@@ -40,7 +40,7 @@
 | 3 | Memoria de empresa (`EntityProfile`) | 🟡 hecho (IBANs, pago, incidencias, **gate antifraude**) |
 | 4 | Inteligencia documental (facturas) | 🟡 hecho (extractor + endpoint + tool, cruce albarán) |
 | 6 | Computer Use / Pilot | 🟡 reforzado (DPI, UIA accesibilidad-primero, gates) |
-| 8 | Qwen2.5-VL (escaneados) | ⬜ pendiente (modelo) |
+| 8 | Qwen2.5-VL (escaneados) | ⬜ pendiente (modelo descargado, **sin cablear**) |
 | 5 | Servidor MCP | ⬜ pendiente |
 | 7 | Voz (Whisper local) | ⬜ pendiente |
 | 10 | VeriFactu, grafo temporal, A2A | ⬜ futuro |
@@ -57,12 +57,27 @@
 
 ## Próximos pasos (orden sugerido)
 1. **Crear 1 evento real en Calendar** → cierra la Fase 1 🟢 (mismo patrón que el correo; OAuth y recibos ya están). *(siguiente)*
-2. **Swap del instructor a Qwen2.5-14B-Instruct (Q4_K_M)** — el 7B no sigue de forma fiable la regla "no preguntes el asunto" (ver commit `7d66ede`).
+2. ✅ **Swap del instructor a Qwen2.5-14B-Instruct (Q4_K_M)** — HECHO 2026-06-08, verificado contra la API real (genera asunto/cuerpo y llama a la tool sin preguntar). Ver `MODELOS_LOOMBIT.md`.
 3. **WhatsApp como objetivo del Pilot** — canal de negocio real (92% lo usa a diario, 68% prefiere WhatsApp a email/teléfono). Ver `INSIGHTS_PRODUCTO_Y_SUPUESTOS.md`.
 4. **Morning Brief + store de cuentas a cobrar** (cierra el MVP de Fase 2).
 5. **Piloto real de cobros** end-to-end → primer recibo 🟢 (necesita LM Studio + datos).
 6. Qwen2.5-VL local (facturas escaneadas), servidor MCP, adaptador navegador.
 7. Convertir los supuestos (S-01…S-15 + los nuevos A-G/I-X de investigación de campo) en **tests de comportamiento**.
+
+## Innovaciones acopladas por fase
+
+Ideas de la investigación de campo integradas en el plan (detalle, código base, DoD y esfuerzo en `INNOVACIONES.md`):
+
+| Fase | Innovaciones que la refuerzan |
+|---|---|
+| 2 · Morning Brief | #4 brief de 5 líneas (UX) ⭐ · #1 conciliación bancaria ⭐ · #8 velocidad de leads · #9 radar de contratos recurrentes |
+| 3 · Cobros e2e | #1 conciliación bancaria ⭐ · #2 semáforo de confianza ⭐ · #3 captura única · #6 memoria temporal · #10 cruce factura/albarán + mutuas |
+| 4 · UI humana | #4 brief de 5 líneas ⭐ · #2 semáforo de confianza (visible) |
+| 5 · Memoria y aprendizaje | #6 memoria grafo temporal · #7 plantillas que aprenden (cierra el criterio de fase) |
+| 6 · Endurecimiento + navegador/WhatsApp | #5 monitor Sede/DEH/Lexnet · #2 gates de consentimiento · WhatsApp Pilot |
+
+**Secuencia recomendada:** primero los multiplicadores que reutilizan código ya escrito —
+#4 + #1 + #2 (refuerzan Fases 2-3)— luego quick wins (#8, #9), y el resto por fase. ⭐ = meter primero.
 
 ## Bloqueadores / dependen de Fernando
 - ~~**#28**: crear el cliente OAuth "App de escritorio"~~ → ✅ **RESUELTO** el 2026-06-08
