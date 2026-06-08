@@ -149,6 +149,8 @@ loombit_operator/
 | `docs/INNOVACIONES.md` | Innovaciones aplicables de la investigación, mapeadas a fase, código existente y criterio DoD |
 | `docs/ROUTINES_LOOMBIT.md` | Diseño del motor de agentes proactivos programados (cron/evento), traspaso desde las Routines de Claude Code sobre el código existente |
 | `docs/ARQUITECTURA_SKILLS.md` | Descomposición del dominio admin en familia de Skill D + Skill W Core + Skill A; las 3 capas (conocimiento/primitiva/conector) |
+| `docs/PLATAFORMA_FISCAL_ANALISIS.md` | Análisis de arquitecto de la plataforma fiscal/administrativa (303 como entrada): encaje, datos, IA local, Sede/certificado, slice, gestoría, riesgos, oportunidades |
+| `docs/DECISIONES.md` | Bitácora de decisiones de los bloques autónomos (con alternativas descartadas y reversibilidad) |
 | `docs/FABRICA_DE_SKILLS.md` | Aprendizaje continuo y auto-autoría de skills (del proceso, del usuario, de internet); loop tipo skill-creator, local-first, con evals y procedencia |
 | `docs/RADAR_INNOVACION.md` | Radar vivo de ideas de vanguardia mantenido proactivamente por Claude (+ futura routine tech-radar) |
 | `docs/investigacion/INFORME_GLOBAL_TRABAJO_OFICINA.md` | Investigación global del trabajo de oficina: 15 roles, país por país, herramientas, supuestos I-X, mapa de capacidades |

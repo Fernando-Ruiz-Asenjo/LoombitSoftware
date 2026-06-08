@@ -25,7 +25,7 @@
 | Sectoriales (overlays finos) | Salud/Mutuas, Transporte/eCMR, Hostelería, PAC… | B, C, D, G | — | según caso |
 
 ## `Skill W Administration Core` (primitivas neutras — ya en la taxonomía)
-Entidad (cliente/proveedor), Documento, Plazo, **Gate de aprobación (semáforo)**, Recibo, Cursor de estado.
+Entidad (cliente/proveedor), **Expediente/CaseFile**, Documento, Plazo, **Gate de aprobación (semáforo)**, Recibo, **Trazabilidad inmutable**, Cursor de estado.
 **Cero vocabulario de dominio.** Los `Skill D` se construyen sobre estas primitivas.
 
 ## `Skill A` (conectores, reemplazables)
@@ -45,3 +45,8 @@ El conocimiento (D) nunca depende de un conector concreto; el conector se puede 
 4. **Fiscal** → calendario + 303.
 5. **Laboral** → nóminas/SS.
 6. **Sectoriales** según los clientes reales.
+
+> **Caso de referencia — `Skill D Fiscal`:** el motor de **Expediente** (W) + la lógica del 303
+> y la casuística AEAT (D) son el patrón que cubre toda la Administración española. Análisis
+> completo (datos, IA local, Sede/certificado, slice, gestoría, riesgos) en
+> `PLATAFORMA_FISCAL_ANALISIS.md`.

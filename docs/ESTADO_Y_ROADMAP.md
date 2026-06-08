@@ -79,6 +79,15 @@ Ideas de la investigación de campo integradas en el plan (detalle, código base
 **Secuencia recomendada:** primero los multiplicadores que reutilizan código ya escrito —
 #4 + #1 + #2 (refuerzan Fases 2-3)— luego quick wins (#8, #9), y el resto por fase. ⭐ = meter primero.
 
+## Plataforma fiscal (análisis — pendiente de decidir)
+
+Análisis de arquitecto en `PLATAFORMA_FISCAL_ANALISIS.md`: el 303 como **caso de entrada** de un
+**motor de expedientes oficiales** (Skill W) + **`Skill D Fiscal`** + memoria fiscal proactiva.
+**Propuestas clave a validar por Fernando** (cambian el brief): liderar con *percibir y preparar*
+(intake + conciliación + calendario + monitor DEH), no con *presentar*; diseñar para la
+**gestoría** (multi-entidad → SQLite por entidad); el **email** como entrada real. Primer slice:
+intake de factura + borrador de 303 (el humano presenta), cero riesgo legal.
+
 ## Bloqueadores / dependen de Fernando
 - ~~**#28**: crear el cliente OAuth "App de escritorio"~~ → ✅ **RESUELTO** el 2026-06-08
   (creado vía Pilot/navegador; cuenta real conectada, token cifrado).

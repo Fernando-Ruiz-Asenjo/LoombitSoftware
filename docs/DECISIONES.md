@@ -54,4 +54,11 @@ Formato: **D-NN — decisión** · *contexto* · **elegido** vs alternativas · 
 - 15 tests nuevos (suite 138 passed); brief real generado por el 14B con recibo en `runtime/local/`.
 - Daemon por defecto OFF (ver D-05); se activa con `LOOMBIT_OPERATOR_ROUTINES_DAEMON_ENABLED=true`.
 
+**D-09 — Decisiones de arquitectura de la plataforma fiscal** (análisis, `PLATAFORMA_FISCAL_ANALISIS.md`).
+- **`Skill D Fiscal` independiente** sobre `Skill W Administration Core` (motor de Expediente en W; lógica 303/AEAT en D). Decisión de Fernando.
+- **SQLite por entidad** (no JSON plano) para expedientes multi-entidad con aislamiento físico (RGPD, escala a gestoría).
+- **Liderar con percibir/preparar, NO con presentar** (cero riesgo legal primero); la presentación (borrador → humano presenta) llega con confianza.
+- **Diseñar para la gestoría** (multi-entidad día 1); **email como entrada real**; **el número nunca lo pone el LLM** (cálculo determinista + procedencia + abstención).
+- Estas son **propuestas a validar por Fernando** (cambian el planteamiento del brief); documentadas para que decida.
+
 *(se irán añadiendo entradas según avance el bloque)*
