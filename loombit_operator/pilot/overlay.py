@@ -95,11 +95,18 @@ class PilotOverlay:
         self.cartel = cartel
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
+        self._should_stop = None  # callback opcional; True → cerrar (para run_blocking)
 
     def start(self) -> "PilotOverlay":
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._thread.start()
         return self
+
+    def run_blocking(self, should_stop=None) -> None:
+        """Corre el overlay en el HILO ACTUAL (robusto: tkinter pinta de forma fiable
+        en su hilo principal). `should_stop()` → True cierra. Para el proceso del overlay."""
+        self._should_stop = should_stop
+        self._run()
 
     def stop(self) -> None:
         self._stop.set()
@@ -134,7 +141,7 @@ class PilotOverlay:
                 cursor_win = self._build_cursor(tk, root)
 
             def _follow() -> None:
-                if self._stop.is_set():
+                if self._stop.is_set() or (self._should_stop is not None and self._should_stop()):
                     root.destroy()
                     return
                 if cursor_win is not None:

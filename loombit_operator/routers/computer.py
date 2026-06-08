@@ -41,11 +41,61 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/computer-use", tags=["computer-use"])
+
+# Endpoints que ACTÚAN sobre el escritorio (no meras lecturas). Solo estos encienden
+# la señal visible de marca: así el halo no aparece en las capturas que toma el agente.
+_ACTION_PATHS: frozenset[str] = frozenset(
+    {
+        "click",
+        "double_click",
+        "triple_click",
+        "mouse_move",
+        "drag",
+        "mouse_down",
+        "mouse_up",
+        "type",
+        "key",
+        "hold_key_press",
+        "hold_key_release",
+        "scroll",
+        "navigate",
+        "open_application",
+        "click_accessibility",
+        "batch",
+    }
+)
+
+
+def _is_action_path(path: str) -> bool:
+    """True si la ruta corresponde a una acción que toca el escritorio."""
+    leaf = path.rstrip("/").rsplit("/", 1)[-1]
+    return leaf in _ACTION_PATHS
+
+
+async def _signal_pilot(request: Request) -> None:
+    """Dependencia del router: enciende el halo de marca Loombit cuando el agente actúa.
+
+    Transparencia: cuando Loombit toma el control del escritorio, el usuario lo VE
+    (y lo ve con la identidad de Loombit). Falla en silencio: nunca rompe la acción.
+    """
+    try:
+        if _is_action_path(request.url.path):
+            from loombit_operator.pilot.overlay_manager import touch
+
+            touch()
+    except Exception:  # pragma: no cover — la señal visible nunca debe romper el Pilot
+        pass
+
+
+router = APIRouter(
+    prefix="/computer-use",
+    tags=["computer-use"],
+    dependencies=[Depends(_signal_pilot)],
+)
 
 
 # Models

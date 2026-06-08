@@ -114,54 +114,49 @@ async def execute_sequence(
     results: list[dict[str, Any]] = []
     error_halted = False
 
-    # Señal visible de marca: el Pilot nunca controla en silencio.
-    overlay = None
-    if not dry_run and show_overlay:
-        try:
-            from .system import enable_dpi_awareness
-            from .overlay import PilotOverlay
+    # Señal visible de marca: el Pilot nunca controla en silencio. El halo corre en su
+    # propio proceso (overlay_manager) y se mantiene refrescando el keepalive en cada paso.
+    show_overlay = show_overlay and not dry_run
 
-            enable_dpi_awareness()  # alinear coordenadas con captura (per-monitor v2)
-            overlay = PilotOverlay("LOOMBIT PILOTANDO").start()
-        except Exception:
-            overlay = None
+    for i, step in enumerate(steps):
+        step_type = step.get("type", "")
+        step_result: dict[str, Any] = {
+            "step_index": i + 1,
+            "type": step_type,
+        }
 
-    try:
-        for i, step in enumerate(steps):
-            step_type = step.get("type", "")
-            step_result: dict[str, Any] = {
-                "step_index": i + 1,
-                "type": step_type,
-            }
+        if step_type not in SUPPORTED_STEPS:
+            step_result["error"] = f"Tipo de paso no soportado: {step_type!r}"
+            results.append(step_result)
+            error_halted = True
+            break
 
-            if step_type not in SUPPORTED_STEPS:
-                step_result["error"] = f"Tipo de paso no soportado: {step_type!r}"
-                results.append(step_result)
-                error_halted = True
-                break
-
-            if dry_run:
-                step_result["dry_run"] = True
-                step_result["would_execute"] = {k: v for k, v in step.items() if k != "type"}
-            else:
+        if dry_run:
+            step_result["dry_run"] = True
+            step_result["would_execute"] = {k: v for k, v in step.items() if k != "type"}
+        else:
+            if show_overlay:
                 try:
-                    output = await _execute_step(step)
-                    step_result.update(output)
-                    if output.get("error"):
-                        error_halted = True
-                        results.append(step_result)
-                        break
-                except Exception as exc:
-                    logger.exception("Error en paso %d (%s)", i + 1, step_type)
-                    step_result["error"] = str(exc)
+                    from .overlay_manager import touch
+
+                    touch()
+                except Exception:
+                    pass
+            try:
+                output = await _execute_step(step)
+                step_result.update(output)
+                if output.get("error"):
                     error_halted = True
                     results.append(step_result)
                     break
+            except Exception as exc:
+                logger.exception("Error en paso %d (%s)", i + 1, step_type)
+                step_result["error"] = str(exc)
+                error_halted = True
+                results.append(step_result)
+                break
 
-            results.append(step_result)
-    finally:
-        if overlay is not None:
-            overlay.stop()
+        results.append(step_result)
 
     receipt: dict[str, Any] = {
         "run_id": run_id,
@@ -170,7 +165,7 @@ async def execute_sequence(
         "started_at": started_at,
         "completed_at": datetime.now(UTC).isoformat(),
         "dry_run": dry_run,
-        "overlay_shown": overlay is not None,
+        "overlay_shown": show_overlay,
         "steps_total": len(steps),
         "steps_executed": len(results),
         "error_halted": error_halted,
