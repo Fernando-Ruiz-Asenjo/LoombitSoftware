@@ -79,10 +79,12 @@ def test_tejer_dia_ordena_por_urgencia() -> None:
 
 
 def test_tejer_dia_vacio_es_amable() -> None:
+    # 15-feb: sin señales y sin obligación fiscal en ventana (el 1T se presenta el 20-abr).
     tela = telar.tejer_dia(
-        now=datetime(2026, 6, 8, 9),
+        now=datetime(2026, 2, 15, 9),
         eventos=[],
         correos=[],
+        inbox=[],
         vencidas=[],
         proximas=[],
         aprobaciones=0,
@@ -110,6 +112,34 @@ def test_plazo_desde_la_bandeja_no_solo_contactos() -> None:
     )
     plazo = next(h for h in tela["hilos"] if h["tipo"] == "plazo")
     assert "2026-07-20" in plazo["accion"]["task"]
+
+
+def test_obligacion_fiscal_proxima_dentro_de_ventana() -> None:
+    # En junio, el 2º trimestre (303) se presenta ~20/07 → dentro de la ventana de 45 días.
+    obs = telar._obligaciones_fiscales(date(2026, 6, 8))
+    assert len(obs) == 1
+    assert obs[0]["fecha"] == "2026-07-20"
+    assert "303" in obs[0]["modelos"]
+
+
+def test_obligacion_fiscal_lejana_no_aparece() -> None:
+    # A principios de febrero, el siguiente (1T, 20/04) está a >45 días → no se surface aún.
+    assert telar._obligaciones_fiscales(date(2026, 2, 1)) == []
+
+
+def test_telar_surface_hilo_fiscal() -> None:
+    tela = telar.tejer_dia(
+        now=datetime(2026, 6, 8, 9),
+        eventos=[],
+        correos=[],
+        inbox=[],
+        vencidas=[],
+        proximas=[],
+        aprobaciones=0,
+    )
+    fiscal = next(h for h in tela["hilos"] if h["tipo"] == "fiscal")
+    assert "303" in fiscal["titulo"]
+    assert fiscal["accion"]["label"] == "Preparar borrador"
 
 
 def test_plazo_genera_hilo_de_agendar() -> None:

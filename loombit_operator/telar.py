@@ -123,6 +123,35 @@ def _plazos_en_correos(correos: list[dict], hoy: date) -> list[dict]:
     return out
 
 
+# Calendario fiscal del autónomo (España). Fechas ESTÁNDAR de presentación (un festivo puede
+# moverlas → la acción prepara un BORRADOR, no presenta; el humano confirma en la AEAT). Públicas.
+_FISCAL = [
+    (1, 30, "303 · 390 · 130 · 190", "4º trimestre y resumen anual"),
+    (4, 20, "303 · 130 · 111 · 115", "1er trimestre"),
+    (7, 20, "303 · 130 · 111 · 115", "2º trimestre"),
+    (10, 20, "303 · 130 · 111 · 115", "3er trimestre"),
+]
+
+
+def _obligaciones_fiscales(hoy: date, ventana_dias: int = 45) -> list[dict]:
+    """Próxima obligación fiscal trimestral dentro de la ventana. Determinista; no inventa:
+    fecha estándar + la acción prepara un borrador (el humano presenta)."""
+    cands: list[dict] = []
+    for anio in (hoy.year, hoy.year + 1):
+        for mes, dia, modelos, periodo in _FISCAL:
+            try:
+                f = date(anio, mes, dia)
+            except ValueError:
+                continue
+            dias = (f - hoy).days
+            if 0 <= dias <= ventana_dias:
+                cands.append(
+                    {"fecha": f.isoformat(), "dias": dias, "modelos": modelos, "periodo": periodo}
+                )
+    cands.sort(key=lambda c: c["dias"])
+    return cands[:1]
+
+
 def _hilo(tipo: str, icono: str, titulo: str, urgencia: int, accion: dict, **extra: Any) -> dict:
     return {
         "tipo": tipo,
@@ -206,6 +235,24 @@ def tejer_dia(
                     "label": "Preparar aviso",
                     "task": f"Prepara un aviso amable de vencimiento próximo a {cliente} por {imp:.0f} €, en mi nombre.",
                 },
+            )
+        )
+
+    # 🧾 Calendario fiscal del autónomo — siempre sabe tu próximo impuesto (el moat español)
+    for ob in _obligaciones_fiscales(hoy):
+        urg = 2 if ob["dias"] <= 10 else 1
+        hilos.append(
+            _hilo(
+                "fiscal",
+                "🧾",
+                f"Impuestos {ob['periodo']} ({ob['modelos']}) → {ob['fecha']} ({ob['dias']}d)",
+                urgencia=urg,
+                accion={
+                    "modo": "agent_task",
+                    "label": "Preparar borrador",
+                    "task": f"Prepara un borrador del modelo 303 (IVA) del {ob['periodo']} a partir de mis facturas; yo lo reviso y lo presento en la AEAT. Avísame si falta algún dato.",
+                },
+                detalle="Fecha estándar de presentación; confirma festivos en la AEAT.",
             )
         )
 
