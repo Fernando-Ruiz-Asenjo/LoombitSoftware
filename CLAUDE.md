@@ -53,10 +53,10 @@ Estamos en la **Fase 1**. La Fase 0 (fundación limpia) ya está cerrada.
 **La Fase 1 está cerrada cuando existen recibos 🟢 de envío de correo y creación
 de evento contra cuenta real, y la ruta de fallo bloquea limpio.**
 
-> **🔴 Bloqueador activo (#28):** falta el OAuth Client Secret de Google. Fernando debe
-> crear la app en Google Cloud Console con scopes `gmail.send`, `calendar.events`,
-> `contacts.readonly`, y añadir `client_id` + `client_secret` al `.env`. Hasta entonces el
-> flujo OAuth real no se puede probar y Gmail send / Calendar create siguen en 🟡.
+> **✅ #28 resuelto (2026-06-08):** la app OAuth "App de escritorio" está creada en Google
+> Cloud Console, la cuenta real está conectada y el token está cifrado en disco. **Gmail send
+> ya está 🟢** (envío real verificado el 2026-06-07, recibo con `message_id`). Para cerrar la
+> Fase 1 solo falta **crear 1 evento real en Calendar** (mismo patrón) y validar las rutas de fallo.
 
 ### Qué NO tocar ahora
 - Industrial, inspección, rover, acuático, deportes → están en `docs/PARKED.md`.
@@ -141,8 +141,12 @@ loombit_operator/
 | `docs/CONOCIMIENTO_OFICIO_ADMINISTRATIVO.md` | Fuente de verdad de dominio: el oficio administrativo (España) y sus gates |
 | `docs/DOMINIO_ADMINISTRATIVO_LOOMBIT.md` | Mapa completo del dominio admin: tareas, herramientas, supuestos A-H, capacidades PERCIBIR→APRENDER |
 | `docs/BANCO_SUPUESTOS_LOOMBIT.md` | Banco de supuestos S-01…S-15 para exprimir al operador (futuros tests de comportamiento) |
-| `docs/TENDENCIAS_IA_2025_2026.ipynb` | Inspiración estratégica: tendencias IA 2025-2026 aplicadas a Loombit |
+| `docs/IA_TENDENCIAS_INSPIRACION_LOOMBIT.md` | Inspiración estratégica: tendencias IA 2025-2026 aplicadas a Loombit |
 | `docs/ROADMAP_TENDENCIAS_IA.md` | Traducción de esas tendencias a trabajo de código concreto y orden de ataque |
+| `docs/INSIGHTS_PRODUCTO_Y_SUPUESTOS.md` | Insights accionables: datos de mercado verificados, caso WhatsApp, supuestos sectoriales como tests de comportamiento, mapa de capacidades |
+| `docs/investigacion/INFORME_GLOBAL_TRABAJO_OFICINA.md` | Investigación global del trabajo de oficina: 15 roles, país por país, herramientas, supuestos I-X, mapa de capacidades |
+| `docs/investigacion/OPERATIVA_PYMES_AUTONOMOS_ORDENADOR.md` | Operativa sector por sector de PYMEs/autónomos con el ordenador + ecosistema WhatsApp + supuestos A-G |
+| `docs/investigacion/OPERATIVA_EN_PANTALLA_DIA_A_DIA.md` | Nivel pantalla: qué hace cada perfil con el ordenador, ciclo de cada documento, 5 niveles de capacidad de Loombit |
 | `docs/OAUTH_GOOGLE_SETUP.md` | Guía paso a paso para conectar Google (Fase 1) |
 | `docs/PARKED.md` | Qué está aparcado y no hay que tocar |
 | `AGENTS.md` | Bucle de trabajo para agentes: cómo abrir rama, validar, hacer PR |
@@ -165,8 +169,8 @@ loombit_operator/
 
 | Conector | Estado | Notas |
 |---|---|---|
-| Gmail send | 🟡 fake-tested | OAuth local implementado pero no probado contra cuenta real |
-| Google Calendar create | 🟡 fake-tested | Ídem |
+| Gmail send | 🟢 **verificado** | Envío real a cuenta de prueba el 2026-06-07; recibo en `runtime/local/skill_blanca_connector_outbox/` (message_id `19ea478e791867b0`, respuesta API Gmail) |
+| Google Calendar create | 🟡 fake-tested | OAuth conectado; falta el primer evento real con recibo |
 | Microsoft Graph sendMail | 🟡 fake-tested | Ídem |
 | Microsoft Graph createEvent | 🟡 fake-tested | Ídem |
 | Outbox local (.eml) | 🟢 | Sin credenciales cloud |
@@ -176,7 +180,7 @@ loombit_operator/
 | Calendar read-only | ⬜ pendiente | No implementado |
 | Google Contacts | ⬜ pendiente | No implementado |
 
-El objetivo inmediato es llevar Gmail send y Google Calendar create de 🟡 a 🟢.
+Gmail send ya está 🟢 (verificado 2026-06-07). El objetivo inmediato es llevar Google Calendar create de 🟡 a 🟢 y cerrar la Fase 1.
 
 ---
 

@@ -15,7 +15,7 @@
 | Fase | Objetivo | Estado | Qué falta para cerrarla |
 |---|---|---|---|
 | 0 · Fundación limpia | Repo, CI, estructura | ✅ Cerrada | — |
-| 1 · Verdad de conectores | OAuth real Google + 1 correo + 1 evento reales | 🟠 OAuth 🟢 conectado | #28 resuelto. Falta: enviar 1 correo real + crear 1 evento real (con recibo) |
+| 1 · Verdad de conectores | OAuth real Google + 1 correo + 1 evento reales | 🟠 Correo 🟢 enviado | #28 resuelto. Correo real enviado con recibo (`message_id` 19ea478e791867b0, 2026-06-07). Falta: crear 1 evento real (con recibo) |
 | 2 · Percepción real (Morning Brief) | Brief diario con datos reales | 🟠 En curso | Store de cuentas a cobrar + servicio de brief (las 3 piezas base ya están) |
 | 3 · Bucle e2e cuña 1 (cobros) | Flujo cobros completo ×5 sin intervención | 🟠 Cerebro listo | Orquestación e2e + recibos 🟢 |
 | 4 · UI humana | Dashboard no técnico | 🟠 Parcial | Home + botón Conectar Google hechos; falta dashboard |
@@ -28,7 +28,8 @@
 | Conector | Estado |
 |---|---|
 | OAuth Google (escritorio: PKCE, auto-refresh, token cifrado, botón home) | 🟢 **CONECTADO con cuenta real (2026-06-08)**; token cifrado en disco; refresh presente |
-| Gmail send / Calendar create | 🟡 (ya conectado; falta el primer envío/evento real con recibo) |
+| Gmail send | 🟢 **ENVÍO REAL VERIFICADO (2026-06-07)** — recibo en `runtime/local/skill_blanca_connector_outbox/` (`message_id` `19ea478e791867b0`, respuesta API Gmail) |
+| Calendar create | 🟡 (ya conectado; falta el primer evento real con recibo) |
 | Outbox local (.eml) / Calendario local (.ics) | 🟢 |
 
 ## Adopción de tendencias IA 2025-2026 (ver `ROADMAP_TENDENCIAS_IA.md`)
@@ -55,11 +56,13 @@
 - **Docs de dominio** al repo: oficio administrativo, banco de supuestos, dominio, tendencias.
 
 ## Próximos pasos (orden sugerido)
-1. **Morning Brief + store de cuentas a cobrar** (cierra el MVP de Fase 2). *(siguiente)*
-2. **Piloto real de cobros** end-to-end → primer recibo 🟢 (necesita LM Studio + datos).
-3. **Desbloquear #28** (Fernando: cliente escritorio en Google Console) → Fase 1 🟢.
-4. Qwen2.5-VL local (facturas escaneadas), servidor MCP, adaptador navegador.
-5. Convertir el banco de supuestos S-01…S-15 en **tests de comportamiento**.
+1. **Crear 1 evento real en Calendar** → cierra la Fase 1 🟢 (mismo patrón que el correo; OAuth y recibos ya están). *(siguiente)*
+2. **Swap del instructor a Qwen2.5-14B-Instruct (Q4_K_M)** — el 7B no sigue de forma fiable la regla "no preguntes el asunto" (ver commit `7d66ede`).
+3. **WhatsApp como objetivo del Pilot** — canal de negocio real (92% lo usa a diario, 68% prefiere WhatsApp a email/teléfono). Ver `INSIGHTS_PRODUCTO_Y_SUPUESTOS.md`.
+4. **Morning Brief + store de cuentas a cobrar** (cierra el MVP de Fase 2).
+5. **Piloto real de cobros** end-to-end → primer recibo 🟢 (necesita LM Studio + datos).
+6. Qwen2.5-VL local (facturas escaneadas), servidor MCP, adaptador navegador.
+7. Convertir los supuestos (S-01…S-15 + los nuevos A-G/I-X de investigación de campo) en **tests de comportamiento**.
 
 ## Bloqueadores / dependen de Fernando
 - ~~**#28**: crear el cliente OAuth "App de escritorio"~~ → ✅ **RESUELTO** el 2026-06-08

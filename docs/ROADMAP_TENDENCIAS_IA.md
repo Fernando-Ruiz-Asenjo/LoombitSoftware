@@ -1,6 +1,6 @@
 # Roadmap de implementación — Tendencias IA 2025-2026 → código
 
-> Traduce `TENDENCIAS_IA_2025_2026.ipynb` (inspiración estratégica) a trabajo de
+> Traduce `IA_TENDENCIAS_INSPIRACION_LOOMBIT.md` (inspiración estratégica) a trabajo de
 > ingeniería concreto: qué construir, con qué tecnología, sobre qué módulo y en
 > qué orden. Honestidad obligatoria (`DEFINITION_OF_DONE.md`): nada es 🟢 sin
 > ejecución real con recibo.
