@@ -59,6 +59,51 @@ def _cuando_humano(fecha_iso: str, hora: str = "") -> str:
     return f"{base} · {hora}" if hora else base
 
 
+_ICONO_ASUNTO = {"reunion": "📆", "notificacion": "⚠️", "plazo": "⏰", "gestion": "📝"}
+_ESTADO_TXT = {
+    "confirmada": "✅ confirmada por ambos",
+    "requiere_accion": "⚠️ requiere acción",
+    "pendiente": "pendiente de respuesta",
+}
+
+
+def _hilo_asunto(a: dict) -> dict:
+    """Convierte un asunto COMPRENDIDO (de `comprension`) en un hilo del telar, con su contexto."""
+    tipo = a.get("tipo", "gestion")
+    if tipo == "reunion":
+        quien = f"con {a['con']}" if a.get("con") else ""
+        cuando = _cuando_humano(a["fecha"], a.get("hora", "")) if a.get("fecha") else ""
+        titulo = f"Reunión {quien}" + (f" · {cuando}" if cuando else "")
+    else:
+        titulo = a.get("titulo", "Asunto")
+    partes = []
+    if a.get("lugar"):
+        partes.append(f"📍 {a['lugar']}")
+    if a.get("estado") in _ESTADO_TXT:
+        partes.append(_ESTADO_TXT[a["estado"]])
+    if a.get("resumen"):
+        partes.append(a["resumen"])
+    if a.get("accion"):
+        accion = {
+            "modo": "agent_task",
+            "label": "Gestionar",
+            "task": (
+                f"{a['accion']} (asunto: «{a.get('origen', '')}»). Prepárame lo necesario; "
+                "no envíes ni ejecutes nada externo sin que lo apruebe."
+            ),
+        }
+    else:
+        accion = {"modo": "navigate", "label": "Ver"}
+    return _hilo(
+        tipo,
+        _ICONO_ASUNTO.get(tipo, "•"),
+        titulo.replace("  ", " ").strip(),
+        urgencia=int(a.get("importancia", 2)),
+        accion=accion,
+        detalle=" · ".join(partes),
+    )
+
+
 def _saludo(now: datetime) -> str:
     h = now.hour
     if h < 6:
@@ -293,7 +338,7 @@ def tejer_dia(
     now: datetime | None = None,
     eventos: list[dict] | None = None,
     proximos: list[dict] | None = None,
-    reuniones: list[dict] | None = None,
+    asuntos: list[dict] | None = None,
     correos: list[dict] | None = None,
     inbox: list[dict] | None = None,
     vencidas: list | None = None,
@@ -391,79 +436,35 @@ def tejer_dia(
             )
         )
 
-    # ⏰ Plazos detectados — escanea correos de contactos + bandeja reciente (gestoría/AEAT/quien
-    # sea es justo donde viven los plazos). Dedup por asunto+fecha.
-    _vistos: set = set()
-    _plazos: list[dict] = []
-    for pl in _plazos_en_correos((correos or []) + (inbox or []), hoy):
-        clave = (pl["asunto"], pl["fecha"])
-        if clave not in _vistos:
-            _vistos.add(clave)
-            _plazos.append(pl)
-    for pl in _plazos[:5]:
-        hilos.append(
-            _hilo(
-                "plazo",
-                "⏰",
-                f"Plazo: «{pl['asunto'][:40]}» → {pl['fecha']}",
-                urgencia=2,
-                accion={
-                    "modo": "agent_task",
-                    "label": "Agendar",
-                    "task": f"Crea un evento en mi calendario el {pl['fecha']} titulado «{pl['asunto'][:60]}» (plazo detectado en un correo de {pl['de']}).",
-                },
-                detalle=pl["snippet"],
+    # 🧠 COMPRENSIÓN de la bandeja (Skill D · Comprensión): no extrae datos sueltos — el modelo
+    # ENTIENDE los hilos (quién es quién, de qué va, en qué estado: confirmada / requiere acción) y de
+    # ahí salen las reuniones (reconciliadas: la palabra del correo manda sobre el calendario), las
+    # notificaciones oficiales (Policía/AEAT…) y los plazos. FIABLE: se calcula en SEGUNDO PLANO y se
+    # cachea; el telar lee el último resultado bueno y NUNCA muestra el calendario crudo (sin verificar).
+    if asuntos is None:
+        from .comprension import comprension_cacheada, refrescar_async
+
+        asuntos, _edad = comprension_cacheada()
+        if (
+            _edad > 600
+        ):  # vacío o caducado → refresca en 2º plano (no bloquea el telar ni llama al LLM aquí)
+            refrescar_async(
+                (correos or []) + (inbox or []), proximos or [], hoy, buscar=_buscar_correos
             )
-        )
-
-    # 📆 Reuniones — DESTILADAS por el modelo (Skill D · Reuniones): lee correos + calendario y da la
-    # reunión REAL reconciliada. Si el correo (la palabra de la persona) contradice el calendario,
-    # MANDA el correo y se canta el descuadre. La regex no destilaba (confundía un timestamp con la
-    # hora). Loombit ACIERTA; nunca te pide que revises.
-    if reuniones is None:
-        from .reuniones_intel import destilar_reuniones
-
-        reuniones = destilar_reuniones(
-            (correos or []) + (inbox or []), proximos or [], hoy, buscar=_buscar_correos
-        )
-    for r in reuniones[:5]:
-        con = r["con"]
-        quien = f"con {con}" if con else ""
-        cuando = _cuando_humano(r["fecha"], r["hora"])
-        lugar = r["lugar"]
-        partes = []
-        if lugar:
-            partes.append(f"📍 {lugar}")
-        if r["conflicto"] and r["nota"]:
-            partes.append(f"⚠️ {r['nota']} — uso la fecha del correo")
-        elif r["fuente"] == "calendario":
-            partes.append("en tu calendario")
-        if r["origen"]:
-            partes.append(f"según «{r['origen'][:48]}»")
-
-        if r["conflicto"]:
-            accion = {
-                "modo": "agent_task",
-                "label": "Corregir calendario",
-                "task": (
-                    f"Mi calendario tiene MAL la reunión {quien}: lo acordamos por correo para el "
-                    f"{r['fecha']}{(' a las ' + r['hora']) if r['hora'] else ''}"
-                    f"{(' en ' + lugar) if lugar else ''} (fuente: «{r['origen']}»). Corrige/crea el "
-                    "evento con la fecha del correo y avísame; no borres nada sin confirmar."
-                ),
-            }
-        else:
-            accion = {"modo": "navigate", "label": "Ver"}
-        hilos.append(
-            _hilo(
-                "reunion",
-                "📆",
-                f"Reunión {quien} · {cuando}".replace("  ", " ").strip(),
-                urgencia=3 if r["conflicto"] else 2,
-                accion=accion,
-                detalle=" · ".join(partes),
+        if not asuntos and _edad == float("inf"):
+            # nunca computado aún: aviso honesto, NUNCA un dato sin verificar
+            hilos.append(
+                _hilo(
+                    "gestion",
+                    "🧠",
+                    "Verificando tus correos y tu agenda…",
+                    urgencia=1,
+                    accion={"modo": "navigate", "label": "…"},
+                    detalle="Comprendiendo tus conversaciones para no darte nada sin verificar.",
+                )
             )
-        )
+    for a in (asuntos or [])[:6]:
+        hilos.append(_hilo_asunto(a))
 
     # ✅ Aprobaciones pendientes
     if aprobaciones:

@@ -125,6 +125,15 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass
 
+    # Calienta la COMPRENSIÓN de la bandeja en segundo plano: así el telar tiene el resultado bueno
+    # listo desde el principio y NUNCA muestra el calendario crudo (el dato sin verificar).
+    try:
+        from .comprension import calentar_al_arrancar
+
+        calentar_al_arrancar()
+    except Exception:
+        pass
+
     daemon = None
     if settings.routines_daemon_enabled:
         from .routine_executors import build_default_scheduler

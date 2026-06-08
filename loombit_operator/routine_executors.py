@@ -47,35 +47,22 @@ def _señales_reales(now: datetime | None = None) -> list[str]:
             señales.append("sin eventos en tu calendario hoy")
     except Exception:
         pass
-    # Próximas reuniones DESTILADAS (Skill D · Reuniones): el modelo lee correos + calendario y da la
-    # reunión REAL reconciliada. Si el correo contradice el calendario, manda el correo y se avisa del
-    # descuadre. No solo HOY; no la regex ruidosa. Loombit acierta, no pide revisar.
+    # Asuntos COMPRENDIDOS de la bandeja (Skill D · Comprensión): se leen de la caché que el motor
+    # calcula en segundo plano (reuniones reconciliadas, notificaciones oficiales, plazos), con su
+    # estado. El brief NO llama al LLM aquí — lee lo ya comprendido. Si la caché está vacía, no aporta.
     try:
-        from datetime import date as _date
+        from .comprension import comprension_cacheada
 
-        from .reuniones_intel import destilar_reuniones
-        from .skill_blanca_calendar_read import eventos_proximos
-        from .telar import _buscar_correos, _fuente_inbox
+        for a in comprension_cacheada()[0][:5]:
+            cuando = ""
+            if a.get("fecha"):
+                from datetime import date as _date
 
-        prox = eventos_proximos(now=now, dias=7)
-        inbox = _fuente_inbox(None, incluir_leidos=True)
-        hoy = (now or datetime.now()).date()
-        for r in destilar_reuniones(inbox, prox, hoy, buscar=_buscar_correos)[:4]:
-            quien = f"con {r['con']}" if r["con"] else ""
-            d = _date.fromisoformat(r["fecha"])
-            cuando = ("lun", "mar", "mié", "jue", "vie", "sáb", "dom")[
-                d.weekday()
-            ] + f" {d.day}/{d.month}"
-            extra = ""
-            if r["conflicto"] and r["nota"]:
-                extra = f" (ojo: {r['nota']}; uso la fecha del correo)"
-            elif r["lugar"]:
-                extra = f" en {r['lugar']}"
-            señales.append(
-                f"reunión {quien} {cuando}{(' ' + r['hora']) if r['hora'] else ''}{extra}".replace(
-                    "  ", " "
-                ).strip()
-            )
+                d = _date.fromisoformat(a["fecha"])
+                cuando = " " + ("lun", "mar", "mié", "jue", "vie", "sáb", "dom")[d.weekday()]
+                cuando += f" {d.day}/{d.month}" + (f" {a['hora']}" if a.get("hora") else "")
+            estado = f" ({a['estado'].replace('_', ' ')})" if a.get("estado") else ""
+            señales.append(f"{a.get('titulo', 'asunto')}{cuando}{estado}".strip())
     except Exception:
         pass
     try:

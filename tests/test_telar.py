@@ -69,7 +69,7 @@ def test_tejer_dia_produce_hilos_con_accion() -> None:
         proximos=[],
         correos=[{"from": "David <d@x.com>", "subject": "presupuesto", "snippet": "¿me lo pasas?"}],
         inbox=[],
-        reuniones=[],
+        asuntos=[],
         vencidas=[SimpleNamespace(cliente="Acme", importe=1200.0)],
         proximas=[],
         aprobaciones=1,
@@ -115,29 +115,6 @@ def test_tejer_dia_vacio_es_amable() -> None:
     assert "despejado" in tela["resumen"]
 
 
-def test_plazo_desde_la_bandeja_no_solo_contactos() -> None:
-    # El caso de oro: la gestoría/AEAT manda un plazo aunque no sea un contacto frecuente.
-    tela = telar.tejer_dia(
-        now=datetime(2026, 6, 8, 9),
-        eventos=[],
-        proximos=[],
-        correos=[],
-        inbox=[
-            {
-                "from": "AEAT <no-reply@aeat.es>",
-                "subject": "Modelo 303",
-                "snippet": "plazo hasta el 20/07",
-            }
-        ],
-        reuniones=[],
-        vencidas=[],
-        proximas=[],
-        aprobaciones=0,
-    )
-    plazo = next(h for h in tela["hilos"] if h["tipo"] == "plazo")
-    assert "2026-07-20" in plazo["accion"]["task"]
-
-
 def test_obligacion_fiscal_proxima_dentro_de_ventana() -> None:
     # En junio, el 2º trimestre (303) se presenta ~20/07 → dentro de la ventana de 45 días.
     obs = telar._obligaciones_fiscales(date(2026, 6, 8))
@@ -165,25 +142,6 @@ def test_telar_surface_hilo_fiscal() -> None:
     fiscal = next(h for h in tela["hilos"] if h["tipo"] == "fiscal")
     assert "303" in fiscal["titulo"]
     assert fiscal["accion"]["label"] == "Preparar borrador"
-
-
-def test_plazo_genera_hilo_de_agendar() -> None:
-    tela = telar.tejer_dia(
-        now=datetime(2026, 6, 8, 9),
-        eventos=[],
-        proximos=[],
-        correos=[
-            {"from": "Gestoría <g@x.com>", "subject": "303", "snippet": "presentar antes del 20/07"}
-        ],
-        inbox=[],
-        reuniones=[],
-        vencidas=[],
-        proximas=[],
-        aprobaciones=0,
-    )
-    plazo = next(h for h in tela["hilos"] if h["tipo"] == "plazo")
-    assert plazo["accion"]["label"] == "Agendar"
-    assert "2026-07-20" in plazo["accion"]["task"]
 
 
 def test_cobro_vencido_muestra_desglose_legal_con_cita_boe() -> None:
@@ -227,9 +185,9 @@ def test_cobro_sin_vencimiento_degrada_a_recordatorio_basico() -> None:
     assert "Beta" in cobro["accion"]["task"]
 
 
-def test_telar_reunion_con_conflicto_usa_la_fecha_del_correo() -> None:
-    # Caso David: el destilador da la reunión con CONFLICTO (correo jueves 11 vs calendario lunes 15).
-    # El telar usa la fecha del CORREO, muestra el lugar y ofrece corregir el calendario. Lo más urgente.
+def test_telar_reunion_comprendida_confirmada_con_lugar() -> None:
+    # Caso David: la COMPRENSIÓN da la reunión confirmada por ambos, con la fecha del correo (jueves 11)
+    # y el lugar. El telar la muestra con su estado, lugar y la urgencia que marca la comprensión.
     tela = telar.tejer_dia(
         now=datetime(2026, 6, 8, 9),
         eventos=[],
@@ -239,33 +197,32 @@ def test_telar_reunion_con_conflicto_usa_la_fecha_del_correo() -> None:
         vencidas=[],
         proximas=[],
         aprobaciones=0,
-        reuniones=[
+        asuntos=[
             {
+                "tipo": "reunion",
+                "titulo": "Reunión con David Valentín",
                 "con": "David Valentín",
+                "resumen": "ambos confirmasteis la reunión",
+                "estado": "confirmada",
                 "fecha": "2026-06-11",
                 "hora": "09:00",
                 "lugar": "Calle Manzana, 8 Local, Getafe",
-                "fuente": "correo",
-                "conflicto": True,
-                "nota": "tu calendario la tiene el lunes 15",
-                "origen": "RE: BAREMOS BRICOS Y MANTENIMIENTOS",
+                "importancia": 3,
+                "accion": "",
+                "origen": "RE: BAREMOS",
                 "dia_semana": "jueves",
             }
         ],
     )
     r = next(h for h in tela["hilos"] if h["tipo"] == "reunion")
     assert "David Valentín" in r["titulo"]
-    assert (
-        "jueves 11/6" in r["titulo"] and "09:00" in r["titulo"]
-    )  # la fecha del CORREO, no del calendario
-    assert "Getafe" in r["detalle"] and "correo" in r["detalle"].lower()
-    assert r["accion"]["label"] == "Corregir calendario"
-    assert "2026-06-11" in r["accion"]["task"]
-    assert r["urgencia"] == 3  # el descuadre es lo más urgente del telar
+    assert "jueves 11/6" in r["titulo"] and "09:00" in r["titulo"]  # la fecha del CORREO
+    assert "Getafe" in r["detalle"] and "confirmada por ambos" in r["detalle"]
+    assert r["urgencia"] == 3
 
 
-def test_telar_reunion_normal_del_calendario() -> None:
-    # Sin conflicto: una reunión del calendario se muestra con "Ver".
+def test_telar_notificacion_oficial_es_importante() -> None:
+    # Generalidad: una notificación oficial (Policía/AEAT) es un asunto importante con su acción.
     tela = telar.tejer_dia(
         now=datetime(2026, 6, 8, 9),
         eventos=[],
@@ -275,21 +232,26 @@ def test_telar_reunion_normal_del_calendario() -> None:
         vencidas=[],
         proximas=[],
         aprobaciones=0,
-        reuniones=[
+        asuntos=[
             {
-                "con": "David Valentin",
-                "fecha": "2026-06-15",
-                "hora": "11:00",
+                "tipo": "notificacion",
+                "titulo": "Notificación de la Dirección General de la Policía",
+                "con": "DGP",
+                "resumen": "te informan de un trámite del DNI",
+                "estado": "requiere_accion",
+                "fecha": "",
+                "hora": "",
                 "lugar": "",
-                "fuente": "calendario",
-                "conflicto": False,
-                "nota": "",
-                "origen": "Reunión con David Valentin",
-                "dia_semana": "lunes",
+                "importancia": 3,
+                "accion": "revisar la notificación de la Policía sobre tu DNI",
+                "origen": "Notificación Dirección General de la Policía",
+                "dia_semana": "",
             }
         ],
     )
-    r = next(h for h in tela["hilos"] if h["tipo"] == "reunion")
-    assert "David Valentin" in r["titulo"] and "lunes 15/6" in r["titulo"]
-    assert r["accion"]["label"] == "Ver"
-    assert r["urgencia"] == 2
+    n = next(h for h in tela["hilos"] if h["tipo"] == "notificacion")
+    assert "Policía" in n["titulo"]
+    assert "requiere acción" in n["detalle"]
+    assert n["accion"]["label"] == "Gestionar"
+    assert "DNI" in n["accion"]["task"]
+    assert n["urgencia"] == 3
