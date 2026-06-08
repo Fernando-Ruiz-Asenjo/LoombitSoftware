@@ -134,7 +134,8 @@ loombit_operator/
 
 | Documento | Para qué |
 |---|---|
-| `docs/OBJETIVOS_GLOBALES_LOOMBIT.md` | Visión completa, cuñas de mercado, fases, pendientes |
+| `docs/DESTILADO_LOOMBIT.md` | **NORTE** — qué es Loombit, filosofía y operativa (el flywheel Skills×Routines×Fábrica); el único doc para entender el todo |
+| `docs/OBJETIVOS_GLOBALES_LOOMBIT.md` | Visión original/histórica: cuñas de mercado, fases, pendientes |
 | `docs/PLAN_MAESTRO_100.md` | Hoja de ruta detallada hacia 100% operatividad + autonomía |
 | `docs/DEFINITION_OF_DONE.md` | Qué significa "hecho". Obligatorio antes de cualquier PR |
 | `docs/CAPACIDADES_Y_HERRAMIENTAS.md` | Con qué construimos cada fase |
