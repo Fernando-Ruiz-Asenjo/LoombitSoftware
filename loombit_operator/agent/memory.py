@@ -65,6 +65,22 @@ _FOUNDATIONAL_LESSONS: list[dict[str, Any]] = [
         "source": "analisis_error_F2",
     },
     {
+        "text": "Para resolver el destinatario cuando hay varias direcciones para el mismo nombre, "
+        "elige la que MÁS has usado en Enviados (frecuencia real). Si una destaca, úsala sin preguntar. "
+        "Vale para CUALQUIER contacto, no solo Jana.",
+        "tags": [
+            "correo",
+            "email",
+            "destinatario",
+            "contacto",
+            "frecuencia",
+            "enviados",
+            "resolver",
+        ],
+        "outcome": "exito",
+        "source": "metodo_resolucion_por_frecuencia",
+    },
+    {
         "text": "En un correo escribes COMO el usuario: no te presentes como IA, agente, bot ni "
         "'Loombit', ni digas que es automático. Fírmalo con el nombre del usuario.",
         "tags": ["correo", "email", "redactar", "presentar", "firma"],
