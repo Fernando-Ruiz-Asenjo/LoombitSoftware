@@ -23,7 +23,7 @@ Verificado EN VIVO contra el 14B: el agente pide el email de Jana (no lo inventa
 - **Publicar la app Google OAuth a "Producción"** (Google Cloud Console → Pantalla de consentimiento OAuth → "Publicar app"). Es **uso personal → sin verificación de Google**; quita la caducidad de 7 días del modo "Testing" → deja de pedir re-autorización. Hasta entonces, `gmail.readonly` y `contacts.other.readonly` dan **403**, así que NO encuentra contactos por Gmail/otros-contactos (por eso pregunta el email).
 
 ## Pendiente / próximos pasos
-1. **Pilot:** ejecutar/verificar `scripts/pilot_demo.py` en escritorio real (cartel "LOOMBIT PILOTANDO" + cursor + abre Google Console). **Construido pero NO ejecutado aún** — Pilot no está verificado en escritorio real.
+1. ✅ **Pilot verificado EN VIVO (2026-06-08).** `scripts/pilot_demo.py` ejecutado en escritorio real: cartel + cursor real (movimiento determinista probado con log de coordenadas exactas) + abre Google Console. Además, **señal visible PROPIA de Loombit** añadida y verificada (D-18): **halo de perímetro violeta→cian + halo de cursor** en colores de marca (antes el halo era el naranja de Claude/Computer-Use, no de Loombit). 🟢. *Pendiente de cablear el overlay al executor del agente (hoy solo en el demo).*
 2. Tras publicar la app Google: verificar que **"Contactos habituales"** se llena solo (analiza Enviados) y que el agente resuelve a la Jana real (otros-contactos).
 3. **Cablear Pilot → bóveda** (autofill de logins con credenciales guardadas) + UI para añadir credenciales.
 4. Procesos del panel sin tool del agente (Registrar factura, Reclamar cobro, Conciliación): cablearlos como tools (p.ej. `plan_cobro` sobre `cobros.py`) o marcarlos honestamente — hoy son medio callejón.
