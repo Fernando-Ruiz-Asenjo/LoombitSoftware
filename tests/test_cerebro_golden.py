@@ -4,13 +4,24 @@ funcionar al 100%. Cada test blinda un comportamiento real (ver docs/ALGORITMO_C
 Si un cambio los rompe, el gate (scripts/verify.py) se pone ROJO. Son 100% CI (sin LM Studio).
 """
 
+from types import SimpleNamespace
+
 from loombit_operator import llm
 from loombit_operator.agent import smalltalk
 from loombit_operator.agent.contexto import ajustar_a_contexto
-from loombit_operator.agent.loop import _describe_for_approval
+from loombit_operator.agent.loop import (
+    _describe_for_approval,
+    _destinatario_claro,
+    _recipiente_resuelto,
+)
 from loombit_operator.agent.reflexion import etiquetas_de_tarea
 from loombit_operator.comprension import _salvar_objetos
-from loombit_operator.tool_labels import humanize_user_text, looks_like_code, safe_user_result
+from loombit_operator.tool_labels import (
+    capability_block,
+    humanize_user_text,
+    looks_like_code,
+    safe_user_result,
+)
 
 
 # ── F2.1 · smalltalk (fricción cero) ─────────────────────────────────────────
@@ -159,3 +170,53 @@ def test_describe_gmail_muestra_destinatario_y_asunto():
         "gmail_send", {"to": "a@b.com", "subject": "Hola", "body": "Texto del correo"}
     )
     assert "a@b.com" in prop and "Hola" in prop and "Texto del correo" in prop
+
+
+# ── F1.7 · guardia anti-email-inventado (seguridad de envío, D-20) ────────────
+def _fake_run(task="", steps=None, messages=None):
+    def _paso(tool_name="", result="", **_):
+        return SimpleNamespace(tool_name=tool_name, result=result)
+
+    return SimpleNamespace(
+        task=task,
+        steps=[_paso(**s) for s in (steps or [])],
+        messages=messages or [],
+    )
+
+
+def test_recipiente_acepta_email_de_la_peticion():
+    run = _fake_run(task="envía un correo a juan@x.com con el informe")
+    assert _recipiente_resuelto("juan@x.com", run) is True
+
+
+def test_recipiente_rechaza_email_inventado():
+    # el modelo se saca un email que NO está ni en la petición ni en contacts_find → fail-closed
+    run = _fake_run(task="envía un correo a David", steps=[])
+    assert _recipiente_resuelto("inventado@x.com", run) is False
+
+
+def test_recipiente_acepta_email_resuelto_por_contacts_find():
+    run = _fake_run(
+        task="escribe a Ana",
+        steps=[{"tool_name": "contacts_find", "result": 'mejor: "ana@x.com"'}],
+    )
+    assert _recipiente_resuelto("ana@x.com", run) is True
+
+
+def test_recipiente_rechaza_lo_que_no_es_email():
+    assert _recipiente_resuelto("David", _fake_run(task="a David")) is False
+
+
+def test_destinatario_claro_si_lo_escribio_el_usuario():
+    run = _fake_run(task="manda un correo a juan@x.com")
+    assert _destinatario_claro("juan@x.com", run) is True
+    run2 = _fake_run(task="manda un correo a David", steps=[], messages=[])
+    assert _destinatario_claro("otro@x.com", run2) is False
+
+
+# ── F8.3 · capability_block no filtra nombres técnicos de tool ────────────────
+def test_capability_block_en_humano_sin_jerga():
+    bloque = capability_block()
+    for tecnico in ("gmail_send", "calendar_create", "contacts_find", "memory_search"):
+        assert tecnico not in bloque
+    assert "Enviar correos" in bloque  # sí, en humano
