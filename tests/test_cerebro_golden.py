@@ -21,6 +21,7 @@ from loombit_operator.agent.loop import (
     _is_error_result,
     _recipiente_resuelto,
 )
+from loombit_operator.agent.intencion import fuerza_tool
 from loombit_operator.agent.memory import AgentMemory, EntityProfile
 from loombit_operator.agent.reflexion import etiquetas_de_tarea
 from loombit_operator.agent.run import AgentRun, AgentStatus, AgentStep
@@ -506,3 +507,19 @@ def test_relay_fiel_ignora_no_autoritativas_y_errores():
         steps=[SimpleNamespace(tool_name="plan_cobro", result="ERROR en 'plan_cobro': x")]
     )
     assert loop._relay_fiel(run2, "narración") == "narración"  # un error no se relaya
+
+
+# ── P0 fiabilidad · fuerza_tool: intenciones consecuentes NO se responden a ojo ──
+def test_fuerza_tool_en_intenciones_consecuentes():
+    # cobro/303/factura → forzar la tool (no fabricar cifras a ojo)
+    assert fuerza_tool("reclama el cobro de una factura de 800 que venció el 15 de abril") is True
+    assert fuerza_tool("calcula mi 303 con ventas de 10000 al 21%") is True
+    assert fuerza_tool("emite una factura a un cliente de 2000 más IVA") is True
+
+
+def test_no_fuerza_tool_en_lecturas_ni_cortesias():
+    # leer/charlar/correo NO se fuerza (evita forzar una acción donde no toca)
+    assert fuerza_tool("¿qué reuniones tengo esta semana?") is False
+    assert fuerza_tool("hola, ¿qué tal?") is False
+    assert fuerza_tool("hazme un resumen de hoy") is False
+    assert fuerza_tool("manda un correo a Ana") is False

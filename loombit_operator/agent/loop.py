@@ -31,6 +31,7 @@ from ..tools import tool_registry
 from ..tools.registry import ToolRegistry
 from .memory import get_memory
 from .contexto import ajustar_a_contexto
+from .intencion import fuerza_tool
 from .prompts import build_system_prompt
 from .run import AgentRun, AgentStatus, AgentStep, AgentStore
 
@@ -265,6 +266,10 @@ class AgentLoop:
 
         try:
             tools_schema = self.registry.to_openai(profile=run.profile, task=run.task)
+            # P0 fiabilidad: en intenciones consecuentes (cobro/303/factura) el 14B a veces calcula a
+            # ojo y FABRICA cifras. Forzamos la tool mientras no haya ejecutado ninguna (step_count==0)
+            # para que use la herramienta determinista, no su aritmética. LM Studio: tool_choice="required".
+            _forzar_tool = fuerza_tool(run.task)
             while True:
                 # Guard: cancelación externa (el usuario pulsó "Detener")
                 fresh = self.store.get(run.id)
@@ -297,10 +302,11 @@ class AgentLoop:
                 )
                 if _recortado:
                     logger.info("ALG-0.1 recortó el contexto para que quepa run=%s", run.id)
+                _tool_choice = "required" if (_forzar_tool and run.step_count == 0) else "auto"
                 response: ChatResponse = self.llm.chat(
                     messages=msgs_llm,
                     tools=tools_llm,
-                    tool_choice="auto",
+                    tool_choice=_tool_choice,
                 )
 
                 # Añadir respuesta del asistente al historial
