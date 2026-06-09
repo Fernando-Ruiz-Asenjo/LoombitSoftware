@@ -399,3 +399,32 @@ Fábrica (auto-mejora gobernada) · entregable (dossier) · RAG (memory_search) 
 
 ## Leyenda de estado
 ✅ implementado y verificado · 🟠 implementado parcial / a re-verificar · ❌ sin cablear (solo algoritmo).
+
+---
+
+# PLAN DE ARREGLO (acordado antes de tocar código)
+
+## Frontera de test (qué puede ser 100%)
+- **Determinista (código) → 100% en CI:** parsers, validaciones, cálculos (cobro/303), gates, dedup,
+  caché. Golden exacto en `scripts/verify.py`, siempre.
+- **LLM (intención + narración) → NO 100%, probabilístico:** eval de comportamiento con UMBRAL
+  (p.ej. ≥9/10) y requiere LM Studio vivo (no CI puro). La fiabilidad viene de que lo consecuente es
+  código; lo del LLM es no consecuente y vigilado.
+
+## Ítems del cerebro a añadir (faltaban)
+- **Máquina de estados del run** (pending→running→pending_approval/pending_question→completed/failed/cancelled): algoritmo explícito de transiciones.
+- **Zona horaria / locale / festivos** (cross-cutting): fechas, €, "el jueves", vencimiento en festivo, 2T=abr-jun.
+- **Concurrencia**: runs simultáneos + otro agente compartiendo el árbol → aislar (worktree).
+- **Observabilidad/recibo por run**: `GET /agent/runs/{id}` (steps+tool_calls) = el recibo de verificación.
+- **Limpieza de datos de prueba**: protocolo (entidad "principal", evento de calendario), no a mano.
+
+## Orden de ataque
+1. **Arnés primero** (ALG-5): por cada 🟠, escribir el golden que define lo correcto (falla=bug; pasa=blindado).
+2. **Cimientos** ALG-0.1 (contexto) + ALG-0.2 (reintento).
+3. **Frontera de determinismo** ALG-1.3 (parsers) + ALG-1.4 (validar).
+4. **Relay fiel** ALG-4.1 + **gate de datos** ALG-2.1.
+5. Resto del cerebro 🟠→🟢 uno a uno, cada uno con su golden en el gate.
+
+## Marcador de TERMINADO (scorecard)
+El cerebro es "100% fiable" cuando **cada 🟠/⚠️ de `ALGORITMO_CEREBRO_EXISTENTE.md` está 🟢 con un
+test en `verify.py`**. Métrica honesta = % de la tabla en verde (sin "100%" de boquilla).
