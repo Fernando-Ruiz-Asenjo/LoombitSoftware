@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Loombit — La Tela</title>
+<!--
+  La Tela — prototipo de la nueva UX (S0 tokens + S1 home). Ver docs/EXPERIENCIA_LOOMBIT.md.
+  Autocontenido con datos de MUESTRA para verificar look&feel; los hilos saldrán de /telar.
+  BLANCO: el dueño es dinámico (aquí, neutro). Voz cálida, español, fricción 0, confianza visible.
+-->
+<style>
+  :root {
+    /* identidad violeta→cian (halo del Pilot) + semáforo */
+    --vio: #7c5cff; --cian: #29e0d8; --grad: linear-gradient(120deg, #7c5cff, #29e0d8);
+    --bg: #0d0f1a; --bg2: #11142480; --surface: #161a2d; --surface2: #1d2238;
+    --line: #2a3052; --text: #eef1ff; --muted: #9aa3c7; --faint: #6b73a0;
+    --verde: #36d399; --ambar: #f5b54a; --rojo: #ff6b6b;
+    --r: 16px; --r-sm: 10px; --gap: 14px;
+    --shadow: 0 10px 40px #0008; --t: .22s cubic-bezier(.2,.7,.3,1);
+    --fz: 15px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: radial-gradient(1200px 600px at 80% -10%, #1a1f3a, var(--bg)) fixed;
+    color: var(--text); font: var(--fz)/1.5 -apple-system, "Segoe UI", Inter, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased; padding-bottom: 96px;
+  }
+  .grad-text { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+  /* ── Barra viva (presencia, no menú) ── */
+  .barra {
+    position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 16px;
+    padding: 12px 22px; backdrop-filter: blur(12px);
+    background: linear-gradient(#11142400, #11142400) , #0d0f1ad9; border-bottom: 1px solid var(--line);
+  }
+  .marca { font-weight: 700; letter-spacing: .3px; font-size: 17px; }
+  .marca i { font-style: normal; }
+  .chips { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 999px;
+    background: var(--surface); border: 1px solid var(--line); color: var(--muted); font-size: 13px;
+    transition: var(--t);
+  }
+  .chip b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .chip.local { color: var(--cian); border-color: #29e0d840; }
+  .chip.nov { position: relative; }
+  .chip.nov .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--cian); animation: latido 1.8s infinite; }
+  .chip.k { color: var(--faint); }
+  kbd { font: inherit; font-size: 11px; background: #0007; border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; }
+
+  /* ── La Tela ── */
+  main { max-width: 760px; margin: 0 auto; padding: 30px 22px 0; }
+  .saludo { font-size: 26px; font-weight: 650; margin: 8px 0 2px; }
+  .saludo .em { font-size: 22px; }
+  .sub { color: var(--muted); margin: 0 0 22px; }
+  .sub b { color: var(--text); }
+
+  .hilos { display: flex; flex-direction: column; gap: var(--gap); }
+  .hilo {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+    overflow: hidden; transition: var(--t); border-left: 4px solid var(--line);
+    animation: tejer .5s both;
+  }
+  .hilo:hover { border-color: #ffffff22; transform: translateY(-1px); box-shadow: var(--shadow); }
+  .hilo.rojo { border-left-color: var(--rojo); }
+  .hilo.ambar { border-left-color: var(--ambar); }
+  .hilo.verde { border-left-color: var(--verde); }
+  .hilo.cian { border-left-color: var(--cian); }
+  .l0 { display: flex; align-items: center; gap: 13px; padding: 15px 18px; cursor: pointer; }
+  .l0 .ic { font-size: 20px; width: 26px; text-align: center; }
+  .l0 .tit { font-weight: 600; }
+  .l0 .por { color: var(--muted); font-size: 13.5px; margin-top: 2px;
+            max-height: 0; opacity: 0; overflow: hidden; transition: var(--t); }
+  .hilo:hover .por { max-height: 40px; opacity: 1; }   /* L1: el porqué aparece al pasar por encima */
+  .l0 .mid { flex: 1; min-width: 0; }
+  .l0 .chev { color: var(--faint); transition: var(--t); }
+  .hilo.open .chev { transform: rotate(90deg); color: var(--text); }
+
+  /* L2: tarjeta de aprobación canónica */
+  .l2 { max-height: 0; opacity: 0; overflow: hidden; transition: max-height .3s ease, opacity var(--t); }
+  .hilo.open .l2 { max-height: 420px; opacity: 1; }
+  .card { margin: 0 18px 18px; padding: 16px; border-radius: var(--r-sm);
+          background: var(--surface2); border: 1px solid var(--line); }
+  .card .draft { color: var(--text); font-style: italic; opacity: .95; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 12px 0; font-size: 13px; color: var(--muted); }
+  .meta .why { color: var(--text); }
+  .src { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--cian); }
+  .lock { color: var(--cian); font-size: 12.5px; opacity: .9; }
+  .acts { display: flex; gap: 10px; margin-top: 6px; }
+  .btn { border: 0; border-radius: 10px; padding: 10px 16px; font: inherit; font-weight: 600; cursor: pointer; transition: var(--t); }
+  .btn.sec { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+  .btn.sec:hover { color: var(--text); border-color: #ffffff33; }
+  .btn.pri { background: var(--grad); color: #06121f; }
+  .btn.pri:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  .hilo.hecho { opacity: .55; }
+  .hilo.hecho .l0 .tit::after { content: " ✅"; }
+
+  .pie { text-align: center; color: var(--faint); font-size: 13px; margin: 26px 0 8px; }
+  .pie .l { color: var(--cian); }
+
+  /* ── Chat copiloto (cajón inferior, siempre a mano) ── */
+  .dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: flex; justify-content: center;
+          padding: 14px; background: linear-gradient(#0d0f1a00, #0d0f1a); }
+  .dock .box { width: 100%; max-width: 760px; display: flex; align-items: center; gap: 10px;
+               background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 11px 16px;
+               box-shadow: var(--shadow); }
+  .dock input { flex: 1; background: transparent; border: 0; color: var(--text); font: inherit; outline: none; }
+  .dock input::placeholder { color: var(--faint); }
+  .dock .send { width: 34px; height: 34px; border-radius: 50%; background: var(--grad); border: 0; cursor: pointer; color: #06121f; font-weight: 700; }
+
+  /* ── ⌘K paleta ── */
+  .pal { position: fixed; inset: 0; z-index: 40; display: none; align-items: flex-start; justify-content: center;
+         background: #04060ccc; backdrop-filter: blur(4px); padding-top: 14vh; }
+  .pal.on { display: flex; }
+  .pal .win { width: 540px; max-width: 92vw; background: var(--surface); border: 1px solid var(--line);
+              border-radius: var(--r); box-shadow: var(--shadow); overflow: hidden; }
+  .pal input { width: 100%; padding: 16px 18px; background: transparent; border: 0; border-bottom: 1px solid var(--line);
+               color: var(--text); font: inherit; font-size: 16px; outline: none; }
+  .pal .opt { padding: 12px 18px; cursor: pointer; display: flex; gap: 10px; align-items: center; }
+  .pal .opt:hover { background: var(--surface2); }
+
+  .toast { position: fixed; bottom: 92px; left: 50%; transform: translateX(-50%) translateY(20px);
+           background: var(--surface2); border: 1px solid #29e0d855; color: var(--text); padding: 12px 18px;
+           border-radius: 12px; opacity: 0; transition: var(--t); z-index: 50; box-shadow: var(--shadow); }
+  .toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @keyframes latido { 0%,100% { box-shadow: 0 0 0 0 #29e0d880; } 50% { box-shadow: 0 0 0 6px #29e0d800; } }
+  @keyframes tejer { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+  <header class="barra">
+    <div class="marca"><i class="grad-text">◳ Loombit</i></div>
+    <div class="chips">
+      <span class="chip local" title="Tus datos no salen de tu máquina">🔒 local</span>
+      <span class="chip" title="Tiempo que te he ahorrado hoy">⏱ <b id="ahorro">14</b> min</span>
+      <span class="chip nov" title="Novedades"><span class="dot"></span> 1 nuevo</span>
+      <span class="chip k" onclick="abrirPaleta()">⌘K</span>
+    </div>
+  </header>
+
+  <main>
+    <h1 class="saludo">Buenos días <span class="em">☀️</span></h1>
+    <p class="sub">Te he dejado <b>tejido lo de hoy</b>. Lo urgente: 2 facturas vencen esta semana — ya tienes escritos los recordatorios.</p>
+
+    <div class="hilos" id="hilos"></div>
+
+    <p class="pie"><span class="l">🔒 nada ha salido de tu máquina</span> · te he ahorrado <b>14 min</b> esta mañana</p>
+  </main>
+
+  <div class="dock"><div class="box">
+    <span style="color:var(--faint)">›</span>
+    <input id="chat" placeholder="Escríbeme algo… (o pulsa ⌘K para actuar)" />
+    <button class="send" title="Enviar">↑</button>
+  </div></div>
+
+  <div class="pal" id="pal" onclick="if(event.target.id==='pal')cerrarPaleta()">
+    <div class="win">
+      <input id="palq" placeholder="Salta a un cliente o dispara una acción… (p. ej. «reclamar a Mar»)" />
+      <div class="opt">📨 <span>Reclamar el cobro a Construcciones Mar</span></div>
+      <div class="opt">📅 <span>Agendar una cita con David Ferrer</span></div>
+      <div class="opt">🧾 <span>Preparar el 303 del 2T</span></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+  // Datos de MUESTRA (en producción: GET /telar). Cada hilo: estado (semáforo), porqué (L1) y, si es
+  // accionable, la tarjeta de aprobación (L2) con resultado ya redactado, procedencia y 🔒.
+  const HILOS = [
+    { ic:"📨", estado:"rojo", tit:"Construcciones Mar te debe 1.250 €",
+      por:"9 días sin contestar · suele pagar +12 días tarde · te preparé el 2º aviso",
+      card:{ draft:"«Hola, te recuerdo la factura 24/0312 (1.250 €), vencida el 28/05. ¿Me confirmas fecha de pago? Gracias.»",
+             why:"vence hace 9 días · cliente que suele retrasarse", src:"factura 24/0312 + tu hilo del 2/6", cta:"Enviar recordatorio" } },
+    { ic:"📨", estado:"ambar", tit:"Talleres Ríos — factura 24/0341 vence en 3 días",
+      por:"aún no vencida · recordatorio amable preparado por si acaso",
+      card:{ draft:"«Hola, un recordatorio de que la factura 24/0341 (820 €) vence el 12/06. Cualquier duda, aquí estoy.»",
+             why:"vence en 3 días · buen pagador", src:"factura 24/0341", cta:"Enviar recordatorio" } },
+    { ic:"🧾", estado:"ambar", tit:"303 del 2T: lo tengo preparado, vence el 20",
+      por:"calculado con tus facturas del trimestre · tú lo revisas y presentas",
+      card:{ draft:"Base 12.400 € · IVA repercutido 2.604 € · soportado 1.180 € → a ingresar 1.424 €.",
+             why:"calculado en código (determinista) con 18 facturas del 2T", src:"libro de facturas 2T + modelo 303", cta:"Abrir borrador del 303" } },
+    { ic:"💬", estado:"cian", tit:"Jana (Acme) te ha respondido — hace 20 min",
+      por:"novedad · pregunta por el presupuesto; te dejé un borrador de respuesta",
+      card:{ draft:"«¡Hola Jana! Te paso el presupuesto actualizado en adjunto. Cualquier ajuste, me dices. Un saludo.»",
+             why:"respondió a tu hilo de ayer · pendiente desde las 9:40", src:"hilo de correo con Jana (Acme)", cta:"Enviar respuesta" } },
+    { ic:"📅", estado:"verde", tit:"Hoy: llamada con el gestor a las 12:30",
+      por:"en tu agenda · sin conflictos · no hay que hacer nada",
+      card:null },
+  ];
+
+  const cont = document.getElementById("hilos");
+  HILOS.forEach((h, i) => {
+    const el = document.createElement("div");
+    el.className = "hilo " + h.estado;
+    el.style.animationDelay = (i*60) + "ms";
+    let l2 = "";
+    if (h.card) {
+      l2 = `<div class="l2"><div class="card">
+        <div class="draft">${h.card.draft}</div>
+        <div class="meta">
+          <span class="why">Porqué: ${h.card.why}</span>
+          <span class="src" title="Ver el dato exacto">🔗 ${h.card.src}</span>
+        </div>
+        <div class="lock">🔒 nada saldrá hasta que pulses el botón</div>
+        <div class="acts">
+          <button class="btn sec">Editar</button>
+          <button class="btn pri" onclick="enviar(event)">✅ ${h.card.cta}</button>
+        </div>
+      </div></div>`;
+    }
+    el.innerHTML = `<div class="l0" onclick="toggle(this)">
+        <span class="ic">${h.ic}</span>
+        <span class="mid"><span class="tit">${h.tit}</span><div class="por">${h.por}</div></span>
+        <span class="chev">›</span>
+      </div>${l2}`;
+    cont.appendChild(el);
+  });
+
+  function toggle(l0){ const h = l0.parentElement; if (h.querySelector(".l2")) h.classList.toggle("open"); }
+  function enviar(ev){
+    ev.stopPropagation();
+    const hilo = ev.target.closest(".hilo");
+    hilo.classList.remove("open"); hilo.classList.add("hecho");
+    const a = document.getElementById("ahorro"); a.textContent = (+a.textContent + 8);
+    toast("Hecho ✅ Te aviso si responde · +8 min");
+  }
+  function toast(t){ const e = document.getElementById("toast"); e.textContent = t; e.classList.add("on"); setTimeout(()=>e.classList.remove("on"), 2600); }
+  function abrirPaleta(){ document.getElementById("pal").classList.add("on"); document.getElementById("palq").focus(); }
+  function cerrarPaleta(){ document.getElementById("pal").classList.remove("on"); }
+  document.addEventListener("keydown", e => {
+    if ((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==="k"){ e.preventDefault(); abrirPaleta(); }
+    if (e.key==="Escape") cerrarPaleta();
+  });
+</script>
+</body>
+</html>
