@@ -17,6 +17,18 @@
   No tocar Defender. **Bash tool, no PowerShell.** LM Studio `--parallel 1` → no apilar jobs LLM.
   Borra lo que crees en pruebas. Verifica contra el CÓDIGO.
 
+## ⭐ PARA FERNANDO (cosas que aparté durante el loop, sin parar a preguntar)
+- **Modelo de entidad:** el agente de chat registra facturas/cobros en UNA entidad por defecto
+  («principal»). ¿Quieres modelo **multi-entidad (una por cliente)** o single? Afecta a cómo se
+  agrupan facturas/303/cobros. Por ahora: single «principal».
+- **303 fiable:** el cálculo del 303 desde una frase con el 14B NO es fiable (mis-asigna/inventa).
+  Ahora que `registrar_factura` persiste, el camino bueno es **calcular el 303 desde las facturas
+  registradas** (determinista). Propuesta para una próxima iteración. ¿OK?
+- **Evento de prueba en tu calendario** (vie 14 jun 10:00 «Loombit · prueba de aprobación»): el
+  borrado directo lo bloquea el gate de seguridad. Bórralo tú, o autorízame a hacerlo por el cauce.
+- **Pilot para viajes:** primitivas vivas; operar una web de viajes e2e está SIN verificar (es frágil
+  con el 14B conduciendo capturas). Cuando lo abordemos, será un proyecto con su verificación dura.
+
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |
 |---|---|---|---|
@@ -24,7 +36,7 @@
 | 2 | Telar (cognición→tarjetas, dedup, dudup caché) | ⬜ | |
 | 3 | Aprobaciones «Preparado para ti» | 🟢 verificado clicando (Aprobar→evento real) | falta probar Descartar en vivo |
 | 4 | Home / shell `loombit-app.html` | ⬜ | |
-| 5 | Tools dominio: cobro ✅, 303 ✅ / factura, conciliación | 🟠 | factura+conciliación (necesitan store) PENDIENTE |
+| 5 | Tools dominio: cobro ✅, 303 ✅, factura ✅ / conciliación | 🟠 | factura e2e 🟢 (persiste); conciliación PENDIENTE; falta "calcular 303 desde facturas registradas" (camino fiable) |
 | 6 | Galaxia | ⬜ | |
 | 7 | Fábrica | ⬜ | |
 | 8 | Ajustes | ⬜ | |
@@ -43,7 +55,7 @@ Rota sectores; anota fallos con severidad. Correos SOLO a fernando.ruizasenjo@gm
 |---|---|---|
 | Agencia de viajes | buscar vuelo+hotel, presupuesto a cliente, factura, cobro | 🟠 vuelos→Pilot pendiente; factura sin tool; cobro 🟢 |
 | Gestoría / asesoría | 303/130 de un cliente, recordar plazos, redactar a Hacienda | 🟠 303 no fiable (14B mis-asigna) |
-| Autónomo / freelance | emitir factura, reclamar impago, agenda con cliente | ⬜ |
+| Autónomo / freelance | emitir factura, reclamar impago, agenda con cliente | 🟢 emitir factura e2e (agente llama registrar_factura, persiste 2420€) — recibo run 7e03b27a |
 | E-commerce / tienda | conciliar cobros, responder incidencia de pedido | 🟠 conciliación: abstención MEJORADA (pide el extracto PDF, +honesto, +corto) pero aún sobre-promete (no hay tool de conciliar); falta wirear conciliación |
 | Clínica / consulta | agendar citas, recordatorios a pacientes | ⬜ |
 | Despacho de abogados | plazos procesales, redactar escrito, control de minutas | ⬜ |
