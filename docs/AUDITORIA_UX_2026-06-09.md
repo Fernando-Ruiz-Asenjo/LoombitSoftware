@@ -98,6 +98,50 @@ real medido** y añade los arreglos P0 como puerta previa:
 **Regla de oro (BRÚJULA):** cada ola en rama, **verificada EN VIVO en el Chrome real con Google**,
 tests/black/ruff verdes, y **0 regresión de features** antes de promover nada a `/`.
 
+## 5bis · RONDA 2 — pruebas DURAS en vivo (ejercitando acciones reales, no render)
+
+> Encargo de Fernando: *«quiero pruebas más duras… hazte preguntas sobre facilidad, usabilidad, si
+> tiene sentido la acción, lo que devuelve… mi experiencia es mala».* Probado en su Chrome real con
+> Google conectado, contra el server vivo (proceso independiente, no preview). Verificado por RECIBO,
+> no por la narración del LLM.
+
+**Arreglado y verificado (esta ronda):**
+- **F-1 · jerga de tools en la respuesta.** El 14B contestó «…usando `calendar_search`» (¡tool
+  alucinada!). → Saneador por código `tool_labels.humanize_user_text` en `run.mark_completed`. ✅
+- **F-2 · volcado de CÓDIGO como respuesta.** A «¿qué reuniones tengo esta semana?» devolvió
+  `for day in …: print(…)`. → `looks_like_code`/`safe_user_result`: basura → mensaje honesto con
+  salida. Reverificado en vivo: ahora responde en cristiano. ✅
+- **F-3 · aprobación a ciegas.** La tarjeta solo decía «Enviar un correo a X», sin el borrador. →
+  ahora muestra el `proposed_action` completo (qué se envía) antes de aprobar. ✅
+- **F-4 · acción del hilo que FINGÍA.** El botón cantaba «Hecho ✅» sin ejecutar. → ahora ejecuta de
+  verdad (`/agent/run`) o marca «Visto». ✅
+- **Verificado OK:** envío de correo real a la propia dirección (recibo `message_id` real, destinatario
+  correcto).
+
+**Abierto (los que de verdad hacen que la experiencia sea mala) — por prioridad:**
+- **F-5 🔴 · features estrella VACÍAS.** `/cuentas` vacío, galaxia 0 €, sin facturas cargadas →
+  **cobros y 303 no tienen datos**. La promesa central no se puede cumplir. Falta **intake de facturas**
+  (subir carpeta / conectar). Es producto/roadmap, no un parche.
+- **F-6 🔴 · el agente flaquea sin datos.** «Preparar borrador 303» → *completed, 0 steps*, promete y no
+  hace nada, pregunta dónde están las facturas (prohibido) y se corta a media frase. Debería **mirar de
+  verdad** (list_directory/read_invoice) o **abstenerse con honestidad y una salida** («no encuentro
+  facturas del 2T; súbelas o conéctalas y te lo preparo»). Nunca prometer-y-no-hacer.
+- **F-7 🟠 · «esta semana» infra-responde.** Solo devuelve eventos de HOY (no hay tool de semana); se
+  deja la reunión del jueves con David. Falta `calendar_week` o ampliar `daily_brief` a la semana.
+- **F-8 🟠 · spinner muerto.** «Procesando ●●●» 15-25 s sin decir qué hace. Mostrar los PASOS en vivo
+  («mirando tu agenda…», «redactando…») en vez de un punto suspensivo.
+- **F-9 🟠 · telar inestable.** El contenido cambia en cada refresco (la comprensión del 14B es no
+  determinista) → sensación de inestabilidad. Estabilizar (fijar orden/criterio, cachear más, o votar).
+- **F-10 🟡 · optimismo prematuro.** La acción del hilo dice «lo he dejado listo» ANTES de que el agente
+  termine. Debería decir «preparando…» y confirmar al terminar.
+
+**Lectura de conjunto:** la UX de superficie ya está mucho mejor (Olas 1-2 + estos fixes), pero la
+*sensación de valor* falla por **F-5/F-6**: sin datos cargados, las funciones estrella van vacías y el
+agente improvisa en vez de guiar. El siguiente salto de experiencia REAL es **intake de facturas +
+abstención honesta con salida**, no más maquillaje.
+
+---
+
 ## 6 · La definición de TOP (el listón con el que se mide el resultado)
 
 Fernando abre Loombit a las 9:00. En **<1 s** ve su día ya tejido (no un blanco). **No escribe nada**.
