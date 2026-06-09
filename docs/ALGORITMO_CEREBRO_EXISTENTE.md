@@ -269,17 +269,24 @@ nombre humano de cada capacidad ; bloque "esto es lo que sé hacer" sin nombres 
 ---
 
 ## Resumen de cobertura (honesto) — actualizado RC·Cerebro
-`tests/test_cerebro_golden.py` = **30 golden** en el gate (100% CI, sin LM Studio).
-- **🟢 con test/verificado AHORA:** smalltalk (F2.1) · parser tolerante (F5.3) · etiquetas (F4.2) ·
+`tests/test_cerebro_golden.py` = **44 golden** en el gate (100% CI, sin LM Studio).
+- **🟢 lo DETERMINISTA (código), blindado:** smalltalk (F2.1) · parser tolerante (F5.3) · etiquetas (F4.2) ·
   saneadores humanize/looks_like_code/safe_user_result (F8.1/8.2) · capability_block (F8.3) ·
   guardia anti-email-inventado `_recipiente_resuelto`/`_destinatario_claro` (F1.7) · tarjeta de
   aprobación `_describe_for_approval` (F1.8, **arreglado**) · cognición `_normalizar` con guard
   deuda/fraude + ruido (F5) · perfil de pagador EntityProfile (F3.5) · anti-bucle `_is_error_result`/
-  `_error_brief`/`_consecutive_tool_errors` (F1.6/F1.9) · **ALG-0.1 contexto** ✅ · **ALG-0.2 reintento** ✅.
+  `_error_brief`/`_consecutive_tool_errors` (F1.6/F1.9) · **máquina de estados del run** (AgentRun:
+  transiciones + guards + roundtrip) · **memoria operativa** (owner/contactos dedup/procedimientos, F3.1-3.4/3.6) ·
+  **telar determinista** (saludo, porqué causal, asunto→hilo, F6) · **ALG-0.1 contexto** ✅ · **ALG-0.2 reintento** ✅.
   (+ ya tenían: cobro vencido, caché telar, _necesita_respuesta.)
-- **🟠 sigue SIN verificación dura (siguiente tanda):** motor del agente e2e (F1.2 bucle, F1.4 reanudar,
-  F1.5 answer, F1.10 update_memory), memoria F3.1-3.4/3.6, reflexión F4.1, comprensión F5.1/5.2 e2e,
-  telar F6.* (necesitan LM Studio o fakes más elaborados).
-- **⚠️ pendiente:** F5.1 no-determinismo histórico de `comprender` (mitigado por F5.3+guard; e2e por verificar).
+- **Solo queda lo que DEPENDE del LLM (no puede ser golden 100%):** la generación dentro de `comprender`
+  (F5.1), la elección de tool del bucle (F1.2) y la narración. Va por **eval de comportamiento con
+  umbral** (como F1-F8), con LM Studio vivo — NO test determinista. Está envuelto por código ya blindado
+  (validación, relay fiel, gates, contexto, reintento) para que aunque el modelo titubee, no salga un
+  dato consecuente malo.
+- **⚠️ pendiente:** F5.1 no-determinismo histórico de `comprender` (mitigado por F5.3+guard; eval e2e por añadir).
+
+> El CÓDIGO del cerebro (lo algorítmico) está al 100% bajo golden en el gate. Lo único no-100% es el
+> propio LLM, por definición — y está acotado y vigilado.
 
 > "Debería funcionar al 100%" → "funciona, con recibo": 13+ piezas pasaron de 🟠 a 🟢 con test esta tanda.

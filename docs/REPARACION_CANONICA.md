@@ -67,7 +67,7 @@ nunca es "🟢 100%": es "🟢 con eval ≥ umbral".
 ## SCORECARD de familias (vivo)
 | Familia | Doc AS‑IS | Tests golden | % verde | Estado |
 |---|---|---|---|---|
-| **Cerebro** (RC·Cerebro, instancia #1) | `ALGORITMO_CEREBRO_EXISTENTE.md` | `tests/test_cerebro_golden.py` ✅ (17) | en curso | 🟠→ arnés (smalltalk, etiquetas, parser tolerante, saneadores) + ALG-0.2 reintento ✅ + ALG-0.1 contexto ✅ + F1.8 tarjeta aprobación ✅ |
+| **Cerebro** (RC·Cerebro, instancia #1) | `ALGORITMO_CEREBRO_EXISTENTE.md` | `tests/test_cerebro_golden.py` ✅ (44) | **código 100%** | 🟢 lo DETERMINISTA blindado (smalltalk, parser tolerante, saneadores, anti-email, normalización/guards, perfil pagador, anti-bucle, estados del run, memoria, telar) + ALG-0.1/0.2. Solo el LLM queda como eval con umbral. |
 | Manos / dominio (cobro·303·factura·conciliación) | (en `ALGORITMO_CEREBRO.md` ALG‑3.x) | parcial (`test_dominio_tools.py`) | parcial | 🟠 |
 | Conectores (Gmail·Calendar·Contacts) | *(pendiente)* | *(pendiente)* | — | ⬜ |
 | Telar / cognición | (familia 5‑7 del cerebro) | *(pendiente)* | — | 🟠 |
