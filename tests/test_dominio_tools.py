@@ -62,3 +62,22 @@ def test_calcular_303_acepta_tipo_en_fraccion_o_porcentaje():
     a = _calcular_303(iva_repercutido=[{"base": 1000, "tipo": 21}])
     b = _calcular_303(iva_repercutido=[{"base": 1000, "tipo": 0.21}])
     assert "210" in a and "210" in b
+
+
+def test_calcular_303_rechaza_tipo_de_iva_imposible():
+    # Antifabricación: un 40% de IVA no existe → no se calcula un 303 falso, se rechaza.
+    out = _calcular_303(iva_soportado=[{"base": 7000, "tipo": 40, "concepto": "Contratación"}])
+    assert "ERROR" in out
+    assert "no válido" in out.lower()
+    assert "7000" not in out  # no calcula con el dato inventado
+
+
+def test_calcular_303_echo_muestra_las_lineas_usadas():
+    # Visibilidad: el resultado deja ver con qué se calculó (delata líneas inventadas).
+    out = _calcular_303(
+        iva_repercutido=[{"base": 12000, "tipo": 21, "concepto": "Ventas"}],
+        iva_soportado=[{"base": 3000, "tipo": 21, "concepto": "Compras"}],
+    )
+    assert "Calculado con" in out
+    assert "12000" in out and "3000" in out
+    assert "1890" in out  # 2520 devengado - 630 deducible = 1890 a ingresar

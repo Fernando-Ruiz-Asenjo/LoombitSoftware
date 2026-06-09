@@ -93,32 +93,36 @@ def _norm_tipo(t: object) -> float:
     return v / 100.0 if v > 1 else v
 
 
+# Tipos de IVA válidos en España (fracción): exento 0, superreducido 4%, temporal 5%,
+# reducido 10%, general 21%. Cualquier otro es un dato inventado/erróneo → se rechaza,
+# nunca se calcula un 303 con cifras imposibles (un IVA del 40% no existe).
+_TIPOS_IVA_VALIDOS = {0.0, 0.04, 0.05, 0.10, 0.21}
+
+
+def _parse_lineas(items: list[dict] | None, sentido: str, defecto: str) -> list[LineaIVA]:
+    out: list[LineaIVA] = []
+    for it in items or []:
+        out.append(
+            LineaIVA(
+                base=it["base"],
+                tipo=_norm_tipo(it.get("tipo", 0.21)),
+                sentido=sentido,
+                concepto=str(it.get("concepto", defecto)),
+            )
+        )
+    return out
+
+
 def _calcular_303(
     iva_repercutido: list[dict] | None = None,
     iva_soportado: list[dict] | None = None,
     periodo: str = "",
 ) -> str:
     """Calcula un BORRADOR del modelo 303 (IVA, régimen general) a partir de bases y tipos."""
-    lineas: list[LineaIVA] = []
     try:
-        for it in iva_repercutido or []:
-            lineas.append(
-                LineaIVA(
-                    base=it["base"],
-                    tipo=_norm_tipo(it.get("tipo", 0.21)),
-                    sentido="devengado",
-                    concepto=str(it.get("concepto", "venta")),
-                )
-            )
-        for it in iva_soportado or []:
-            lineas.append(
-                LineaIVA(
-                    base=it["base"],
-                    tipo=_norm_tipo(it.get("tipo", 0.21)),
-                    sentido="soportado",
-                    concepto=str(it.get("concepto", "compra")),
-                )
-            )
+        lineas = _parse_lineas(iva_repercutido, "devengado", "venta") + _parse_lineas(
+            iva_soportado, "soportado", "compra"
+        )
     except (KeyError, TypeError, ValueError) as exc:
         return (
             "ERROR: necesito las líneas de IVA como listas de {base, tipo} "
@@ -129,8 +133,29 @@ def _calcular_303(
             "Para el 303 necesito al menos las bases de tus ventas (IVA repercutido) y, si las "
             "hay, de tus compras (IVA soportado). Dímelas y te dejo el borrador."
         )
+    # Guard antifabricación: ningún tipo de IVA imposible. Si el modelo se inventó un 40 %,
+    # no calculamos un 303 falso — paramos y lo decimos (brújula: cifras por código, no mentir).
+    for ln in lineas:
+        if round(float(ln.tipo), 4) not in _TIPOS_IVA_VALIDOS:
+            return (
+                f"ERROR: tipo de IVA no válido en España: {float(ln.tipo) * 100:.0f}% "
+                f"(en '{ln.concepto}'). Tipos válidos: 0, 4, 5, 10, 21%. Usa SOLO las cifras "
+                "que te dé el usuario; no inventes líneas ni tipos."
+            )
+
+    # Echo de visibilidad: deja ver EXACTAMENTE con qué se calculó (si el modelo añadió líneas
+    # que el usuario no dijo, aquí se ve). Honestidad por transparencia.
+    def _fmt(lns: list[LineaIVA]) -> str:
+        return (
+            "; ".join(f"{ln.concepto} {ln.base}€ al {float(ln.tipo) * 100:.0f}%" for ln in lns)
+            or "—"
+        )
+
+    ventas = [ln for ln in lineas if ln.sentido == "devengado"]
+    compras = [ln for ln in lineas if ln.sentido == "soportado"]
+    echo = f"Calculado con — Ventas: {_fmt(ventas)} · Compras: {_fmt(compras)}\n\n"
     res = calcular_303(lineas)
-    return borrador_303_texto(res, periodo or "periodo indicado")
+    return echo + borrador_303_texto(res, periodo or "periodo indicado")
 
 
 tool_registry.register(
@@ -175,7 +200,9 @@ tool_registry.register(
             "Calcula un BORRADOR del modelo 303 (IVA trimestral, régimen general) a partir de "
             "las bases imponibles y tipos de tus facturas emitidas (IVA repercutido) y recibidas "
             "(IVA soportado). Devuelve IVA devengado, deducible y resultado a ingresar/compensar. "
-            "Es un borrador, NO una presentación. Úsala para el 303 / IVA del trimestre."
+            "Es un borrador, NO una presentación. Úsala para el 303 / IVA del trimestre. "
+            "IMPORTANTE: pasa EXACTAMENTE las cifras y tipos que te dé el usuario; NO inventes ni "
+            "añadas líneas, importes ni tipos. Si faltan datos, NO los rellenes: pregunta con ask_user."
         ),
         parameters={
             "type": "object",

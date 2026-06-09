@@ -34,6 +34,22 @@
 | 12 | Seguridad / operativa / privacidad (datos≠órdenes, IBAN, Origin/CSRF) | ⬜ | red-team aimafia pendiente |
 | 13 | Estética / voz / motion / accesibilidad AA | ⬜ | |
 
+## Dogfooding MULTISECTOR (encargo de Fernando) — hacerme pasar por usuarios reales
+En cada iteración, además de auditar superficies, **actúa como un usuario de un sector** y encárgale a
+Loombit tareas reales por el chat/agente (por RECIBO: qué tool llama, qué devuelve, ¿es correcto y útil?).
+Rota sectores; anota fallos con severidad. Correos SOLO a fernando.ruizasenjo@gmail.com.
+
+| Sector | Persona / encargo típico | Estado |
+|---|---|---|
+| Agencia de viajes | buscar vuelo+hotel, presupuesto a cliente, factura, cobro | 🟠 vuelos→Pilot pendiente; factura sin tool; cobro 🟢 |
+| Gestoría / asesoría | 303/130 de un cliente, recordar plazos, redactar a Hacienda | 🟠 303 no fiable (14B mis-asigna) |
+| Autónomo / freelance | emitir factura, reclamar impago, agenda con cliente | ⬜ |
+| E-commerce / tienda | conciliar cobros, responder incidencia de pedido | ⬜ |
+| Clínica / consulta | agendar citas, recordatorios a pacientes | ⬜ |
+| Despacho de abogados | plazos procesales, redactar escrito, control de minutas | ⬜ |
+| Restaurante / hostelería | pedidos a proveedor, control de facturas, reservas | ⬜ |
+| Construcción / reformas | presupuestos, certificaciones, cobro a cliente | ⬜ |
+
 ## Hallazgos (se rellena en cada iteración)
 
 ### Iteración 0 — diagnóstico raíz (hecho antes del loop)
@@ -65,3 +81,20 @@
   caber en contextos pequeños). Recomendado: ambas. Pendiente para próxima iteración.
 - **NOTA cobertura:** probado cobro; 303 NO probado e2e aún (mismo patrón, debería ir); factura y
   conciliación SIN tool todavía (necesitan store). Abstención honesta sin abordar.
+
+### Iteración 2-3 — 303 e2e: la TOOL es fiable, el 14B NO (riesgo fiscal real)
+- **303 e2e (ctx 8192, completed) → RESULTADO ERRÓNEO por el 14B (no por la tool):**
+  - 1ª prueba: el modelo **INVENTÓ** líneas (Servicios 5000€@10%, Contratación 7000€@**40%**) — recibo
+    en los `tool_calls` del run. Un IVA del 40% no existe.
+  - 2ª prueba (con guard + "no inventes nada"): ya no inventó, PERO metió la compra (3000€) dentro de
+    `iva_repercutido` → deducible 0 → 3150€ a ingresar (lo correcto: **1890€**). **Mis-asignó
+    repercutido/soportado.** Recibo: ARGS `iva_repercutido:[12000 Ventas, 3000 Compras]`.
+  - Además el agente **parafrasea** la salida de la tool y se come el echo de visibilidad.
+- **ARREGLADO (mitigación):** guard antifabricación en `calcular_303` (rechaza tipos de IVA imposibles
+  como 40%; válidos 0/4/5/10/21) + echo de líneas usadas + descripción que prohíbe inventar. +3 tests.
+- **VERDICTO HONESTO (P1 · límite del modelo, NO resuelto):** el 303 vía chat con el 14B **no es fiable
+  para dinero/impuestos** (mis-asigna campos, parafrasea, inventa). Mitigado, no resuelto. **Camino
+  fiable = intake desde facturas reales (F-5) + cálculo determinista**, no extracción de una frase por
+  el LLM. `cobro` es más robusto (menos campos, números directos). → `calcular_303` queda 🟠
+  "asistente, VERIFICA siempre". Reconsiderar: usar el coder/instructor con few-shot, o exigir
+  confirmación de las líneas antes de calcular.
