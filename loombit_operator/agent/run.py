@@ -93,8 +93,10 @@ class AgentRun:
         self._touch()
 
     def mark_completed(self, result: str) -> None:
+        from ..tool_labels import humanize_user_text
+
         self.status = AgentStatus.COMPLETED
-        self.result = result
+        self.result = humanize_user_text(result)  # el usuario nunca ve jerga de tools
         self.completed_at = datetime.now(UTC).isoformat()
         self._touch()
 

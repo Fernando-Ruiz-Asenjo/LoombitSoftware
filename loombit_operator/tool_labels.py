@@ -13,6 +13,8 @@ adaptador MCP (`annotations.title`). Es presentación pura: no cambia comportami
 
 from __future__ import annotations
 
+import re
+
 # name técnico → (etiqueta amigable con emoji, descripción en lenguaje humano)
 HUMAN_LABELS: dict[str, tuple[str, str]] = {
     # — Comunicación —
@@ -65,6 +67,40 @@ HUMAN_LABELS: dict[str, tuple[str, str]] = {
 # Tools internas/mecánicas del Pilot que NO se enumeran al usuario (las resume "_desktop").
 _DESKTOP_PREFIXES = ("desktop_", "browser_")
 _INTERNAL = {"task_done", "propose_improvement", "save_screenshot_to_file", "run_shell"}
+
+
+# ── Saneador del texto que VE EL USUARIO ─────────────────────────────────────
+# El prompt prohíbe nombrar tools, pero el 14B a veces lo incumple (y hasta alucina nombres como
+# "calendar_search"). Garantía POR CÓDIGO (BRÚJULA: no fiarse solo del LLM): borra menciones de tools
+# del texto de cara al usuario. Casa por PREFIJOS de tool (gmail_/calendar_/…) para no pisar nombres
+# de fichero legítimos (mi_factura.pdf). Presentación pura: no cambia comportamiento del agente.
+_TOOL_RE = re.compile(
+    r"`?\b(?:gmail_\w+|calendar_\w+|contacts_\w+|daily_brief|memory_search|"
+    r"read_invoice|read_file|write_file|list_directory|web_fetch|"
+    r"desktop_\w+|browser_\w+|run_shell|ask_user|task_done|"
+    r"propose_improvement|save_screenshot\w*)\b`?",
+    re.IGNORECASE,
+)
+# Conector previo ("usando `x`", "mediante x", "llamando a x"…) para borrarlo junto con la tool.
+_LEAD = (
+    r"(?:usando|mediante|llamando a|vía|a trav[eé]s de|invocando|con la herramienta|"
+    r"con la funci[oó]n|us[eé]|mediante la tool|con la tool)"
+)
+
+
+def humanize_user_text(text: str) -> str:
+    """Quita menciones de tools del texto de cara al usuario (nunca debe ver jerga técnica)."""
+    if not text:
+        return text
+    # 1) "…usando `calendar_search`…" → quita conector + tool de golpe.
+    t = re.sub(rf"\s*\b{_LEAD}\b\s*{_TOOL_RE.pattern}", "", text, flags=re.IGNORECASE)
+    # 2) cualquier mención suelta restante → fuera.
+    t = _TOOL_RE.sub("", t)
+    # 3) limpieza tipográfica (espacios dobles, espacio antes de signo, paréntesis vacíos).
+    t = re.sub(r"\(\s*\)", "", t)
+    t = re.sub(r"\s{2,}", " ", t)
+    t = re.sub(r"\s+([,.;:）)])", r"\1", t)
+    return t.strip()
 
 
 def human_label(name: str) -> str:
