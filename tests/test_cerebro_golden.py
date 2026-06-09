@@ -4,7 +4,7 @@ funcionar al 100%. Cada test blinda un comportamiento real (ver docs/ALGORITMO_C
 Si un cambio los rompe, el gate (scripts/verify.py) se pone ROJO. Son 100% CI (sin LM Studio).
 """
 
-from datetime import date
+from datetime import date, datetime
 from types import SimpleNamespace
 
 import pytest
@@ -24,6 +24,7 @@ from loombit_operator.agent.memory import AgentMemory, EntityProfile
 from loombit_operator.agent.reflexion import etiquetas_de_tarea
 from loombit_operator.agent.run import AgentRun, AgentStatus, AgentStep
 from loombit_operator.comprension import _normalizar, _salvar_objetos
+from loombit_operator.telar import _hilo_asunto, _porque_asunto, _saludo
 from loombit_operator.tool_labels import (
     capability_block,
     humanize_user_text,
@@ -426,3 +427,51 @@ def test_run_roundtrip_dict_conserva_estado():
     assert r2.task == "reclamar cobro"
     assert r2.status is AgentStatus.PENDING_APPROVAL
     assert r2.pending_approval["reason"] == "Enviar"
+
+
+# ── F6 · telar determinista (saludo, porqué causal, mapeo asunto→hilo) ────────
+def test_telar_saludo_por_hora():
+    assert _saludo(datetime(2026, 6, 9, 9, 0)) == "Buenos días"
+    assert _saludo(datetime(2026, 6, 9, 15, 0)) == "Buenas tardes"
+    assert _saludo(datetime(2026, 6, 9, 23, 0)) == "Buenas noches"
+    assert _saludo(datetime(2026, 6, 9, 3, 0)) == "Buenas noches"
+
+
+def test_telar_porque_es_causal_no_repite_detalle():
+    assert "Confirmada" in _porque_asunto("reunion", "confirmada")
+    assert "acción" in _porque_asunto("notificacion", "requiere_accion")
+    assert _porque_asunto("reunion", "") == "Está en tu agenda."
+    assert _porque_asunto("gestion", "") == "Gestión pendiente de cerrar."
+
+
+def test_hilo_asunto_reunion_sin_accion_es_navigate():
+    h = _hilo_asunto(
+        {
+            "tipo": "reunion",
+            "con": "David",
+            "fecha": "2026-06-11",
+            "hora": "09:00",
+            "estado": "confirmada",
+        }
+    )
+    assert h["tipo"] == "reunion"
+    assert "Reunión con David" in h["titulo"]
+    assert "Confirmada" in h["porque"]
+    assert h["accion"]["modo"] == "navigate"  # sin 'accion' → solo Ver
+
+
+def test_hilo_asunto_con_accion_es_agent_task_con_gate():
+    h = _hilo_asunto(
+        {
+            "tipo": "notificacion",
+            "titulo": "Deuda no reconocida",
+            "estado": "requiere_accion",
+            "accion": "Verifica esta deuda",
+            "origen": "Email X",
+        }
+    )
+    assert h["accion"]["modo"] == "agent_task"
+    assert h["accion"]["label"] == "Gestionar"
+    assert "Verifica esta deuda" in h["accion"]["task"]
+    assert "no envíes ni ejecutes nada externo" in h["accion"]["task"]  # gate en el propio task
+    assert "Pide acción" in h["porque"]
