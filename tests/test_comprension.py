@@ -117,6 +117,42 @@ def test_comprension_vacia_sin_entradas():
     assert cp.comprender([], [], LUNES, llm=_LLM("[]")) == []
 
 
+def test_dedup_un_asunto_por_hilo_aunque_el_llm_lo_repita():
+    """El LLM a veces emite un asunto por CADA correo del hilo → el telar mostraba la misma deuda
+    4 veces. DEDUP determinista: una sola entrada por (titulo, tipo, con)."""
+    item = {
+        "tipo": "notificacion",
+        "titulo": "Deuda no reconocida de Abogados CEA",
+        "con": "Abogados CEA",
+        "resumen": "reclaman pago",
+        "estado": "requiere_accion",
+        "importancia": 3,
+        "origen": "Email notificacion",
+    }
+    # incluye una reunión con tilde y sin tilde (el LLM varía el acento) → mismo asunto
+    r1 = {
+        "tipo": "reunion",
+        "titulo": "Reunión con David Valentín",
+        "con": "David Valentín",
+        "estado": "confirmada",
+        "importancia": 2,
+        "fecha": "2026-06-11",
+        "hora": "9:00",
+        "origen": "a",
+    }
+    # mismo día/hora/persona pero el LLM redacta otro título y varía la tilde → mismo evento
+    r2 = dict(
+        r1, titulo="Reunión con David Valentin sobre baremos", con="David Valentin", origen="b"
+    )
+    # 3 redacciones reales de la MISMA deuda: distinto titulo y 'con', mismo origen -> 1
+    d2 = dict(item, titulo="No reconozco esta deuda", con="")
+    d3 = dict(item, titulo="Deuda no reconocida por WiBLE", con="wible.recobros@abogadoscea.es")
+    llm = _LLM(json.dumps([item, d2, d3, r1, r2]))
+    out = cp.comprender([{"subject": "x"}], [], LUNES, llm=llm)
+    assert len([a for a in out if "deuda" in (a["titulo"] + a["resumen"]).lower()]) == 1
+    assert len([a for a in out if "valent" in a["titulo"].lower()]) == 1  # tilde-insensible
+
+
 def test_deuda_no_reconocida_escala_a_fraude_aunque_el_llm_la_minimice():
     """Guard DETERMINISTA: aunque el LLM la marque 'informativa'/poco importante, una deuda que NO
     se reconoce es posible fraude → importancia 3 + requiere_accion, con acción de VERIFICAR."""

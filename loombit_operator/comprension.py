@@ -20,6 +20,7 @@ import json
 import re
 import threading
 import time
+import unicodedata
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -150,6 +151,14 @@ _RUIDO_RE = re.compile(
     r"(google business profile|informe de rendimiento|performance report|"
     r"resumen mensual|newsletter|bolet[ií]n|no[\s\-]?reply|noreply)"
 )
+
+
+def _norm(s: str) -> str:
+    """Clave robusta para deduplicar: minúsculas, SIN acentos y solo alfanumérico. Así
+    'David Valentín' y 'David Valentin' (el LLM varía la tilde) cuentan como el mismo asunto."""
+    t = unicodedata.normalize("NFKD", str(s or "").lower())
+    t = "".join(c for c in t if not unicodedata.combining(c))
+    return re.sub(r"[^a-z0-9]+", " ", t).strip()
 
 
 def _normalizar(item: dict, hoy: date) -> dict | None:
@@ -319,7 +328,32 @@ def comprender(
             return None
         out = [a for a in (_normalizar(it, hoy) for it in data if isinstance(it, dict)) if a]
         out.sort(key=lambda a: (-a["importancia"], a["fecha"] or "9999", a["hora"] or "99:99"))
-        return out
+        # DEDUP determinista: el LLM a veces emite un asunto por CADA correo del hilo → el telar
+        # mostraba la misma deuda/reunión 2-4 veces. Una entrada por asunto (regla del prompt),
+        # garantizada por código. Se conserva la de mayor importancia (ya viene ordenada).
+        # El LLM repite el MISMO asunto con título, 'con' y origen distintos cada vez. Dedup por
+        # claves FUERTES por naturaleza, no por texto (que varía):
+        vistos: set[tuple] = set()
+        unicos: list[dict] = []
+        for a in out:
+            blob = " ".join((a["titulo"], a["resumen"], a["origen"], a["con"])).lower()
+            if _DEUDA_RE.search(blob):
+                # Una deuda/cobro/fraude no reconocido = UN solo aviso (verifícalo). El LLM lo
+                # redacta de 3 formas distintas; al usuario le basta una tarjeta.
+                clave: tuple = ("deuda",)
+            elif a["fecha"] or a["hora"]:
+                # Mismo día + hora = el MISMO evento (no puedes estar en dos reuniones a la vez),
+                # aunque el LLM cambie el título o se deje el nombre.
+                clave = ("ev", a["fecha"], a["hora"])
+            else:
+                # Sin fecha: funde por ORIGEN (el correo citado) si es específico; si no, por título.
+                org = _norm(a["origen"])
+                clave = ("tx", a["tipo"], org if len(org) >= 6 else _norm(a["titulo"]))
+            if clave in vistos:
+                continue
+            vistos.add(clave)
+            unicos.append(a)
+        return unicos
     except Exception:
         return None  # conservar el último bueno
 
