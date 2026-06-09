@@ -853,7 +853,7 @@ pre.fb-code { background: var(--lb-navy,#0a0e1a); border: 1px solid var(--lb-bor
     <div class="topbar-actions">
       <button class="icon-btn" onclick="openFabrica()" title="Sala de la Fábrica — auto-mejora gobernada" style="font-size:16px;width:34px;height:34px;display:flex;align-items:center;justify-content:center">🏭</button>
       <button class="icon-btn" onclick="openGalaxia()" title="Galaxia — tu negocio como sistema estelar" style="font-size:17px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;position:relative">🌌<span id="gx-badge" style="display:none;position:absolute;top:3px;right:3px;min-width:8px;height:8px;border-radius:999px;background:var(--lb-red,#ef4444);box-shadow:0 0 0 2px var(--lb-navy2,#111827)"></span></button>
-      <button class="icon-btn" onclick="clearChat()" title="Nueva conversación">
+      <button class="icon-btn" id="new-chat-btn" onclick="clearChat()" title="Nueva conversación" style="display:none">
         <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
       </button>
       <button class="icon-btn" onclick="openSettings()" title="Ajustes">
@@ -1107,6 +1107,8 @@ function switchSkill(key, el) {
 function clearChat() {
   msgsCont.innerHTML = '';
   welcome.style.display = '';
+  // El "+" solo tiene sentido si hay conversación: en la home se oculta (no un botón muerto).
+  const nb = document.getElementById('new-chat-btn'); if (nb) nb.style.display = 'none';
 }
 
 // ── Time ──────────────────────────────────────────────
@@ -1414,6 +1416,8 @@ async function sendMessage() {
   if (!text || busy) return;
   msgInput.value = '';
   msgInput.style.height = 'auto';
+  // Ya hay conversación → el "+" (nueva conversación) pasa a tener función y se muestra.
+  const nb = document.getElementById('new-chat-btn'); if (nb) nb.style.display = '';
 
   addMsg('user', text);
   setBusy(true);
