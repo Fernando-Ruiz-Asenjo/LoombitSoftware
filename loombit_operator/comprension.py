@@ -365,6 +365,14 @@ def refrescar(
     nuevo = comprender(correos, eventos, hoy, llm=llm, buscar=buscar)
     if nuevo is not None:
         _guardar(nuevo)
+        # La comprensión cambió → invalida el telar cacheado para que el usuario vea YA el resultado
+        # (deduplicado/actualizado) y no un snapshot viejo. Import perezoso (evita ciclos), best-effort.
+        try:
+            from . import telar_cache
+
+            telar_cache.invalidate()
+        except Exception:
+            pass
         return nuevo
     return comprension_cacheada()[0]
 
