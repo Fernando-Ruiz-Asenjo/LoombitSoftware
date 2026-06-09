@@ -420,4 +420,16 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
 - *Por qué:* convierte "debería funcionar" en "funciona, con recibo", y blinda contra regresiones.
   *Reversible:* sí (proceso + docs). Artefactos: `ALGORITMO_CEREBRO.md`, `ALGORITMO_CEREBRO_EXISTENTE.md`.
 
+**D-52 — RC·Cerebro cerrado: gate de datos (ALG-2.1) SUBSUMIDO, no se construye ahora.**
+- *Contexto:* el plan del cerebro incluía un "gate de datos" (confirmar las cifras extraídas antes de
+  una acción consecuente). Tras implementar parsers deterministas (ALG-1.3/1.4), guard antifabricación
+  del 303, **relay fiel** (ALG-4.1) y **303 desde facturas registradas** (ALG-3.4), el riesgo que ese
+  gate cubría ya está cubierto, y el envío/pago real sigue pasando por el **gate de efecto** (sagrado).
+- *Decisión:* NO construir el gate de datos como paso extra de confirmación: añadiría fricción para
+  poco. El bloque CEREBRO queda cerrado en código (65 golden) + comportamiento del LLM (evals C1/C3/C4).
+- *Alternativas descartadas:* construir `pending_data` + tarjeta UI (fricción + redundante con el gate
+  de efecto y el relay fiel). *Reversible:* sí (si aparece un caso real que lo pida, se añade).
+- *Pendiente fuera del cerebro:* conciliación como tool (familia Manos), y más evals del LLM (p.ej. 303
+  mis-asignación) cuando se priorice. Ver `docs/REPARACION_CANONICA.md` (scorecard).
+
 *(se irán añadiendo entradas según avance el bloque)*

@@ -67,7 +67,7 @@ nunca es "🟢 100%": es "🟢 con eval ≥ umbral".
 ## SCORECARD de familias (vivo)
 | Familia | Doc AS‑IS | Tests golden | % verde | Estado |
 |---|---|---|---|---|
-| **Cerebro** (RC·Cerebro, instancia #1) | `ALGORITMO_CEREBRO_EXISTENTE.md` | golden ✅ (62) + evals ✅ | **código 100% · LLM evaluado** | 🟢 DETERMINISTA blindado (cerebro existente + parsers/validación + 303 fiable + ALG-0.1/0.2) · 🟢 **Track C LLM** (C1 cobro, C3 abstención, C4 memoria) 3/3 vs LM Studio. Queda flujo/UX: gate de datos (ALG-2.1) + relay fiel (ALG-4.1). |
+| **Cerebro** (RC·Cerebro, instancia #1) | `ALGORITMO_CEREBRO_EXISTENTE.md` | golden ✅ (65) + evals ✅ | **CERRADO** (código 100% · LLM evaluado) | 🟢 DETERMINISTA blindado (cerebro existente + parsers/validación + 303 fiable + ALG-0.1/0.2 + **relay fiel ALG-4.1**) · 🟢 **Track C LLM** (cobro, abstención, memoria) 3/3. Gate de datos (ALG-2.1) **subsumido** por relay fiel + guards + gate de efecto (no se construye: evita fricción). |
 | Manos / dominio (cobro·303·factura·conciliación) | `ALGORITMO_CEREBRO.md` ALG‑3.x | `test_dominio_tools.py` (13) | alta | 🟢 cobro · 303 manual (guard antifabricación) · **303 desde facturas registradas (fiable)** · registrar factura · parsers/validación (ALG‑1.3/1.4). 🟠 conciliación sin tool. |
 | Conectores (Gmail·Calendar·Contacts) | *(pendiente)* | *(pendiente)* | — | ⬜ |
 | Telar / cognición | (familia 5‑7 del cerebro) | *(pendiente)* | — | 🟠 |
