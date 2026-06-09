@@ -181,7 +181,9 @@
   ];
 
   // ── TELA (datos REALES de /telar, mismo origen; fallback a muestra) ──
+  let TELAR=[];
   function render(list){
+    TELAR=list;
     const cont=document.getElementById("hilos");cont.innerHTML="";
     list.forEach((h,i)=>{const el=document.createElement("div");el.className="hilo "+h.estado;el.style.animationDelay=(i*60)+"ms";
       let l2="";if(h.card){const c=h.card;
@@ -190,7 +192,7 @@
         l2=`<div class="l2"><div class="card">${draftHtml}
         <div class="meta">${whyHtml}<span class="src">🔗 ${c.src}</span></div>
         <div class="lock">🔒 nada saldrá hasta que pulses el botón</div>
-        <div class="acts"><button class="btn sec">Editar</button><button class="btn pri" onclick="enviar(event)">✅ ${c.cta}</button></div></div></div>`;}
+        <div class="acts"><button class="btn sec">Editar</button><button class="btn pri" data-i="${i}" onclick="enviar(event)">✅ ${c.cta}</button></div></div></div>`;}
       el.innerHTML=`<div class="l0" onclick="toggle(this)"><span class="ic">${h.ic}</span>
         <span class="mid"><span class="tit">${h.tit}</span><div class="por">${h.por}</div></span><span class="chev">›</span></div>${l2}`;
       cont.appendChild(el);});
@@ -200,7 +202,7 @@
     const estado=urg>=2?"rojo":(urg===1?"ambar":(h.tipo==="novedad"||h.tipo==="correo"?"cian":"verde"));
     const porque=h.porque||"";
     // draft = el CONTEXTO que ya sabemos (detalle), nunca la orden interna al agente (acc.task).
-    const card=acc.label?{draft:h.detalle||"",why:porque,src:"telar · "+(h.tipo||""),cta:acc.label}:null;
+    const card=acc.label?{draft:h.detalle||"",why:porque,src:"telar · "+(h.tipo||""),cta:acc.label,modo:acc.modo,task:acc.task}:null;
     return {ic:h.icono||"•",estado,tit:h.titulo||"",por:porque||h.detalle||"",card};
   }
   async function cargar(){
@@ -267,8 +269,24 @@
   gStatus();
 
   function toggle(l0){const h=l0.parentElement;if(h.querySelector(".l2"))h.classList.toggle("open");}
-  function enviar(ev){ev.stopPropagation();const h=ev.target.closest(".hilo");h.classList.remove("open");h.classList.add("hecho");
-    const a=document.getElementById("ahorro");a.textContent=(+a.textContent+8);toast("Hecho ✅ Te aviso si responde · +8 min");}
+  // Ejecuta DE VERDAD la acción del hilo (no finge): agent_task → /agent/run; navigate/muestra → marcar visto.
+  async function enviar(ev){
+    ev.stopPropagation();
+    const btn=ev.target.closest("button"), h=ev.target.closest(".hilo");
+    const i=+(btn&&btn.getAttribute("data-i"));
+    const c=(TELAR[i]&&TELAR[i].card)||{};
+    if(c.modo!=="agent_task"||!c.task){           // navegar / muestra: marcar visto, sin inventar un envío
+      h.classList.remove("open");h.classList.add("hecho");toast("Visto ✅");return;
+    }
+    btn.disabled=true;const old=btn.textContent;btn.textContent="Preparando…";
+    try{
+      const r=await fetch("/agent/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({task:c.task,max_steps:20})});
+      if(!r.ok) throw 0;
+      btn.textContent="✓ Preparado";h.classList.add("hecho");
+      const a=document.getElementById("ahorro");if(a)a.textContent=(+a.textContent+8);
+      toast("Hecho ✅ Te lo dejo listo para aprobar · +8 min");
+    }catch(e){ btn.disabled=false;btn.textContent=old;toast("No pude prepararlo. ¿Lo reintentamos?"); }
+  }
   function toast(t){const e=document.getElementById("toast");e.textContent=t;e.classList.add("on");setTimeout(()=>e.classList.remove("on"),2400);}
 
   // ── Conmutación de vista (zoom) ──
