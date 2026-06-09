@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Loombit · Shell disruptivo</title>
+<style>
+@font-face{font-family:'Space Grotesk';font-weight:300 700;font-display:swap;src:url('/static/fonts/space-grotesk.woff2') format('woff2')}
+:root{
+  --paper:#f6f1e9;--ink:#1d1813;--ink2:#6b6256;
+  --coral:#f15a3e;--coral2:#ff7e63;--peach:#ffd9c2;--tech:#7c9cff;--mint:#8fe3c8;
+  --glass:rgba(255,255,255,.6);--glass2:rgba(255,255,255,.42);--bd:rgba(255,255,255,.85);
+  --d:'Space Grotesk',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--d);color:var(--ink);background:var(--paper);overflow:hidden;-webkit-font-smoothing:antialiased;position:relative}
+.aurora{position:fixed;inset:0;z-index:0;pointer-events:none;filter:blur(70px)}
+.aurora span{position:absolute;border-radius:50%}
+.a1{width:560px;height:560px;background:var(--coral2);opacity:.26;top:-200px;right:8%}
+.a2{width:460px;height:460px;background:var(--tech);opacity:.2;bottom:-200px;left:6%}
+.a3{width:380px;height:380px;background:var(--mint);opacity:.18;top:30%;right:-150px}
+.a4{width:340px;height:340px;background:var(--peach);opacity:.5;top:-120px;left:-100px}
+body::after{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.45;
+  background:repeating-linear-gradient(90deg,rgba(29,24,19,.03) 0 1px,transparent 1px 48px),
+             repeating-linear-gradient(0deg,rgba(29,24,19,.022) 0 1px,transparent 1px 48px)}
+.app{position:relative;z-index:1;height:100vh;display:grid;grid-template-rows:auto 1fr;gap:14px;padding:14px}
+/* ===== TOP ===== */
+.top{display:flex;align-items:center;gap:14px;background:var(--glass);backdrop-filter:blur(16px);border:1px solid var(--bd);border-radius:18px;padding:11px 16px;box-shadow:0 10px 30px -18px rgba(60,40,20,.4)}
+.brand{font-weight:700;font-size:19px;letter-spacing:-.03em;display:flex;align-items:center;gap:9px}
+.brand .dot{width:13px;height:13px;border-radius:50%;background:var(--coral);box-shadow:0 0 0 4px rgba(241,90,62,.18)}
+.tabs{display:flex;gap:6px;margin-left:10px}
+.tab{font-size:13px;font-weight:600;color:var(--ink2);background:transparent;border:none;border-radius:999px;padding:7px 14px;cursor:pointer;font-family:var(--d)}
+.tab.on{background:var(--ink);color:var(--paper)}
+.spacer{flex:1}
+.tbtn{width:38px;height:38px;border-radius:11px;border:1px solid var(--bd);background:var(--glass2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.chip{font-size:11px;color:var(--ink2);background:var(--glass2);border:1px solid var(--bd);border-radius:999px;padding:7px 12px}
+.av{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--coral),var(--coral2));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+/* ===== BODY: 3 columnas ===== */
+.body{display:grid;grid-template-columns:236px 1fr 312px;gap:14px;min-height:0}
+.rail{background:var(--glass);backdrop-filter:blur(16px);border:1px solid var(--bd);border-radius:20px;padding:16px;overflow:auto;box-shadow:0 12px 34px -20px rgba(60,40,20,.45)}
+.lbl{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink2);font-weight:700;margin:4px 4px 9px}
+.lbl:not(:first-child){margin-top:18px}
+/* IZQUIERDA: skills + acciones (botones con uso) */
+.nav{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:12px;cursor:pointer;font-size:13.5px;font-weight:600;border:1px solid transparent}
+.nav .ic{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;background:rgba(255,255,255,.6)}
+.nav:hover{background:rgba(255,255,255,.5)}
+.nav.on{background:var(--ink);color:var(--paper)} .nav.on .ic{background:rgba(255,255,255,.16)}
+.nav.dim{opacity:.5}
+.tagp{margin-left:auto;font-size:9.5px;font-weight:700;background:rgba(241,90,62,.16);color:var(--coral);border-radius:999px;padding:2px 7px}
+/* CENTRO: chat */
+.chat{display:flex;flex-direction:column;min-height:0;background:var(--glass2);backdrop-filter:blur(10px);border:1px solid var(--bd);border-radius:22px;overflow:hidden;box-shadow:0 16px 44px -24px rgba(60,40,20,.5)}
+.feed{flex:1;overflow:auto;padding:30px 34px;display:flex;flex-direction:column}
+.center-hero{margin:auto;text-align:center;max-width:520px}
+.center-hero .k{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--coral);font-weight:700;margin-bottom:8px}
+.center-hero h1{font-size:46px;letter-spacing:-.04em;line-height:.95;margin-bottom:14px}
+.center-hero p{color:var(--ink2);font-size:15px;line-height:1.5}
+.center-hero p b{color:var(--coral);font-size:19px}
+.msg{max-width:74%;padding:12px 15px;border-radius:16px;font-size:14px;line-height:1.45;margin-top:14px}
+.msg.a{align-self:flex-start;background:rgba(255,255,255,.7);border:1px solid var(--bd)}
+.msg.u{align-self:flex-end;background:var(--ink);color:var(--paper)}
+.compose{padding:14px;border-top:1px solid var(--bd);display:flex;gap:10px;align-items:center;background:rgba(255,255,255,.35)}
+.compose input{flex:1;border:1px solid var(--bd);background:rgba(255,255,255,.75);border-radius:14px;padding:13px 16px;font-size:14px;font-family:var(--d);color:var(--ink);outline:none}
+.send{width:46px;height:46px;border-radius:14px;border:none;background:var(--coral);color:#fff;font-size:18px;cursor:pointer}
+/* DERECHA: contexto (métricas + hilos de hoy) */
+.metric{display:flex;align-items:baseline;justify-content:space-between;background:rgba(255,255,255,.5);border:1px solid var(--bd);border-radius:13px;padding:11px 13px;margin-bottom:8px}
+.metric .v{font-size:24px;font-weight:700;letter-spacing:-.03em} .metric.c .v{color:var(--coral)}
+.metric .l{font-size:11.5px;color:var(--ink2)}
+.thread{border-radius:14px;padding:12px;margin-bottom:9px;background:rgba(255,255,255,.55);border:1px solid var(--bd);border-left:4px solid var(--ink2)}
+.thread.hot{background:linear-gradient(135deg,#2a1410,#1d1813);border-left-color:var(--coral);color:#f7e7e0}
+.thread.ok{border-left-color:var(--mint)} .thread.due{border-left-color:var(--coral2)}
+.thread .t{font-size:13.5px;font-weight:600;letter-spacing:-.01em}
+.thread .s{font-size:11.5px;color:var(--ink2);margin-top:2px} .thread.hot .s{color:#e3bcae}
+.thread .p{font-size:10px;font-weight:700;border-radius:999px;padding:3px 8px;display:inline-block;margin-top:7px}
+.p.act{background:var(--coral);color:#fff}.p.ok{background:rgba(35,160,110,.18);color:#1d8a5f}.p.due{background:rgba(214,140,20,.2);color:#a86510}
+</style></head>
+<body>
+<div class="aurora"><span class="a1"></span><span class="a2"></span><span class="a3"></span><span class="a4"></span></div>
+<div class="app">
+  <!-- ARRIBA -->
+  <div class="top">
+    <div class="brand"><span class="dot"></span>Loombit</div>
+    <div class="tabs"><button class="tab on">Hoy</button><button class="tab">Galaxia</button><button class="tab">Fábrica</button></div>
+    <div class="spacer" style="flex:1"></div>
+    <div class="chip">🔒 Todo en tu máquina</div>
+    <button class="tbtn">⚙️</button>
+    <div class="av">F</div>
+  </div>
+  <!-- 3 COLUMNAS -->
+  <div class="body">
+    <!-- IZQUIERDA: botones con uso -->
+    <div class="rail">
+      <div class="lbl">Skills</div>
+      <div class="nav on"><span class="ic">🗂️</span>Administrativo</div>
+      <div class="nav dim"><span class="ic">⌨️</span>Coding<span class="tagp">pronto</span></div>
+      <div class="lbl">¿Qué necesitas?</div>
+      <div class="nav"><span class="ic" style="color:var(--coral)">✉️</span>Redactar correo</div>
+      <div class="nav"><span class="ic" style="color:#5a78e0">📅</span>Crear evento</div>
+      <div class="nav"><span class="ic" style="color:#1d8a5f">🧾</span>Registrar factura</div>
+      <div class="nav"><span class="ic" style="color:#a86510">💶</span>Reclamar cobro</div>
+      <div class="nav"><span class="ic" style="color:#5a78e0">🏦</span>Conciliación</div>
+      <div class="nav"><span class="ic" style="color:var(--coral)">🔎</span>Buscar en el correo</div>
+    </div>
+    <!-- CENTRO: el chat -->
+    <div class="chat">
+      <div class="feed">
+        <div class="center-hero">
+          <div class="k">Buenas tardes</div>
+          <h1>Fernando.</h1>
+          <p>Tu telar trae 5 hilos hoy. <b>2</b> piden tu atención — el resto ya te lo dejé preparado. ¿Por dónde empezamos?</p>
+        </div>
+        <div class="msg a">He revisado tu correo y tu agenda. Lo urgente: una <b>deuda que no reconoces</b> de Abogados CEA — te recomiendo verificarla antes de pagar. ¿La gestionamos?</div>
+        <div class="msg u">Sí, prepárame una respuesta pidiendo el justificante.</div>
+      </div>
+      <div class="compose"><input placeholder="Escribe una tarea o pregunta…  (Enter para enviar)"><button class="send">➤</button></div>
+    </div>
+    <!-- DERECHA: contexto del día -->
+    <div class="rail">
+      <div class="lbl">Tu día</div>
+      <div class="metric c"><span class="v">0 €</span><span class="l">A cobrar</span></div>
+      <div class="metric c"><span class="v">41</span><span class="l">días · 303</span></div>
+      <div class="metric c"><span class="v">2</span><span class="l">piden acción</span></div>
+      <div class="lbl">Hilos de hoy</div>
+      <div class="thread hot"><div class="t">⚠️ Deuda no reconocida</div><div class="s">Abogados CEA · verifícala</div><span class="p act">Requiere acción</span></div>
+      <div class="thread ok"><div class="t">📅 David Valentín</div><div class="s">jue 11/6 · 09:00 · Getafe</div><span class="p ok">Confirmada</span></div>
+      <div class="thread due"><div class="t">🧾 Impuestos 2T (303)</div><div class="s">vence 2026-07-20</div><span class="p due">41 días</span></div>
+      <div class="lbl">Conexiones</div>
+      <div class="thread"><div class="t">📧 Google</div><div class="s" style="color:#1d8a5f">● Conectado</div></div>
+    </div>
+  </div>
+</div></body></html>
