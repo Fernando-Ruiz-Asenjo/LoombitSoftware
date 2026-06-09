@@ -67,7 +67,7 @@ nunca es "🟢 100%": es "🟢 con eval ≥ umbral".
 ## SCORECARD de familias (vivo)
 | Familia | Doc AS‑IS | Tests golden | % verde | Estado |
 |---|---|---|---|---|
-| **Cerebro** (RC·Cerebro, instancia #1) | `ALGORITMO_CEREBRO_EXISTENTE.md` | golden ✅ (65) + evals ✅ | **CERRADO** (código 100% · LLM evaluado) | 🟢 DETERMINISTA blindado (cerebro existente + parsers/validación + 303 fiable + ALG-0.1/0.2 + **relay fiel ALG-4.1**) · 🟢 **Track C LLM** (cobro, abstención, memoria) 3/3. Gate de datos (ALG-2.1) **subsumido** por relay fiel + guards + gate de efecto (no se construye: evita fricción). |
+| **Cerebro** (RC·Cerebro, instancia #1) | `ALGORITMO_CEREBRO_EXISTENTE.md` | golden ✅ (68) + evals ✅ | **CERRADO + auditado en vivo** | 🟢 código blindado (parsers/validación, 303 fiable, ALG-0.1/0.2, relay fiel) · 🟢 **FORZAR TOOL** en intenciones consecuentes (el 14B no responde a ojo) · auditoría dura de 10 pruebas vivas: arreglados cobro-fabricación, leer≠crear calendario, buscar-de-verdad. 🟠 residual: 303 manual (Qwen puede inventar una línea → echo lo delata; fiable = 303 desde facturas registradas). |
 | Manos / dominio (cobro·303·factura·conciliación) | `ALGORITMO_CEREBRO.md` ALG‑3.x | `test_dominio_tools.py` (13) | alta | 🟢 cobro · 303 manual (guard antifabricación) · **303 desde facturas registradas (fiable)** · registrar factura · parsers/validación (ALG‑1.3/1.4). 🟠 conciliación sin tool. |
 | Conectores (Gmail·Calendar·Contacts) | *(pendiente)* | *(pendiente)* | — | ⬜ |
 | Telar / cognición | (familia 5‑7 del cerebro) | *(pendiente)* | — | 🟠 |
