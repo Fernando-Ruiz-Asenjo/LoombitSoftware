@@ -1691,6 +1691,7 @@ function dismissApprovals() {
   if (box) box.style.display = 'none';            // reaparece solo si cambian las pendientes
 }
 async function refreshApprovals() {
+  if (document.hidden) return;  // no machacar el server con la pestaña en 2º plano
   try {
     const r = await fetch(`${API}/agent/runs?status=pending_approval`, { signal: AbortSignal.timeout(8000) });
     if (!r.ok) return;
@@ -1742,7 +1743,7 @@ async function approveAll() {
   btn.disabled = false;
   setTimeout(refreshApprovals, 1000);
 }
-setInterval(refreshApprovals, 3000);
+setInterval(refreshApprovals, 6000);
 
 // ── Novedades del operador (lo que detecta el daemon) ──
 function _feedStyle(it) {
@@ -1768,6 +1769,7 @@ function setSecCount(id, n, alert) {
   el.style.color = alert ? '#ef4444' : 'var(--lb-text3,#888)';
 }
 async function loadFeed() {
+  if (document.hidden) return;  // no machacar el server con la pestaña en 2º plano
   try {
     const r = await fetch(`${API}/routines/feed?limit=20`, { signal: AbortSignal.timeout(8000) });
     if (!r.ok) return;
@@ -1804,6 +1806,7 @@ setInterval(loadFeed, 10000);
 
 // ── Cuentas a cobrar ──────────────────────────────────
 async function loadCuentas() {
+  if (document.hidden) return;  // no machacar el server con la pestaña en 2º plano
   try {
     const r = await fetch(`${API}/cuentas`, { signal: AbortSignal.timeout(8000) });
     if (!r.ok) return;
@@ -1828,6 +1831,11 @@ async function loadCuentas() {
   } catch { /* noop */ }
 }
 setInterval(loadCuentas, 15000);
+
+// Al volver a la pestaña, refresca YA (los intervalos no corren ocultos → no se ve viejo).
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) { refreshApprovals(); loadFeed(); loadCuentas(); }
+});
 
 // ═══════════════════════════════════════════════════════
 // GALAXIA — el negocio como sistema estelar (canvas determinista, edgeless)
