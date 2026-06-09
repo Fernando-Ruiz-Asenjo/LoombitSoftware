@@ -32,6 +32,10 @@ Hazlo igual o mejor que Google/los grandes; que sean más grandes NO es excusa.
 - **Rama/worktree por cambio. Verifica EN VIVO antes de afirmar nada.** Tests + `black` + `ruff`
   verdes (el pre-commit gate los exige). El **núcleo del agente** se funde con OK de Fernando (lo
   pre-autoriza); **rebasa antes** de fundir.
+- **Reparación Canónica (RC)** para arreglar/endurecer cualquier subsistema: sigue
+  `docs/REPARACION_CANONICA.md` — el LLM PROPONE, el código DISPONE · **arnés (golden) ANTES de tocar** ·
+  verifica por **recibo** · 🟠→🟢 con test en el gate · **predicción ≠ hecho** (nunca afirmes sin recibo,
+  cobertura no "100%"). Blanco/reutilizable; instancia #1: RC·Cerebro.
 - Ficheros < ~400 líneas; el dominio vive en skills/routers, no en el núcleo blanco. Una entrada en
   `docs/DECISIONES.md` por decisión. Verifica contra el CÓDIGO, no contra las notas.
 

@@ -407,4 +407,17 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   inflar. *Reversible:* sí; módulo + endpoint + bloque UI autocontenido; quitar la dep solo desactiva
   el .docx (501). Verificado: 15 tests de entregable verdes (incl. .docx real parseado).
 
+**D-51 — Reparación Canónica (RC): método blanco y obligatorio para arreglar/endurecer subsistemas.**
+- *Contexto:* las auditorías blandas ("se pinta = funciona") y las afirmaciones sin recibo
+  (autonomía del loop, Pilot "vivo del todo") rompieron la confianza de Fernando. Hacía falta un
+  proceso que lo impida por construcción, no por buena voluntad.
+- *Elegido:* `docs/REPARACION_CANONICA.md` (Skill C, blanco/reutilizable): el LLM PROPONE, el código
+  DISPONE; **arnés (golden test) ANTES de tocar**; clasificar determinista (100% en gate) vs LLM
+  (eval con umbral); verificar por **recibo**; 🟠→🟢 con test en `verify.py`; scorecard por familia;
+  **predicción ≠ hecho** (cobertura, nunca "100%"). Enlazado desde la brújula (CLAUDE.md + BRUJULA.md).
+- *Alternativas descartadas:* dejarlo como "buenas prácticas" sueltas (no se cumplen) → canon en la
+  brújula; método solo para el cerebro → blanco para todas las familias (instancia #1 = RC·Cerebro).
+- *Por qué:* convierte "debería funcionar" en "funciona, con recibo", y blinda contra regresiones.
+  *Reversible:* sí (proceso + docs). Artefactos: `ALGORITMO_CEREBRO.md`, `ALGORITMO_CEREBRO_EXISTENTE.md`.
+
 *(se irán añadiendo entradas según avance el bloque)*

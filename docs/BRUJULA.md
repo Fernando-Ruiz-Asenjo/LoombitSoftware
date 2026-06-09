@@ -57,6 +57,10 @@ Fernando.
 - **Arquitectura:** ficheros < ~400 líneas; el dominio vive en skills/routers, no contamina el núcleo
   blanco; `main.py` solo monta routers. Una entrada en `docs/DECISIONES.md` por cada decisión.
 - **Verifica contra el código, no contra las notas.** Las notas envejecen; el código manda.
+- **Reparación Canónica (RC) — método obligatorio para arreglar/endurecer un subsistema:** sigue
+  `docs/REPARACION_CANONICA.md` (blanco, reutilizable). El LLM PROPONE, el código DISPONE; **arnés
+  (golden test) ANTES de tocar**; verifica por **recibo**; 🟠→🟢 con test en el gate; **predicción ≠
+  hecho** (no afirmes sin recibo, reporta cobertura, nunca "100%"). Primera instancia: RC·Cerebro.
 
 ## 4. INNOVACIÓN — el motor, siempre encendido
 
