@@ -1239,13 +1239,19 @@ function toggleSteps(btn) {
 }
 
 // ── Build steps HTML ──────────────────────────────────
+const _STEPS_INTERNAS = ['task_done', 'propose_improvement', 'save_screenshot_to_file'];
+function _stepsVisibles(steps) {
+  return (steps || []).filter(s => !_STEPS_INTERNAS.includes(s.tool_name));
+}
 function buildStepsHtml(steps) {
-  if (!steps || !steps.length) return '';
-  const pills = steps.map(s => {
+  const vis = _stepsVisibles(steps);
+  if (!vis.length) return '';
+  const pills = vis.map(s => {
     const icon = toolIcon(s.tool_name || '');
-    return `<div class="step-pill"><span class="sp-icon">${icon}</span>${esc(s.tool_name)}</div>`;
+    // En humano (frasePaso), nunca el nombre técnico de la tool.
+    return `<div class="step-pill"><span class="sp-icon">${icon}</span>${esc(frasePaso(s.tool_name))}</div>`;
   }).join('');
-  const count = steps.length;
+  const count = vis.length;
   const collapsed = count > 4 ? ' collapsed' : '';
   const toggleHtml = count > 4
     ? `<button class="steps-toggle" data-count="${count}" onclick="toggleSteps(this)">▸ ${count} pasos</button>`
@@ -1270,8 +1276,9 @@ function addMsg(role, text, steps, stepCount) {
     : fmt(text || '');
 
   const stepsHtml = (role === 'agent' || role === 'error') ? buildStepsHtml(steps) : '';
-  const stepsMeta = (stepCount && stepCount > 0)
-    ? `<span class="msg-steps-count">· ${stepCount} pasos</span>` : '';
+  const _visN = _stepsVisibles(steps).length;
+  const stepsMeta = _visN > 0
+    ? `<span class="msg-steps-count">· ${_visN} paso${_visN === 1 ? '' : 's'}</span>` : '';
   const copyBtn = (!isUser && role !== 'thinking')
     ? `<button class="msg-action-btn" onclick="copyMsg(this)" title="Copiar respuesta">⧉ copiar</button>` : '';
   const avaStyle = isUser ? '' : 'background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff';
@@ -1296,6 +1303,25 @@ function addMsg(role, text, steps, stepCount) {
 
 function removeThinking() {
   document.querySelector('.msg-thinking')?.remove();
+}
+
+// F-8: el "Procesando…" muestra el PASO REAL del agente en humano (no jerga, no punto muerto).
+const TOOL_FRASE = {
+  daily_brief: 'Preparando tu resumen del día', calendar_today: 'Mirando tu agenda',
+  calendar_create: 'Creando el evento', gmail_send: 'Redactando el correo',
+  gmail_search: 'Buscando en tu correo', contacts_find: 'Buscando el contacto',
+  read_invoice: 'Leyendo la factura', read_file: 'Leyendo el documento',
+  write_file: 'Guardando el documento', web_fetch: 'Consultando la web',
+  memory_search: 'Recordando lo que ya hiciste', ask_user: 'Preparando una pregunta',
+};
+function frasePaso(tool) {
+  if (!tool) return 'Trabajando';
+  if (tool.startsWith('desktop_') || tool.startsWith('browser_')) return 'Manejando tu ordenador';
+  return TOOL_FRASE[tool] || 'Trabajando';
+}
+function updateThinking(frase) {
+  const b = document.querySelector('.msg-thinking .msg-bubble');
+  if (b) b.innerHTML = `${esc(frase)} <div class="typing-dots"><span></span><span></span><span></span></div>`;
 }
 
 function addApproval(runId, reason, action) {
@@ -1438,6 +1464,9 @@ async function pollRun(runId) {
         setBusy(false);
         return;
       }
+      // En marcha: muestra el PASO real (no un "Procesando" muerto). F-8.
+      const steps = run.steps || [];
+      if (steps.length) updateThinking(frasePaso(steps[steps.length - 1].tool_name));
     } catch(e) { /* red inestable, seguir intentando */ }
   }
   removeThinking();
