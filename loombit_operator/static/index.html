@@ -10,6 +10,16 @@
    Design system: tokens → components → layout
 ═══════════════════════════════════════════════════════ */
 
+/* Fuente de marca self-hosted (OFL) — local-first: vive en el repo, no sale de la máquina, sin CDN.
+   Space Grotesk (variable, subconjunto latin con ñ/acentos/€) da carácter a titulares y marca. */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('/static/fonts/space-grotesk.woff2') format('woff2');
+}
+
 /* ── Tokens ── */
 :root {
   --lb-navy:      #0b0f1a;
@@ -47,6 +57,7 @@
   --r-full: 999px;
 
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
   --sidebar-w: 240px;
@@ -76,6 +87,10 @@ body {
 button { cursor: pointer; font-family: inherit; border: none; background: none; }
 textarea, input { font-family: inherit; }
 a { color: inherit; text-decoration: none; }
+
+/* Identidad tipográfica: titulares y momentos de marca en la fuente display (Space Grotesk),
+   el cuerpo se queda en la sans (legibilidad). Da carácter sin sacrificar lectura. */
+.logo-text, .welcome-text h2, .nav-section-label, #skill-name { font-family: var(--font-display); letter-spacing: -0.01em; }
 
 /* ═══════════════════════════════════════════════════════
    SIDEBAR
@@ -2696,13 +2711,13 @@ async function cargarTelar() {
         ? `<div style="font-size:11.5px;color:var(--lb-text2,#94a3b8);line-height:1.35;margin-top:2px">${esc(h.detalle)}</div>` : '';
       return `<div class="telar-hilo" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;background:var(--lb-navy2,#111827);border-left:3px solid ${col};margin:6px 0">
         <span style="font-size:16px;align-self:flex-start;margin-top:1px">${esc(h.icono||'•')}</span>
-        <div style="flex:1;min-width:0"><div style="font-size:13px;line-height:1.35;font-weight:600">${esc(h.titulo||'')}</div>${por}${det}</div>${btn}</div>`;
+        <div style="flex:1;min-width:0"><div style="font-size:13px;line-height:1.35;font-weight:600;font-family:var(--font-display);letter-spacing:-.01em">${esc(h.titulo||'')}</div>${por}${det}</div>${btn}</div>`;
     }).join('');
     panel.innerHTML = `
       <div style="background:repeating-linear-gradient(90deg,rgba(255,255,255,.022) 0 1px,transparent 1px 24px),linear-gradient(135deg,rgba(139,92,246,.15),rgba(6,182,212,.09));border:1px solid var(--lb-border2,rgba(255,255,255,.12));border-radius:16px;padding:16px 18px;box-shadow:0 14px 50px -12px rgba(124,58,237,.30),inset 0 1px 0 rgba(255,255,255,.05)">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
           <span style="font-size:18px">☀️</span>
-          <span style="font-size:16px;font-weight:700">${esc(t.saludo||'Hola')}${t.usuario ? ', '+esc(t.usuario) : ''}</span>
+          <span style="font-size:16px;font-weight:700;font-family:var(--font-display);letter-spacing:-.01em">${esc(t.saludo||'Hola')}${t.usuario ? ', '+esc(t.usuario) : ''}</span>
           <button onclick="hideTelar()" title="Ocultar" style="margin-left:auto;background:none;border:none;color:var(--lb-text3,#475569);cursor:pointer;font-size:16px">✕</button>
         </div>
         <div style="font-size:13px;color:var(--lb-text2,#94a3b8);margin-bottom:10px">${esc(t.resumen||'')}</div>
