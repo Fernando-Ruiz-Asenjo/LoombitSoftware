@@ -19,6 +19,7 @@ from loombit_operator.entregable import (
     listar_exportables,
     render_dossier_html,
 )
+from loombit_operator.entregable_docx import DOCX_AVAILABLE, build_dossier_docx
 from loombit_operator.expedientes import ExpedienteStatus, ExpedienteStore
 from loombit_operator.main import app
 from loombit_operator.routers import entregable as entregable_router
@@ -188,6 +189,36 @@ def test_router_lista_expedientes(store_aislado):
     item = body["expedientes"][0]
     assert item["id"] == e1.id
     assert item["dossier_url"] == f"/entregable/acme/{e1.id}"
+
+
+@pytest.mark.skipif(not DOCX_AVAILABLE, reason="python-docx no instalado")
+def test_docx_render_es_valido_y_tiene_titulo(tmp_path):
+    import io as _io
+
+    from docx import Document as _Docx
+
+    s = _store(tmp_path)
+    exp = s.create("fiscal_303", "Modelo 303 — 2T", {"resultado": 1234.5})
+    data = build_dossier_docx(s, exp.id)
+    assert data[:2] == b"PK"  # firma de fichero .docx (zip OOXML)
+    doc = _Docx(_io.BytesIO(data))
+    texto = "\n".join(p.text for p in doc.paragraphs)
+    assert "Modelo 303" in texto
+    assert "Integridad verificada" in texto
+
+
+def test_router_docx(store_aislado):
+    s = ExpedienteStore(entity_id="acme", base_dir=store_aislado)
+    exp = s.create("k", "t", {"x": 1})
+    client = TestClient(app)
+    r = client.get(f"/entregable/acme/{exp.id}/docx")
+    if not DOCX_AVAILABLE:
+        assert r.status_code == 501
+    else:
+        assert r.status_code == 200
+        assert "wordprocessingml" in r.headers["content-type"]
+        assert "attachment" in r.headers.get("content-disposition", "")
+        assert r.content[:2] == b"PK"
 
 
 def test_router_404_si_no_existe(store_aislado):

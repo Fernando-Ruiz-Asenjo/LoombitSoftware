@@ -392,4 +392,19 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   HTML. *Reversible:* sí; +1 helper, +1 endpoint, +1 línea en conciliación, +3 tests. Worktree
   aislado (ver memoria de concurrencia), FF a main.
 
+**D-50 — Entregable en Word (.docx) + botón en la UI.**
+- *Contexto:* los gestores viven en Word; y el dossier (D-48/49) aún no era visible en la UI.
+- *Elegido:* (a) `entregable_docx.py` + `GET /entregable/{e}/{id}/docx` con **python-docx como dep
+  OPCIONAL** (import perezoso; 501 si falta) → el núcleo no depende de ella, edge sigue arrancando;
+  (b) botón **«📦 Entregables»** en el sidebar de `index.html` que abre un modal con la lista y
+  descarga **HTML/Word** por expediente; entidad vía `ui_default_entity_id` (config, blanco) expuesta
+  en `/health` (vacío = la pregunta). UI puramente **additiva** (1 nav-item + 1 `<script>` al final;
+  `feat/ux-telar` no toca `index.html`, así que sin colisión).
+- *Alternativas descartadas:* docx como dep dura (pesa en edge/Jetson y rompe entornos mínimos) →
+  opcional; panel de expedientes completo en la UI (grande, y la UI se está reescribiendo aparte) →
+  modal mínimo bajo demanda; hardcodear la entidad (viola Skill W) → config + fallback a preguntar.
+- *Por qué:* cierra "usable de punta a punta" (descubrir → descargar en HTML o Word) sin acoplar ni
+  inflar. *Reversible:* sí; módulo + endpoint + bloque UI autocontenido; quitar la dep solo desactiva
+  el .docx (501). Verificado: 15 tests de entregable verdes (incl. .docx real parseado).
+
 *(se irán añadiendo entradas según avance el bloque)*

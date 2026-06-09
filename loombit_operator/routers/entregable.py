@@ -14,13 +14,16 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 from fastapi.responses import HTMLResponse
 
 from ..entregable import build_dossier, export_dossier, listar_exportables
+from ..entregable_docx import DOCX_AVAILABLE, build_dossier_docx
 from ..expedientes import ExpedienteNotFoundError, ExpedienteStore
 
 router = APIRouter(prefix="/entregable", tags=["entregable"])
+
+_DOCX_MEDIA = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
 
 @router.get("/{entity_id}")
@@ -49,6 +52,28 @@ def descargar_dossier(entity_id: str, expediente_id: str, descargar: bool = True
     if descargar:
         headers["Content-Disposition"] = f'attachment; filename="dossier_{expediente_id}.html"'
     return HTMLResponse(content=html, headers=headers)
+
+
+@router.get("/{entity_id}/{expediente_id}/docx")
+def descargar_dossier_docx(entity_id: str, expediente_id: str) -> Response:
+    """Devuelve el dossier como documento Word (.docx) editable. 501 si falta python-docx."""
+    if not DOCX_AVAILABLE:
+        raise HTTPException(
+            status_code=501, detail="export .docx no disponible: instala python-docx"
+        )
+    try:
+        store = ExpedienteStore(entity_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    try:
+        data = build_dossier_docx(store, expediente_id)
+    except ExpedienteNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=f"expediente no encontrado: {exc}") from exc
+    return Response(
+        content=data,
+        media_type=_DOCX_MEDIA,
+        headers={"Content-Disposition": f'attachment; filename="dossier_{expediente_id}.docx"'},
+    )
 
 
 @router.post("/{entity_id}/{expediente_id}/export")

@@ -66,6 +66,9 @@ class AppSettings(BaseSettings):
 
     # ── Expedientes (Skill W Administration Core) — SQLite por entidad ────────
     entities_dir: Path = Path("runtime/local/entities")
+    # Entidad por defecto que la UI usa para descubrir entregables (vacío = la pregunta). Blanco:
+    # configurable por .env, nunca hardcodeado a un cliente.
+    ui_default_entity_id: str = ""
 
     # ── Skill Blanca — OAuth ──────────────────────────────────────────────────
     skill_blanca_oauth_token_store_path: Path = Path("runtime/local/skill_blanca_oauth_tokens.json")
