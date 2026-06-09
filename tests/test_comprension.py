@@ -115,3 +115,77 @@ def test_refrescar_conserva_lo_bueno_si_el_llm_falla():
 
 def test_comprension_vacia_sin_entradas():
     assert cp.comprender([], [], LUNES, llm=_LLM("[]")) == []
+
+
+def test_deuda_no_reconocida_escala_a_fraude_aunque_el_llm_la_minimice():
+    """Guard DETERMINISTA: aunque el LLM la marque 'informativa'/poco importante, una deuda que NO
+    se reconoce es posible fraude → importancia 3 + requiere_accion, con acción de VERIFICAR."""
+    llm = _LLM(
+        json.dumps(
+            [
+                {
+                    "tipo": "notificacion",
+                    "titulo": "Deuda no reconocida de Abogados CEA",
+                    "con": "Abogados CEA",
+                    "resumen": "reclaman una deuda que no reconoces",
+                    "estado": "informativa",  # el LLM la minimiza…
+                    "importancia": 1,  # …y la baja
+                    "accion": "",
+                    "origen": "Email notificacion",
+                },
+            ]
+        )
+    )
+    out = cp.comprender([{"subject": "x"}], [], LUNES, llm=llm)
+    assert len(out) == 1
+    a = out[0]
+    assert a["importancia"] == 3
+    assert a["estado"] == "requiere_accion"
+    assert a["accion"]  # ya no está vacía: dice VERIFICAR, no pagar a ciegas
+    assert "verifica" in a["accion"].lower()
+
+
+def test_salva_objetos_de_array_truncado():
+    """El 14B corta a max_tokens y deja el último objeto a medias. No debemos perder TODO (eso caía
+    al caché viejo = no-determinismo): se recuperan los objetos completos."""
+    truncado = (
+        '[\n{"tipo":"reunion","titulo":"A","origen":"a"},\n'
+        '{"tipo":"plazo","titulo":"B","origen":"b"},\n'
+        '{"tipo":"notificacion","titulo":"C cortad'  # ← truncado a media cadena
+    )
+    objs = cp._salvar_objetos(truncado)
+    assert [o["titulo"] for o in objs] == ["A", "B"]
+
+
+def test_comprender_recupera_aunque_el_array_venga_truncado():
+    llm = _LLM(
+        '[\n{"tipo":"reunion","titulo":"Reunión A","origen":"a","importancia":2},\n'
+        '{"tipo":"plazo","titulo":"Plazo B","origen":"b","importancia":2},\n'
+        '{"tipo":"notificacion","titulo":"C a medio gener'  # truncado
+    )
+    out = cp.comprender([{"subject": "x"}], [], LUNES, llm=llm)
+    assert out is not None
+    assert {a["titulo"] for a in out} == {"Reunión A", "Plazo B"}
+
+
+def test_informe_automatico_sin_fecha_se_baja_a_informativa():
+    """Guard DETERMINISTA: un informe automático/marketing sin fecha no debe pedir acción ni colarse
+    como urgente, aunque el LLM lo sobre-escale."""
+    llm = _LLM(
+        json.dumps(
+            [
+                {
+                    "tipo": "notificacion",
+                    "titulo": "Informe de rendimiento Google Business Profile",
+                    "resumen": "informe de rendimiento de mayo de 2026",
+                    "estado": "requiere_accion",  # el LLM lo sobre-escala
+                    "importancia": 2,
+                    "origen": "Google Business Profile",
+                },
+            ]
+        )
+    )
+    out = cp.comprender([{"subject": "x"}], [], LUNES, llm=llm)
+    assert len(out) == 1
+    assert out[0]["estado"] == "informativa"
+    assert out[0]["importancia"] == 1
