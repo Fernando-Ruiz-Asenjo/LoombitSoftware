@@ -1604,8 +1604,13 @@ async function refreshApprovals() {
     const items = runs.slice(0, 4).map(run => {
       const pa = run.pending_approval || {};
       let label = String(pa.reason || run.task || 'Acción pendiente').trim();
-      if (label.length > 80) label = label.slice(0, 77) + '…';
-      return `<div style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--lb-text2,#94a3b8);margin:3px 0"><span style="color:var(--lb-cyan,#06b6d4)">•</span><span>${esc(label)}</span></div>`;
+      if (label.length > 90) label = label.slice(0, 87) + '…';
+      // Muestra el BORRADOR real (qué se va a enviar) → nunca apruebas a ciegas (tarjeta canónica §5.2).
+      const draft = String(pa.proposed_action || '').trim();
+      const draftHtml = draft
+        ? `<div style="margin:2px 0 9px 16px;padding:8px 11px;border-left:2px solid var(--lb-cyan,#06b6d4);background:var(--lb-navy2,#111827);border-radius:6px;font-size:12px;color:var(--lb-text2,#cbd5e1);white-space:pre-wrap;max-height:180px;overflow:auto">${esc(draft.slice(0, 700))}${draft.length > 700 ? '…' : ''}</div>`
+        : '';
+      return `<div style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--lb-text,#f1f5f9);margin:3px 0;font-weight:600"><span style="color:var(--lb-cyan,#06b6d4)">•</span><span>${esc(label)}</span></div>${draftHtml}`;
     }).join('');
     const more = runs.length > 4 ? `<div style="font-size:12px;opacity:.7;font-style:italic;margin-top:2px">+ ${runs.length - 4} más</div>` : '';
     const noun = runs.length === 1 ? 'acción espera tu visto bueno' : 'acciones esperan tu visto bueno';
