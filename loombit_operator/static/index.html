@@ -1906,6 +1906,19 @@ function fabRenderPropuestas(d) {
     + `<div class="acts"><button class="fb-mini fb-ok" onclick="fabVerPropuesta('${p.id}')">👁 Ver y aprobar</button>`
     + `<button class="fb-mini fb-no" onclick="fabDescartar('${p.id}')">Descartar</button></div></div>`).join('');
 }
+// V-7: el usuario NO debe ver jerga de dev (códigos de lint B008/S112, rutas a.py:NN). Traduce los
+// hallazgos de CÓDIGO a lenguaje de negocio; deja intactos los del mercado/radar (GitHub, BOE…).
+// Solo cambia lo que se MUESTRA — el dato crudo se conserva para la acción de arreglar (backstage).
+function humanizarHallazgo(t) {
+  const s = String(t || '').trim();
+  // Mercado / radar / proceso: ya son de negocio.
+  if (/^(GitHub|Mercado|Nueva técnica|Normativa BOE)\b|github\.com|news\.ycombinator|falla de forma recurrente|Auto-evolucionar/i.test(s)) return s;
+  const esCodigo = /\bB\d{3}\b|\bS\d{3}\b|possible bug|riesgo de seguridad|argument defaults|zip\(\)|\b[\w/]+\.(py|js|css|html)\b|\[[^\]]*:\d+\]/i.test(s);
+  if (!esCodigo) return s;
+  if (/seguridad|security|\bS\d{3}\b/i.test(s)) return 'Refuerzo de seguridad recomendado en una parte interna.';
+  if (/líneas|lineas|complej|refactor|monolito|>\s*\d+\s*l/i.test(s)) return 'Código interno que conviene simplificar.';
+  return 'Mejora de fiabilidad pendiente en una parte interna.';
+}
 function fabRenderOportunidades(d) {
   const el = document.getElementById('fb-oportunidades'); const items = (d && d.items) || [];
   document.getElementById('fb-op-count').textContent = items.length;
@@ -1913,7 +1926,7 @@ function fabRenderOportunidades(d) {
   _fabOps = items.slice(0, 40).map(i => i.necesidad || i);
   el.innerHTML = _fabOps.map((n, idx) => {
     const url = (n.procedencia || []).find(x => String(x).startsWith('http')) || '';
-    return `<div class="fb-card"><div class="t">${esc(n.titulo || '')}<span class="fb-tag">${esc(n.fuente || '')}</span></div>`
+    return `<div class="fb-card"><div class="t">${esc(humanizarHallazgo(n.titulo || ''))}<span class="fb-tag">${esc(n.fuente || '')}</span></div>`
       + (url ? `<div class="meta"><a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a></div>` : '')
       + `<div class="acts"><button class="fb-mini" onclick="fabInvestigar(${idx})">🔎 Investigar</button></div></div>`;
   }).join('');
@@ -1923,9 +1936,17 @@ function fabRenderSalud(d) {
   document.getElementById('fb-salud-count').textContent = items.length;
   if (!items.length) { el.innerHTML = '<div class="fb-card meta">Sin señales (o no se pudo analizar).</div>'; _fabSalud = []; return; }
   _fabSalud = items.slice(0, 40);
-  el.innerHTML = _fabSalud.map((i, idx) => `<div class="fb-card"><div class="t">${esc(i.titulo || '')}</div>`
-    + `<div class="meta">${esc(i.ref || '')}</div>`
-    + `<div class="acts"><button class="fb-mini" onclick="fabArreglar(${idx})">🔧 Arreglar</button></div></div>`).join('');
+  // V-7: título humanizado (sin jerga ni rutas) y AGRUPADO por mensaje, para no mostrar 20 líneas
+  // idénticas. El arreglo sigue siendo por ítem (idx del primero del grupo).
+  const grupos = [];
+  _fabSalud.forEach((i, idx) => {
+    const msg = humanizarHallazgo(i.titulo || '');
+    const g = grupos.find(x => x.msg === msg);
+    if (g) g.count++; else grupos.push({ msg, count: 1, idx });
+  });
+  el.innerHTML = grupos.map(g => `<div class="fb-card"><div class="t">${esc(g.msg)}`
+    + `${g.count > 1 ? ` <span class="fb-tag">×${g.count}</span>` : ''}</div>`
+    + `<div class="acts"><button class="fb-mini" onclick="fabArreglar(${g.idx})">🔧 Arreglar</button></div></div>`).join('');
 }
 
 async function fabAprobar(id) {
