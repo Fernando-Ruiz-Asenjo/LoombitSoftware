@@ -18,7 +18,7 @@ from loombit_operator.agent.loop import (
     _is_error_result,
     _recipiente_resuelto,
 )
-from loombit_operator.agent.memory import EntityProfile
+from loombit_operator.agent.memory import AgentMemory, EntityProfile
 from loombit_operator.agent.reflexion import etiquetas_de_tarea
 from loombit_operator.comprension import _normalizar, _salvar_objetos
 from loombit_operator.tool_labels import (
@@ -317,3 +317,41 @@ def test_consecutive_tool_errors_cuenta_seguidos_e_ignora_otras_tools():
         ]
     )
     assert _consecutive_tool_errors(run, "gmail_search") == 2  # los 2 del final, el "ok" corta
+
+
+# ── F3.1-3.4 · memoria operativa (titular, contactos, procedimientos) ─────────
+def test_memory_owner_persiste_parcial_en_disco(tmp_path):
+    p = tmp_path / "m.json"
+    mem = AgentMemory(store_path=p)
+    mem.set_owner(name="Fernando", company="Loombit")
+    mem.set_owner(email="f@x.com")  # parcial: NO debe borrar name/company
+    o = AgentMemory(store_path=p).owner  # releído de disco
+    assert o["name"] == "Fernando" and o["company"] == "Loombit" and o["email"] == "f@x.com"
+
+
+def test_memory_contactos_dedup_por_email_y_no_degrada_fuente(tmp_path):
+    mem = AgentMemory(store_path=tmp_path / "m.json")
+    mem.add_contact("Ana Pérez", "ana@acme.com", company="Acme", source="manual")
+    mem.add_contact("Ana P.", "ana@acme.com", source="auto")  # mismo email → dedup
+    assert len(mem.contacts) == 1
+    assert mem.contacts[0].source == "manual"  # una verdad confirmada NO se degrada a 'auto'
+    assert mem.find_contact("acme")  # por empresa
+    assert mem.find_contact("ana@acme.com")  # por email
+
+
+def test_memory_procedimientos_recupera_por_relevancia(tmp_path):
+    mem = AgentMemory(store_path=tmp_path / "m.json")
+    mem.add_procedure(
+        "enviar correo",
+        steps=["buscar contacto", "redactar", "enviar"],
+        tools=["contacts_find", "gmail_send"],
+    )
+    p = mem.find_procedure("quiero enviar un correo a Ana")
+    assert p is not None and "gmail_send" in p.tools
+    assert mem.find_procedure("conciliar el banco") is None  # sin solape de palabras → None
+
+
+def test_memory_to_context_block_incluye_al_titular(tmp_path):
+    mem = AgentMemory(store_path=tmp_path / "m.json")
+    mem.set_owner(name="Fernando")
+    assert "Fernando" in mem.to_context_block()
