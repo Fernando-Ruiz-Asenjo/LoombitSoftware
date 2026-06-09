@@ -1,0 +1,109 @@
+# AUDITORÍA UX PROFUNDA — por qué hoy NO es TOP y cómo lo será
+
+> Encargo de Fernando (2026-06-09): *«quiero una auditoría y un análisis profundo para cambiar la
+> experiencia de usuario; esta debe ser TOP, y ahora no lo es».* Esto es el diagnóstico, con
+> **evidencia viva** (no de memoria) y un plan priorizado. Acompaña a `EXPERIENCIA_LOOMBIT.md` (la
+> visión + slices S0-S7): aquel es el plano; **este es el estado real medido contra el plano**.
+
+## 0 · Método (cómo se auditó — esto importa)
+
+- **En vivo, en el Chrome real de Fernando** (extensión), contra el Loombit en `:8787` **con Google
+  conectado de verdad** (token válido en disco). El navegador interno de Claude **no vale**: no tiene
+  la red ni la sesión de Google, así que lo que pinta sale de la caché de comprensión en disco, no de
+  una llamada viva. (Corrección de método de Fernando, aplicada.)
+- **Tres superficies auditadas:** (1) la home actual `/` = monolito `static/index.html` (2.625 líneas);
+  (2) la nueva Tela `/static/loombit.html` (239 líneas); (3) la Galaxia (vista «Mapa» de la nueva Tela).
+- **Datos reales** en pantalla: el telar tejió 8 hilos derivados del Gmail real (David Valentín,
+  Proyecto Generali, indexación Search Console, impuestos 2T…). No hay placeholders.
+
+## 1 · Veredicto en una frase
+
+**El cerebro es de primera y los datos son reales, pero la piel está partida en dos productos a medio
+hacer** — una home antigua y potente pero ruidosa, y una Tela nueva preciosa pero coja —, y **ninguna
+de las dos cumple aún, entera, las 10 leyes que el propio equipo se fijó**. No es un problema de gusto:
+es de *coherencia, foco y remate*. La buena noticia: el 80 % del salto a TOP es **integración y pulido
+de lo que ya existe**, no construir de cero.
+
+## 2 · Lo que YA está bien (honestidad: no todo es malo)
+
+- **Te recibe con trabajo hecho, no con un cursor vacío** (cuando carga): el telar real es el activo
+  diferencial y funciona. Es la mejor decisión de producto que hay aquí.
+- **La confianza está presente:** «🔒 nada ha salido de tu máquina» visible en ambas superficies.
+- **Semáforo** como lenguaje de color (bordes de hilo) — buena base transversal.
+- **La nueva Tela** tiene la dirección correcta: revelación progresiva L0→L2, tarjeta canónica con
+  procedencia, y la conmutación **Hoy↔Mapa** (Galaxia orbital anti-hairball, con sol «Tu negocio
+  3.890 €» y nodos por semáforo). El sistema de diseño violeta→cian es agradable y propio.
+- **Consola de Loombit limpia** (los warnings vistos eran todos de MetaMask, no nuestros).
+
+## 3 · Hallazgos por severidad (con evidencia + ley violada + arreglo)
+
+### 🔴 P0 — rompen la sensación TOP hoy mismo
+
+| # | Hallazgo (evidencia viva) | Ley rota | Arreglo |
+|---|---|---|---|
+| P0-1 | **Dos productos divergentes.** La home `/` (2.625 líneas, potente: chat, sidebar, conexiones, fábrica, entregables) y la Tela nueva (239 líneas, bonita pero sin chat/sidebar/acciones reales) **conviven sin paridad**. El usuario no sabe cuál es Loombit. | §2 «un solo lienzo» | Converger en UNA. La Tela nueva es el destino estético; debe **absorber** la potencia de la home antes de promoverse a `/`. |
+| P0-2 | **Doble saludo apilado en la home.** Tras cargar, se ve el telar «Buenos días, Fernando» **y debajo** el intro de chat vacío «Hola, Fernando · Soy Oficina Loombit» con 4 tarjetas demo. Dos bienvenidas que se pisan. | §1, §9.1 (mata el cursor vacío) | El intro de chat vacío es un anti-patrón; el chat debe ser copiloto omnipresente (cajón), no una segunda home. Quitar el intro cuando hay telar. |
+| P0-3 | **5-6 s de pantalla en blanco al arrancar.** En frío, ambas superficies muestran solo el saludo y **el telar entra varios segundos después**; el primer pintado se siente vacío. | §1 «te recibe con lo ya hecho» | Estado **«tejiendo…»** (skeleton del telar, ya está la metáfora) + servir el telar cacheado al instante y refrescar en 2º plano. |
+| P0-4 | **La aprobación flota desconectada.** El aviso «1 acción pendiente de aprobar · Enviar un correo a david.valentin@…» aparece arriba-derecha, **lejos del hilo** al que pertenece. | §2, §5.2 (aprobaciones inline) | Aprobación **inline en su hilo**, con la tarjeta canónica (porqué+procedencia+🔒+semáforo+1 toque). |
+| P0-5 | **La cognición no llega a la tarjeta.** `/telar` no trae campo `porqué` (solo `detalle`), así que la tarjeta L2 **repite el detalle** como «Porqué». Suena tonto, no inteligente. | §7.2 «el porqué en 1 línea» | Que `/telar` derive un **porqué real** (causa+dato) por hilo + procedencia tipada + importe/IBAN en cobros. |
+
+### 🟠 P1 — frenan el «se nota inteligente / cómodo»
+
+| # | Hallazgo | Ley | Arreglo |
+|---|---|---|---|
+| P1-1 | **Espacio desperdiciado.** A 1278 px el contenido vive en una columna estrecha centrada con enormes márgenes vacíos. Se siente a medio vestir. | §11 listón | Layout que respire pero use el ancho: telar + copiloto/contexto a la derecha, o columnas. |
+| P1-2 | **Polling a martillazos.** Aprobaciones cada **3 s**, feed 10 s, cuentas 15 s, galaxia 30 s — para siempre (decenas de `/agent/runs` en la red). | §9 fiabilidad/coste | Backoff + pausar en pestaña oculta + idealmente SSE/eventos del daemon (la barra «🔔 laten por evento» del plano). |
+| P1-3 | **Acciones sin recibo visible en la nueva Tela.** Los botones (Ver/Gestionar) no cierran el lazo con micro-celebración + recibo + «+min ahorrados» como promete §4.3/§5.2. | §8, §4.3 | Cablear el cierre de acción a recibo + contador. |
+| P1-4 | **Hover (L1) sin explotar.** El plano hace del hover el superpoder («hover = el hilo entero»); hoy L1 apenas existe — se va directo de L0 a L2 por clic. | §3, §4.4 | Implementar L1 en hover (contexto sin clic). |
+| P1-5 | **Tiempo ahorrado estático.** «14 min» y «🔔 1 nuevo» se ven fijos; no se sabe si son reales o de muestra. | §8, §1 útil 100% | Conectar a datos reales (libro de minutos) y que **suba** al cerrar acciones. |
+
+### 🟡 P2 — pulido que separa «bien» de «delicioso»
+
+- Microcopy aún con restos fríos/genéricos en la home («Soy Oficina Loombit. Controlo el escritorio…»)
+  vs la voz cálida del plano §6.
+- Sin estados de foco/teclado evidentes ni ⌘K (paleta) todavía (§5.1).
+- Motion: la animación `tejer` es bonita pero su *timing* deja ver el vacío (ligar a P0-3).
+- Densidad tipográfica: el `detalle` bajo cada título es pequeño y de bajo contraste.
+- Responsive/móvil sin verificar (la operativa real del autónomo es muchas veces el teléfono).
+
+## 4 · Benchmark contra el estado del arte (patrones, no copia)
+
+| Producto | Qué hacen TOP | Qué robamos para Loombit |
+|---|---|---|
+| **Superhuman / Linear** | velocidad percibida, teclado primero, ⌘K, *optimistic UI* (la acción se ve hecha al instante). | ⌘K ya decidido; **optimistic UI** en aprobar/enviar (recibo inmediato, reconcilia detrás). |
+| **Arc / Raycast** | un lienzo, no pestañas; comando como ciudadano de primera; transiciones espaciales. | la tesis Tela↔Galaxia↔Hilo por zoom; copiloto omnipresente. |
+| **Things / Stripe Dashboard** | jerarquía visual impecable, *empty states* que enseñan, números con significado. | tarjeta canónica con porqué+importe; matar el «empty state» con el telar. |
+| **Notion AI / Copilots** | el asistente *vive donde trabajas*, no en otra pestaña. | el chat como cajón inline, su salida cae como hilo. |
+| **Apple HIG / Vercel** | *reduced-motion*, skeletons, foco, contraste AA. | skeleton de carga (P0-3), accesibilidad como base. |
+
+**Diferencial que ninguno tiene y debemos gritar:** *cognición local del hilo* (hover = todo el
+contexto que Google no te da) + *foso de privacidad* (🔒 nada sale) + *español administrativo profundo*.
+Eso es lo que convierte «otro dashboard bonito» en **indispensable**.
+
+## 5 · El plan — cómo esto reordena el roadmap S0-S7
+
+El plano `EXPERIENCIA_LOOMBIT.md` ya tiene los slices correctos; la auditoría los **prioriza por dolor
+real medido** y añade los arreglos P0 como puerta previa:
+
+1. **Ola 1 (P0 — la convergencia):** matar el doble saludo (P0-2) · skeleton «tejiendo» + telar cacheado
+   instantáneo (P0-3) · aprobación inline con tarjeta canónica (P0-4) · `porqué` real en `/telar` (P0-5).
+   → *Resultado:* la home deja de sentirse partida y vacía. Es el 80 % de la sensación.
+2. **Ola 2 (paridad → promover):** S4 chat copiloto omnipresente + sidebar/settings/Google en la Tela
+   nueva → **paridad verificada EN VIVO** → promover `/static/loombit.html` a `/` (P0-1). Cablear la
+   Galaxia a `/galaxia`. Trocear el monolito en componentes (Tela/Galaxia/Chat/Tarjeta/BarraViva).
+3. **Ola 3 (inteligencia sentida):** hover L1 (P1-4) · optimistic UI + recibo + contador real (P1-3,
+   P1-5) · polling→eventos (P1-2) · layout que usa el ancho (P1-1).
+4. **Ola 4 (delicioso):** voz/microcopy §6 · ⌘K · motion fino · accesibilidad · responsive (P2).
+
+**Regla de oro (BRÚJULA):** cada ola en rama, **verificada EN VIVO en el Chrome real con Google**,
+tests/black/ruff verdes, y **0 regresión de features** antes de promover nada a `/`.
+
+## 6 · La definición de TOP (el listón con el que se mide el resultado)
+
+Fernando abre Loombit a las 9:00. En **<1 s** ve su día ya tejido (no un blanco). **No escribe nada**.
+Pasa el ratón por «Construcciones Mar» y ve, sin abrir nada, quién es, cuánto debe y desde cuándo. Un
+toque: el 2º aviso ya redactado en su voz, con el porqué y la procedencia, 🔒 hasta pulsar Enviar. Lo
+envía: micro-celebración + «hecho, te aviso si responde · +8 min». Ve que el 303 está cubierto. Lee
+«🔒 nada ha salido de tu máquina · te he ahorrado 14 min». Sonríe. No abre Gmail en toda la mañana.
+**Cuando todo eso pasa sin pensar, es TOP.** Hoy faltan: el remate del primer segundo, la unidad de un
+solo producto, y que la tarjeta suene inteligente. Eso es lo que arregla este plan.

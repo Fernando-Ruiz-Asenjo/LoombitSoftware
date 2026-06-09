@@ -101,7 +101,22 @@ def _hilo_asunto(a: dict) -> dict:
         urgencia=int(a.get("importancia", 2)),
         accion=accion,
         detalle=" · ".join(partes),
+        porque=_porque_asunto(tipo, a.get("estado", "")),
     )
+
+
+def _porque_asunto(tipo: str, estado: str) -> str:
+    """El PORQUÉ de un asunto comprendido: una línea causal (por qué está hoy en la tela),
+    distinta del detalle. Sale de la cognición (estado/tipo), no de repetir el resumen."""
+    if estado == "confirmada":
+        return "Confirmada por ambas partes; solo tienes que presentarte."
+    if estado == "requiere_accion":
+        return "Pide acción tuya — te lo dejo preparado."
+    if tipo == "reunion":
+        return "Está en tu agenda."
+    if tipo == "notificacion":
+        return "Notificación que conviene revisar."
+    return "Gestión pendiente de cerrar."
 
 
 def _saludo(now: datetime) -> str:
@@ -257,6 +272,7 @@ def _hilo_cobro_vencida(cu: Any, hoy: date) -> dict:
                     "(factura vencida), en mi nombre."
                 ),
             },
+            porque="Factura vencida; cuanto antes la reclames, antes cobras.",
         )
 
     dias = plan["overdue_days"]
@@ -318,6 +334,7 @@ def _hilo_cobro_vencida(cu: Any, hoy: date) -> dict:
         urgencia=2,
         accion=accion,
         detalle=detalle,
+        porque=f"Vencida hace {dias} días — el recordatorio ya está redactado.",
     )
 
 
@@ -375,7 +392,14 @@ def tejer_dia(
         hora = str(ev.get("start", ""))[11:16]
         titulo = f"{hora} · {ev.get('summary', '(evento)')}".strip(" ·")
         hilos.append(
-            _hilo("agenda", "📅", titulo, urgencia=1, accion={"modo": "navigate", "label": "Ver"})
+            _hilo(
+                "agenda",
+                "📅",
+                titulo,
+                urgencia=1,
+                accion={"modo": "navigate", "label": "Ver"},
+                porque=(f"Hoy a las {hora}." if hora else "En tu agenda de hoy."),
+            )
         )
 
     # 💰 Cobros — el hilo vencido lleva su desglose LEGAL (saldo + 40 € art. 8 + interés de demora
@@ -396,6 +420,7 @@ def tejer_dia(
                     "label": "Preparar aviso",
                     "task": f"Prepara un aviso amable de vencimiento próximo a {cliente} por {imp:.0f} €, en mi nombre.",
                 },
+                porque="Vence pronto; un aviso a tiempo evita el retraso.",
             )
         )
 
@@ -414,6 +439,7 @@ def tejer_dia(
                     "task": f"Prepara un borrador del modelo 303 (IVA) del {ob['periodo']} a partir de mis facturas; yo lo reviso y lo presento en la AEAT. Avísame si falta algún dato.",
                 },
                 detalle="Fecha estándar de presentación; confirma festivos en la AEAT.",
+                porque=f"Vence el {ob['fecha']} ({ob['dias']} días); mejor con margen.",
             )
         )
 
@@ -433,6 +459,7 @@ def tejer_dia(
                     "label": "Redactar respuesta",
                     "task": f"Responde al correo de {de} ({email}) «{asunto}». Su mensaje: «{c.get('snippet', '')[:200]}». Redacta una respuesta breve y natural en mi nombre.",
                 },
+                porque=f"{de} te escribió y sigue sin respuesta.",
             )
         )
 
@@ -475,6 +502,7 @@ def tejer_dia(
                 f"{aprobaciones} acción(es) esperando tu aprobación",
                 urgencia=2,
                 accion={"modo": "navigate", "label": "Revisar"},
+                porque="Espera tu visto bueno antes de que salga nada.",
             )
         )
 

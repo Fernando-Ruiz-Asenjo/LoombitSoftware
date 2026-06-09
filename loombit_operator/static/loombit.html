@@ -61,6 +61,11 @@
   .btn.sec{background:transparent;color:var(--muted);border:1px solid var(--line)}.btn.pri{background:var(--grad);color:#06121f}
   .btn.pri:hover{filter:brightness(1.08)}.hilo.hecho{opacity:.5}.hilo.hecho .tit::after{content:" ✅"}
   .pie{text-align:center;color:var(--faint);font-size:13px;margin:22px 0}.pie .l{color:var(--cian)}
+  /* esqueleto "tejiendo…": nunca un vacío mientras llega el telar (auditoría P0-3) */
+  .skel{height:52px;border-radius:var(--r);margin-bottom:13px;border:1px solid var(--line);
+        background:linear-gradient(100deg,var(--surface) 30%,#20264a 50%,var(--surface) 70%);
+        background-size:200% 100%;animation:shimmer 1.15s linear infinite}
+  @keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
 
   /* ── MAPA (galaxia) ── */
   #vMapa{display:flex;align-items:center;justify-content:center}
@@ -143,10 +148,13 @@
   function render(list){
     const cont=document.getElementById("hilos");cont.innerHTML="";
     list.forEach((h,i)=>{const el=document.createElement("div");el.className="hilo "+h.estado;el.style.animationDelay=(i*60)+"ms";
-      let l2="";if(h.card){l2=`<div class="l2"><div class="card"><div class="draft">${h.card.draft}</div>
-        <div class="meta"><span class="why">Porqué: ${h.card.why}</span><span class="src">🔗 ${h.card.src}</span></div>
+      let l2="";if(h.card){const c=h.card;
+        const draftHtml=c.draft?`<div class="draft">${c.draft}</div>`:"";
+        const whyHtml=c.why?`<span class="why">Porqué: ${c.why}</span>`:"";
+        l2=`<div class="l2"><div class="card">${draftHtml}
+        <div class="meta">${whyHtml}<span class="src">🔗 ${c.src}</span></div>
         <div class="lock">🔒 nada saldrá hasta que pulses el botón</div>
-        <div class="acts"><button class="btn sec">Editar</button><button class="btn pri" onclick="enviar(event)">✅ ${h.card.cta}</button></div></div></div>`;}
+        <div class="acts"><button class="btn sec">Editar</button><button class="btn pri" onclick="enviar(event)">✅ ${c.cta}</button></div></div></div>`;}
       el.innerHTML=`<div class="l0" onclick="toggle(this)"><span class="ic">${h.ic}</span>
         <span class="mid"><span class="tit">${h.tit}</span><div class="por">${h.por}</div></span><span class="chev">›</span></div>${l2}`;
       cont.appendChild(el);});
@@ -154,10 +162,14 @@
   function mapHilo(h){
     const urg=h.urgencia||0, acc=h.accion||{};
     const estado=urg>=2?"rojo":(urg===1?"ambar":(h.tipo==="novedad"||h.tipo==="correo"?"cian":"verde"));
-    const card=acc.label?{draft:acc.task||h.detalle||"",why:h.detalle||h.tipo||"",src:"telar · "+(h.tipo||""),cta:acc.label}:null;
-    return {ic:h.icono||"•",estado,tit:h.titulo||"",por:h.detalle||"",card};
+    const porque=h.porque||"";
+    // draft = el CONTEXTO que ya sabemos (detalle), nunca la orden interna al agente (acc.task).
+    const card=acc.label?{draft:h.detalle||"",why:porque,src:"telar · "+(h.tipo||""),cta:acc.label}:null;
+    return {ic:h.icono||"•",estado,tit:h.titulo||"",por:porque||h.detalle||"",card};
   }
   async function cargar(){
+    const cont=document.getElementById("hilos");
+    cont.innerHTML='<div class="skel"></div><div class="skel"></div><div class="skel"></div>';
     try{
       const r=await fetch("/telar",{headers:{Accept:"application/json"}});
       if(!r.ok) throw 0;
