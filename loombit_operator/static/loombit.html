@@ -192,7 +192,7 @@
         l2=`<div class="l2"><div class="card">${draftHtml}
         <div class="meta">${whyHtml}<span class="src">🔗 ${c.src}</span></div>
         <div class="lock">🔒 nada saldrá hasta que pulses el botón</div>
-        <div class="acts"><button class="btn sec">Editar</button><button class="btn pri" data-i="${i}" onclick="enviar(event)">✅ ${c.cta}</button></div></div></div>`;}
+        <div class="acts"><button class="btn sec" data-i="${i}" onclick="editar(event)">Editar</button><button class="btn pri" data-i="${i}" onclick="enviar(event)">✅ ${c.cta}</button></div></div></div>`;}
       el.innerHTML=`<div class="l0" onclick="toggle(this)"><span class="ic">${h.ic}</span>
         <span class="mid"><span class="tit">${h.tit}</span><div class="por">${h.por}</div></span><span class="chev">›</span></div>${l2}`;
       cont.appendChild(el);});
@@ -286,6 +286,16 @@
       const a=document.getElementById("ahorro");if(a)a.textContent=(+a.textContent+8);
       toast("Hecho ✅ Te lo dejo listo para aprobar · +8 min");
     }catch(e){ btn.disabled=false;btn.textContent=old;toast("No pude prepararlo. ¿Lo reintentamos?"); }
+  }
+  // "Editar": abre el chat con la petición sembrada para que la ajustes antes de lanzarla (no la finge).
+  function editar(ev){
+    ev.stopPropagation();
+    const btn=ev.target.closest("button"); const i=+(btn&&btn.getAttribute("data-i"));
+    const c=(TELAR[i]&&TELAR[i].card)||{};
+    let seed=(c.task||c.draft||"").replace(/\s*(Prepárame lo necesario;?\s*)?no envíes[^]*$/i,"").trim();
+    if(!seed) seed=(TELAR[i]&&TELAR[i].tit)||"";
+    const inp=document.getElementById("cop-input");
+    if(inp){ document.getElementById("copiloto").classList.add("open"); inp.value=seed; inp.focus(); inp.setSelectionRange(seed.length,seed.length); }
   }
   function toast(t){const e=document.getElementById("toast");e.textContent=t;e.classList.add("on");setTimeout(()=>e.classList.remove("on"),2400);}
 
