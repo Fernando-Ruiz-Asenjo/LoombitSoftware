@@ -73,12 +73,34 @@
   .tip{position:fixed;z-index:30;background:var(--surface2);border:1px solid var(--line);border-radius:10px;
        padding:8px 12px;font-size:13px;color:var(--text);box-shadow:var(--shadow);pointer-events:none;opacity:0;transition:opacity .15s;max-width:240px}
   .tip.on{opacity:1}.tip .s{color:var(--muted);font-size:12px}
-  .leyenda{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:16px;color:var(--faint);font-size:12.5px}
+  .leyenda{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);display:flex;gap:16px;color:var(--faint);font-size:12.5px}
   .leyenda i{font-style:normal}.sw{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle}
 
-  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);
+  .toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);
          border:1px solid #29e0d855;padding:11px 18px;border-radius:12px;opacity:0;transition:var(--t);z-index:50;box-shadow:var(--shadow)}
   .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* ── Chat copiloto omnipresente (S4): cajón inferior, siempre a mano, se expande ── */
+  .copiloto{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:40;width:min(720px,calc(100% - 36px));
+            background:#0d0f1aee;backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+  .cop-msgs{max-height:0;overflow-y:auto;transition:max-height .3s ease;padding:0 14px}
+  .copiloto.open .cop-msgs{max-height:46vh;padding:14px 14px 4px}
+  .cop-form{display:flex;gap:8px;align-items:center;padding:10px 12px}
+  .cop-input{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:12px;color:var(--text);
+             font:inherit;padding:11px 14px;outline:none;transition:var(--t)}
+  .cop-input:focus{border-color:#7c5cff88}
+  .cop-send{border:0;border-radius:12px;background:var(--grad);color:#06121f;font-size:15px;font-weight:700;padding:11px 15px;cursor:pointer}
+  .cop-send:hover{filter:brightness(1.08)}
+  .cop-msg{margin:9px 0;display:flex;gap:9px;align-items:flex-start}
+  .cop-msg.user{flex-direction:row-reverse}
+  .cop-msg .av{width:25px;height:25px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+  .cop-msg.bot .av{background:var(--grad);color:#06121f}.cop-msg.user .av{background:var(--surface2);color:var(--text);border:1px solid var(--line)}
+  .cop-msg .bub{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:9px 12px;max-width:80%;
+               white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.5}
+  .cop-msg.user .bub{background:var(--grad);color:#06121f;border-color:transparent}
+  .cop-think .bub{color:var(--muted);font-style:italic}
+  .cop-card{border-top:1px solid var(--line);margin-top:8px;padding-top:8px}
+  .cop-card .acts{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
   @keyframes latido{0%,100%{box-shadow:0 0 0 0 #29e0d880}50%{box-shadow:0 0 0 6px #29e0d800}}
   @keyframes tejer{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -120,6 +142,15 @@
 
   <div class="tip" id="tip"></div>
   <div class="toast" id="toast"></div>
+
+  <!-- Chat copiloto omnipresente (S4): no es una pestaña, es un cajón siempre a mano. -->
+  <div class="copiloto" id="copiloto">
+    <div class="cop-msgs" id="cop-msgs"></div>
+    <form class="cop-form" id="cop-form">
+      <input class="cop-input" id="cop-input" autocomplete="off" placeholder="Pídeme algo… (prueba «hola» o «¿qué tengo hoy?»)" aria-label="Hablar con Loombit" />
+      <button class="cop-send" type="submit" aria-label="Enviar">➤</button>
+    </form>
+  </div>
 
 <script>
   // ── Datos de muestra (en prod: /telar y /galaxia) ──
@@ -272,6 +303,85 @@
   const _frame=frame;frame=function(now){const time=(now-t0)/1000;_frame(now);frame._P=PLANETAS.map(p=>({p,...pos(p,time)}));};
   window.addEventListener("resize",()=>{if(!document.getElementById("vMapa").classList.contains("oculta"))resize();});
   document.addEventListener("keydown",e=>{if(e.key==="Escape")foco=null;});
+
+  // ── CHAT COPILOTO (S4): ejecuta por el agente REAL; smalltalk responde al instante (backend). ──
+  const cop=document.getElementById("copiloto"), copMsgs=document.getElementById("cop-msgs"),
+        copInput=document.getElementById("cop-input"), copForm=document.getElementById("cop-form");
+  let copBusy=false;
+  function copAdd(role,text){
+    const el=document.createElement("div");el.className="cop-msg "+role;
+    el.innerHTML='<div class="av"></div><div class="bub"></div>';
+    el.querySelector(".av").textContent=role==="user"?"Tú":"OL";
+    el.querySelector(".bub").textContent=text;            // textContent → sin inyección de HTML
+    cop.classList.add("open");copMsgs.appendChild(el);copMsgs.scrollTop=copMsgs.scrollHeight;return el;
+  }
+  function copThink(){
+    const el=document.createElement("div");el.className="cop-msg bot cop-think";
+    el.innerHTML='<div class="av">OL</div><div class="bub">pensando…</div>';
+    cop.classList.add("open");copMsgs.appendChild(el);copMsgs.scrollTop=copMsgs.scrollHeight;return el;
+  }
+  const TERM=["completed","failed","pending_approval","pending_question"];
+  copForm.addEventListener("submit",async(ev)=>{
+    ev.preventDefault();
+    const text=copInput.value.trim();if(!text||copBusy)return;
+    copInput.value="";copAdd("user",text);copBusy=true;const think=copThink();
+    try{
+      const r=await fetch("/agent/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({task:text,max_steps:20})});
+      if(!r.ok){think.remove();copAdd("bot","Uy, no pude procesar eso ("+r.status+"). ¿Lo reintentamos?");copBusy=false;return;}
+      const run=await r.json();
+      if(TERM.includes(run.status)){think.remove();copRender(run);copBusy=false;}
+      else await copPoll(run.id,think);
+    }catch(e){think.remove();copAdd("bot","No pude conectar con el operador. ¿LM Studio está arriba?");copBusy=false;}
+  });
+  async function copPoll(id,think){
+    for(let i=0;i<200;i++){
+      await new Promise(r=>setTimeout(r,1500));
+      try{const r=await fetch("/agent/runs/"+id);if(!r.ok)continue;const run=await r.json();
+        if(TERM.includes(run.status)){think.remove();copRender(run);copBusy=false;return;}
+      }catch(e){/* red inestable: seguir */}
+    }
+    think.remove();copAdd("bot","Se me ha hecho largo esperando. Vuelve a intentarlo en un momento.");copBusy=false;
+  }
+  function copRender(run){
+    if(run.status==="completed") copAdd("bot",run.result||"Hecho ✅");
+    else if(run.status==="failed") copAdd("bot","No pude terminar: "+(run.error||"sin detalle")+".");
+    else if(run.status==="pending_approval"){const pa=run.pending_approval||{};copApproval(run.id,pa.reason||pa.proposed_action||"");}
+    else if(run.status==="pending_question"){const pq=run.pending_question||{};copQuestion(run.id,pq.question||"¿Me das un dato más?");}
+  }
+  function copApproval(id,reason){
+    const el=document.createElement("div");el.className="cop-msg bot";
+    el.innerHTML='<div class="av">OL</div><div class="bub" style="max-width:88%"><div style="font-weight:600">Necesito tu visto bueno</div>'
+      +'<div class="cop-card"><div class="why"></div><div class="lock" style="margin-top:6px">🔒 nada saldrá hasta que pulses Enviar</div>'
+      +'<div class="acts"><button class="btn pri" type="button">✅ Enviar</button><button class="btn sec" type="button">Ahora no</button></div></div></div>';
+    el.querySelector(".why").textContent=reason;
+    const [okb,nob]=el.querySelectorAll("button");
+    okb.addEventListener("click",()=>copApprove(id,el));
+    nob.addEventListener("click",()=>el.remove());
+    cop.classList.add("open");copMsgs.appendChild(el);copMsgs.scrollTop=copMsgs.scrollHeight;
+  }
+  async function copApprove(id,el){
+    el.querySelectorAll("button").forEach(b=>b.disabled=true);copBusy=true;const think=copThink();
+    try{const r=await fetch("/agent/runs/"+id+"/approve",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({comment:"Aprobado desde la Tela."})});
+      if(!r.ok){think.remove();copAdd("bot","No pude aprobarlo.");copBusy=false;return;}
+      await copPoll(id,think);toast("Hecho ✅");cargar();   // refresca la tela tras el efecto
+    }catch(e){think.remove();copAdd("bot","Error al aprobar.");copBusy=false;}
+  }
+  function copQuestion(id,q){
+    const el=document.createElement("div");el.className="cop-msg bot";
+    el.innerHTML='<div class="av">OL</div><div class="bub" style="max-width:88%"><div class="q"></div>'
+      +'<form class="acts" style="margin-top:8px"><input class="cop-input" style="padding:8px 11px" placeholder="Tu respuesta…" aria-label="Tu respuesta"/>'
+      +'<button class="btn pri" type="submit">Responder</button></form></div>';
+    el.querySelector(".q").textContent=q;
+    const form=el.querySelector("form"), inp=el.querySelector("input");
+    form.addEventListener("submit",async(e)=>{
+      e.preventDefault();const a=inp.value.trim();if(!a)return;el.remove();copAdd("user",a);copBusy=true;const think=copThink();
+      try{const r=await fetch("/agent/runs/"+id+"/answer",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({answer:a})});
+        if(!r.ok){think.remove();copAdd("bot","No pude enviar tu respuesta.");copBusy=false;return;}
+        await copPoll(id,think);
+      }catch(err){think.remove();copAdd("bot","Error de red.");copBusy=false;}
+    });
+    cop.classList.add("open");copMsgs.appendChild(el);copMsgs.scrollTop=copMsgs.scrollHeight;setTimeout(()=>inp.focus(),50);
+  }
 </script>
 </body>
 </html>
