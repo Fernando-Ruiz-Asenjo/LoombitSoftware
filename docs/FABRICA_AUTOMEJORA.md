@@ -131,6 +131,12 @@ externo crudo (riesgo de inyección/supply‑chain — ver `../mafia-ia-destilad
 
 ## 4 · Plan por slices (DoD 🟢, rama/worktree, sin auto‑aplicar)
 
+> **Estado (rama `feat/fabrica-automejora`):** ✅ **F1** Playbook ACE (`playbook.py`, `589defc`) ·
+> ✅ **F2** interno+ ve UI/seguridad (`589defc`) · ✅ **F1b** Playbook cableado en autoría/reparar/gate
+> (`6844f98`) · ✅ **F3** lazo interno→reparar (`mantenimiento.py`, `7dea205`). **525 tests verdes**,
+> black+ruff+pre‑commit OK. Pendientes: F4 daemon presupuestado · F5 Super Loop+Ralph · F6 adversarial+
+> higiene radar · F7 auto‑GEPA. Sin merge a main (espera OK de Fernando).
+
 | Slice | Entrega | DoD |
 |---|---|---|
 | **F1 · Playbook (ACE)** | `fabrica/playbook.py` (bullets + helpful/harmful + recuperación por relevancia); `autoria`/`reparar` lo consultan; `validacion`/gate lo actualizan por delta | Una regla dañina deja de guiar; recibo del delta; tests |
