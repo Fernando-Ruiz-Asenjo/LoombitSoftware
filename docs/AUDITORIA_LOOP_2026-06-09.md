@@ -20,7 +20,7 @@
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |
 |---|---|---|---|
-| 1 | Chat / agente / cognición (memoria, tools, abstención) | 🟠 en curso | memoria ✅, router ✅, cobro/303 tools ✅, cobro e2e 🟢; **P0 contexto 4096 arreglado (reload 8192)**; abstención honesta PENDIENTE; durabilidad del contexto PENDIENTE |
+| 1 | Chat / agente / cognición (memoria, tools, abstención) | 🟠 en curso | memoria ✅, router ✅, cobro/303 tools ✅, cobro e2e 🟢; **P0 contexto 4096→8192 ✅**; abstención honesta MEJORADA (prompt) 🟠 aún sobre-promete; durabilidad del contexto PENDIENTE |
 | 2 | Telar (cognición→tarjetas, dedup, dudup caché) | ⬜ | |
 | 3 | Aprobaciones «Preparado para ti» | 🟢 verificado clicando (Aprobar→evento real) | falta probar Descartar en vivo |
 | 4 | Home / shell `loombit-app.html` | ⬜ | |
@@ -44,7 +44,7 @@ Rota sectores; anota fallos con severidad. Correos SOLO a fernando.ruizasenjo@gm
 | Agencia de viajes | buscar vuelo+hotel, presupuesto a cliente, factura, cobro | 🟠 vuelos→Pilot pendiente; factura sin tool; cobro 🟢 |
 | Gestoría / asesoría | 303/130 de un cliente, recordar plazos, redactar a Hacienda | 🟠 303 no fiable (14B mis-asigna) |
 | Autónomo / freelance | emitir factura, reclamar impago, agenda con cliente | ⬜ |
-| E-commerce / tienda | conciliar cobros, responder incidencia de pedido | 🔴 conciliación: 0 steps, NO abstiene honesto (flaquea «te hago un plan manual») — recibo run 21bf3ce4 |
+| E-commerce / tienda | conciliar cobros, responder incidencia de pedido | 🟠 conciliación: abstención MEJORADA (pide el extracto PDF, +honesto, +corto) pero aún sobre-promete (no hay tool de conciliar); falta wirear conciliación |
 | Clínica / consulta | agendar citas, recordatorios a pacientes | ⬜ |
 | Despacho de abogados | plazos procesales, redactar escrito, control de minutas | ⬜ |
 | Restaurante / hostelería | pedidos a proveedor, control de facturas, reservas | ⬜ |
