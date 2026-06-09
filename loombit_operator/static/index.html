@@ -331,6 +331,18 @@ a { color: inherit; text-decoration: none; }
 }
 @media (prefers-reduced-motion: reduce) { .telar-hilo { transition: none; } .telar-hilo:hover { transform: none; } }
 
+/* "¿Qué necesitas?" — acciones comunes a un toque (robado de los kits: utilidad + fricción 0). */
+#acciones-grid { max-width: var(--input-max); margin: 16px auto 0; }
+.acc-grid-title { font-family: var(--font-display); font-size: 12.5px; letter-spacing: -.01em; color: var(--lb-text2); margin: 0 2px 9px; }
+.acc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.acc-card { display: flex; flex-direction: column; gap: 9px; align-items: flex-start; padding: 13px 14px; border-radius: 14px; text-align: left;
+  background: var(--lb-navy2); border: 1px solid var(--lb-border); cursor: pointer;
+  transition: transform var(--transition), border-color var(--transition), background var(--transition); }
+.acc-card:hover { transform: translateY(-2px); border-color: var(--lb-border2); background: var(--lb-navy3); box-shadow: 0 8px 24px -12px rgba(124,58,237,.5); }
+.acc-card .acc-ic { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.acc-card .acc-lb { font-family: var(--font-display); font-size: 12.5px; font-weight: 600; letter-spacing: -.01em; color: var(--lb-text); line-height: 1.25; }
+@media (max-width: 760px) { .acc-grid { grid-template-columns: repeat(2, 1fr); } }
+
 /* ── Messages ── */
 .msg-row {
   display: flex; gap: 12px;
@@ -940,6 +952,8 @@ pre.fb-code { background: var(--lb-navy,#0a0e1a); border: 1px solid var(--lb-bor
       <div id="telar-approvals" style="display:none;margin-bottom:18px"></div>
       <!-- La tela de la mañana: lo importante de hoy + lo ya preparado (se llena al abrir) -->
       <div id="telar-panel" style="display:none;margin-bottom:18px"></div>
+      <!-- "¿Qué necesitas?": acciones comunes a un toque (robado de los kits buenos: utilidad+fricción 0) -->
+      <div id="acciones-grid" style="display:none"></div>
       <div class="welcome-header">
         <div class="welcome-avatar">OL</div>
         <div class="welcome-text">
@@ -1623,6 +1637,23 @@ async function loadHomeContext() {
       procs.appendChild(_navItem(p.icon, p.label, () => useQuickAction(p.prompt, !!p.auto), p.label, PROC_COLORS[i % PROC_COLORS.length]));
     });
     setSecCount('cnt-procesos', (ctx.procesos_diarios || []).length, false);
+    // "¿Qué necesitas?": las mismas acciones, pero a la VISTA en la home (un toque, fricción 0).
+    const grid = document.getElementById('acciones-grid');
+    const procs2 = ctx.procesos_diarios || [];
+    if (grid && procs2.length) {
+      grid.innerHTML = '<div class="acc-grid-title">¿Qué necesitas?</div>';
+      const wrap = document.createElement('div'); wrap.className = 'acc-grid';
+      procs2.forEach((p, i) => {
+        const col = PROC_COLORS[i % PROC_COLORS.length];
+        const card = document.createElement('button'); card.className = 'acc-card'; card.title = p.label;
+        card.onclick = () => useQuickAction(p.prompt, !!p.auto);
+        const ic = document.createElement('span'); ic.className = 'acc-ic'; ic.textContent = p.icon || '•';
+        ic.style.background = `color-mix(in srgb, ${col} 18%, transparent)`; ic.style.color = col;
+        const lb = document.createElement('span'); lb.className = 'acc-lb'; lb.textContent = p.label;
+        card.appendChild(ic); card.appendChild(lb); wrap.appendChild(card);
+      });
+      grid.appendChild(wrap); grid.style.display = 'block';
+    }
     const conts = document.getElementById('contactos-list');
     const aviso = document.getElementById('contactos-aviso');
     conts.innerHTML = '';
