@@ -132,9 +132,10 @@
      card:{draft:"«¡Hola Jana! Te paso el presupuesto actualizado en adjunto. Cualquier ajuste, me dices.»",why:"respondió a tu hilo de ayer",src:"hilo con Jana (Acme)",cta:"Enviar respuesta"}},
     {ic:"📅",estado:"verde",tit:"Hoy: llamada con el gestor a las 12:30",por:"en tu agenda · sin conflictos",card:null},
   ];
-  // planetas para el mapa: contactos (cian, tamaño=trato) + cuentas (semáforo, urgencia=radio)
-  const SOL={cobrar:"3.890 €",venc:2};
-  const PLANETAS=[
+  // planetas para el mapa: contactos (cian, tamaño=trato) + cuentas (semáforo, urgencia=radio).
+  // Muestra por defecto; cargarGalaxia() los sustituye por los datos REALES de /galaxia.
+  let SOL={cobrar:"3.890 €",venc:2};
+  let PLANETAS=[
     {t:"contacto",label:"Construcciones Mar",trato:.9,rel:"Construcciones Mar"},
     {t:"contacto",label:"Jana · Acme",trato:.7,rel:null},
     {t:"contacto",label:"Talleres Ríos",trato:.5,rel:"Talleres Ríos"},
@@ -180,6 +181,31 @@
     }catch(e){ render(HILOS_SAMPLE); }   // sin servidor (file://) → muestra
   }
   cargar();
+
+  // ── GALAXIA: datos REALES de /galaxia (mismo origen; fallback a la muestra) ──
+  function eur(x){return (Math.round(Number(x)||0)).toLocaleString("es-ES")+" €";}
+  async function cargarGalaxia(){
+    try{
+      const r=await fetch("/galaxia",{headers:{Accept:"application/json"}});
+      if(!r.ok) throw 0;
+      const d=await r.json();
+      const k=(d.sol&&d.sol.kpis)||{};
+      const nodos=d.nodos||[];
+      if(!nodos.length) return;   // sin datos → conserva la muestra (nunca un mapa vacío)
+      SOL={cobrar:eur(k.total_cobrar||0), venc:k.vencidas||0};
+      PLANETAS=nodos.map(n=>{
+        if(n.tipo==="cuenta"){
+          const estado=n.estado||(n.vencida?"rojo":(n.proxima?"ambar":"verde"));
+          const urg=(typeof n.urgencia==="number")?n.urgencia:(1-(n.temperatura||0));
+          return {t:"cuenta",label:n.etiqueta||"",estado,urg,rel:n.rel||null};
+        }
+        return {t:"contacto",label:n.etiqueta||"",trato:(typeof n.temperatura==="number"?n.temperatura:0.5),rel:n.rel||null};
+      });
+      resize();   // recalcula ángulos/órbitas con los nodos reales
+    }catch(e){ /* conserva la muestra */ }
+  }
+  cargarGalaxia();
+
   function toggle(l0){const h=l0.parentElement;if(h.querySelector(".l2"))h.classList.toggle("open");}
   function enviar(ev){ev.stopPropagation();const h=ev.target.closest(".hilo");h.classList.remove("open");h.classList.add("hecho");
     const a=document.getElementById("ahorro");a.textContent=(+a.textContent+8);toast("Hecho ✅ Te aviso si responde · +8 min");}
