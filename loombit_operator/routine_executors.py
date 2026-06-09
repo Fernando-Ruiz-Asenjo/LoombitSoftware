@@ -182,6 +182,30 @@ def _email_de(header: str) -> str:
     return m.group(0) if m else ""
 
 
+# Correos que NO piden respuesta: acuses/confirmaciones (incl. respuestas de Calendar) y automáticos.
+# Cognición honesta: una confirmación no necesita otra confirmación (no proponer responder a algo
+# ya cerrado). Conservador: ante la duda, sí pide respuesta.
+_NO_RESPUESTA_ASUNTO = re.compile(
+    r"^\s*(re:\s*|fwd:\s*|rv:\s*)*(aceptad|accepted|rechazad|declined|provisional|tentative|"
+    r"invitaci[óo]n aceptada|invitation accepted|confirmaci[óo]n de)",
+    re.IGNORECASE,
+)
+_NO_RESPUESTA_BLOB = re.compile(
+    r"\b(no-?reply|noreply|no responder|do not reply|respuesta autom[áa]tica|automatic reply|"
+    r"out of office|fuera de (la )?oficina|de vacaciones|mensaje autom[áa]tico|newsletter|"
+    r"bolet[íi]n|unsubscribe|darse de baja|ha aceptado la invitaci[óo]n|se ha aceptado la invitaci[óo]n)\b",
+    re.IGNORECASE,
+)
+
+
+def _necesita_respuesta(subject: str, snippet: str = "") -> bool:
+    """¿Este correo PIDE una respuesta? Excluye acuses/confirmaciones y automáticos."""
+    s = subject or ""
+    if _NO_RESPUESTA_ASUNTO.search(s):
+        return False
+    return not _NO_RESPUESTA_BLOB.search(f"{s} {snippet or ''}")
+
+
 def _buscar_respuestas(token: str, contactos: list, dias: int = 2, maximo: int = 10) -> list[dict]:
     """Lee correos SIN LEER recientes de los contactos conocidos (read-only). Devuelve remitente,
     asunto y snippet. Es percepción: no envía nada."""
@@ -212,12 +236,17 @@ def _buscar_respuestas(token: str, contactos: list, dias: int = 2, maximo: int =
                     continue
                 data = mr.json()
                 hdrs = {x["name"]: x["value"] for x in data.get("payload", {}).get("headers", [])}
+                subject = hdrs.get("Subject", "")
+                snippet = data.get("snippet", "")[:300]
+                # Una confirmación/acuse ya cerrado no pide respuesta → no lo propongas (cognición).
+                if not _necesita_respuesta(subject, snippet):
+                    continue
                 out.append(
                     {
                         "id": m["id"],
                         "from": hdrs.get("From", ""),
-                        "subject": hdrs.get("Subject", ""),
-                        "snippet": data.get("snippet", "")[:300],
+                        "subject": subject,
+                        "snippet": snippet,
                     }
                 )
     except Exception:

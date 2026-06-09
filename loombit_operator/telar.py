@@ -589,12 +589,24 @@ def _fuente_correos(settings: Any) -> list[dict]:
         token = fresh_access_token(st, "google")
         if not token:
             return []
+        propio = _email_propio()  # no te propongas responderte a ti mismo
         contactos = [
-            SimpleNamespace(name=c["name"], email=c["email"]) for c in _contactos_de_gmail(st)
+            SimpleNamespace(name=c["name"], email=c["email"])
+            for c in _contactos_de_gmail(st)
+            if (c.get("email") or "").lower() != propio
         ]
         return _buscar_respuestas(token, contactos)
     except Exception:
         return []
+
+
+def _email_propio() -> str:
+    try:
+        from .agent.memory import get_memory
+
+        return (get_memory().owner.get("email") or "").strip().lower()
+    except Exception:
+        return ""
 
 
 def _fuente_inbox(

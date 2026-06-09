@@ -175,6 +175,16 @@ async def get_run(run_id: str) -> RunDetailResponse:
     return RunDetailResponse.from_run(run)
 
 
+def _invalidar_telar() -> None:
+    """Aprobar/cancelar un run cambia lo que hay en la tela (p.ej. el nº de aprobaciones) → refresca."""
+    try:
+        from ..telar_cache import invalidate
+
+        invalidate()
+    except Exception:
+        pass
+
+
 @router.post(
     "/runs/{run_id}/approve",
     response_model=RunResponse,
@@ -216,6 +226,7 @@ async def approve_run(
     # aprobada + la continuación del LLM para background. Así la respuesta ya NO devuelve el estado
     # viejo (pending_approval) y la UI no vuelve a pintar la misma tarjeta; hace polling al estado real.
     run = loop.accept_approval(run_id)
+    _invalidar_telar()
     background_tasks.add_task(loop._resume_execute, run_id)
     return RunResponse.from_run(run)
 
@@ -229,6 +240,8 @@ async def approve_all(background_tasks: BackgroundTasks) -> dict:
     ids = [r.id for r in pendientes]
     for run_id in ids:
         background_tasks.add_task(loop.resume, run_id)
+    if ids:
+        _invalidar_telar()
     return {"approved": len(ids), "ids": ids}
 
 
@@ -290,6 +303,7 @@ async def cancel_run(run_id: str) -> RunResponse:
 
     run.cancel()
     store.save_run(run)
+    _invalidar_telar()
     return RunResponse.from_run(run)
 
 
