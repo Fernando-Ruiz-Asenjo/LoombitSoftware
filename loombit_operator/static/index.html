@@ -864,6 +864,8 @@ pre.fb-code { background: var(--lb-navy,#0a0e1a); border: 1px solid var(--lb-bor
   <div id="chat-body">
     <!-- Welcome -->
     <div id="welcome">
+      <!-- Aprobaciones EN LA COLUMNA (no un toast flotante): tarjeta canónica, donde miras. P0-4. -->
+      <div id="telar-approvals" style="display:none;margin-bottom:18px"></div>
       <!-- La tela de la mañana: lo importante de hoy + lo ya preparado (se llena al abrir) -->
       <div id="telar-panel" style="display:none;margin-bottom:18px"></div>
       <div class="welcome-header">
@@ -1584,50 +1586,41 @@ async function disconnectGoogle() {
 // ── Aprobar todo ──────────────────────────────────────
 let _approvalsDismissed = '';   // firma del conjunto de aprobaciones que el usuario cerró
 function dismissApprovals() {
-  const bar = document.getElementById('approveAllBar');
-  _approvalsDismissed = (bar && bar._sig) || '';  // recordar QUÉ se cerró
-  if (bar) bar.style.display = 'none';            // reaparece solo si cambian las pendientes
+  const box = document.getElementById('telar-approvals');
+  _approvalsDismissed = (box && box._sig) || '';  // recordar QUÉ se cerró
+  if (box) box.style.display = 'none';            // reaparece solo si cambian las pendientes
 }
 async function refreshApprovals() {
   try {
     const r = await fetch(`${API}/agent/runs?status=pending_approval`, { signal: AbortSignal.timeout(8000) });
     if (!r.ok) return;
     const runs = await r.json();
-    const bar = document.getElementById('approveAllBar');
+    const box = document.getElementById('telar-approvals');
+    if (!box) return;
     const sig = runs.map(r => r.id).sort().join(',');
-    bar._sig = sig;
-    if (runs.length > 0 && sig === _approvalsDismissed) { bar.style.display = 'none'; return; }
-    if (runs.length > 0) {
-      document.getElementById('approveAllCount').textContent = runs.length;
-      const noun = document.getElementById('approveAllNoun');
-      if (noun) noun.textContent = runs.length === 1 ? 'acción pendiente de aprobar' : 'acciones pendientes de aprobar';
-      // Vistazo rápido: QUÉ hay que aprobar (la acción en humano, pa.reason). textContent → sin HTML.
-      const list = document.getElementById('approveAllList');
-      if (list) {
-        list.replaceChildren();
-        runs.slice(0, 4).forEach(run => {
-          const pa = run.pending_approval || {};
-          let label = String(pa.reason || run.task || 'Acción pendiente').trim();
-          if (label.length > 64) label = label.slice(0, 61) + '…';
-          const li = document.createElement('li');
-          li.style.cssText = 'display:flex;gap:6px;align-items:flex-start';
-          const dot = document.createElement('span');
-          dot.textContent = '•'; dot.style.color = 'var(--lb-cyan,#06b6d4)';
-          const txt = document.createElement('span'); txt.textContent = label;
-          li.append(dot, txt);
-          list.appendChild(li);
-        });
-        if (runs.length > 4) {
-          const more = document.createElement('li');
-          more.style.cssText = 'opacity:.7;font-style:italic';
-          more.textContent = `+ ${runs.length - 4} más`;
-          list.appendChild(more);
-        }
-      }
-      bar.style.display = 'flex';
-    } else {
-      bar.style.display = 'none';
-    }
+    box._sig = sig;
+    if (!runs.length || sig === _approvalsDismissed) { box.style.display = 'none'; return; }
+    // Tarjeta canónica de aprobación, EN LA COLUMNA (no un toast): qué + 🔒 + semáforo + 1 toque.
+    const items = runs.slice(0, 4).map(run => {
+      const pa = run.pending_approval || {};
+      let label = String(pa.reason || run.task || 'Acción pendiente').trim();
+      if (label.length > 80) label = label.slice(0, 77) + '…';
+      return `<div style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--lb-text2,#94a3b8);margin:3px 0"><span style="color:var(--lb-cyan,#06b6d4)">•</span><span>${esc(label)}</span></div>`;
+    }).join('');
+    const more = runs.length > 4 ? `<div style="font-size:12px;opacity:.7;font-style:italic;margin-top:2px">+ ${runs.length - 4} más</div>` : '';
+    const noun = runs.length === 1 ? 'acción espera tu visto bueno' : 'acciones esperan tu visto bueno';
+    box.innerHTML = `
+      <div style="background:linear-gradient(135deg,rgba(16,185,129,.12),rgba(6,182,212,.08));border:1px solid rgba(16,185,129,.45);border-left:4px solid #10b981;border-radius:16px;padding:14px 16px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:17px">✅</span>
+          <span style="font-size:15px;font-weight:700">${runs.length} ${noun}</span>
+          <button onclick="dismissApprovals()" title="Cerrar (no cancela nada; reaparece si cambian)" style="margin-left:auto;background:none;border:none;color:var(--lb-text3,#475569);cursor:pointer;font-size:16px">✕</button>
+        </div>
+        ${items}${more}
+        <div style="font-size:11px;color:var(--lb-text3,#475569);margin:8px 0;display:flex;align-items:center;gap:6px">🔒 Nada saldrá de tu máquina hasta que apruebes.</div>
+        <button id="approveAllBtn" onclick="approveAll()" style="background:linear-gradient(135deg,var(--lb-purple,#8b5cf6),var(--lb-cyan,#06b6d4));color:#fff;border:none;border-radius:999px;padding:8px 18px;font-weight:700;cursor:pointer;font-size:13px">Aprobar todo</button>
+      </div>`;
+    box.style.display = 'block';
   } catch { /* noop */ }
 }
 
@@ -2459,7 +2452,7 @@ async function gxAct(source, targetNode) {
     const d = await r.json();
     const a = d.action || {};
     if (d.run_id) {
-      gxToast(`✅ Preparé: ${a.titulo}. Lo dejé arriba en “Aprobar todo” para que lo apruebes.`);
+      gxToast(`✅ Preparé: ${a.titulo}. Lo tienes listo en la tela para que lo apruebes.`);
       refreshApprovals();
     } else if (a.modo === 'navigate') {
       gxToast(a.titulo || 'Hecho');
@@ -2535,12 +2528,19 @@ async function telarAccion(i) {
     try {
       await fetch(`${API}/agent/run`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ task: ac.task }), signal: AbortSignal.timeout(15000) });
       if (btn) btn.textContent = '✓ Preparado';
-      addMsg('agent', `✅ ${ac.label}: lo he dejado en «Aprobar todo» (arriba a la derecha) para que lo apruebes.`);
+      addMsg('agent', `✅ ${ac.label}: lo he dejado listo en la tela para que lo apruebes.`);
       setTimeout(refreshApprovals, 1200);
     } catch (e) { if (btn) { btn.disabled = false; btn.textContent = ac.label; } }
   } else if (ac.modo === 'navigate') {
     if (h.tipo === 'agenda') openGalaxia();
-    else { const bar = document.getElementById('approveAllBar'); if (bar) bar.style.boxShadow = '0 0 0 3px var(--lb-purple,#8b5cf6)'; }
+    else {
+      const box = document.getElementById('telar-approvals');
+      if (box && box.style.display !== 'none') {
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        box.style.transition = 'box-shadow .25s'; box.style.boxShadow = '0 0 0 3px var(--lb-cyan,#06b6d4)';
+        setTimeout(() => { box.style.boxShadow = 'none'; }, 1200);
+      }
+    }
   }
 }
 
@@ -2559,14 +2559,6 @@ async function telarAccion(i) {
   cargarTelar();
 })();
 </script>
-<div id="approveAllBar" style="display:none;position:fixed;top:64px;right:20px;z-index:9999;background:var(--lb-navy3,#1a2235);border:1px solid var(--lb-purple,#8b5cf6);border-radius:12px;padding:10px 14px;box-shadow:0 10px 30px rgba(0,0,0,.55);flex-direction:column;align-items:stretch;gap:8px;font-size:13px;color:var(--lb-text,#f1f5f9);max-width:340px">
-  <div style="display:flex;align-items:flex-start;gap:8px">
-    <span style="flex:1">⚠ <strong id="approveAllCount">0</strong> <span id="approveAllNoun">acciones pendientes de aprobar</span></span>
-    <button onclick="dismissApprovals()" title="Cerrar (no cancela nada; reaparece si cambian)" style="background:none;border:none;color:var(--lb-text3,#64748b);cursor:pointer;font-size:16px;line-height:1;padding:0 2px">✕</button>
-  </div>
-  <ul id="approveAllList" style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:12px;opacity:.92"></ul>
-  <button id="approveAllBtn" onclick="approveAll()" style="background:linear-gradient(135deg,var(--lb-purple,#8b5cf6),var(--lb-cyan,#06b6d4));color:#fff;border:none;border-radius:999px;padding:8px 18px;font-weight:700;cursor:pointer;font-size:13px">Aprobar todo</button>
-</div>
 <script>
 /* ── Entregables: dossier autónomo (HTML/Word) de un expediente. Additivo y autocontenido. ── */
 let LB_DEFAULT_ENTITY = null;
