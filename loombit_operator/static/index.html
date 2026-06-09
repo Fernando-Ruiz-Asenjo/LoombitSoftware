@@ -2480,13 +2480,25 @@ function gxToast(text) {
 // ═══════════════════════════════════════════════════════
 const TELAR_COLOR = { agenda:'#3b82f6', cobro:'#ef4444', correo:'#06b6d4', plazo:'#f59e0b', fiscal:'#22c55e', aprobacion:'#8b5cf6', reunion:'#ec4899' };
 
+// P0-2 (auditoría UX): nunca dos saludos a la vez. Con telar tejido, fuera el intro de chat vacío.
+function setIntroVisible(v) {
+  const h = document.querySelector('#welcome .welcome-header');
+  const s = document.querySelector('#welcome .suggestions');
+  if (h) h.style.display = v ? '' : 'none';
+  if (s) s.style.display = v ? '' : 'none';
+}
+function hideTelar() {
+  const p = document.getElementById('telar-panel'); if (p) p.style.display = 'none';
+  setIntroVisible(true);   // si cierras la tela, te devuelvo el chat (nunca un vacío)
+}
+
 async function cargarTelar() {
   const panel = document.getElementById('telar-panel'); if (!panel) return;
   try {
     const r = await fetch(`${API}/telar`, { signal: AbortSignal.timeout(15000) });
     if (!r.ok) return;
     const t = await r.json();
-    if (!t.hilos || !t.hilos.length) { panel.style.display = 'none'; return; }
+    if (!t.hilos || !t.hilos.length) { panel.style.display = 'none'; setIntroVisible(true); return; }
     const filas = t.hilos.map((h, i) => {
       const col = TELAR_COLOR[h.tipo] || 'var(--lb-purple,#8b5cf6)';
       const btn = h.accion && h.accion.label
@@ -2502,13 +2514,14 @@ async function cargarTelar() {
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
           <span style="font-size:18px">☀️</span>
           <span style="font-size:16px;font-weight:700">${esc(t.saludo||'Hola')}${t.usuario ? ', '+esc(t.usuario) : ''}</span>
-          <button onclick="document.getElementById('telar-panel').style.display='none'" title="Ocultar" style="margin-left:auto;background:none;border:none;color:var(--lb-text3,#475569);cursor:pointer;font-size:16px">✕</button>
+          <button onclick="hideTelar()" title="Ocultar" style="margin-left:auto;background:none;border:none;color:var(--lb-text3,#475569);cursor:pointer;font-size:16px">✕</button>
         </div>
         <div style="font-size:13px;color:var(--lb-text2,#94a3b8);margin-bottom:10px">${esc(t.resumen||'')}</div>
         ${filas}
         <div style="font-size:11px;color:var(--lb-text3,#475569);margin-top:10px;display:flex;align-items:center;gap:6px">🔒 ${esc((t.meta&&t.meta.privado)||'Nada de esto ha salido de tu máquina.')}</div>
       </div>`;
     panel.style.display = 'block';
+    setIntroVisible(false);   // P0-2: con la tela tejida, no muestres también el intro vacío
     panel._hilos = t.hilos;   // guardamos para telarAccion
   } catch { /* el telar es complementario, nunca rompe la app */ }
 }
