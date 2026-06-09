@@ -338,18 +338,29 @@ def fabrica_skills_routine() -> Routine:
 
 
 def fabrica_skills_executor(routine: Routine, now: datetime) -> str:
-    """Corre un ciclo de la Fábrica y resume las propuestas pendientes nuevas (no aplica nada)."""
+    """Corre un ciclo de la Fábrica CONSULTANDO el Playbook (ACE, aprende en 2º plano) y añade un
+    parte de salud del código (interno, sin LLM). No aplica nada; todo espera el gate humano."""
     try:
         from .fabrica.ciclo import ejecutar_ciclo
+        from .fabrica.playbook import Playbook
 
-        informe = ejecutar_ciclo(max_necesidades=3, max_intentos=2)
+        try:
+            pb = Playbook()
+        except Exception:  # noqa: BLE001 — sin playbook se corre igual
+            pb = None
+        informe = ejecutar_ciclo(max_necesidades=3, max_intentos=2, playbook=pb)
     except Exception as exc:  # noqa: BLE001
         return f"Fábrica: no pude correr el ciclo: {exc!r}"
+
+    try:
+        from .fabrica.mantenimiento import escanear_salud
+
+        salud = escanear_salud()
+    except Exception:  # noqa: BLE001 — la salud es best-effort; el ciclo manda
+        salud = ""
+
     nuevas = informe.get("tools", {}).get("propuestas_pendientes_nuevas", [])
     hallazgos = informe.get("hallazgos_red_meta", {}).get("nuevos", 0)
-    if not nuevas and not hallazgos:
-        n = informe.get("oportunidades_detectadas", 0)
-        return f"Fábrica: {n} oportunidad(es) analizada(s); sin novedad que aprobar/revisar."
     partes = []
     if nuevas:
         partes.append(f"{len(nuevas)} propuesta(s) de tool para aprobar (/fabrica/propuestas)")
@@ -357,7 +368,12 @@ def fabrica_skills_executor(routine: Routine, now: datetime) -> str:
         partes.append(
             f"{hallazgos} hallazgo(s) de la Red/meta para revisar (/fabrica/oportunidades)"
         )
-    return "Fábrica: " + " · ".join(partes) + "."
+    if partes:
+        base = "Fábrica: " + " · ".join(partes) + "."
+    else:
+        n = informe.get("oportunidades_detectadas", 0)
+        base = f"Fábrica: {n} oportunidad(es) analizada(s); sin novedad que aprobar/revisar."
+    return base + (f"\n{salud}" if salud else "")
 
 
 def aprendizaje_routine() -> Routine:

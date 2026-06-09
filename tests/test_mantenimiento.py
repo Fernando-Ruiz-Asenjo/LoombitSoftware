@@ -5,7 +5,11 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from loombit_operator.fabrica.mantenimiento import _archivo_de, proponer_reparaciones
+from loombit_operator.fabrica.mantenimiento import (
+    _archivo_de,
+    proponer_reparaciones,
+    resumen_salud,
+)
 from loombit_operator.fabrica.modelos import Necesidad, TipoNecesidad
 
 
@@ -36,3 +40,24 @@ def test_no_repara_lo_que_no_es_fix(tmp_path):
         [mejora], llm=SimpleNamespace(chat=lambda **kw: None), raiz_repo=tmp_path
     )
     assert out == []
+
+
+def test_resumen_salud_lista_lo_prioritario():
+    necs = [
+        Necesidad(
+            titulo="Riesgo de seguridad (S324): md5 [x.py:5]",
+            tipo=TipoNecesidad.FIX,
+            prioridad=5,
+        ),
+        Necesidad(
+            titulo="Fichero de UI gigante (2552 líneas): static/index.html — trocear",
+            tipo=TipoNecesidad.MEJORA,
+            prioridad=3,
+        ),
+    ]
+    s = resumen_salud(necs)
+    assert "2 señal" in s and "seguridad" in s and "index.html" in s
+
+
+def test_resumen_salud_sin_senales():
+    assert "sin señales" in resumen_salud([])

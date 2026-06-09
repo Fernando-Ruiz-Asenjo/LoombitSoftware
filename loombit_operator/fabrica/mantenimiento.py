@@ -69,3 +69,17 @@ def proponer_reparaciones(
             parche["necesidad"] = nec.titulo
             out.append(parche)
     return out
+
+
+def resumen_salud(necesidades: list[Necesidad]) -> str:
+    """Parte HUMANO (sin LLM) de la salud del código: cuántas señales y las más prioritarias.
+    `interno.marcar()` ya las devuelve ordenadas por prioridad (bugs/seguridad primero)."""
+    if not necesidades:
+        return "Salud del código: sin señales nuevas. 👍"
+    top = "; ".join(n.titulo for n in necesidades[:3])
+    return f"Salud del código: {len(necesidades)} señal(es). Top: {top}"
+
+
+def escanear_salud() -> str:
+    """Escaneo barato (sin LLM) del código en uso → parte de salud para el daemon/feed."""
+    return resumen_salud(marcar())
