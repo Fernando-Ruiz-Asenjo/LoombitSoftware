@@ -9,9 +9,37 @@ import json
 from dataclasses import dataclass, field
 from typing import Any
 
+import time
+
 import httpx
 
 from .config import AppSettings, get_settings
+
+# ── ALG-0.2 · reintento ante errores TRANSITORIOS del LLM ─────────────────────
+# Un hipo de red / saturación (timeout, conexión, 429, 5xx) NO debe tumbar el run. Un 400
+# (contexto/esquema) es DETERMINISTA → no se reintenta (lo arregla ALG-0.1). Ver
+# docs/ALGORITMO_CEREBRO.md (ALG-0.2). El backoff base lo baja a 0 el test.
+_REINTENTABLES = frozenset({429, 500, 502, 503, 504})
+_MAX_INTENTOS = 3
+_BACKOFF_BASE = 0.5  # segundos
+
+
+def _post_con_reintento(client: Any, url: str, payload: dict[str, Any]) -> Any:
+    """POST con reintento+backoff SOLO ante fallos transitorios. Devuelve la respuesta (ok,
+    no reintentable, o la del último intento). Relanza la excepción de red si se agota."""
+    for intento in range(1, _MAX_INTENTOS + 1):
+        try:
+            resp = client.post(url, json=payload)
+        except (httpx.TimeoutException, httpx.TransportError):
+            if intento >= _MAX_INTENTOS:
+                raise
+            time.sleep(_BACKOFF_BASE * 2 ** (intento - 1))
+            continue
+        if resp.status_code in _REINTENTABLES and intento < _MAX_INTENTOS:
+            time.sleep(_BACKOFF_BASE * 2 ** (intento - 1))
+            continue
+        return resp
+    raise RuntimeError("inalcanzable")  # pragma: no cover
 
 
 @dataclass
@@ -142,7 +170,7 @@ class LLMClient:
         if tools:
             payload["tools"] = tools
             payload["tool_choice"] = tool_choice
-        response = self.client.post(self._url("/chat/completions"), json=payload)
+        response = _post_con_reintento(self.client, self._url("/chat/completions"), payload)
         response.raise_for_status()
         return ChatResponse.from_api(response.json())
 

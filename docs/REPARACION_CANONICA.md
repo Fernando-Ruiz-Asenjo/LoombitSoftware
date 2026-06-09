@@ -67,7 +67,7 @@ nunca es "🟢 100%": es "🟢 con eval ≥ umbral".
 ## SCORECARD de familias (vivo)
 | Familia | Doc AS‑IS | Tests golden | % verde | Estado |
 |---|---|---|---|---|
-| **Cerebro** (RC·Cerebro, instancia #1) | `ALGORITMO_CEREBRO_EXISTENTE.md` | `tests/test_cerebro_golden.py` *(pendiente)* | — | 🟠 inventariado; arnés por crear |
+| **Cerebro** (RC·Cerebro, instancia #1) | `ALGORITMO_CEREBRO_EXISTENTE.md` | `tests/test_cerebro_golden.py` ✅ | parcial | 🟠→ arnés iniciado (12 golden: smalltalk, etiquetas, parser tolerante, saneadores, reintento) + ALG-0.2 ✅ |
 | Manos / dominio (cobro·303·factura·conciliación) | (en `ALGORITMO_CEREBRO.md` ALG‑3.x) | parcial (`test_dominio_tools.py`) | parcial | 🟠 |
 | Conectores (Gmail·Calendar·Contacts) | *(pendiente)* | *(pendiente)* | — | ⬜ |
 | Telar / cognición | (familia 5‑7 del cerebro) | *(pendiente)* | — | 🟠 |
