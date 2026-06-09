@@ -17,6 +17,7 @@ from typing import Any
 from ..cobros import LATE_FEE_FIXED_EUR, dunning_plan
 from ..docs_intel import InvoiceFields
 from ..expedientes import ExpedienteStore
+from ..skill_d_fiscal.intake import recopilar_lineas as _recopilar_lineas
 from ..skill_d_fiscal.intake import registrar_factura as _intake_registrar
 from ..skill_d_fiscal.modelo_303 import LineaIVA, borrador_303_texto, calcular_303
 from .registry import ToolDefinition, tool_registry
@@ -210,6 +211,56 @@ def _registrar_factura(
         f"base {base_f:.2f}€ + IVA {iva_f:.2f}€ = total {total:.2f}€. Guardada (id {exp.id[:8]}). "
         "Quedará disponible para tu 303."
     )
+
+
+def _calcular_303_registradas(periodo: str = "") -> str:
+    """Calcula el 303 desde las facturas YA REGISTRADAS (datos reales), no de una frase del LLM.
+
+    Es el camino FIABLE: las cifras salen de facturas persistidas (registrar_factura), no de lo que
+    el modelo extraiga de una oración. Cierra el riesgo de que el 14B invente/mis-asigne importes.
+    """
+    try:
+        store = ExpedienteStore(entity_id=_ENTIDAD_DEFECTO)
+        lineas, avisos = _recopilar_lineas(store)
+    except Exception as exc:  # noqa: BLE001
+        return f"ERROR al leer tus facturas registradas: {exc}"
+    if not lineas:
+        return (
+            "No tienes facturas registradas todavía. Regístralas (las emitidas y las recibidas) y te "
+            "calculo el 303 con datos REALES, no estimados."
+        )
+    n_emit = sum(1 for ln in lineas if ln.sentido == "devengado")
+    n_rec = sum(1 for ln in lineas if ln.sentido == "soportado")
+    res = calcular_303(lineas)
+    cab = (
+        f"303 calculado desde {len(lineas)} factura(s) registrada(s) "
+        f"({n_emit} emitidas, {n_rec} recibidas) — datos reales, no estimados.\n\n"
+    )
+    out = cab + borrador_303_texto(res, periodo or "periodo actual")
+    if avisos:
+        out += "\n\nAVISOS de las facturas:\n" + "\n".join(f"  - {a}" for a in avisos)
+    return out
+
+
+tool_registry.register(
+    ToolDefinition(
+        name="calcular_303_registradas",
+        description=(
+            "Calcula el BORRADOR del 303 (IVA del trimestre) desde las facturas que YA tienes "
+            "registradas (datos reales, deterministas). PREFIÉRELA sobre calcular_303 cuando el "
+            "usuario tenga facturas registradas: no hay que dictar cifras a mano ni arriesgar errores. "
+            "Si no hay facturas registradas, lo dice y pide registrarlas."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "periodo": {"type": "string", "description": "Periodo, p.ej. '2T 2026'."},
+            },
+        },
+        fn=_calcular_303_registradas,
+        category="base",
+    )
+)
 
 
 tool_registry.register(

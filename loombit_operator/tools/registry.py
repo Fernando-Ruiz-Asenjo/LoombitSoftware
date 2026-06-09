@@ -186,7 +186,7 @@ TOOL_GROUPS: list[tuple[tuple[str, ...], set[str]]] = [
             "soportado",
             "repercutido",
         ),
-        {"calcular_303", "read_invoice"},
+        {"calcular_303", "calcular_303_registradas", "read_invoice"},
     ),
     (
         (

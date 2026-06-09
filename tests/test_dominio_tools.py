@@ -26,6 +26,49 @@ def test_registrar_factura_registrada_y_enrutada():
     assert "registrar_factura" in select_tool_names("emite una factura a un cliente")
 
 
+def test_303_desde_registradas_sin_facturas_abstiene():
+    import shutil
+
+    from loombit_operator.config import get_settings
+    from loombit_operator.tools import dominio
+
+    ent = "_test_303_vacia"
+    base = get_settings().entities_dir / ent
+    shutil.rmtree(base, ignore_errors=True)
+    orig = dominio._ENTIDAD_DEFECTO
+    dominio._ENTIDAD_DEFECTO = ent
+    try:
+        out = dominio._calcular_303_registradas()
+        assert "No tienes facturas registradas" in out
+    finally:
+        dominio._ENTIDAD_DEFECTO = orig
+        shutil.rmtree(base, ignore_errors=True)
+
+
+def test_303_desde_registradas_calcula_con_datos_reales():
+    import shutil
+
+    from loombit_operator.config import get_settings
+    from loombit_operator.tools import dominio
+
+    ent = "_test_303_real"
+    base = get_settings().entities_dir / ent
+    shutil.rmtree(base, ignore_errors=True)
+    orig = dominio._ENTIDAD_DEFECTO
+    dominio._ENTIDAD_DEFECTO = ent
+    try:
+        dominio._registrar_factura(contraparte="Cliente A", base=1000, tipo=21, sentido="emitida")
+        dominio._registrar_factura(contraparte="Proveedor B", base=200, tipo=21, sentido="recibida")
+        out = dominio._calcular_303_registradas("2T 2026")
+        assert "2 factura" in out  # cita las facturas usadas
+        assert "210" in out  # IVA devengado 1000@21
+        assert "42" in out  # IVA deducible 200@21
+        assert "168" in out  # resultado 210-42 a ingresar
+    finally:
+        dominio._ENTIDAD_DEFECTO = orig
+        shutil.rmtree(base, ignore_errors=True)
+
+
 def test_travel_task_alcanza_el_pilot():
     # El motor de viajes es el Pilot: la petición de vuelos debe darle manos de navegador.
     names = select_tool_names("búscame vuelos a Londres y un hotel para Marta")
