@@ -222,3 +222,22 @@ def export_dossier(store: ExpedienteStore, expediente_id: str, *, log_event: boo
             expediente_id, "entregable_exportado", {"sha256": sha256, "bytes": recibo["bytes"]}
         )
     return html_path
+
+
+def listar_exportables(store: ExpedienteStore) -> list[dict[str, Any]]:
+    """Lista los expedientes de la entidad con lo justo para ofrecer su dossier: id, estado,
+    integridad de la cadena y URL de descarga. Permite a una UI/consumidor descubrir qué se puede
+    entregar sin tener que conocer de antemano los identificadores."""
+    return [
+        {
+            "id": exp.id,
+            "kind": exp.kind,
+            "title": exp.title,
+            "status": exp.status.value,
+            "created_at": exp.created_at,
+            "updated_at": exp.updated_at,
+            "chain_ok": store.verify_chain(exp.id),
+            "dossier_url": f"/entregable/{store.entity_id}/{exp.id}",
+        }
+        for exp in store.list()
+    ]

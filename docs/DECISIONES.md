@@ -378,4 +378,18 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
 - *Reversible:* sí; módulo + router + test nuevos y 3 líneas en `main.py`. Verificado en vivo (recibo
   con `chain_ok=true`); suite verde (+11 tests), black + ruff OK. Cierra el #1 robable del radar Descartes.
 
+**D-49 — Entregable autosuficiente + enganche en el cierre (sin tocar la UI).**
+- *Contexto:* el dossier (D-48) ya estaba en main, pero no había forma de descubrir QUÉ expedientes
+  hay (no existe panel de expedientes en la UI; la conciliación es API-only) y el otro agente podía
+  estar tocando `index.html` a la vez.
+- *Elegido:* (a) `GET /entregable/{entity_id}` que lista expedientes exportables con `chain_ok` y
+  `dossier_url`; (b) inyectar `dossier_url` en la respuesta de `aprobar_conciliacion` (cierre con
+  traza íntegra = momento de valor, anticipa sin pedir). Cero cambios en la UI.
+- *Alternativas descartadas:* construir un panel de expedientes en `static/index.html` (2552 líneas,
+  riesgo de colisión con el agente concurrente) → aplazado a un paso deliberado; la API ya deja la
+  UI a un fetch de distancia.
+- *Por qué:* hace el entregable usable de extremo a extremo por cualquier consumidor sin acoplar al
+  HTML. *Reversible:* sí; +1 helper, +1 endpoint, +1 línea en conciliación, +3 tests. Worktree
+  aislado (ver memoria de concurrencia), FF a main.
+
 *(se irán añadiendo entradas según avance el bloque)*

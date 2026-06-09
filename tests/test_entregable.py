@@ -13,7 +13,12 @@ import sqlite3
 import pytest
 from fastapi.testclient import TestClient
 
-from loombit_operator.entregable import build_dossier, export_dossier, render_dossier_html
+from loombit_operator.entregable import (
+    build_dossier,
+    export_dossier,
+    listar_exportables,
+    render_dossier_html,
+)
 from loombit_operator.expedientes import ExpedienteStatus, ExpedienteStore
 from loombit_operator.main import app
 from loombit_operator.routers import entregable as entregable_router
@@ -110,6 +115,19 @@ def test_export_escribe_html_y_recibo(tmp_path):
     assert "entregable_exportado" in [e.kind for e in s.events(exp.id)]
 
 
+def test_listar_exportables(tmp_path):
+    s = _store(tmp_path)
+    e1 = s.create("fiscal_303", "Uno")
+    e2 = s.create("conciliacion_bancaria", "Dos")
+    items = listar_exportables(s)
+    ids = {i["id"] for i in items}
+    assert {e1.id, e2.id} == ids
+    por_id = {i["id"]: i for i in items}
+    assert por_id[e1.id]["title"] == "Uno"
+    assert por_id[e1.id]["chain_ok"] is True
+    assert por_id[e1.id]["dossier_url"] == f"/entregable/acme/{e1.id}"
+
+
 def test_export_sin_log_no_anade_evento(tmp_path):
     s = _store(tmp_path)
     exp = s.create("k", "t")
@@ -156,6 +174,20 @@ def test_router_export_persiste(store_aislado):
     body = r.json()
     assert body["ok"] is True
     assert body["path"].endswith(".html")
+
+
+def test_router_lista_expedientes(store_aislado):
+    s = ExpedienteStore(entity_id="acme", base_dir=store_aislado)
+    e1 = s.create("k", "Uno", {"x": 1})
+    client = TestClient(app)
+    r = client.get("/entregable/acme")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["entity_id"] == "acme"
+    assert body["count"] == 1
+    item = body["expedientes"][0]
+    assert item["id"] == e1.id
+    assert item["dossier_url"] == f"/entregable/acme/{e1.id}"
 
 
 def test_router_404_si_no_existe(store_aislado):

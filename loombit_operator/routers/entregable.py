@@ -1,6 +1,7 @@
 """
 routers/entregable.py — descarga del **entregable autónomo** de un expediente.
 
+- GET  /entregable/{entity_id}                        → lista los expedientes exportables (descubrir).
 - GET  /entregable/{entity_id}/{expediente_id}        → dossier HTML autónomo (descarga por defecto;
                                                          `?descargar=false` para verlo inline).
 - POST /entregable/{entity_id}/{expediente_id}/export → lo persiste en disco + recibo auditable.
@@ -16,10 +17,21 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 
-from ..entregable import build_dossier, export_dossier
+from ..entregable import build_dossier, export_dossier, listar_exportables
 from ..expedientes import ExpedienteNotFoundError, ExpedienteStore
 
 router = APIRouter(prefix="/entregable", tags=["entregable"])
+
+
+@router.get("/{entity_id}")
+def listar_entregables(entity_id: str) -> dict[str, Any]:
+    """Lista los expedientes exportables de la entidad (para descubrir qué dossiers hay)."""
+    try:
+        store = ExpedienteStore(entity_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    items = listar_exportables(store)
+    return {"entity_id": entity_id, "count": len(items), "expedientes": items}
 
 
 @router.get("/{entity_id}/{expediente_id}")
