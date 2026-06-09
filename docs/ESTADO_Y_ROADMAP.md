@@ -3,11 +3,23 @@
 > Documento vivo. Honestidad obligatoria (`DEFINITION_OF_DONE.md`): 🟢 = funciona
 > contra el servicio/realidad con recibo; 🟡 = código completo + tests (sin piloto
 > real); 🟠 = parcial; ⬜ = pendiente; 🔴 = bloqueado.
-> Actualizado: 2026-06-08.
+> Actualizado: 2026-06-09.
 
 ## Foto global
 - **Repo**: limpio y profesional, historial sano, LICENSE propietaria, `.gitignore`/`.gitattributes`.
-- **CI**: verde (black + ruff + pytest). **204 tests**.
+- **CI**: verde (black + ruff + pytest). **471 tests**.
+
+## Lo construido (2026-06-09 — Fábrica al 100 % + P1 RAG)
+Ver `DECISIONES.md` D-42…D-45 (todo 🟢 verificado EN VIVO en :8787).
+- **Chat de la Fábrica con COGNICIÓN** (D-42): el 14B entiende la intención (no regex) y conversa
+  con el estado real; **fast-path** determinista para comandos obvios (0,6 s, sin LLM) + multi-turno.
+- **GEPA REAL** (D-43): optimiza el prompt del agente reflexionando sobre trazas y **validándolo con
+  un eval de comportamiento F1-F8**; propone diff+scores con gate, nunca escribe. Recibo: el prompt
+  actual puntúa 80 % (4/5) contra el 14B real; GEPA se abstiene honestamente si no mejora sin regresión.
+- **UX de la Sala** (D-44): visor del código + arnés de la propuesta antes de aprobar, panel GEPA con
+  diff coloreado, chat con chips/escritura/markdown. 0 errores de consola.
+- **P1 · RAG / índice semántico LOCAL** (D-45): embeddings nomic locales; reindexó 54 docs reales a
+  768 dims; búsqueda por significado; tool `memory_search` para el agente. **Fundamento del roadmap P1.**
 - **Arquitectura**: núcleo blanco + skills + ReAct; FastAPI en `:8787`; LLM local (instructor **Qwen2.5-14B**, coder 7B, vía LM Studio). Ver `MODELOS_LOOMBIT.md`.
 
 ## Avance por fases

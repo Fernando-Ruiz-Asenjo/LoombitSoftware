@@ -91,6 +91,7 @@ from .routers import (  # noqa: E402
     home,
     mcp,
     pilot,
+    rag,
     routines,
     skill_blanca_actions,
     skill_blanca_oauth,
@@ -185,6 +186,7 @@ app.include_router(credentials.router)
 app.include_router(mcp.router)
 app.include_router(telar.router)
 app.include_router(fabrica.router)
+app.include_router(rag.router)
 
 # UI estatico y home
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

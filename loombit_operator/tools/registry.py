@@ -68,6 +68,25 @@ TOOL_GROUPS: list[tuple[tuple[str, ...], set[str]]] = [
     ),
     (
         (
+            "histórico",
+            "historico",
+            "historial",
+            "recuerda",
+            "recuerdas",
+            "ya hice",
+            "ya hicimos",
+            "la última vez",
+            "la ultima vez",
+            "parecido",
+            "similar",
+            "anteriormente",
+            "qué sé de",
+            "que se de",
+        ),
+        {"memory_search", "gmail_search"},
+    ),
+    (
+        (
             "resumen",
             "resúmeme",
             "resumeme",

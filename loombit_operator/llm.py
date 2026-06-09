@@ -154,6 +154,17 @@ class LLMClient:
     ) -> dict[str, Any]:
         return self.chat(messages, temperature=temperature, max_tokens=max_tokens).raw
 
+    def embed(self, texts: list[str], model: str | None = None) -> list[list[float]]:
+        """Vectoriza textos con el modelo de embeddings local (RAG). Mismo endpoint OpenAI-like.
+        Devuelve un vector por texto, en el mismo orden."""
+        if self.provider == "disabled":
+            raise RuntimeError("LLM provider is disabled")
+        payload = {"model": model or self.settings.llm_embeddings_model_name, "input": texts}
+        response = self.client.post(self._url("/embeddings"), json=payload)
+        response.raise_for_status()
+        data = response.json().get("data", [])
+        return [list(item.get("embedding", [])) for item in data]
+
     def _url(self, path: str) -> str:
         return f"{self.base_url.rstrip('/')}/{path.lstrip('/')}"
 

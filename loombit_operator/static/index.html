@@ -595,6 +595,48 @@ a { color: inherit; text-decoration: none; }
   border-radius: 999px; padding: 9px 14px; color: var(--lb-text); font-size: 13px; outline: none; }
 #fb-chat-input button { background: var(--lb-purple,#8b5cf6); color: #fff; border: none;
   border-radius: 999px; padding: 0 18px; font-weight: 600; cursor: pointer; }
+/* Chips de arranque del chat (acierta, no preguntes: ofrece lo que puede hacer) */
+.fb-chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 16px 0; }
+.fb-chip { background: var(--lb-navy3,#1a2235); border: 1px solid var(--lb-border2,#334155);
+  color: var(--lb-text2,#94a3b8); border-radius: 999px; padding: 4px 11px; font-size: 11.5px;
+  cursor: pointer; transition: all .12s; }
+.fb-chip:hover { border-color: var(--lb-purple,#8b5cf6); color: var(--lb-text); }
+/* Datos estructurados dentro de una burbuja del chat */
+.fb-dcard { background: var(--lb-navy,#0a0e1a); border: 1px solid var(--lb-border); border-radius: 9px;
+  padding: 7px 10px; margin-top: 6px; font-size: 12px; }
+.fb-dcard .dt { font-weight: 600; color: var(--lb-text); }
+.fb-dcard .dm { color: var(--lb-text3,#64748b); font-size: 11px; margin-top: 2px; }
+.fb-dchip { display: inline-block; margin: 5px 5px 0 0; border-radius: 999px; padding: 3px 10px;
+  font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid var(--lb-purple,#8b5cf6);
+  background: var(--lb-purple-dim,#2d1f5e); color: #fff; }
+.fb-typing { display: inline-flex; gap: 3px; align-items: center; }
+.fb-typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--lb-text3,#64748b);
+  animation: fbblink 1.2s infinite both; }
+.fb-typing i:nth-child(2){ animation-delay:.2s } .fb-typing i:nth-child(3){ animation-delay:.4s }
+@keyframes fbblink { 0%,80%,100%{opacity:.25} 40%{opacity:1} }
+/* Modal reutilizable: visor de código de propuesta + resultado de GEPA */
+#fb-modal { position: absolute; inset: 0; z-index: 40; display: none; background: rgba(5,8,15,0.66);
+  backdrop-filter: blur(3px); align-items: center; justify-content: center; padding: 4vh 16px; }
+#fb-modal.open { display: flex; }
+.fb-modal-box { width: min(820px, 96%); max-height: 92%; display: flex; flex-direction: column;
+  background: var(--lb-navy2,#111827); border: 1px solid var(--lb-border2,#334155);
+  border-radius: 14px; box-shadow: 0 24px 70px rgba(0,0,0,.6); overflow: hidden; }
+.fb-modal-head { display: flex; align-items: center; gap: 10px; padding: 13px 16px;
+  border-bottom: 1px solid var(--lb-border); font-weight: 700; font-size: 14px; }
+.fb-modal-head .x { margin-left: auto; cursor: pointer; color: var(--lb-text2); font-size: 18px; border: none; background: none; }
+.fb-modal-body { padding: 14px 16px; overflow: auto; font-size: 13px; }
+.fb-modal-foot { padding: 11px 16px; border-top: 1px solid var(--lb-border); display: flex; gap: 8px; justify-content: flex-end; }
+.fb-gate { display: flex; gap: 8px; align-items: baseline; padding: 3px 0; font-size: 12px; border-bottom: 1px dashed var(--lb-border); }
+.fb-gate .g-ok { color: var(--lb-green,#22c55e); } .fb-gate .g-no { color: var(--lb-red,#ef4444); }
+.fb-gate .g-n { font-weight: 600; min-width: 130px; }
+pre.fb-code { background: var(--lb-navy,#0a0e1a); border: 1px solid var(--lb-border); border-radius: 9px;
+  padding: 12px; overflow: auto; font-family: var(--font-mono,monospace); font-size: 12px; line-height: 1.45;
+  white-space: pre; color: var(--lb-text); max-height: 46vh; }
+.fb-diff { font-family: var(--font-mono,monospace); font-size: 12px; line-height: 1.5; white-space: pre-wrap; }
+.fb-diff .add { color: var(--lb-green,#22c55e); } .fb-diff .del { color: var(--lb-red,#ef4444); }
+.fb-diff .hdr { color: var(--lb-text3,#64748b); }
+.fb-scorebar { display: flex; gap: 14px; align-items: center; margin-bottom: 10px; font-size: 13px; }
+.fb-scorebar b { font-size: 17px; }
 #galaxia-bar {
   display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
   padding: 10px 16px; border-bottom: 1px solid var(--lb-border);
@@ -873,6 +915,7 @@ a { color: inherit; text-decoration: none; }
   <div id="fabrica-bar">
     <div class="fb-title">🏭 Sala de la Fábrica <small>· auto-mejora gobernada</small></div>
     <div class="fb-kpis" id="fb-kpis"></div>
+    <button class="fb-btn" id="fb-gepa-btn" onclick="fabRunGepa()" title="GEPA: optimiza el prompt del agente reflexionando sobre trazas y validándolo con evals (propone un diff, no escribe)">🧬 GEPA</button>
     <button class="fb-btn" id="fb-ciclo-btn" onclick="fabRunCiclo()">Correr ciclo</button>
     <button class="fb-btn ghost" onclick="fabLoad()" title="Refrescar">↻</button>
     <button class="fb-exit" onclick="closeFabrica()">Salir ✕</button>
@@ -895,12 +938,29 @@ a { color: inherit; text-decoration: none; }
     </div>
     <div id="fb-chat">
       <div id="fb-chat-log"></div>
+      <div class="fb-chips" id="fb-chips">
+        <button class="fb-chip" onclick="fabChip('¿Cómo vamos?')">Estado</button>
+        <button class="fb-chip" onclick="fabChip('Salud del código')">Salud del código</button>
+        <button class="fb-chip" onclick="fabChip('Optimiza el prompt del agente')">🧬 Optimiza el prompt</button>
+        <button class="fb-chip" onclick="fabChip('¿Qué vías de monetización ves?')">Monetización</button>
+        <button class="fb-chip" onclick="fabChip('¿Qué eres y qué puedes hacer?')">¿Qué eres?</button>
+      </div>
       <div id="fb-chat-input">
         <input id="fb-chat-text" autocomplete="off"
-          placeholder="Habla con la Fábrica: estado · busca &lt;tema&gt; · propón una tool para… · monetización · corre un ciclo"
+          placeholder="Habla con la Fábrica en lenguaje natural — te entiendo aunque no uses la palabra exacta"
           onkeydown="if(event.key==='Enter')fabChatSend()">
         <button onclick="fabChatSend()">Enviar</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal reutilizable: visor de código de propuesta (el gate ve lo que aprueba) + resultado de GEPA -->
+  <div id="fb-modal" onclick="if(event.target===this)fabModalClose()">
+    <div class="fb-modal-box">
+      <div class="fb-modal-head"><span id="fb-modal-title">Detalle</span>
+        <button class="x" onclick="fabModalClose()">✕</button></div>
+      <div class="fb-modal-body" id="fb-modal-body"></div>
+      <div class="fb-modal-foot" id="fb-modal-foot"></div>
     </div>
   </div>
 </div>
@@ -1685,11 +1745,11 @@ function gxMix(a, b, t) { // interpola dos colores hex
 const GX_ESTADO_COLOR = { vencida:'#ef4444', proxima:'#f59e0b', pendiente:'#64748b' };
 
 /* ── Sala de la Fábrica (auto-mejora gobernada) ───────────────────────────── */
-let _fabBusy = false, _fabOps = [], _fabSalud = [];
+let _fabBusy = false, _fabOps = [], _fabSalud = [], _fabHist = [], _fabGepa = null;
 async function openFabrica() {
   document.getElementById('fabrica-view').classList.add('open');
   if (!document.getElementById('fb-chat-log').children.length)
-    fabChatAdd('a', 'Soy la Fábrica. Pídeme «estado», «busca <tema>» (competencia/mercado), «propón una tool para…», «salud del código», «monetización» o «corre un ciclo».');
+    fabChatAdd('a', 'Soy la **Fábrica**: el motor de auto-mejora gobernada. Háblame en lenguaje natural — te entiendo aunque no uses la palabra exacta. Puedo mirar la competencia, proponer tools (con tu gate), cuidar la salud del código y **optimizar el prompt del agente** (GEPA). ¿Por dónde empezamos?');
   fabLoad();
 }
 function closeFabrica() { document.getElementById('fabrica-view').classList.remove('open'); }
@@ -1724,7 +1784,7 @@ function fabRenderPropuestas(d) {
   if (!props.length) { el.innerHTML = '<div class="fb-card meta">Sin propuestas pendientes. Pide «propón una tool para…» o «corre un ciclo».</div>'; return; }
   el.innerHTML = props.map(p => `<div class="fb-card"><div class="t">🔧 ${esc(p.tool || '')}</div>`
     + `<div class="meta">${esc(p.necesidad || '')}</div>`
-    + `<div class="acts"><button class="fb-mini fb-ok" onclick="fabAprobar('${p.id}')">Aprobar</button>`
+    + `<div class="acts"><button class="fb-mini fb-ok" onclick="fabVerPropuesta('${p.id}')">👁 Ver y aprobar</button>`
     + `<button class="fb-mini fb-no" onclick="fabDescartar('${p.id}')">Descartar</button></div></div>`).join('');
 }
 function fabRenderOportunidades(d) {
@@ -1771,21 +1831,105 @@ async function fabRunCiclo() {
   fabLoad();
 }
 
-function fabChatAdd(role, text) {
+function fabChatAdd(role, text, asHtml) {
   const log = document.getElementById('fb-chat-log');
   const d = document.createElement('div'); d.className = 'fb-msg ' + (role === 'u' ? 'u' : 'a');
-  d.innerHTML = `<span class="b">${esc(text)}</span>`; log.appendChild(d); log.scrollTop = log.scrollHeight;
+  d.innerHTML = `<span class="b">${asHtml ? text : inlineFmt(text)}</span>`;
+  log.appendChild(d); log.scrollTop = log.scrollHeight;
+  if (text && !asHtml) _fabHist.push({ role: role === 'u' ? 'user' : 'assistant', text: String(text) });
+  return d;
 }
+function fabChip(t) { const inp = document.getElementById('fb-chat-text'); inp.value = t; fabChatSend(); }
 async function fabChatSend() {
   const inp = document.getElementById('fb-chat-text'); const t = inp.value.trim();
-  if (!t || _fabBusy) return; inp.value = ''; fabChatAdd('u', t);
-  _fabBusy = true; fabChatAdd('a', '…');
-  const res = await fabPost('/fabrica/chat', { mensaje: t });
-  const log = document.getElementById('fb-chat-log');
-  if (log.lastChild && log.lastChild.textContent === '…') log.removeChild(log.lastChild);
+  if (!t || _fabBusy) return; inp.value = '';
+  const hist = _fabHist.slice(-8);                 // contexto multi-turno (antes del mensaje actual)
+  fabChatAdd('u', t);
+  _fabBusy = true;
+  const typing = fabChatAdd('a', '<span class="fb-typing"><i></i><i></i><i></i></span>', true);
+  const res = await fabPost('/fabrica/chat', { mensaje: t, historial: hist });
+  if (typing && typing.parentNode) typing.parentNode.removeChild(typing);
   _fabBusy = false;
-  if (res) { fabChatAdd('a', res.respuesta || '(sin respuesta)'); fabLoad(); }
-  else fabChatAdd('a', 'No pude conectar con la Fábrica.');
+  if (!res) { fabChatAdd('a', 'No pude conectar con la Fábrica.'); return; }
+  fabChatAdd('a', res.respuesta || '(sin respuesta)');
+  fabRenderChatData(res);
+  fabLoad();
+}
+// Datos accionables dentro del chat (las columnas también se refrescan vía fabLoad).
+function fabRenderChatData(res) {
+  if (res.accion === 'gepa' && res.datos) {
+    _fabGepa = res.datos;
+    if (res.datos.diff)
+      fabChatAdd('a', `<button class="fb-dchip" onclick="fabShowGepa()">🔬 Ver diff y scores</button>`, true);
+  }
+}
+
+/* ── Modal reutilizable ───────────────────────────────────────────────────── */
+function fabModalOpen(title, body, foot) {
+  document.getElementById('fb-modal-title').textContent = title;
+  document.getElementById('fb-modal-body').innerHTML = body || '';
+  document.getElementById('fb-modal-foot').innerHTML = foot || '';
+  document.getElementById('fb-modal').classList.add('open');
+}
+function fabModalClose() { document.getElementById('fb-modal').classList.remove('open'); }
+
+/* ── Visor de propuesta: el gate humano VE el código y el arnés antes de aprobar ─ */
+async function fabVerPropuesta(id) {
+  fabModalOpen('Propuesta de tool', '<span class="fb-typing"><i></i><i></i><i></i></span>', '');
+  const p = await fabGet(`/fabrica/propuestas/${id}`);
+  if (!p || !p.borrador) { document.getElementById('fb-modal-body').innerHTML = 'No se pudo cargar la propuesta.'; return; }
+  const puertas = (p.veredicto && p.veredicto.puertas) || {};
+  const gates = Object.entries(puertas).map(([n, g]) =>
+    `<div class="fb-gate"><span class="g-n">${esc(n)}</span>`
+    + `<span class="${g.ok ? 'g-ok' : 'g-no'}">${g.ok ? '✓' : '✗'}</span>`
+    + `<span>${esc(g.detalle || '')}</span></div>`).join('') || '<div class="dm">Sin veredicto.</div>';
+  const veredictoOk = p.veredicto && p.veredicto.ok;
+  document.getElementById('fb-modal-title').textContent = '🔧 ' + (p.borrador.nombre || 'Propuesta');
+  document.getElementById('fb-modal-body').innerHTML =
+      `<div class="fb-dcard"><div class="dt">${esc(p.borrador.nombre || '')}</div>`
+    + `<div class="dm">${esc(p.borrador.descripcion || '')}</div></div>`
+    + `<div class="dm" style="margin:8px 0 2px">Necesidad: ${esc((p.necesidad && p.necesidad.titulo) || '')}</div>`
+    + `<p style="margin:14px 0 4px;font-weight:600">Arnés de validación — ${veredictoOk ? '<span style="color:var(--lb-green,#22c55e)">todas las puertas en verde</span>' : '<span style="color:var(--lb-red,#ef4444)">falla alguna puerta</span>'}</p>${gates}`
+    + `<p style="margin:14px 0 4px;font-weight:600">Código (en cuarentena, sin registrar)</p>`
+    + `<pre class="fb-code">${esc(p.borrador.source || '(sin código)')}</pre>`
+    + (p.borrador.eval_source ? `<p style="margin:12px 0 4px;font-weight:600">Su eval determinista</p><pre class="fb-code">${esc(p.borrador.eval_source)}</pre>` : '');
+  document.getElementById('fb-modal-foot').innerHTML =
+      `<span style="margin-right:auto;color:var(--lb-text3);font-size:11.5px">Aprobar = materializar y registrar la tool en vivo.</span>`
+    + `<button class="fb-mini fb-no" onclick="fabDescartar('${id}');fabModalClose()">Descartar</button>`
+    + (veredictoOk ? `<button class="fb-mini fb-ok" onclick="fabAprobar('${id}');fabModalClose()">Aprobar y registrar</button>` : '');
+}
+
+/* ── GEPA: optimización del prompt del agente (propone diff, no escribe) ─────── */
+async function fabRunGepa() {
+  if (_fabBusy) { fabChatAdd('a', '⏳ Estoy con otra acción, espera unos segundos…'); return; }
+  _fabBusy = true; const b = document.getElementById('fb-gepa-btn'); const o = b.textContent; b.textContent = 'Optimizando…';
+  fabChatAdd('a', '🧬 GEPA: reflexiono sobre las trazas y valido el prompt del agente contra los escenarios de comportamiento (F1-F8). Tarda — el 14B evalúa varias veces.');
+  const res = await fabPost('/fabrica/gepa', {});
+  b.textContent = o; _fabBusy = false;
+  if (!res) { fabChatAdd('a', 'No pude correr GEPA (¿está LM Studio arriba?).'); return; }
+  _fabGepa = res;
+  fabChatAdd('a', res.resumen || 'GEPA sin resultado.');
+  if (res.diff) fabShowGepa();
+}
+function fabShowGepa() {
+  const d = _fabGepa; if (!d) return;
+  const pct = x => Math.round((x || 0) * 100);
+  const sb = `<div class="fb-scorebar">Escenarios de comportamiento: `
+    + `<span>antes <b>${pct(d.base_score)}%</b></span> → `
+    + `<span>después <b style="color:var(--lb-green,#22c55e)">${pct(d.mejor_score)}%</b></span>`
+    + (d.fijados && d.fijados.length ? ` &nbsp;·&nbsp; fija: ${esc(d.fijados.join(', '))}` : '') + `</div>`;
+  const diff = d.diff ? `<div class="fb-diff">${fabDiffHtml(d.diff)}</div>` : '<p class="dm">No se propuso ningún cambio (mejor no tocar que empeorar).</p>';
+  fabModalOpen('🧬 GEPA — propuesta de prompt (validada con evals)', sb + diff,
+      `<span style="margin-right:auto;color:var(--lb-text3);font-size:11.5px">No he escrito nada: aplica el diff en agent/prompts.py (_BASE_PROMPT) en una rama.</span>`
+    + `<button class="fb-mini" onclick="fabModalClose()">Cerrar</button>`);
+}
+function fabDiffHtml(diff) {
+  return esc(diff).split('\n').map(l => {
+    if (l.startsWith('@@') || l.startsWith('---') || l.startsWith('+++')) return `<span class="hdr">${l}</span>`;
+    if (l.startsWith('+')) return `<span class="add">${l}</span>`;
+    if (l.startsWith('-')) return `<span class="del">${l}</span>`;
+    return l;
+  }).join('\n');
 }
 
 async function fabInvestigar(idx) {

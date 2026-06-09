@@ -39,6 +39,10 @@ class AppSettings(BaseSettings):
     llm_coder_base_url: str = ""
     llm_coder_model_name: str = "qwen2.5-coder-7b-instruct"
 
+    # Embeddings (RAG / índice semántico local) — mismo endpoint OpenAI-like, modelo de embeddings.
+    llm_embeddings_model_name: str = "text-embedding-nomic-embed-text-v1.5"
+    rag_index_path: Path = Path("runtime/local/rag_index.json")
+
     # ── Almacenamiento local ──────────────────────────────────────────────────
     lm_job_store_path: Path = Path("runtime/local/lm_jobs.json")
     agent_run_store_path: Path = Path("runtime/local/agent_runs.json")

@@ -121,12 +121,35 @@ def proponer_reparacion(
 
 
 @router.post("/chat")
-def chat_fabrica(mensaje: str = Body(..., embed=True)) -> dict[str, Any]:
-    """Habla con la Fábrica en lenguaje natural: estado, busca en la Red, propón una tool, salud del
-    código, monetización, corre un ciclo… Es el canal de la Sala de la Fábrica."""
+def chat_fabrica(
+    mensaje: str = Body(..., embed=True),
+    historial: list[dict[str, Any]] = Body(default=[], embed=True),
+) -> dict[str, Any]:
+    """Habla con la Fábrica en lenguaje natural. El 14B ENTIENDE la intención (no depende de palabras
+    clave) y conversa fundamentándose en el estado real; con red de seguridad determinista si el modelo
+    no responde. `historial` (opcional) da contexto multi-turno. Canal de la Sala de la Fábrica."""
     from ..fabrica.chat import responder
 
-    return responder(mensaje)
+    return responder(mensaje, historial=historial)
+
+
+@router.post("/gepa")
+def correr_gepa(max_intentos: int = Body(2, embed=True)) -> dict[str, Any]:
+    """GEPA real: reflexiona sobre trazas + escenarios fallados y propone una EDICIÓN del prompt del
+    agente, VALIDADA contra el eval de comportamiento (F1-F8). Devuelve diff + scores. NO escribe nada:
+    el humano lo aplica en una rama (gate sagrado · andamiaje, no pesos). Necesita el 14B (lento).
+    """
+    from ..fabrica.gepa import optimizar_prompt
+
+    return optimizar_prompt(max_intentos=max_intentos)
+
+
+@router.get("/gepa")
+def gepa_ultimo() -> dict[str, Any]:
+    """Último resultado de GEPA guardado (para pintarlo en la Sala sin volver a correr el modelo)."""
+    from ..fabrica.gepa import ultimo_resultado
+
+    return ultimo_resultado() or {"ok": False, "resumen": "GEPA aún no se ha corrido."}
 
 
 @router.get("/estrategia")

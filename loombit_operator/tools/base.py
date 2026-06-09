@@ -206,6 +206,64 @@ tool_registry.register(
     )
 )
 
+
+def _memory_search(query: str, k: int = 5) -> str:
+    """Busca por SIGNIFICADO en el histórico (ejecuciones, lecciones, empresas, contactos)."""
+    import json as _json
+
+    try:
+        from ..rag import get_index
+
+        res = get_index().search(query, k=max(1, min(int(k), 10)))
+    except (
+        Exception
+    ) as exc:  # noqa: BLE001 — best-effort; sin modelo de embeddings informa el error
+        return _json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False)
+    if not res:
+        return _json.dumps(
+            {
+                "ok": True,
+                "resultados": [],
+                "nota": "sin coincidencias (¿índice vacío? POST /rag/reindexar)",
+            },
+            ensure_ascii=False,
+        )
+    return _json.dumps(
+        {
+            "ok": True,
+            "resultados": [
+                {
+                    "texto": r["text"][:240],
+                    "fuente": r["meta"].get("fuente", ""),
+                    "score": r["score"],
+                }
+                for r in res
+            ],
+        },
+        ensure_ascii=False,
+    )
+
+
+tool_registry.register(
+    ToolDefinition(
+        name="memory_search",
+        description=(
+            "Busca por SIGNIFICADO en tu histórico (correos/tareas ya hechas, lecciones aprendidas, "
+            "empresas y contactos). Úsala para recordar algo parecido que ya pasó; no por palabra exacta."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "qué recordar, en lenguaje natural"},
+                "k": {"type": "integer", "default": 5},
+            },
+            "required": ["query"],
+        },
+        fn=_memory_search,
+        category="base",
+    )
+)
+
 tool_registry.register(
     ToolDefinition(
         name="run_shell",

@@ -45,6 +45,11 @@ HUMAN_LABELS: dict[str, tuple[str, str]] = {
     "list_directory": ("📁 Explorar carpetas", "Miro qué hay en una carpeta."),
     # — Web —
     "web_fetch": ("🌐 Consultar la web", "Leo una página web para buscarte información."),
+    # — Memoria —
+    "memory_search": (
+        "🧠 Recordar lo ya hecho",
+        "Busco en tu histórico por significado (tareas, lecciones y empresas parecidas), no por palabra exacta.",
+    ),
     # — Control de ordenador (Pilot) —
     "_desktop": (
         "🖥️ Manejar tu ordenador",
@@ -84,6 +89,7 @@ def capability_block() -> str:
         "read_file",
         "write_file",
         "web_fetch",
+        "memory_search",
         "_desktop",
     ]
     lineas = [f"  - {HUMAN_LABELS[n][0]}: {HUMAN_LABELS[n][1]}" for n in orden if n in HUMAN_LABELS]
