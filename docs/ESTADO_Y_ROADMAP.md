@@ -6,8 +6,51 @@
 > Actualizado: 2026-06-09.
 
 ## Foto global
-- **Repo**: limpio y profesional, historial sano, LICENSE propietaria, `.gitignore`/`.gitattributes`.
-- **CI**: verde (black + ruff + pytest). **471 tests**.
+- **Repo**: limpio y profesional, historial sano, LICENSE propietaria. `origin/main` = `948bf76`.
+- **CI / gate**: verde (black + ruff + pytest + evals F1-F8). **560 tests**.
+- **En vuelo**: rama `feat/ux-top-ola1` (17 commits, sin PR) — la sesión «UX TOP» (ver abajo).
+
+---
+
+## ★ DÓNDE ESTAMOS Y HACIA DÓNDE VAMOS (2026-06-09 — sesión «UX TOP»)
+
+**El NORTE (no cambia):** Loombit = el **operador administrativo privado** del autónomo/PYME español.
+Foso: **local · español · administrativo profundo**. La meta no es «otro dashboard bonito»: es que el
+autónomo lo sienta **indispensable** — que al abrir vea su día ya resuelto y que cerrarlo dé vértigo.
+
+**Qué se hizo esta sesión (UX a TOP, todo 🟢 verificado EN VIVO en el Chrome real):** auditoría profunda
+(`AUDITORIA_UX_2026-06-09.md`) + Ola 1 (cognición en la tarjeta, telar instantáneo con caché, doble saludo
+muerto, aprobación en columna con borrador visible) + Ola 2 (galaxia real, **chat copiloto** ejecutable,
+conectar Google, acciones que ejecutan de verdad) + arreglos de pruebas DURAS (jerga de tools fuera,
+volcados de código→fallback honesto) + visual (usa el ancho, jerarquía, porqué visible) + **todo botón con
+función** (⚙️ Ajustes real, «Editar»). Detalle y prioridad fusionada en `AUDITORIA_UX_2026-06-09.md`.
+
+**El diagnóstico honesto (por qué AÚN no es indispensable):** la **piel** ya está bien; lo que falla es la
+**sustancia con datos**. Probando a fondo: `/cuentas` vacío, galaxia 0 €, sin facturas → **cobros y 303 no
+tienen con qué trabajar** (F-5), y sin datos el agente **improvisa** en vez de guiar (F-6). Ese es el
+verdadero techo, no el maquillaje.
+
+**HACIA DÓNDE VAMOS (orden por valor real, no por cosmética):**
+1. **🔴 Llenar la plataforma de datos = INTAKE de facturas** (subir carpeta / leer del correo con el
+   VL local → líneas de 303 + cuentas a cobrar). Desbloquea cobros, 303 y la galaxia de golpe. **Es el
+   mayor salto de experiencia pendiente.**
+2. **🔴 Abstención honesta con salida** (F-6): sin datos, Loombit dice «no encuentro tus facturas; conéctalas»
+   y guía — nunca promete-y-no-hace ni escupe basura.
+3. **★ Fase 3 · bucle e2e de COBROS con recibo 🟢 ×5** (camino crítico, cierra la cuña 1): comprensión
+   (impago)→cobro vencido (desglose BOE)→borrador→envío con gate→conciliación. El cerebro ya está; con el
+   intake llenándolo, este lazo por fin tiene materia.
+4. **UX a paridad → promover la Tela nueva a `/`** (S4 chat ✅; faltan sidebar/historial/settings en la Tela)
+   + Ola 3 (pasos del agente en vivo, polling→eventos) + Ola 4 (⌘K, motion, responsive) + **Fábrica a
+   backstage** (no exponer el código interno al usuario, V-7).
+5. **Foso/seguridad (red-team):** frontera data≠órdenes, IBAN-swap, Origin/CSRF en `:8787`//mcp, gate de
+   lecciones. **Fábrica polish:** F5 Super Loop+Ralph, F7 auto-GEPA.
+6. **Aceptación final:** simulacro e2e haciéndome pasar por Fernando, ejercitando TODO y arreglando fallos
+   (correos solo a su dirección; borrar lo publicado).
+
+**Bloqueado en recursos de Fernando (no en código):** fiscal a 🟢 = certificado AEAT (VeriFactu) + N43 real;
+VL a 🟢 = un escaneado real; «día gestionado»/Rutas = clave de API de mapas; Jetson = hardware.
+
+---
 
 ## Lo construido (2026-06-09 — Fábrica al 100 % + P1 RAG)
 Ver `DECISIONES.md` D-42…D-45 (todo 🟢 verificado EN VIVO en :8787).
@@ -35,8 +78,8 @@ Ver `DECISIONES.md` D-42…D-45 (todo 🟢 verificado EN VIVO en :8787).
 | 0 · Fundación limpia | Repo, CI, estructura | ✅ Cerrada | — |
 | 1 · Verdad de conectores | OAuth real Google + 1 correo + 1 evento reales | ✅ **Cerrada (2026-06-08)** | Correo real (`message_id` 19ea478e791867b0) + evento real (`event_id` vmovd103mbb40u7ek3ehb5jsa0), ambos con recibo |
 | 2 · Percepción real (Morning Brief) | Brief diario con datos reales | 🟢 **Brief con datos reales** (store de cuentas a cobrar D-23 + `daily_brief` en el chat con agenda/correos/cobros D-28) | Daemon programado del brief (hoy es invocable, no aún cron diario) |
-| 3 · Bucle e2e cuña 1 (cobros) | Flujo cobros completo ×5 sin intervención | 🟠 Cerebro listo | Orquestación e2e + recibos 🟢 |
-| 4 · UI humana | Dashboard no técnico | 🟢 **Galaxia + drag-to-act** | Home + Conectar Google + **Galaxia MVP** (D-26/D-27) + **drag-to-act + pre-carga + badge** (D-31, arrastrar conversación → acción vía agente); falta: arrastrar documentos, persistir acciones locales, latido por novedad, órbitas correo/calendario/Drive |
+| 3 · Bucle e2e cuña 1 (cobros) | Flujo cobros completo ×5 sin intervención | 🟠 Cerebro listo | Orquestación e2e + recibos 🟢. **Dependía de tener datos → primero INTAKE de facturas (F-5).** |
+| 4 · UI humana | Dashboard no técnico | 🟢 **Galaxia + drag-to-act**; 🟠 **rediseño «Tela» en curso** | Galaxia MVP (D-26/27) + drag-to-act (D-31). **Sesión UX TOP (`feat/ux-top-ola1`)**: auditoría + Ola 1-2 (telar instantáneo, cognición en tarjeta, chat copiloto, galaxia real, Google, aprobación con borrador, todo botón con función) en la **Tela nueva** `/static/loombit.html`. **Falta para cerrar:** paridad (sidebar/historial/settings) → **promover a `/`**; Ola 3 (pasos del agente en vivo, polling→eventos); Ola 4 (⌘K, motion, responsive); Fábrica a backstage. Ver `AUDITORIA_UX_2026-06-09.md` + `EXPERIENCIA_LOOMBIT.md` |
 | 5 · Memoria y aprendizaje | Daemon de memoria proactiva | 🟢 **Cerrada (2026-06-09)** — memoria + RAG semántico + Reflexion + GEPA + **daemon de aprendizaje proactivo** (`aprendizaje.py`, routine `Aprendizaje`: reindexa RAG + destila lecciones, idempotente) | daemon opt-in global (`routines_daemon_enabled`); refinar grafo temporal (#6) es mejora futura |
 | 6 · Endurecimiento + navegador | Consentimiento, export, Skill Pilot navegador | ⬜ | Adaptador Playwright/CDP, contrato de coordenadas |
 | 7 · Edge / Jetson | Benchmark en Jetson Orin NX | ⬜ | Comprar hardware |
