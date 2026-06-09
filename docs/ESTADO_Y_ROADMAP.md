@@ -56,7 +56,7 @@ Ver `DECISIONES.md` D-42…D-45 (todo 🟢 verificado EN VIVO en :8787).
 | 3 | Memoria de empresa (`EntityProfile`) | 🟡 hecho (IBANs, pago, incidencias, **gate antifraude**) |
 | 4 | Inteligencia documental (facturas) | 🟡 hecho (extractor + endpoint + tool, cruce albarán) |
 | 6 | Computer Use / Pilot | 🟡 reforzado (DPI, UIA accesibilidad-primero, gates) |
-| 8 | Qwen2.5-VL (escaneados) | ⬜ pendiente (modelo descargado, **sin cablear**) |
+| 8 | Qwen2.5-VL (escaneados) | 🟡 **CABLEADO + verificado EN VIVO** (2026-06-09) — `docs_intel_vision.py` (OCR literal con el VL local) escalado desde `/docs-intel/invoice` cuando el PDF/imagen no tiene capa de texto; el extractor determinista saca las cifras y se marca `via_ocr` para verificación humana (regla nº1). Recibo: una factura imagen pasó por el VL real (`via_ocr=True`, 15 s) → `base 100 + IVA 21 = total 121` ✓, NIF/IBAN OK, `proveedor` marcado baja confianza con honestidad. Tests en `test_docs_intel_vision.py`. **Para 🟢:** un escaneado REAL de Fernando |
 | 5 | Servidor MCP | 🟢 **protocolo** / 🟡 capacidades — adaptador sobre el `tool_registry`, `POST /mcp` (Streamable HTTP) con gate server-side, verificado con el MCP Inspector real (D-29). Ver `MCP_SERVER_LOOMBIT.md` |
 | 7 | Voz (Whisper local) | ⬜ pendiente |
 | 10 | VeriFactu, grafo temporal, A2A | ⬜ futuro |
