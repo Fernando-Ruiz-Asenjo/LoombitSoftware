@@ -7,6 +7,8 @@ Si un cambio los rompe, el gate (scripts/verify.py) se pone ROJO. Son 100% CI (s
 from datetime import date
 from types import SimpleNamespace
 
+import pytest
+
 from loombit_operator import llm
 from loombit_operator.agent import smalltalk
 from loombit_operator.agent.contexto import ajustar_a_contexto
@@ -20,6 +22,7 @@ from loombit_operator.agent.loop import (
 )
 from loombit_operator.agent.memory import AgentMemory, EntityProfile
 from loombit_operator.agent.reflexion import etiquetas_de_tarea
+from loombit_operator.agent.run import AgentRun, AgentStatus, AgentStep
 from loombit_operator.comprension import _normalizar, _salvar_objetos
 from loombit_operator.tool_labels import (
     capability_block,
@@ -355,3 +358,71 @@ def test_memory_to_context_block_incluye_al_titular(tmp_path):
     mem = AgentMemory(store_path=tmp_path / "m.json")
     mem.set_owner(name="Fernando")
     assert "Fernando" in mem.to_context_block()
+
+
+# ── Máquina de estados del run (AgentRun): transiciones deterministas ─────────
+def _step(tool="x", result="ok"):
+    return AgentStep(
+        step=1,
+        tool_name=tool,
+        tool_call_id="t",
+        arguments={},
+        result=result,
+        requires_approval=False,
+    )
+
+
+def test_run_transiciones_basicas():
+    r = AgentRun(task="x")
+    assert r.status is AgentStatus.PENDING
+    r.mark_running()
+    assert r.status is AgentStatus.RUNNING
+    r.mark_completed("Listo, hecho")
+    assert r.status is AgentStatus.COMPLETED
+    assert r.result == "Listo, hecho" and r.completed_at
+
+
+def test_run_completed_sanea_codigo():
+    r = AgentRun(task="x")
+    r.mark_completed("for d in semana: print(d)")
+    assert "print(" not in r.result  # el usuario nunca ve código
+
+
+def test_run_aprobacion_y_guard_de_estado():
+    r = AgentRun(task="x")
+    r.mark_pending_approval("Enviar correo", "Para: a@b.com", "tc1")
+    assert r.status is AgentStatus.PENDING_APPROVAL
+    assert r.pending_approval["reason"] == "Enviar correo"
+    r.approve()
+    assert r.status is AgentStatus.RUNNING and r.pending_approval == {}
+    with pytest.raises(ValueError):
+        r.approve()  # ya no está en pending_approval → guard
+
+
+def test_run_pregunta_y_respuesta_con_guard():
+    r = AgentRun(task="x")
+    r.mark_pending_question("¿ruta de las facturas?", "tc1")
+    assert r.status is AgentStatus.PENDING_QUESTION
+    r.answer()
+    assert r.status is AgentStatus.RUNNING and r.pending_question == {}
+    with pytest.raises(ValueError):
+        r.answer()
+
+
+def test_run_cancel_y_max_steps():
+    r = AgentRun(task="x", max_steps=2)
+    assert r.exceeded_max_steps is False
+    r.add_step(_step())
+    r.add_step(_step())
+    assert r.exceeded_max_steps is True
+    r.cancel()
+    assert r.status is AgentStatus.CANCELLED
+
+
+def test_run_roundtrip_dict_conserva_estado():
+    r = AgentRun(task="reclamar cobro")
+    r.mark_pending_approval("Enviar", "borrador", "tc9")
+    r2 = AgentRun.from_dict(r.to_dict())
+    assert r2.task == "reclamar cobro"
+    assert r2.status is AgentStatus.PENDING_APPROVAL
+    assert r2.pending_approval["reason"] == "Enviar"
