@@ -517,8 +517,14 @@ def test_fuerza_tool_en_intenciones_consecuentes():
     assert fuerza_tool("emite una factura a un cliente de 2000 más IVA") is True
 
 
+def test_fuerza_tool_en_busqueda_de_correo():
+    # "busca en mi correo" → forzar gmail_search (no decir que buscó sin buscar)
+    assert fuerza_tool("busca en mi correo los mensajes de David") is True
+    assert fuerza_tool("búscame correos de la gestoría") is True
+
+
 def test_no_fuerza_tool_en_lecturas_ni_cortesias():
-    # leer/charlar/correo NO se fuerza (evita forzar una acción donde no toca)
+    # charlar/agenda/correo-enviar NO se fuerza (evita forzar una acción donde no toca)
     assert fuerza_tool("¿qué reuniones tengo esta semana?") is False
     assert fuerza_tool("hola, ¿qué tal?") is False
     assert fuerza_tool("hazme un resumen de hoy") is False

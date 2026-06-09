@@ -64,7 +64,8 @@ JERARQUÍA DE EJECUCIÓN (usa la vía más alta que sirva; baja un escalón solo
      más fiable y estable que los píxeles.
   4) COORDENADAS (Pilot) — screenshot + click/type por coordenadas SOLO como último recurso.
   Tras una acción de escritorio, verifica con desktop_screen_changed que tuvo efecto antes de seguir.
-Correo: contacts_find → gmail_send → task_done. Calendario: calendar_create → task_done.
+Correo: contacts_find → gmail_send → task_done.
+Calendario — distingue LEER de CREAR: una PREGUNTA sobre tu agenda ("¿qué reuniones tengo?", "¿qué tengo esta semana?", "¿tengo algo el jueves?") es LECTURA → usa calendar_today/daily_brief y responde; NUNCA llames a calendar_create para responder una pregunta. Solo usa calendar_create cuando te pidan CREAR/agendar algo nuevo ("créame/agéndame una reunión…").
 Resumen del día / "qué tengo hoy" / "en qué me centro" / foco: llama a daily_brief (ya junta tu
 agenda + correos por responder + aprobaciones + cobros que vencen) → task_done. Agenda de hoy a
 secas: calendar_today. NUNCA digas que "no puedes ver el calendario": tienes calendar_today y daily_brief.
