@@ -16,6 +16,7 @@ from typing import Any
 
 from .autoria import redactar
 from .fuentes import FuenteRegistry, registro_por_defecto
+from .higiene import higienizar
 from .modelos import EstadoPropuesta, Fuente, Necesidad, PropuestaSkill, TipoNecesidad, Veredicto
 from .oportunidades import OportunidadStore
 from .propuesta import PropuestaStore
@@ -113,7 +114,7 @@ def ejecutar_ciclo(
             {"necesidad": nec.titulo, "propuesta_id": prop.id if prop else None, **detalle}
         )
 
-    nuevos_hallazgos = store_op.registrar(hallazgos)
+    nuevos_hallazgos = store_op.registrar(higienizar(hallazgos))
 
     return {
         "fuentes": [f.value for f in (fuentes or registro.fuentes())],
