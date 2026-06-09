@@ -142,6 +142,59 @@ abstención honesta con salida**, no más maquillaje.
 
 ---
 
+## 5ter · RONDA 3 — auditoría DURA visual · estética · funcionalidad
+
+> Encargo: *«otra auditoría DURA de visual, estética, funcionalidad».* Mirando los píxeles con ojo
+> crítico en el Chrome real (1280px), no de pasada.
+
+**Home `/` (la UI diaria):**
+- **V-1 🔴 · se desperdicia ~60% del lienzo.** El contenido vive en una columna estrecha centrada
+  (~500px); bandas vacías enormes a izquierda y derecha y **todo el tercio inferior en negro** hasta el
+  input, que flota solo abajo. Se siente **a medio terminar / barato**. Un producto TOP llena el lienzo
+  con intención (2 columnas: tela + contexto/galaxia, o tela más ancha).
+- **V-2 🟠 · jerarquía plana.** Todas las filas del telar pesan igual (icono + título + subtítulo gris
+  diminuto + pill). El semáforo es solo un borde fino. Lo urgente y «lo más importante» no destacan.
+- **V-3 🟠 · botones indistinguibles.** «Ver» (leer) y «Redactar respuesta»/«Preparar borrador»
+  (efecto) son el MISMO pill degradado. No se distingue una acción inocua de una con efecto externo.
+- **V-4 🟡 · contraste/densidad.** Los subtítulos (`detalle`) son pequeños y de bajo contraste; cuesta
+  leerlos. El `porque` real (que ya calcula el backend) ni se muestra en la home (solo en la Tela nueva).
+- **V-5 🟡 · sidebar esquelético.** «Procesos diarios», «Contactos», «Cuentas a cobrar» son cabeceras
+  colapsadas sin contenido; «Historial: sin conversaciones»; mucho hueco vacío. Da sensación de vacío.
+- **V-6 🟡 · topbar críptica.** Iconos diminutos sin etiqueta apretados en la esquina (Fábrica, redactar,
+  +, ajustes): descubribilidad pobre.
+
+**Fábrica (🏭):**
+- **V-7 🔴 · expone las tripas al usuario.** La Sala de la Fábrica es una **pestaña primaria** del usuario
+  y muestra el **código fuente interno de Loombit** («Posible bug B008 en `routers/agent.py:186`»,
+  «Riesgo S112 en `agent/loop.py:608`», rutas de fichero). Un autónomo no debe ver eso: confunde, asusta
+  y rompe el principio BLANCO. Debe ser **backstage** (solo builder / tras flag), como dice §3 («se asoma
+  sola»). *Funciona bien y con datos reales — es problema de AUDIENCIA y ubicación, no de bug.*
+- (+) La Fábrica SÍ usa bien el ancho (3 columnas) — irónicamente mejor compuesta que la home.
+
+**Responsive:** no verificado (la herramienta no reflejó el redimensionado). Sospecha alta de que el
+monolito NO es responsive (sidebar de ancho fijo, layout de escritorio) → **móvil sin comprobar**, y el
+autónomo trabaja mucho desde el teléfono. Pendiente de verificar de verdad.
+
+## 5quater · PRIORIDAD FUSIONADA (todas las rondas — qué mover primero)
+
+> Fusión de la Ronda 2 (funcional) + Ronda 3 (visual). Ordenado por impacto en «se siente TOP / útil».
+
+1. **🔴 F-5 · features estrella sin datos** (intake de facturas). Sin esto, cobros/303/galaxia van vacíos.
+2. **🔴 F-6 · el agente flaquea sin datos** → abstención honesta con salida (no prometer-y-no-hacer).
+3. **🔴 V-1 · la home desperdicia el lienzo** → layout que respira y usa el ancho (o promover la Tela nueva).
+4. **🔴 V-7 · la Fábrica expone el código interno al usuario** → backstage tras flag.
+5. **🟠 V-2/V-3 · jerarquía y botones** → diferenciar urgencia y acción-con-efecto.
+6. **🟠 F-7 · «esta semana»** → tool de agenda semanal.
+7. **🟠 F-8 · spinner muerto** → mostrar los pasos en vivo.
+8. **🟠 F-9 · telar no determinista** → estabilizar.
+9. **🟡 V-4/V-5/V-6, F-10, responsive** → contraste, sidebar, topbar, optimismo, móvil.
+
+**YA ARREGLADO (verde):** F-1 jerga de tools · F-2 volcado de código · F-3 aprobación a ciegas · F-4
+acción que fingía · (Olas 1-2) doble saludo, telar instantáneo, porqué real, aprobación en columna,
+galaxia real, chat copiloto, Google, acción real.
+
+---
+
 ## 6 · La definición de TOP (el listón con el que se mide el resultado)
 
 Fernando abre Loombit a las 9:00. En **<1 s** ve su día ya tejido (no un blanco). **No escribe nada**.

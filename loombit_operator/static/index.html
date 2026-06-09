@@ -2501,11 +2501,14 @@ async function cargarTelar() {
       const col = TELAR_COLOR[h.tipo] || 'var(--lb-purple,#8b5cf6)';
       const btn = h.accion && h.accion.label
         ? `<button onclick="telarAccion(${i})" data-i="${i}" style="margin-left:auto;flex-shrink:0;background:linear-gradient(135deg,var(--lb-purple,#8b5cf6),var(--lb-cyan,#06b6d4));color:#fff;border:none;border-radius:999px;padding:5px 13px;font-size:12px;font-weight:600;cursor:pointer">${esc(h.accion.label)}</button>` : '';
+      // El PORQUÉ (cognición, ya lo calcula el backend) en acento claro; el detalle, debajo, legible.
+      const por = h.porque
+        ? `<div style="font-size:11.5px;color:var(--lb-cyan,#22d3ee);line-height:1.3;margin-top:3px">${esc(h.porque)}</div>` : '';
       const det = h.detalle
-        ? `<div style="font-size:11px;color:var(--lb-text3,#64748b);line-height:1.3;margin-top:2px">${esc(h.detalle)}</div>` : '';
+        ? `<div style="font-size:11.5px;color:var(--lb-text2,#94a3b8);line-height:1.35;margin-top:2px">${esc(h.detalle)}</div>` : '';
       return `<div class="telar-hilo" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;background:var(--lb-navy2,#111827);border-left:3px solid ${col};margin:6px 0">
         <span style="font-size:16px;align-self:flex-start;margin-top:1px">${esc(h.icono||'•')}</span>
-        <div style="flex:1;min-width:0"><div style="font-size:13px;line-height:1.35">${esc(h.titulo||'')}</div>${det}</div>${btn}</div>`;
+        <div style="flex:1;min-width:0"><div style="font-size:13px;line-height:1.35;font-weight:600">${esc(h.titulo||'')}</div>${por}${det}</div>${btn}</div>`;
     }).join('');
     panel.innerHTML = `
       <div style="background:linear-gradient(135deg,rgba(139,92,246,.14),rgba(6,182,212,.10));border:1px solid var(--lb-border2,rgba(255,255,255,.12));border-radius:16px;padding:16px 18px">
