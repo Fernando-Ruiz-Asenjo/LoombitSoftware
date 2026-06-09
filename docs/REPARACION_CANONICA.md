@@ -68,7 +68,7 @@ nunca es "🟢 100%": es "🟢 con eval ≥ umbral".
 | Familia | Doc AS‑IS | Tests golden | % verde | Estado |
 |---|---|---|---|---|
 | **Cerebro** (RC·Cerebro, instancia #1) | `ALGORITMO_CEREBRO_EXISTENTE.md` | `tests/test_cerebro_golden.py` ✅ (44) | **código 100%** | 🟢 lo DETERMINISTA blindado (smalltalk, parser tolerante, saneadores, anti-email, normalización/guards, perfil pagador, anti-bucle, estados del run, memoria, telar) + ALG-0.1/0.2. Solo el LLM queda como eval con umbral. |
-| Manos / dominio (cobro·303·factura·conciliación) | (en `ALGORITMO_CEREBRO.md` ALG‑3.x) | parcial (`test_dominio_tools.py`) | parcial | 🟠 |
+| Manos / dominio (cobro·303·factura·conciliación) | `ALGORITMO_CEREBRO.md` ALG‑3.x | `test_dominio_tools.py` (13) | alta | 🟢 cobro · 303 manual (guard antifabricación) · **303 desde facturas registradas (fiable)** · registrar factura · parsers/validación (ALG‑1.3/1.4). 🟠 conciliación sin tool. |
 | Conectores (Gmail·Calendar·Contacts) | *(pendiente)* | *(pendiente)* | — | ⬜ |
 | Telar / cognición | (familia 5‑7 del cerebro) | *(pendiente)* | — | 🟠 |
 | UX / shell | `AUDITORIA_UX_2026-06-09.md` | n/a | — | 🟠 |
