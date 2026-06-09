@@ -4,6 +4,7 @@ funcionar al 100%. Cada test blinda un comportamiento real (ver docs/ALGORITMO_C
 Si un cambio los rompe, el gate (scripts/verify.py) se pone ROJO. Son 100% CI (sin LM Studio).
 """
 
+from datetime import date
 from types import SimpleNamespace
 
 from loombit_operator import llm
@@ -15,7 +16,7 @@ from loombit_operator.agent.loop import (
     _recipiente_resuelto,
 )
 from loombit_operator.agent.reflexion import etiquetas_de_tarea
-from loombit_operator.comprension import _salvar_objetos
+from loombit_operator.comprension import _normalizar, _salvar_objetos
 from loombit_operator.tool_labels import (
     capability_block,
     humanize_user_text,
@@ -220,3 +221,54 @@ def test_capability_block_en_humano_sin_jerga():
     for tecnico in ("gmail_send", "calendar_create", "contacts_find", "memory_search"):
         assert tecnico not in bloque
     assert "Enviar correos" in bloque  # sí, en humano
+
+
+# ── F5 · _normalizar: cognición fiable (guards deterministas de alto riesgo) ──
+_HOY = date(2026, 6, 9)
+
+
+def test_normalizar_deuda_no_reconocida_siempre_importante_y_requiere_accion():
+    # El caso de MÁS riesgo no se deja al azar del LLM: deuda/fraude → imp 3 + requiere_accion.
+    out = _normalizar(
+        {
+            "titulo": "Deuda no reconocida de Abogados CEA",
+            "tipo": "notificacion",
+            "estado": "informativa",  # el LLM la marcó floja → el guard la corrige
+            "fecha": "2026-12-31",
+        },
+        _HOY,
+    )
+    assert out is not None
+    assert out["importancia"] == 3
+    assert out["estado"] == "requiere_accion"
+    assert out["accion"]  # propone verificar, no pagar a ciegas
+
+
+def test_normalizar_ruido_de_marketing_no_pide_accion():
+    out = _normalizar(
+        {
+            "titulo": "Informe de rendimiento mensual",
+            "tipo": "notificacion",
+            "estado": "requiere_accion",
+        },
+        _HOY,
+    )
+    assert out is not None
+    assert out["estado"] == "informativa"
+    assert out["importancia"] == 1
+
+
+def test_normalizar_hora_y_descarta_lo_pasado_o_sin_ancla():
+    out = _normalizar(
+        {
+            "titulo": "Reunión",
+            "tipo": "reunion",
+            "estado": "confirmada",
+            "hora": "900",
+            "fecha": "2026-12-31",
+        },
+        _HOY,
+    )
+    assert out["hora"] == "09:00"
+    assert _normalizar({}, _HOY) is None  # sin título ni origen → no se afirma
+    assert _normalizar({"titulo": "X", "fecha": "2020-01-01"}, _HOY) is None  # cosa pasada → fuera
