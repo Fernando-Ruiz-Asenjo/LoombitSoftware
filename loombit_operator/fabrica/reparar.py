@@ -97,12 +97,16 @@ def _simbolos_publicos(src: str) -> set[str]:
     return nombres
 
 
-def _pedir_mejora(original: str, instruccion: str, nombre: str, llm: Any) -> str | None:
+def _pedir_mejora(
+    original: str, instruccion: str, nombre: str, llm: Any, reglas: str = ""
+) -> str | None:
+    extra = f"\n{reglas}\n" if reglas else ""
     msgs = [
         {"role": "system", "content": _SISTEMA},
         {
             "role": "user",
-            "content": f"FICHERO: {nombre}\nINSTRUCCIÓN: {instruccion}\n\n--- CONTENIDO ACTUAL ---\n{original}",
+            "content": f"FICHERO: {nombre}\nINSTRUCCIÓN: {instruccion}{extra}"
+            f"\n\n--- CONTENIDO ACTUAL ---\n{original}",
         },
     ]
     try:
@@ -161,9 +165,11 @@ def proponer_parche(
     llm: Any = None,
     raiz: Path | None = None,
     validar_tests: bool = False,
+    playbook: Any = None,
 ) -> dict[str, Any] | None:
     """Propone una mejora del fichero `archivo` como diff validado. Devuelve {archivo, instruccion,
-    diff, validacion, ok} o None si el coder no produce algo usable. NUNCA escribe el fichero."""
+    diff, validacion, ok} o None si el coder no produce algo usable. NUNCA escribe el fichero.
+    Si se pasa `playbook`, inyecta sus reglas de reparación más relevantes en el prompt."""
     ruta = Path(raiz, archivo) if raiz else Path(archivo)
     try:
         original = ruta.read_text(encoding="utf-8")
@@ -178,7 +184,13 @@ def proponer_parche(
         except Exception:  # noqa: BLE001
             return None
 
-    propuesto = _pedir_mejora(original, instruccion, ruta.name, llm)
+    reglas = ""
+    if playbook is not None:
+        try:
+            reglas = playbook.como_contexto(f"reparar {ruta.name} {instruccion}")
+        except Exception:  # noqa: BLE001
+            reglas = ""
+    propuesto = _pedir_mejora(original, instruccion, ruta.name, llm, reglas)
     if not propuesto or propuesto.strip() == original.strip():
         return None
 

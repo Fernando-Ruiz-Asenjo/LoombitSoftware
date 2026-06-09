@@ -450,6 +450,28 @@ def test_interno_marca_oversize_y_todo(tmp_path):
     assert all(n.fuente == Fuente.COGNICION for n in necs)
 
 
+def test_interno_marca_monolito_de_ui(tmp_path):
+    # El monolito de UI (static/index.html) era INVISIBLE: solo se miraba .py y se excluía static/.
+    estatico = tmp_path / "static"
+    estatico.mkdir()
+    (estatico / "index.html").write_text(
+        "\n".join(f"<div>l{i}</div>" for i in range(900)) + "\n", encoding="utf-8"
+    )
+    necs = marcar(raiz=tmp_path)
+    assert any("index.html" in n.titulo and "UI gigante" in n.titulo for n in necs)
+
+
+def test_interno_marca_riesgo_de_seguridad(tmp_path):
+    # flake8-bandit (ruff S): md5 como hash → S324. La "herramienta de errores" ahora también ve seguridad.
+    (tmp_path / "inseguro.py").write_text(
+        "import hashlib\n\n\ndef huella(x: bytes) -> str:\n    return hashlib.md5(x).hexdigest()\n",
+        encoding="utf-8",
+    )
+    necs = marcar(raiz=tmp_path)
+    seg = [n for n in necs if "seguridad" in n.titulo.lower()]
+    assert seg and seg[0].prioridad == 5
+
+
 def test_reparar_propone_diff_validado(tmp_path):
     objetivo = tmp_path / "modulo.py"
     objetivo.write_text("x=1\n", encoding="utf-8")  # sin formatear

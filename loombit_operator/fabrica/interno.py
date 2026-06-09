@@ -25,10 +25,24 @@ _PROMPT_RE = re.compile(
     r"^([A-Z_][A-Z0-9_]*(?:SYSTEM|SYS|PROMPT|SISTEMA)[A-Z0-9_]*)\s*=", re.MULTILINE
 )
 _MAX_LINEAS = 400
+_MAX_LINEAS_UI = 800  # los ficheros de interfaz son más largos; por encima de esto = trocear
+_EXT_TEXTO = (".html", ".js", ".css")
+# Para la UI NO excluimos static/: ahí vive el monolito index.html, hoy invisible al escaneo .py.
+_EXCLUIR_TEXTO = ("__pycache__", "fabrica/generadas", "node_modules", ".min.")
 
 
 def _ficheros(raiz: Path) -> list[Path]:
     return [p for p in raiz.rglob("*.py") if not any(x in p.as_posix() for x in _EXCLUIR)]
+
+
+def _ficheros_texto(raiz: Path) -> list[Path]:
+    """Ficheros de interfaz (.html/.js/.css), incluido static/ (donde vive el monolito de la UI)."""
+    salida: list[Path] = []
+    for ext in _EXT_TEXTO:
+        salida += [
+            p for p in raiz.rglob(f"*{ext}") if not any(x in p.as_posix() for x in _EXCLUIR_TEXTO)
+        ]
+    return salida
 
 
 def _rel(p: Path, raiz: Path) -> str:
@@ -81,6 +95,48 @@ def _bugs_ruff(raiz: Path, limite: int) -> list[Necesidad]:
     return necesidades
 
 
+def _seguridad_ruff(raiz: Path, limite: int) -> list[Necesidad]:
+    """Señales de SEGURIDAD (flake8-bandit vía ruff `S`) sobre el código en uso. Se ignora el ruido
+    esperado de este tooling: asserts (S101) y uso legítimo de subprocess (S404/S603/S607)."""
+    try:
+        proc = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "ruff",
+                "check",
+                "--select=S",
+                "--ignore=S101,S404,S603,S607",
+                "--output-format=json",
+                str(raiz),
+            ],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=60,
+        )
+        issues = json.loads(proc.stdout or "[]")
+    except Exception:  # noqa: BLE001 — sin ruff, este detector simplemente no aporta
+        return []
+    necesidades: list[Necesidad] = []
+    for it in issues[:limite]:
+        archivo = it.get("filename", "")
+        linea = (it.get("location") or {}).get("row", "?")
+        ref = f"{_rel(Path(archivo), raiz)}:{linea}" if archivo else "?"
+        necesidades.append(
+            Necesidad(
+                titulo=f"Riesgo de seguridad ({it.get('code')}): {it.get('message', '')[:80]} [{ref}]",
+                tipo=TipoNecesidad.FIX,
+                fuente=Fuente.COGNICION,
+                descripcion="Detectado por flake8-bandit (ruff S) en el código en uso. Revisar y reparar.",
+                evidencia=[it.get("message", "")[:200]],
+                prioridad=5,
+                procedencia=[ref],
+            )
+        )
+    return necesidades
+
+
 def _todos(ficheros: list[Path], raiz: Path, limite: int) -> list[Necesidad]:
     necesidades: list[Necesidad] = []
     for p in ficheros:
@@ -121,6 +177,30 @@ def _oversize(ficheros: list[Path], raiz: Path) -> list[Necesidad]:
                     fuente=Fuente.COGNICION,
                     descripcion="La brújula pide ficheros < ~400 líneas. Proponer un troceo por dominio.",
                     prioridad=2,
+                    procedencia=[_rel(p, raiz)],
+                )
+            )
+    return necesidades
+
+
+def _oversize_texto(raiz: Path) -> list[Necesidad]:
+    """Ficheros de interfaz (.html/.js/.css) demasiado grandes — hoy invisibles al escaneo .py.
+    Marca el monolito (p.ej. static/index.html) para trocearlo en componentes + tokens de diseño."""
+    necesidades: list[Necesidad] = []
+    for p in _ficheros_texto(raiz):
+        try:
+            n = len(p.read_text(encoding="utf-8").splitlines())
+        except Exception:  # noqa: BLE001
+            continue
+        if n > _MAX_LINEAS_UI:
+            necesidades.append(
+                Necesidad(
+                    titulo=f"Fichero de UI gigante ({n} líneas): {_rel(p, raiz)} — trocear en componentes",
+                    tipo=TipoNecesidad.MEJORA,
+                    fuente=Fuente.COGNICION,
+                    descripcion="Un monolito de interfaz es difícil de mantener: partir en componentes "
+                    "+ tokens de diseño (ver docs/EXPERIENCIA_LOOMBIT.md).",
+                    prioridad=3,
                     procedencia=[_rel(p, raiz)],
                 )
             )
@@ -184,8 +264,10 @@ def marcar(raiz: Path | None = None, max_items: int = 20) -> list[Necesidad]:
     ficheros = _ficheros(raiz)
     necesidades: list[Necesidad] = []
     necesidades += _bugs_ruff(raiz, limite=10)
+    necesidades += _seguridad_ruff(raiz, limite=10)
     necesidades += _todos(ficheros, raiz, limite=10)
     necesidades += _oversize(ficheros, raiz)
+    necesidades += _oversize_texto(raiz)
     necesidades += _prompts(ficheros, raiz)
     necesidades += _huecos_eval()
     necesidades.sort(key=lambda n: n.prioridad, reverse=True)

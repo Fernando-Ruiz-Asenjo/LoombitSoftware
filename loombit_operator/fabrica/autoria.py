@@ -78,12 +78,14 @@ _EJEMPLO_ASSISTANT = json.dumps(
 )
 
 
-def _mensajes(necesidad: Necesidad, feedback: str) -> list[dict[str, str]]:
+def _mensajes(necesidad: Necesidad, feedback: str, reglas: str = "") -> list[dict[str, str]]:
     permitidos = ", ".join(sorted(MODULOS_PERMITIDOS))
     sistema = _SISTEMA.format(permitidos=permitidos)
     user = f"NECESIDAD: {necesidad.titulo}\n"
     if necesidad.descripcion:
         user += f"Contexto: {necesidad.descripcion}\n"
+    if reglas:  # reglas de autoría aprendidas (playbook ACE), si las hay
+        user += f"\n{reglas}\n"
     if feedback:
         user += (
             "\nEl intento anterior FUE RECHAZADO por el validador. Corrige EXACTAMENTE esto y "
@@ -133,9 +135,12 @@ def _a_borrador(d: dict[str, Any], necesidad: Necesidad) -> BorradorTool | None:
         return None
 
 
-def redactar(necesidad: Necesidad, feedback: str = "", llm: Any = None) -> BorradorTool | None:
+def redactar(
+    necesidad: Necesidad, feedback: str = "", llm: Any = None, playbook: Any = None
+) -> BorradorTool | None:
     """Pide al coder una tool para la necesidad. `feedback` realimenta el fallo del arnés del
-    intento anterior (auto-reparación). Best-effort: None si el modelo no produce JSON usable."""
+    intento anterior (auto-reparación). Si se pasa `playbook` (memoria de autoría ACE), inyecta sus
+    reglas más relevantes en el prompt. Best-effort: None si el modelo no produce JSON usable."""
     if llm is None:
         try:
             from ..llm import LLMClient
@@ -143,8 +148,16 @@ def redactar(necesidad: Necesidad, feedback: str = "", llm: Any = None) -> Borra
             llm = LLMClient(role="coder")
         except Exception:  # noqa: BLE001 — sin modelo no se inventa nada
             return None
+    reglas = ""
+    if playbook is not None:
+        try:
+            reglas = playbook.como_contexto(f"{necesidad.titulo} {necesidad.descripcion}")
+        except Exception:  # noqa: BLE001 — el playbook es best-effort; sin él se redacta igual
+            reglas = ""
     try:
-        resp = llm.chat(messages=_mensajes(necesidad, feedback), temperature=0.2, max_tokens=1800)
+        resp = llm.chat(
+            messages=_mensajes(necesidad, feedback, reglas), temperature=0.2, max_tokens=1800
+        )
         texto = (getattr(resp, "content", "") or "").strip()
     except Exception:  # noqa: BLE001
         return None

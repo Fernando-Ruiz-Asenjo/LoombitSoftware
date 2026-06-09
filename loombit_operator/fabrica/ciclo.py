@@ -16,6 +16,7 @@ from typing import Any
 
 from .autoria import redactar
 from .fuentes import FuenteRegistry, registro_por_defecto
+from .higiene import higienizar
 from .modelos import EstadoPropuesta, Fuente, Necesidad, PropuestaSkill, TipoNecesidad, Veredicto
 from .oportunidades import OportunidadStore
 from .propuesta import PropuestaStore
@@ -28,7 +29,7 @@ def _feedback(veredicto: Veredicto) -> str:
 
 
 def _atacar_necesidad(
-    necesidad: Necesidad, max_intentos: int, llm: Any
+    necesidad: Necesidad, max_intentos: int, llm: Any, playbook: Any = None
 ) -> tuple[PropuestaSkill | None, dict[str, Any]]:
     """Intenta hasta `max_intentos` redactar+validar una tool para la necesidad."""
     feedback = ""
@@ -36,7 +37,7 @@ def _atacar_necesidad(
     traza: list[dict[str, Any]] = []
 
     for intento in range(1, max_intentos + 1):
-        borrador = redactar(necesidad, feedback=feedback, llm=llm)
+        borrador = redactar(necesidad, feedback=feedback, llm=llm, playbook=playbook)
         if borrador is None:
             traza.append({"intento": intento, "resultado": "el coder no produjo una tool usable"})
             break
@@ -80,6 +81,7 @@ def ejecutar_ciclo(
     registro: FuenteRegistry | None = None,
     fuentes: list[Fuente] | None = None,
     http_get: Any = None,
+    playbook: Any = None,
 ) -> dict[str, Any]:
     """Corre un ciclo del MOTOR MULTI-FUENTE: detecta oportunidades de TODO el abanico (dentro: runs;
     fuera: la Red; meta), y para cada una elige el objetivo correcto:
@@ -103,7 +105,7 @@ def ejecutar_ciclo(
     propuestas_nuevas: list[str] = []
     detalle_tools: list[dict[str, Any]] = []
     for nec in tool_needs[:max_necesidades]:
-        prop, detalle = _atacar_necesidad(nec, max_intentos, llm)
+        prop, detalle = _atacar_necesidad(nec, max_intentos, llm, playbook)
         if prop is not None:
             store.add(prop)
             if prop.estado == EstadoPropuesta.PENDIENTE:
@@ -112,7 +114,7 @@ def ejecutar_ciclo(
             {"necesidad": nec.titulo, "propuesta_id": prop.id if prop else None, **detalle}
         )
 
-    nuevos_hallazgos = store_op.registrar(hallazgos)
+    nuevos_hallazgos = store_op.registrar(higienizar(hallazgos))
 
     return {
         "fuentes": [f.value for f in (fuentes or registro.fuentes())],
