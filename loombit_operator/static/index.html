@@ -753,7 +753,7 @@ pre.fb-code { background: var(--lb-navy,#0a0e1a); border: 1px solid var(--lb-bor
       <span class="nav-label">Administrativo</span>
     </div>
 
-    <div class="nav-item" onclick="switchSkill('coding', this)">
+    <div class="nav-item" onclick="switchSkill('coding', this)" style="opacity:.55" title="Disponible pronto">
       <span class="nav-icon">⌨</span>
       <span class="nav-label">Coding</span>
       <span class="nav-badge">pronto</span>
@@ -1092,6 +1092,12 @@ function toggleSidebar() {
 
 // ── Skill switch ──────────────────────────────────────
 function switchSkill(key, el) {
+  // «Coding» está marcada como «pronto»: hoy es un clon de la Administrativa (mismo profile), así que
+  // NO la activamos como si fuera real (sería una feature fantasma). Avisamos con honestidad.
+  if (key === 'coding') {
+    if (typeof lbToast === 'function') lbToast('La skill «Coding» llega pronto. De momento trabajo con la Administrativa.');
+    return;
+  }
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   el.classList.add('active');
   activeSkill = key;
