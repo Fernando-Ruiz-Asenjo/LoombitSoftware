@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Loombit</title>
+<!--
+  Shell unificado (S3): UN lienzo vivo con dos profundidades y transición por zoom —
+  la TELA (hoy) ↔ la GALAXIA (el mapa del negocio). Ver docs/EXPERIENCIA_LOOMBIT.md §3.
+  Autocontenido con datos de muestra para verificar; se cablea a /telar y /galaxia.
+-->
+<style>
+  :root{
+    --vio:#7c5cff; --cian:#29e0d8; --grad:linear-gradient(120deg,#7c5cff,#29e0d8);
+    --bg:#0d0f1a; --surface:#161a2d; --surface2:#1d2238; --line:#2a3052;
+    --text:#eef1ff; --muted:#9aa3c7; --faint:#6b73a0;
+    --verde:#36d399; --ambar:#f5b54a; --rojo:#ff6b6b;
+    --r:16px; --shadow:0 10px 40px #0008; --t:.22s cubic-bezier(.2,.7,.3,1);
+  }
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{background:radial-gradient(1200px 600px at 80% -10%,#1a1f3a,var(--bg)) fixed;color:var(--text);
+       font:15px/1.5 -apple-system,"Segoe UI",Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
+  .grad-text{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+  .barra{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;gap:16px;
+         padding:12px 22px;background:#0d0f1ad9;backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .marca{font-weight:700;font-size:17px}
+  .toggle{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px;margin-left:8px}
+  .toggle button{border:0;background:transparent;color:var(--muted);font:inherit;font-weight:600;padding:6px 16px;border-radius:999px;cursor:pointer;transition:var(--t)}
+  .toggle button.on{background:var(--grad);color:#06121f}
+  .chips{margin-left:auto;display:flex;gap:10px;align-items:center}
+  .chip{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--muted);font-size:13px}
+  .chip b{color:var(--text);font-variant-numeric:tabular-nums}
+  .chip.local{color:var(--cian);border-color:#29e0d840}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--cian);animation:latido 1.8s infinite}
+
+  .escena{position:absolute;inset:64px 0 0 0}
+  .vista{position:absolute;inset:0;transition:opacity .35s ease, transform .45s cubic-bezier(.2,.7,.3,1);overflow:auto}
+  .vista.oculta{opacity:0;pointer-events:none}
+  #vTela.oculta{transform:scale(.96)}      /* alejar la cámara al ir al mapa */
+  #vMapa.oculta{transform:scale(1.06)}     /* acercar al volver a hoy */
+
+  /* ── TELA ── */
+  main{max-width:760px;margin:0 auto;padding:26px 22px 110px}
+  .saludo{font-size:25px;font-weight:650;margin:4px 0 2px}
+  .sub{color:var(--muted);margin:0 0 20px}.sub b{color:var(--text)}
+  .hilo{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--line);border-radius:var(--r);margin-bottom:13px;transition:var(--t);animation:tejer .5s both}
+  .hilo:hover{transform:translateY(-1px);box-shadow:var(--shadow);border-color:#ffffff22}
+  .hilo.rojo{border-left-color:var(--rojo)}.hilo.ambar{border-left-color:var(--ambar)}.hilo.verde{border-left-color:var(--verde)}.hilo.cian{border-left-color:var(--cian)}
+  .l0{display:flex;align-items:center;gap:13px;padding:14px 18px;cursor:pointer}
+  .l0 .ic{font-size:19px;width:24px;text-align:center}.l0 .tit{font-weight:600}
+  .l0 .por{color:var(--muted);font-size:13px;max-height:0;opacity:0;overflow:hidden;transition:var(--t)}
+  .hilo:hover .por{max-height:40px;opacity:1}
+  .l0 .mid{flex:1;min-width:0}.chev{color:var(--faint);transition:var(--t)}.hilo.open .chev{transform:rotate(90deg)}
+  .l2{max-height:0;opacity:0;overflow:hidden;transition:max-height .3s ease,opacity var(--t)}.hilo.open .l2{max-height:360px;opacity:1}
+  .card{margin:0 18px 16px;padding:15px;border-radius:10px;background:var(--surface2);border:1px solid var(--line)}
+  .draft{font-style:italic;opacity:.95}.meta{display:flex;flex-wrap:wrap;gap:8px 16px;margin:10px 0;font-size:13px;color:var(--muted)}
+  .meta .why{color:var(--text)}.src{color:var(--cian);cursor:pointer}.lock{color:var(--cian);font-size:12.5px}
+  .acts{display:flex;gap:10px;margin-top:6px}
+  .btn{border:0;border-radius:10px;padding:9px 15px;font:inherit;font-weight:600;cursor:pointer;transition:var(--t)}
+  .btn.sec{background:transparent;color:var(--muted);border:1px solid var(--line)}.btn.pri{background:var(--grad);color:#06121f}
+  .btn.pri:hover{filter:brightness(1.08)}.hilo.hecho{opacity:.5}.hilo.hecho .tit::after{content:" ✅"}
+  .pie{text-align:center;color:var(--faint);font-size:13px;margin:22px 0}.pie .l{color:var(--cian)}
+
+  /* ── MAPA (galaxia) ── */
+  #vMapa{display:flex;align-items:center;justify-content:center}
+  canvas{display:block}
+  .tip{position:fixed;z-index:30;background:var(--surface2);border:1px solid var(--line);border-radius:10px;
+       padding:8px 12px;font-size:13px;color:var(--text);box-shadow:var(--shadow);pointer-events:none;opacity:0;transition:opacity .15s;max-width:240px}
+  .tip.on{opacity:1}.tip .s{color:var(--muted);font-size:12px}
+  .leyenda{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:16px;color:var(--faint);font-size:12.5px}
+  .leyenda i{font-style:normal}.sw{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);
+         border:1px solid #29e0d855;padding:11px 18px;border-radius:12px;opacity:0;transition:var(--t);z-index:50;box-shadow:var(--shadow)}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  @keyframes latido{0%,100%{box-shadow:0 0 0 0 #29e0d880}50%{box-shadow:0 0 0 6px #29e0d800}}
+  @keyframes tejer{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+  <header class="barra">
+    <div class="marca grad-text">◳ Loombit</div>
+    <div class="toggle">
+      <button id="bTela" class="on" onclick="ver('tela')">Hoy</button>
+      <button id="bMapa" onclick="ver('mapa')">🌌 Mapa</button>
+    </div>
+    <div class="chips">
+      <span class="chip local">🔒 local</span>
+      <span class="chip">⏱ <b id="ahorro">14</b> min</span>
+      <span class="chip"><span class="dot"></span> 1 nuevo</span>
+    </div>
+  </header>
+
+  <div class="escena">
+    <section id="vTela" class="vista">
+      <main>
+        <h1 class="saludo">Buenos días ☀️</h1>
+        <p class="sub">Te he dejado <b>tejido lo de hoy</b>. Toca un hilo para ver el detalle, o abre el <b>Mapa</b> para ver tu negocio entero.</p>
+        <div id="hilos"></div>
+        <p class="pie"><span class="l">🔒 nada ha salido de tu máquina</span> · te he ahorrado <b>14 min</b></p>
+      </main>
+    </section>
+    <section id="vMapa" class="vista oculta">
+      <canvas id="cv"></canvas>
+      <div class="leyenda">
+        <i><span class="sw" style="background:var(--rojo)"></span>vencida</i>
+        <i><span class="sw" style="background:var(--ambar)"></span>próxima</i>
+        <i><span class="sw" style="background:var(--verde)"></span>al día</i>
+        <i><span class="sw" style="background:var(--cian)"></span>contacto · tamaño = trato</i>
+      </div>
+    </section>
+  </div>
+
+  <div class="tip" id="tip"></div>
+  <div class="toast" id="toast"></div>
+
+<script>
+  // ── Datos de muestra (en prod: /telar y /galaxia) ──
+  const HILOS=[
+    {ic:"📨",estado:"rojo",tit:"Construcciones Mar te debe 1.250 €",por:"9 días sin contestar · te preparé el 2º aviso",
+     card:{draft:"«Hola, te recuerdo la factura 24/0312 (1.250 €), vencida el 28/05. ¿Me confirmas fecha de pago? Gracias.»",why:"vence hace 9 días · suele pagar tarde",src:"factura 24/0312 + hilo del 2/6",cta:"Enviar recordatorio"}},
+    {ic:"🧾",estado:"ambar",tit:"303 del 2T: preparado, vence el 20",por:"calculado con tus facturas del trimestre · tú revisas y presentas",
+     card:{draft:"Base 12.400 € · IVA repercutido 2.604 € · soportado 1.180 € → a ingresar 1.424 €.",why:"determinista, 18 facturas del 2T",src:"libro de facturas 2T",cta:"Abrir borrador 303"}},
+    {ic:"💬",estado:"cian",tit:"Jana (Acme) te ha respondido — hace 20 min",por:"novedad · te dejé un borrador de respuesta",
+     card:{draft:"«¡Hola Jana! Te paso el presupuesto actualizado en adjunto. Cualquier ajuste, me dices.»",why:"respondió a tu hilo de ayer",src:"hilo con Jana (Acme)",cta:"Enviar respuesta"}},
+    {ic:"📅",estado:"verde",tit:"Hoy: llamada con el gestor a las 12:30",por:"en tu agenda · sin conflictos",card:null},
+  ];
+  // planetas para el mapa: contactos (cian, tamaño=trato) + cuentas (semáforo, urgencia=radio)
+  const SOL={cobrar:"3.890 €",venc:2};
+  const PLANETAS=[
+    {t:"contacto",label:"Construcciones Mar",trato:.9,rel:"Construcciones Mar"},
+    {t:"contacto",label:"Jana · Acme",trato:.7,rel:null},
+    {t:"contacto",label:"Talleres Ríos",trato:.5,rel:"Talleres Ríos"},
+    {t:"contacto",label:"David Ferrer",trato:.35,rel:null},
+    {t:"cuenta",label:"Fact. 24/0312 · 1.250 €",estado:"rojo",urg:.95,rel:"Construcciones Mar"},
+    {t:"cuenta",label:"Fact. 24/0341 · 820 €",estado:"ambar",urg:.6,rel:"Talleres Ríos"},
+    {t:"cuenta",label:"Fact. 24/0356 · 1.820 €",estado:"verde",urg:.2,rel:null},
+  ];
+
+  // ── TELA ──
+  const cont=document.getElementById("hilos");
+  HILOS.forEach((h,i)=>{const el=document.createElement("div");el.className="hilo "+h.estado;el.style.animationDelay=(i*60)+"ms";
+    let l2="";if(h.card){l2=`<div class="l2"><div class="card"><div class="draft">${h.card.draft}</div>
+      <div class="meta"><span class="why">Porqué: ${h.card.why}</span><span class="src">🔗 ${h.card.src}</span></div>
+      <div class="lock">🔒 nada saldrá hasta que pulses el botón</div>
+      <div class="acts"><button class="btn sec">Editar</button><button class="btn pri" onclick="enviar(event)">✅ ${h.card.cta}</button></div></div></div>`;}
+    el.innerHTML=`<div class="l0" onclick="toggle(this)"><span class="ic">${h.ic}</span>
+      <span class="mid"><span class="tit">${h.tit}</span><div class="por">${h.por}</div></span><span class="chev">›</span></div>${l2}`;
+    cont.appendChild(el);});
+  function toggle(l0){const h=l0.parentElement;if(h.querySelector(".l2"))h.classList.toggle("open");}
+  function enviar(ev){ev.stopPropagation();const h=ev.target.closest(".hilo");h.classList.remove("open");h.classList.add("hecho");
+    const a=document.getElementById("ahorro");a.textContent=(+a.textContent+8);toast("Hecho ✅ Te aviso si responde · +8 min");}
+  function toast(t){const e=document.getElementById("toast");e.textContent=t;e.classList.add("on");setTimeout(()=>e.classList.remove("on"),2400);}
+
+  // ── Conmutación de vista (zoom) ──
+  function ver(v){
+    const tela=v==="tela";
+    document.getElementById("vTela").classList.toggle("oculta",!tela);
+    document.getElementById("vMapa").classList.toggle("oculta",tela);
+    document.getElementById("bTela").classList.toggle("on",tela);
+    document.getElementById("bMapa").classList.toggle("on",!tela);
+    if(!tela){resize();anim();} else {cancelAnimationFrame(raf);}
+  }
+
+  // ── MAPA: galaxia orbital determinista (anti-hairball: aristas solo en foco) ──
+  const cv=document.getElementById("cv"),ctx=cv.getContext("2d"),tip=document.getElementById("tip");
+  let W,H,cx,cy,raf,foco=null,t0=performance.now();
+  const COL={rojo:"#ff6b6b",ambar:"#f5b54a",verde:"#36d399"};
+  function resize(){const r=document.getElementById("vMapa").getBoundingClientRect();
+    W=cv.width=r.width*devicePixelRatio;H=cv.height=r.height*devicePixelRatio;
+    cv.style.width=r.width+"px";cv.style.height=r.height+"px";cx=W/2;cy=H/2;
+    PLANETAS.forEach((p,i)=>{p.ang=(i*2.39);});}  // ángulo áureo: reparto sin solapes
+  function pos(p,time){
+    const dpr=devicePixelRatio, base=p.t==="contacto"?150:95;
+    // cuentas: cuanto más urgente, más cerca del sol (gravedad semántica)
+    const rad=(p.t==="cuenta"? base+ (1-p.urg)*120 : base+90)*dpr;
+    const sp=p.t==="cuenta"?(0.10+p.urg*0.18):0.05;          // urgentes orbitan más rápido
+    const a=p.ang+time*sp;
+    return {x:cx+Math.cos(a)*rad,y:cy+Math.sin(a)*rad,
+            r:(p.t==="contacto"?(8+p.trato*16):(7+ (p.label.length>22?10:7)))*dpr,
+            col:p.t==="contacto"?"#29e0d8":COL[p.estado]};
+  }
+  function frame(now){const time=(now-t0)/1000;ctx.clearRect(0,0,W,H);const dpr=devicePixelRatio;
+    // órbitas (anillos tenues)
+    ctx.strokeStyle="#ffffff10";ctx.lineWidth=dpr;
+    [150,240,95,215].forEach(rr=>{ctx.beginPath();ctx.arc(cx,cy,rr*dpr,0,7);ctx.stroke();});
+    const P=PLANETAS.map(p=>({p,...pos(p,time)}));
+    // aristas SOLO del planeta en foco (mata la maraña)
+    if(foco){const f=P.find(q=>q.p===foco);
+      P.forEach(q=>{if(q.p!==foco && (q.p.rel===foco.label||foco.rel===q.p.label)){
+        ctx.strokeStyle="#7c5cff99";ctx.lineWidth=1.5*dpr;ctx.beginPath();ctx.moveTo(f.x,f.y);ctx.lineTo(q.x,q.y);ctx.stroke();}});}
+    // sol
+    const g=ctx.createRadialGradient(cx,cy,4,cx,cy,52*dpr);g.addColorStop(0,"#9b86ff");g.addColorStop(1,"#29e0d8");
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,46*dpr,0,7);ctx.fill();
+    ctx.fillStyle="#06121f";ctx.textAlign="center";ctx.font=`${13*dpr}px system-ui`;
+    ctx.fillText("Tu negocio",cx,cy-4*dpr);ctx.font=`bold ${13*dpr}px system-ui`;ctx.fillText(SOL.cobrar,cx,cy+13*dpr);
+    // planetas
+    P.forEach(q=>{ctx.fillStyle=q.col;ctx.globalAlpha=(foco&&foco!==q.p)?.4:1;
+      ctx.beginPath();ctx.arc(q.x,q.y,q.r,0,7);ctx.fill();
+      if(q.p===foco){ctx.globalAlpha=1;ctx.strokeStyle="#fff";ctx.lineWidth=2*dpr;ctx.stroke();}
+      ctx.globalAlpha=1;});
+    P._cache=P;raf=requestAnimationFrame(frame);}
+  function anim(){t0=performance.now()-0;cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);}
+  // hover + click
+  cv.addEventListener("mousemove",e=>{const r=cv.getBoundingClientRect();const mx=(e.clientX-r.left)*devicePixelRatio,my=(e.clientY-r.top)*devicePixelRatio;
+    const hit=(frame._P||[]).find(q=>Math.hypot(q.x-mx,q.y-my)<q.r+6*devicePixelRatio);
+    if(hit){tip.classList.add("on");tip.style.left=(e.clientX+14)+"px";tip.style.top=(e.clientY+12)+"px";
+      tip.innerHTML=`<b>${hit.p.label}</b><div class="s">${hit.p.t==="cuenta"?("estado: "+hit.p.estado):("trato: "+Math.round(hit.p.trato*100)+"%")}</div>`;
+      cv.style.cursor="pointer";}else{tip.classList.remove("on");cv.style.cursor="default";}});
+  cv.addEventListener("click",e=>{const r=cv.getBoundingClientRect();const mx=(e.clientX-r.left)*devicePixelRatio,my=(e.clientY-r.top)*devicePixelRatio;
+    const hit=(frame._P||[]).find(q=>Math.hypot(q.x-mx,q.y-my)<q.r+6*devicePixelRatio);foco=hit?hit.p:null;});
+  // exponer posiciones para hit-testing
+  const _frame=frame;frame=function(now){const time=(now-t0)/1000;_frame(now);frame._P=PLANETAS.map(p=>({p,...pos(p,time)}));};
+  window.addEventListener("resize",()=>{if(!document.getElementById("vMapa").classList.contains("oculta"))resize();});
+  document.addEventListener("keydown",e=>{if(e.key==="Escape")foco=null;});
+</script>
+</body>
+</html>
