@@ -29,6 +29,9 @@ pypdf>=4.0.0
 # Facturas ESCANEADAS (OCR con visión local Qwen2.5-VL): renderiza PDF→imagen.
 # Import perezoso: solo para PDFs sin capa de texto; las imágenes sueltas no lo necesitan.
 pypdfium2>=4.0.0
+# Entregable autónomo en Word (.docx). Opcional: import perezoso en entregable_docx.py;
+# si falta, el endpoint /entregable/.../docx responde 501 y el resto sigue funcionando.
+python-docx>=1.1.0
 
 # Dev / calidad
 pytest>=8.0.0

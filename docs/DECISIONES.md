@@ -356,4 +356,55 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
 - *Reversible:* sí; módulo nuevo `agent/smalltalk.py` + 6 líneas en el router. No cambia el agente para
   tareas reales.
 
+---
+
+## Entregable autónomo (radar → producto)
+
+**D-48 — Entregable autónomo = dossier HTML autocontenido y offline, NO chatbot con LLM embebido.**
+- *Contexto:* destilando `proyectodescartes.org/herramientas-ia` (161 micro-tools IA) verifiqué su patrón
+  estrella: la tool fabrica un HTML autónomo que el usuario se descarga. Pero su "chatbot con PDF" es
+  *context-stuffing* (PDF.js → `substring` → prompt) y la versión interactiva incrusta una llamada
+  viva a `gen.pollinations.ai`. Eso saca los datos del usuario a un gateway comunitario.
+- *Elegido:* primitiva blanca `entregable.py` (Skill W Administration Core) que renderiza un Expediente
+  a un **único HTML sin red ni `<script>`**, determinista (lo construye CÓDIGO), con **sello de
+  integridad** que incrusta `verify_chain` (✔/✗). Router `/entregable/...` (descarga + `export` con
+  recibo `.recibo.json` sha256). Sin dependencias nuevas.
+- *Alternativas descartadas:* (a) copiar su chatbot con Pollinations embebido → viola el foso
+  local-first y "no subir datos sin consentimiento"; (b) RAG vectorial sobre el dossier → su "RAG" es
+  inferior al nuestro y no aporta aquí; (c) export a .docx → aplazado (necesitaría `python-docx`); el
+  HTML autónomo da el 100% del valor con cero dependencias.
+- *Por qué:* el cliente se queda una copia auditable que abre para siempre sin Loombit ni conexión;
+  el sello de hashes la convierte en prueba (alineado con "no mentir" / trazabilidad inmutable).
+- *Reversible:* sí; módulo + router + test nuevos y 3 líneas en `main.py`. Verificado en vivo (recibo
+  con `chain_ok=true`); suite verde (+11 tests), black + ruff OK. Cierra el #1 robable del radar Descartes.
+
+**D-49 — Entregable autosuficiente + enganche en el cierre (sin tocar la UI).**
+- *Contexto:* el dossier (D-48) ya estaba en main, pero no había forma de descubrir QUÉ expedientes
+  hay (no existe panel de expedientes en la UI; la conciliación es API-only) y el otro agente podía
+  estar tocando `index.html` a la vez.
+- *Elegido:* (a) `GET /entregable/{entity_id}` que lista expedientes exportables con `chain_ok` y
+  `dossier_url`; (b) inyectar `dossier_url` en la respuesta de `aprobar_conciliacion` (cierre con
+  traza íntegra = momento de valor, anticipa sin pedir). Cero cambios en la UI.
+- *Alternativas descartadas:* construir un panel de expedientes en `static/index.html` (2552 líneas,
+  riesgo de colisión con el agente concurrente) → aplazado a un paso deliberado; la API ya deja la
+  UI a un fetch de distancia.
+- *Por qué:* hace el entregable usable de extremo a extremo por cualquier consumidor sin acoplar al
+  HTML. *Reversible:* sí; +1 helper, +1 endpoint, +1 línea en conciliación, +3 tests. Worktree
+  aislado (ver memoria de concurrencia), FF a main.
+
+**D-50 — Entregable en Word (.docx) + botón en la UI.**
+- *Contexto:* los gestores viven en Word; y el dossier (D-48/49) aún no era visible en la UI.
+- *Elegido:* (a) `entregable_docx.py` + `GET /entregable/{e}/{id}/docx` con **python-docx como dep
+  OPCIONAL** (import perezoso; 501 si falta) → el núcleo no depende de ella, edge sigue arrancando;
+  (b) botón **«📦 Entregables»** en el sidebar de `index.html` que abre un modal con la lista y
+  descarga **HTML/Word** por expediente; entidad vía `ui_default_entity_id` (config, blanco) expuesta
+  en `/health` (vacío = la pregunta). UI puramente **additiva** (1 nav-item + 1 `<script>` al final;
+  `feat/ux-telar` no toca `index.html`, así que sin colisión).
+- *Alternativas descartadas:* docx como dep dura (pesa en edge/Jetson y rompe entornos mínimos) →
+  opcional; panel de expedientes completo en la UI (grande, y la UI se está reescribiendo aparte) →
+  modal mínimo bajo demanda; hardcodear la entidad (viola Skill W) → config + fallback a preguntar.
+- *Por qué:* cierra "usable de punta a punta" (descubrir → descargar en HTML o Word) sin acoplar ni
+  inflar. *Reversible:* sí; módulo + endpoint + bloque UI autocontenido; quitar la dep solo desactiva
+  el .docx (501). Verificado: 15 tests de entregable verdes (incl. .docx real parseado).
+
 *(se irán añadiendo entradas según avance el bloque)*

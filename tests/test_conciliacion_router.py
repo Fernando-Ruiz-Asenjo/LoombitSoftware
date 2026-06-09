@@ -139,6 +139,8 @@ def test_flujo_conciliacion_propuesta_y_aprobacion(eid):
     assert apr["status"] == "closed"
     assert apr["matches_aplicados"] == [{"movimiento_idx": 0, "factura_id": fid}]
     assert apr["trazabilidad_integra"] is True
+    # al cerrar con traza íntegra, ofrece ya el dossier autónomo del expediente
+    assert apr["dossier_url"] == f"/entregable/{eid}/{exp_id}"
 
     # la factura quedó marcada cobrada, con traza inmutable
     det = client.get(f"/entidades/{eid}/expedientes/{fid}").json()

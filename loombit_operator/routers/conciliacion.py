@@ -208,6 +208,8 @@ def aprobar_conciliacion(entity_id: str, expediente_id: str, body: AprobarConcil
         "matches_aplicados": aplicados,
         "aliases_aprendidos": aliases_aprendidos,
         "trazabilidad_integra": store.verify_chain(expediente_id),
+        # Anticipa: el expediente queda cerrado con traza íntegra → ofrece ya su dossier autónomo.
+        "dossier_url": f"/entregable/{entity_id}/{expediente_id}",
     }
 
 

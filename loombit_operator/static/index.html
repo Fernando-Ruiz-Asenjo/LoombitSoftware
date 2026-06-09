@@ -789,6 +789,12 @@ pre.fb-code { background: var(--lb-navy,#0a0e1a); border: 1px solid var(--lb-bor
     </div>
     <div id="sec-cuentas" style="display:none;"><div id="cuentas-list" style="padding:2px 10px;"></div></div>
 
+    <div class="nav-item" onclick="abrirEntregables()"
+         title="Descargar el dossier autónomo (HTML/Word) de un expediente">
+      <span class="nav-icon">📦</span>
+      <span class="nav-label">Entregables</span>
+    </div>
+
     <div class="nav-section-label" style="margin-top:8px;">Historial</div>
 
     <div class="nav-item" id="history-placeholder" style="pointer-events:none;">
@@ -2548,5 +2554,72 @@ async function telarAccion(i) {
   <ul id="approveAllList" style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:12px;opacity:.92"></ul>
   <button id="approveAllBtn" onclick="approveAll()" style="background:linear-gradient(135deg,var(--lb-purple,#8b5cf6),var(--lb-cyan,#06b6d4));color:#fff;border:none;border-radius:999px;padding:8px 18px;font-weight:700;cursor:pointer;font-size:13px">Aprobar todo</button>
 </div>
+<script>
+/* ── Entregables: dossier autónomo (HTML/Word) de un expediente. Additivo y autocontenido. ── */
+let LB_DEFAULT_ENTITY = null;
+async function lbEntidad() {
+  if (LB_DEFAULT_ENTITY !== null) return LB_DEFAULT_ENTITY;
+  try {
+    const r = await fetch(`${API}/health`);
+    const d = await r.json();
+    LB_DEFAULT_ENTITY = d.default_entity_id || '';
+  } catch (_) { LB_DEFAULT_ENTITY = ''; }
+  return LB_DEFAULT_ENTITY;
+}
+function lbEsc(s) {
+  return String(s == null ? '' : s).replace(/[<&>"]/g,
+    c => ({ '<': '&lt;', '&': '&amp;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+async function abrirEntregables() {
+  let ent = await lbEntidad();
+  if (!ent) {
+    ent = (prompt('Entidad (entity_id) de la que ver entregables:', '') || '').trim();
+    if (!ent) return;
+  }
+  let data;
+  try {
+    const r = await fetch(`${API}/entregable/${encodeURIComponent(ent)}`);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    data = await r.json();
+  } catch (e) {
+    (window.gxToast || alert)('No pude listar entregables: ' + e.message);
+    return;
+  }
+  lbRenderEntregables(ent, data);
+}
+function lbRenderEntregables(ent, data) {
+  const prev = document.getElementById('lb-ent-modal');
+  if (prev) prev.remove();
+  const items = (data && data.expedientes) || [];
+  const rows = items.length ? items.map(it => {
+    const ok = it.chain_ok
+      ? '<span style="color:#16a34a">✔ íntegro</span>'
+      : '<span style="color:#dc2626">✗ alterado</span>';
+    const base = `${API}/entregable/${encodeURIComponent(ent)}/${it.id}`;
+    return `<tr style="border-top:1px solid rgba(128,128,128,.18)">
+      <td style="padding:8px 10px">${lbEsc(it.title)}<br>
+        <span style="color:#8a93a3;font-size:11px">${lbEsc(it.kind)} · ${lbEsc(it.status)} · ${ok}</span></td>
+      <td style="padding:8px 10px;white-space:nowrap;text-align:right">
+        <a href="${base}" download style="margin-right:10px;text-decoration:none">⬇ HTML</a>
+        <a href="${base}/docx" download style="text-decoration:none">⬇ Word</a></td></tr>`;
+  }).join('') : `<tr><td style="padding:12px;color:#8a93a3">No hay expedientes para «${lbEsc(ent)}».</td></tr>`;
+  const ov = document.createElement('div');
+  ov.id = 'lb-ent-modal';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.55);'
+    + 'display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.onclick = e => { if (e.target === ov) ov.remove(); };
+  const box = document.createElement('div');
+  box.style.cssText = 'background:var(--lb-navy3,#fff);color:var(--lb-text,#1f2430);border-radius:12px;'
+    + 'max-width:640px;width:100%;max-height:80vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.45)';
+  box.innerHTML = `<div style="padding:14px 18px;border-bottom:1px solid rgba(128,128,128,.25);
+      display:flex;align-items:center;gap:10px">
+      <strong style="flex:1">📦 Entregables — ${lbEsc(ent)}</strong>
+      <button onclick="document.getElementById('lb-ent-modal').remove()"
+        style="background:none;border:none;font-size:18px;cursor:pointer;color:inherit">✕</button></div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">${rows}</table>`;
+  ov.appendChild(box);
+  document.body.appendChild(ov);
+}
+</script>
 </body>
 </html>

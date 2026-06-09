@@ -9,13 +9,20 @@ from pathlib import Path
 from fastapi import APIRouter
 
 from .. import __version__
+from ..config import get_settings
 
 router = APIRouter(tags=["health"])
 
 
 @router.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "service": "loombit-operator", "version": __version__}
+    return {
+        "status": "ok",
+        "service": "loombit-operator",
+        "version": __version__,
+        # Para que la UI descubra entregables sin preguntar la entidad (vacío = la pregunta).
+        "default_entity_id": get_settings().ui_default_entity_id,
+    }
 
 
 @router.get("/health/selfcheck")
