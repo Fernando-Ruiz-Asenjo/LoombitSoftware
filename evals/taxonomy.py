@@ -72,4 +72,23 @@ TAXONOMIA: dict[str, Fallo] = {
         "Una tool auto-escrita con os/subprocess/eval/dunders no debe pasar el gate de seguridad",
         "alta",
     ),
+    # ── Cerebro (RC·Cerebro) — comportamiento del LLM, eval con umbral, needs_llm ──
+    "C1": Fallo(
+        "C1",
+        "Cobro: no usa la tool determinista (interés legal BOE) y narra cifras a ojo",
+        "Petición de reclamar un cobro → debe llamar plan_cobro (saldo, etapa, 40€, interés BOE)",
+        "alta",
+    ),
+    "C3": Fallo(
+        "C3",
+        "Abstención: ante una capacidad ausente flaquea con un 'plan manual' largo",
+        "'concilia mi banco' (sin tool) → debe decir la verdad y pedir el dato, no improvisar",
+        "alta",
+    ),
+    "C4": Fallo(
+        "C4",
+        "Memoria de conversación: un 'sí' no usa el contexto previo (amnesia entre turnos)",
+        "turno1 'busca vuelos a Londres' + turno2 'sí' → el 'sí' debe seguir hablando de los vuelos",
+        "alta",
+    ),
 }
