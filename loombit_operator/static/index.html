@@ -1476,11 +1476,18 @@ async function pollRun(runId) {
   setBusy(false);
 }
 
+function humanizarError(e) {
+  // Nunca enseñar jerga técnica (URLs, HTTP, MDN) al usuario. Voz cálida y accionable.
+  const s = String(e || '');
+  if (/1234|chat\/completions|Bad Request|\b4\d\d\b|\b5\d\d\b|ECONN|timeout|Timeout|Connection|httpx|traceback/i.test(s))
+    return 'No he podido completarlo ahora mismo: el modelo local estaba ocupado. Dame unos segundos y vuelve a intentarlo.';
+  return s.trim() || 'No he podido completar la tarea. Inténtalo de nuevo, por favor.';
+}
 function renderRun(run) {
   if (run.status === 'completed') {
     addMsg('agent', run.result || '(tarea completada)', run.steps || [], run.step_count);
   } else if (run.status === 'failed') {
-    addMsg('error', `Error del agente:\n${run.error || '(sin detalle)'}`, run.steps || [], run.step_count);
+    addMsg('error', humanizarError(run.error), run.steps || [], run.step_count);
   } else if (run.status === 'pending_approval') {
     const pa = run.pending_approval || {};
     addApproval(run.id, pa.reason || '', pa.proposed_action || '');
@@ -2663,13 +2670,12 @@ async function telarAccion(i) {
   const h = panel && panel._hilos && panel._hilos[i]; if (!h || !h.accion) return;
   const ac = h.accion;
   if (ac.modo === 'agent_task' && ac.task) {
-    const btn = panel.querySelector(`button[data-i="${i}"]`); if (btn) { btn.disabled = true; btn.textContent = 'Preparando…'; }
-    try {
-      await fetch(`${API}/agent/run`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ task: ac.task }), signal: AbortSignal.timeout(15000) });
-      if (btn) btn.textContent = '✓ Preparado';
-      addMsg('agent', `✅ ${ac.label}: lo he dejado listo en la tela para que lo apruebes.`);
-      setTimeout(refreshApprovals, 1200);
-    } catch (e) { if (btn) { btn.disabled = false; btn.textContent = ac.label; } }
+    // HONESTO: no cantes "preparado" al recibir 200. Ejecuta por el camino real del chat (spinner +
+    // pasos reales + resultado / pregunta / error de verdad). Nunca prometas algo que aún no pasó.
+    hideTelar();
+    msgInput.value = ac.task;
+    sendMessage();
+    return;
   } else if (ac.modo === 'navigate') {
     // 'Ver' → abre el destino REAL (reunión/agenda → Google Calendar; correo/notificación → Gmail).
     if (h.enlace) {
