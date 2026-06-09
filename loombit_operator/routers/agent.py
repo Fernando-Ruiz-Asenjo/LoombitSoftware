@@ -128,6 +128,15 @@ async def start_run(body: RunRequest, background_tasks: BackgroundTasks) -> RunR
     loop = _get_loop()
     try:
         run = loop.create(body.task, max_steps=body.max_steps, profile=body.profile)
+        # Fricción cero: una cortesía pura ("hola", "gracias") se responde AL INSTANTE, sin gastar el
+        # bucle ReAct del 14B (que en local son decenas de segundos de "Procesando…" para nada).
+        from ..agent.smalltalk import respuesta_social
+
+        social = respuesta_social(body.task)
+        if social is not None:
+            run.mark_completed(social)
+            loop.store.save_run(run)
+            return RunResponse.from_run(run)
         background_tasks.add_task(loop.execute_run, run.id)
     except Exception as exc:
         logger.exception("Error creando run: %s", exc)

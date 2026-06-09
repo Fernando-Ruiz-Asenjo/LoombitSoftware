@@ -327,4 +327,33 @@ Formato: **D-NN — decisión** · *contexto* · **elegido** vs alternativas · 
 - *Recibo en vivo (2026-06-09):* `/rag/reindexar` indexó **54 documentos a 768 dims** (history 34 · lesson 7 · entity 1 · contact 4 · procedure 8) en 10 s; `/rag/buscar?q=correo a un cliente` devolvió por SIGNIFICADO la lección «NUNCA inventes el email del destinatario» (score 0,77) en 2,4 s. Embeddings locales reales funcionando.
 - *Reversible:* sí; módulo nuevo `rag.py` + router `/rag/*` + 1 tool + `LLMClient.embed` + 2 settings. Local-first: los vectores no salen de la máquina.
 
+**D-46 — Fase 5 cerrada: daemon de APRENDIZAJE PROACTIVO (consolidación de memoria).** Estado **🟢**
+(rama `feat/fabrica-cognicion-gepa-rag`, +5 tests). El bucle ya aprende POR-RUN (Reflexion en fallos +
+contactos + historial + procedimientos); faltaba el lazo PROGRAMADO que consolida en 2º plano.
+- *Diseño (`aprendizaje.py` + routine `Aprendizaje`, output_kind="aprendizaje", PASSIVE, 4:30):* su
+  valor único es **mantener fresco el índice semántico (RAG)** para que `memory_search` recupere lo
+  último por significado. `consolidar()` reindexa (verificado en vivo antes: 54 docs @ 768d) y, OPT-IN
+  (`max_runs>0`), destila lecciones de los runs recientes (Reflexion proactiva, idempotente por texto).
+- *Robustez (lección dura):* el primer diseño reflexionaba sobre 12 runs → **190 s y timeout** del
+  scheduler. Una tarea de fondo NO puede monopolizar el 14B ni reportar «failed». Arreglo: el daemon va
+  **reindex-only por defecto** (`max_runs=0`, no toca el 14B → rápido y fiable); la reflexión es opt-in
+  para hardware más rápido/Jetson. Best-effort: cada parte informa, `consolidar` nunca lanza.
+- *Reversible:* sí; módulo nuevo `aprendizaje.py` + 1 routine + dispatch. Daemon global opt-in
+  (`routines_daemon_enabled=False`). Mejora futura: grafo temporal (#6).
+
+**D-47 — Fricción CERO en el chat: la cortesía no gasta el agente.** Estado **🟢** (rama
+`feat/fabrica-cognicion-gepa-rag`, +34 tests; **recibo en vivo**). Captura de Fernando: «hola» se
+quedaba en «Procesando…». Diagnóstico: **todo** mensaje —hasta un saludo— pasaba por el bucle ReAct
+del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «hola».
+- *Arreglo (`agent/smalltalk.py`, en `routers/agent.py`):* una cortesía PURA (saludo/gracias/despedida)
+  se responde AL INSTANTE, de forma determinista, sin tocar el modelo. **Recibo: 85 s → ~0,4 s**
+  («hola» 408 ms, «gracias» 273 ms). CONSERVADOR: solo casa frases de cortesía cortas y exactas; con
+  cifras, «@», «/» o cualquier intención real → None → va al agente (verificado: «resúmeme el día» NO
+  se intercepta). Mejor dejar pasar una cortesía rara que comerse una tarea.
+- *Causa raíz del incidente concreto:* además, una corrida manual de la routine `Aprendizaje` (pesada,
+  pre-D-46) había saturado LM Studio (`--parallel 1`) → el «hola» quedó en cola. Lo arregla D-46
+  (reindex-only) + no lanzar jobs LLM pesados durante el uso interactivo.
+- *Reversible:* sí; módulo nuevo `agent/smalltalk.py` + 6 líneas en el router. No cambia el agente para
+  tareas reales.
+
 *(se irán añadiendo entradas según avance el bloque)*

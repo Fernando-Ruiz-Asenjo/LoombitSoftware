@@ -360,6 +360,31 @@ def fabrica_skills_executor(routine: Routine, now: datetime) -> str:
     return "Fábrica: " + " · ".join(partes) + "."
 
 
+def aprendizaje_routine() -> Routine:
+    """Routine de aprendizaje proactivo (cierra Fase 5): de madrugada consolida la memoria —
+    reindexa el índice semántico (RAG) y destila lecciones generales de los runs recientes. PASSIVE
+    (solo lee/escribe en memoria e índice LOCALES; ningún efecto externo). Enabled, opt-in vía daemon.
+    """
+    return Routine(
+        name="Aprendizaje",
+        schedule=CronSchedule("30 4 * * *", tz="Europe/Madrid"),
+        objective=(
+            "Consolida la memoria: mantén fresco el índice semántico del histórico y destila "
+            "lecciones generales de las últimas ejecuciones, para recordar mejor por significado."
+        ),
+        safety=SkillSafetyClass.PASSIVE,
+        output_kind="aprendizaje",
+        enabled=True,
+    )
+
+
+def aprendizaje_executor(routine: Routine, now: datetime) -> str:
+    """Consolida la memoria (reindexa el RAG + Reflexion proactiva de los runs recientes)."""
+    from .aprendizaje import consolidar
+
+    return consolidar().get("resumen", "Aprendizaje: sin resultado.")
+
+
 def default_executor(routine: Routine, now: datetime) -> str:
     """Despacha al executor según el tipo de routine (un solo punto de entrada para el scheduler)."""
     if routine.output_kind == "mejora":
@@ -368,6 +393,8 @@ def default_executor(routine: Routine, now: datetime) -> str:
         return reply_watch_executor(routine, now)
     if routine.output_kind == "fabrica":
         return fabrica_skills_executor(routine, now)
+    if routine.output_kind == "aprendizaje":
+        return aprendizaje_executor(routine, now)
     return brief_executor(routine, now)
 
 
@@ -382,6 +409,8 @@ def ensure_default_routines(store: RoutineStore) -> RoutineStore:
         store.add(vigilar_respuestas_routine())
     if "Fábrica de Skills" not in nombres:
         store.add(fabrica_skills_routine())
+    if "Aprendizaje" not in nombres:
+        store.add(aprendizaje_routine())
     return store
 
 

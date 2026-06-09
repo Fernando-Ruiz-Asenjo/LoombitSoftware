@@ -20,6 +20,12 @@ Ver `DECISIONES.md` D-42…D-45 (todo 🟢 verificado EN VIVO en :8787).
   diff coloreado, chat con chips/escritura/markdown. 0 errores de consola.
 - **P1 · RAG / índice semántico LOCAL** (D-45): embeddings nomic locales; reindexó 54 docs reales a
   768 dims; búsqueda por significado; tool `memory_search` para el agente. **Fundamento del roadmap P1.**
+- **Fase 5 cerrada** (D-46): daemon de **aprendizaje proactivo** (`aprendizaje.py` + routine
+  `Aprendizaje`) que consolida la memoria en 2º plano: reindexa el RAG + destila lecciones de los runs
+  recientes (Reflexion proactiva, idempotente). Acotado a 3 runs para no monopolizar el modelo local.
+- **Fricción cero en el chat** (D-47): un "hola"/"gracias" ya NO pasa por el loop ReAct del 14B —
+  responde al instante (**85 s → ~0,4 s** medido) con `agent/smalltalk.py`. Conservador: solo cortesías
+  puras; cualquier tarea real va al agente igual.
 - **Arquitectura**: núcleo blanco + skills + ReAct; FastAPI en `:8787`; LLM local (instructor **Qwen2.5-14B**, coder 7B, vía LM Studio). Ver `MODELOS_LOOMBIT.md`.
 
 ## Avance por fases
@@ -31,7 +37,7 @@ Ver `DECISIONES.md` D-42…D-45 (todo 🟢 verificado EN VIVO en :8787).
 | 2 · Percepción real (Morning Brief) | Brief diario con datos reales | 🟢 **Brief con datos reales** (store de cuentas a cobrar D-23 + `daily_brief` en el chat con agenda/correos/cobros D-28) | Daemon programado del brief (hoy es invocable, no aún cron diario) |
 | 3 · Bucle e2e cuña 1 (cobros) | Flujo cobros completo ×5 sin intervención | 🟠 Cerebro listo | Orquestación e2e + recibos 🟢 |
 | 4 · UI humana | Dashboard no técnico | 🟢 **Galaxia + drag-to-act** | Home + Conectar Google + **Galaxia MVP** (D-26/D-27) + **drag-to-act + pre-carga + badge** (D-31, arrastrar conversación → acción vía agente); falta: arrastrar documentos, persistir acciones locales, latido por novedad, órbitas correo/calendario/Drive |
-| 5 · Memoria y aprendizaje | Daemon de memoria proactiva | 🟡 Memoria lista | Scheduler/daemon proactivo |
+| 5 · Memoria y aprendizaje | Daemon de memoria proactiva | 🟢 **Cerrada (2026-06-09)** — memoria + RAG semántico + Reflexion + GEPA + **daemon de aprendizaje proactivo** (`aprendizaje.py`, routine `Aprendizaje`: reindexa RAG + destila lecciones, idempotente) | daemon opt-in global (`routines_daemon_enabled`); refinar grafo temporal (#6) es mejora futura |
 | 6 · Endurecimiento + navegador | Consentimiento, export, Skill Pilot navegador | ⬜ | Adaptador Playwright/CDP, contrato de coordenadas |
 | 7 · Edge / Jetson | Benchmark en Jetson Orin NX | ⬜ | Comprar hardware |
 
