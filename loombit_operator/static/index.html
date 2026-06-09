@@ -2499,8 +2499,15 @@ async function cargarTelar() {
     if (!t.hilos || !t.hilos.length) { panel.style.display = 'none'; setIntroVisible(true); return; }
     const filas = t.hilos.map((h, i) => {
       const col = TELAR_COLOR[h.tipo] || 'var(--lb-purple,#8b5cf6)';
-      const btn = h.accion && h.accion.label
-        ? `<button onclick="telarAccion(${i})" data-i="${i}" style="margin-left:auto;flex-shrink:0;background:linear-gradient(135deg,var(--lb-purple,#8b5cf6),var(--lb-cyan,#06b6d4));color:#fff;border:none;border-radius:999px;padding:5px 13px;font-size:12px;font-weight:600;cursor:pointer">${esc(h.accion.label)}</button>` : '';
+      // V-3: distingue LEER (navigate: Ver/Revisar → secundario sutil) de PREPARAR/EFECTO
+      // (agent_task: Gestionar/Preparar borrador… → primario degradado). Jerarquía a la vista.
+      const acc = h.accion || {};
+      const esEfecto = acc.modo === 'agent_task';
+      const btnStyle = esEfecto
+        ? 'background:linear-gradient(135deg,var(--lb-purple,#8b5cf6),var(--lb-cyan,#06b6d4));color:#fff;border:none;'
+        : 'background:transparent;color:var(--lb-text2,#94a3b8);border:1px solid var(--lb-border2,rgba(255,255,255,.18));';
+      const btn = acc.label
+        ? `<button onclick="telarAccion(${i})" data-i="${i}" style="margin-left:auto;flex-shrink:0;${btnStyle}border-radius:999px;padding:5px 13px;font-size:12px;font-weight:600;cursor:pointer">${esc(acc.label)}</button>` : '';
       // El PORQUÉ (cognición, ya lo calcula el backend) en acento claro; el detalle, debajo, legible.
       const por = h.porque
         ? `<div style="font-size:11.5px;color:var(--lb-cyan,#22d3ee);line-height:1.3;margin-top:3px">${esc(h.porque)}</div>` : '';
