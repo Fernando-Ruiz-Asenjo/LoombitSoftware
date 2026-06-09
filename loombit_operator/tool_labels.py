@@ -103,6 +103,37 @@ def humanize_user_text(text: str) -> str:
     return t.strip()
 
 
+# Señales de que el modelo escupió CÓDIGO/pseudocódigo como respuesta (fallo del 14B observado en
+# vivo: a «¿qué reuniones tengo?» devolvió `for day in ...: print(...)`). El operador administrativo
+# NUNCA debe contestar con código → si pasa, es basura y no se le enseña al usuario.
+_CODE_SIGNS = re.compile(
+    r"\bprint\(|\bfor\b[^\n]+\bin\b[^\n]+:|datetime\.now|\.strftime\(|\blambda\b|"
+    r"\bdef\s+\w+\(|\bimport\s+\w+|=>|\}\s*;|sourceMapping|\w+\s*=\s*\w+\[",
+    re.IGNORECASE,
+)
+
+_FALLBACK_BASURA = (
+    "Me he liado resolviéndolo y no me ha salido limpio. ¿Lo reformulamos? "
+    "Si quieres, te enseño tu agenda de hoy o el resumen del día."
+)
+
+
+def looks_like_code(text: str) -> bool:
+    """True si el texto parece código/pseudocódigo en vez de una respuesta humana."""
+    return bool(text) and bool(_CODE_SIGNS.search(text))
+
+
+def safe_user_result(text: str) -> str:
+    """Texto SEGURO de cara al usuario: sin jerga de tools y sin volcados de código.
+
+    Si el modelo devolvió código/basura, se sustituye por un mensaje honesto con salida (BRÚJULA
+    ley 9: nunca falles en silencio; mejor "no me salió" que un churro de código)."""
+    clean = humanize_user_text(text)
+    if looks_like_code(clean):
+        return _FALLBACK_BASURA
+    return clean
+
+
 def human_label(name: str) -> str:
     """Etiqueta amigable para una tool (cae al propio nombre si no está mapeada)."""
     entry = HUMAN_LABELS.get(name)
