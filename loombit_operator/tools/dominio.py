@@ -15,8 +15,16 @@ from __future__ import annotations
 from typing import Any
 
 from ..cobros import LATE_FEE_FIXED_EUR, dunning_plan
+from ..docs_intel import InvoiceFields
+from ..expedientes import ExpedienteStore
+from ..skill_d_fiscal.intake import registrar_factura as _intake_registrar
 from ..skill_d_fiscal.modelo_303 import LineaIVA, borrador_303_texto, calcular_303
 from .registry import ToolDefinition, tool_registry
+
+# Entidad por defecto para el agente de chat (un solo titular). El modelo multi-entidad
+# (una por cliente) es una decisión de producto pendiente → ver «PARA FERNANDO» en
+# docs/AUDITORIA_LOOP_2026-06-09.md. Por ahora todo va a la entidad «principal».
+_ENTIDAD_DEFECTO = "principal"
 
 _STAGE_ES = {
     "por_vencer": "aún no vence",
@@ -156,6 +164,94 @@ def _calcular_303(
     echo = f"Calculado con — Ventas: {_fmt(ventas)} · Compras: {_fmt(compras)}\n\n"
     res = calcular_303(lineas)
     return echo + borrador_303_texto(res, periodo or "periodo indicado")
+
+
+def _registrar_factura(
+    contraparte: str,
+    base: float,
+    numero: str = "",
+    iva: float | None = None,
+    tipo: float | None = None,
+    sentido: str = "emitida",
+    fecha: str = "",
+    nif: str = "",
+) -> str:
+    """Registra una factura (emitida a cliente o recibida de proveedor) y la persiste."""
+    try:
+        base_f = float(base)
+    except (TypeError, ValueError):
+        return "ERROR: dame la base imponible (un número) de la factura."
+    if iva is not None:
+        iva_f = float(iva)
+    else:
+        t = _norm_tipo(tipo if tipo is not None else 0.21)
+        iva_f = round(base_f * t, 2)
+    total = round(base_f + iva_f, 2)
+    s = str(sentido).lower()
+    es_emitida = s.startswith("emit") or s.startswith("vent")
+    sentido_303 = "devengado" if es_emitida else "soportado"
+    inv = InvoiceFields(
+        numero=numero or "s/n",
+        fecha=fecha or "",
+        proveedor=contraparte or "",
+        nif=nif or "",
+        base_imponible=base_f,
+        iva=iva_f,
+        total=total,
+    )
+    try:
+        store = ExpedienteStore(entity_id=_ENTIDAD_DEFECTO)
+        exp = _intake_registrar(store, inv, sentido_303)
+    except Exception as exc:  # noqa: BLE001 — devolver el error en humano, no romper el run
+        return f"ERROR al registrar la factura: {exc}"
+    etiqueta = "emitida (a cliente)" if es_emitida else "recibida (de proveedor)"
+    return (
+        f"✅ Factura {inv.numero} registrada — {etiqueta}. {contraparte or 's/ contraparte'}: "
+        f"base {base_f:.2f}€ + IVA {iva_f:.2f}€ = total {total:.2f}€. Guardada (id {exp.id[:8]}). "
+        "Quedará disponible para tu 303."
+    )
+
+
+tool_registry.register(
+    ToolDefinition(
+        name="registrar_factura",
+        description=(
+            "Registra y GUARDA una factura: emitida (a un cliente) o recibida (de un proveedor). "
+            "Persiste la factura para que luego compute tu 303 con datos reales. Úsala cuando el "
+            "usuario quiera registrar/apuntar/emitir una factura. Pasa SOLO las cifras que te dé; "
+            "si falta la base imponible, pregunta. NO inventes importes ni NIF."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "contraparte": {
+                    "type": "string",
+                    "description": "Nombre del cliente (si emitida) o proveedor (si recibida).",
+                },
+                "base": {"type": "number", "description": "Base imponible en € (sin IVA)."},
+                "numero": {"type": "string", "description": "Número de factura, si lo hay."},
+                "iva": {
+                    "type": "number",
+                    "description": "Cuota de IVA en €, si la sabes. Si no, se calcula con 'tipo'.",
+                },
+                "tipo": {
+                    "type": "number",
+                    "description": "Tipo de IVA (% o fracción) si no das la cuota. Por defecto 21%.",
+                },
+                "sentido": {
+                    "type": "string",
+                    "enum": ["emitida", "recibida"],
+                    "description": "'emitida' (la haces tú a un cliente) o 'recibida' (de un proveedor).",
+                },
+                "fecha": {"type": "string", "description": "Fecha de la factura (YYYY-MM-DD)."},
+                "nif": {"type": "string", "description": "NIF de la contraparte, si lo hay."},
+            },
+            "required": ["contraparte", "base"],
+        },
+        fn=_registrar_factura,
+        category="base",
+    )
+)
 
 
 tool_registry.register(

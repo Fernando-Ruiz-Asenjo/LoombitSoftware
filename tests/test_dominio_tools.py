@@ -20,6 +20,12 @@ def test_303_registrada_y_enrutada():
     assert "calcular_303" in select_tool_names("cómo va el 303 de este trimestre")
 
 
+def test_registrar_factura_registrada_y_enrutada():
+    names = {t.name for t in tool_registry.list()}
+    assert "registrar_factura" in names
+    assert "registrar_factura" in select_tool_names("emite una factura a un cliente")
+
+
 def test_travel_task_alcanza_el_pilot():
     # El motor de viajes es el Pilot: la petición de vuelos debe darle manos de navegador.
     names = select_tool_names("búscame vuelos a Londres y un hotel para Marta")

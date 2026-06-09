@@ -126,6 +126,13 @@ TOOL_GROUPS: list[tuple[tuple[str, ...], set[str]]] = [
     (
         (
             "factura",
+            "factúrale",
+            "facturale",
+            "emite",
+            "emitir",
+            "emíteme",
+            "apunta",
+            "registra",
             "albaran",
             "albarán",
             "pdf",
@@ -137,7 +144,7 @@ TOOL_GROUPS: list[tuple[tuple[str, ...], set[str]]] = [
             "extracto",
             "proveedor",
         ),
-        {"read_invoice", "read_file", "list_directory"},
+        {"registrar_factura", "read_invoice", "read_file", "list_directory"},
     ),
     (
         ("fichero", "archivo", "carpeta", "guarda", "directorio", "lee el", "escribe el"),
