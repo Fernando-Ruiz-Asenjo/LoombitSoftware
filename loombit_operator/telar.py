@@ -59,6 +59,24 @@ def _cuando_humano(fecha_iso: str, hora: str = "") -> str:
     return f"{base} · {hora}" if hora else base
 
 
+def _cal_dia_link(fecha_iso: str) -> str:
+    """Enlace a ese día en Google Calendar → 'Ver' una reunión/evento abre el calendario de verdad."""
+    try:
+        d = date.fromisoformat((fecha_iso or "")[:10])
+        return f"https://calendar.google.com/calendar/u/0/r/day/{d.year}/{d.month}/{d.day}"
+    except ValueError:
+        return ""
+
+
+def _gmail_buscar_link(query: str) -> str:
+    """Enlace a una búsqueda en Gmail → 'Ver' una notificación abre ese correo de verdad."""
+    if not (query or "").strip():
+        return ""
+    from urllib.parse import quote
+
+    return "https://mail.google.com/mail/u/0/#search/" + quote(query.strip())
+
+
 _ICONO_ASUNTO = {"reunion": "📆", "notificacion": "⚠️", "plazo": "⏰", "gestion": "📝"}
 _ESTADO_TXT = {
     "confirmada": "✅ confirmada por ambos",
@@ -94,6 +112,10 @@ def _hilo_asunto(a: dict) -> dict:
         }
     else:
         accion = {"modo": "navigate", "label": "Ver"}
+    if tipo == "reunion" and a.get("fecha"):
+        enlace = _cal_dia_link(a["fecha"])
+    else:
+        enlace = _gmail_buscar_link(a.get("origen", "") or titulo)
     return _hilo(
         tipo,
         _ICONO_ASUNTO.get(tipo, "•"),
@@ -102,6 +124,7 @@ def _hilo_asunto(a: dict) -> dict:
         accion=accion,
         detalle=" · ".join(partes),
         porque=_porque_asunto(tipo, a.get("estado", "")),
+        enlace=enlace,
     )
 
 
@@ -399,6 +422,7 @@ def tejer_dia(
                 urgencia=1,
                 accion={"modo": "navigate", "label": "Ver"},
                 porque=(f"Hoy a las {hora}." if hora else "En tu agenda de hoy."),
+                enlace=_cal_dia_link(str(ev.get("start", ""))[:10]),
             )
         )
 

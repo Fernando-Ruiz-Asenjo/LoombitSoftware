@@ -203,7 +203,7 @@
     const porque=h.porque||"";
     // draft = el CONTEXTO que ya sabemos (detalle), nunca la orden interna al agente (acc.task).
     const card=acc.label?{draft:h.detalle||"",why:porque,src:"telar · "+(h.tipo||""),cta:acc.label,modo:acc.modo,task:acc.task}:null;
-    return {ic:h.icono||"•",estado,tit:h.titulo||"",por:porque||h.detalle||"",card};
+    return {ic:h.icono||"•",estado,tit:h.titulo||"",por:porque||h.detalle||"",card,enlace:h.enlace||"",tipo:h.tipo||""};
   }
   async function cargar(){
     const cont=document.getElementById("hilos");
@@ -274,8 +274,9 @@
     ev.stopPropagation();
     const btn=ev.target.closest("button"), h=ev.target.closest(".hilo");
     const i=+(btn&&btn.getAttribute("data-i"));
-    const c=(TELAR[i]&&TELAR[i].card)||{};
-    if(c.modo!=="agent_task"||!c.task){           // navegar / muestra: marcar visto, sin inventar un envío
+    const t=TELAR[i]||{}; const c=t.card||{};
+    if(c.modo!=="agent_task"||!c.task){           // navegar: abre el destino real (Calendar/Gmail) o marca visto
+      if(t.enlace){ window.open(t.enlace,"_blank","noopener"); return; }
       h.classList.remove("open");h.classList.add("hecho");toast("Visto ✅");return;
     }
     btn.disabled=true;const old=btn.textContent;btn.textContent="Preparando…";

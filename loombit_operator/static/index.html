@@ -2616,14 +2616,21 @@ async function telarAccion(i) {
       setTimeout(refreshApprovals, 1200);
     } catch (e) { if (btn) { btn.disabled = false; btn.textContent = ac.label; } }
   } else if (ac.modo === 'navigate') {
-    if (h.tipo === 'agenda') openGalaxia();
-    else {
+    // 'Ver' → abre el destino REAL (reunión/agenda → Google Calendar; correo/notificación → Gmail).
+    if (h.enlace) {
+      window.open(h.enlace, '_blank', 'noopener');
+    } else if (h.tipo === 'aprobacion') {
+      // 'Revisar' → lleva a la tarjeta de aprobación (donde está el borrador).
       const box = document.getElementById('telar-approvals');
       if (box && box.style.display !== 'none') {
         box.scrollIntoView({ behavior: 'smooth', block: 'center' });
         box.style.transition = 'box-shadow .25s'; box.style.boxShadow = '0 0 0 3px var(--lb-cyan,#06b6d4)';
-        setTimeout(() => { box.style.boxShadow = 'none'; }, 1200);
+        setTimeout(() => { box.style.boxShadow = 'none'; }, 1400);
+      } else {
+        addMsg('agent', 'No hay nada pendiente de aprobar ahora mismo ✅');
       }
+    } else if (h.tipo === 'agenda') {
+      openGalaxia();
     }
   }
 }
