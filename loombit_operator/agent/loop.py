@@ -25,10 +25,12 @@ import logging
 import re
 from typing import Any
 
+from ..config import get_settings
 from ..llm import ChatResponse, LLMClient, ToolCall, tool_result_message
 from ..tools import tool_registry
 from ..tools.registry import ToolRegistry
 from .memory import get_memory
+from .contexto import ajustar_a_contexto
 from .prompts import build_system_prompt
 from .run import AgentRun, AgentStatus, AgentStep, AgentStore
 
@@ -285,9 +287,19 @@ class AgentLoop:
                     run.id,
                     len(run.messages),
                 )
+                # ALG-0.1: recortar para que prompt+tools quepan en el contexto (evita el 400).
+                _s = get_settings()
+                msgs_llm, tools_llm, _recortado = ajustar_a_contexto(
+                    run.messages,
+                    tools_schema,
+                    n_ctx=_s.llm_context_length,
+                    max_tokens=_s.llm_max_tokens,
+                )
+                if _recortado:
+                    logger.info("ALG-0.1 recortó el contexto para que quepa run=%s", run.id)
                 response: ChatResponse = self.llm.chat(
-                    messages=run.messages,
-                    tools=tools_schema,
+                    messages=msgs_llm,
+                    tools=tools_llm,
                     tool_choice="auto",
                 )
 
@@ -646,12 +658,17 @@ def _describe_for_approval(tool_name: str, args: dict[str, Any]) -> tuple[str, s
             f"Para: {to}\nAsunto: {subject}\n\n{cuerpo}",
         )
     if tool_name == "calendar_create":
-        summary = str(args.get("summary", "")).strip()
+        # La tool usa `title` (no `summary`): leer el nombre real para que el borrador no salga vacío.
+        titulo = str(args.get("title") or args.get("summary") or "").strip()
         start = str(args.get("start_iso", "")).strip()
-        return (
-            "Crear un evento en tu calendario",
-            f"Evento: {summary}\nInicio: {start}",
-        )
+        dur = args.get("duration_minutes")
+        loc = str(args.get("location", "")).strip()
+        detalle = f"Evento: {titulo or '(sin título)'}\nInicio: {start}"
+        if dur:
+            detalle += f"\nDuración: {dur} min"
+        if loc:
+            detalle += f"\nLugar: {loc}"
+        return ("Crear un evento en tu calendario", detalle)
     if tool_name == "run_shell":
         return ("Ejecutar un comando en tu equipo", str(args.get("command", "")))
     # Genérico para cualquier otra tool sensible.

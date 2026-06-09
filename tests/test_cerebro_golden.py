@@ -6,6 +6,8 @@ Si un cambio los rompe, el gate (scripts/verify.py) se pone ROJO. Son 100% CI (s
 
 from loombit_operator import llm
 from loombit_operator.agent import smalltalk
+from loombit_operator.agent.contexto import ajustar_a_contexto
+from loombit_operator.agent.loop import _describe_for_approval
 from loombit_operator.agent.reflexion import etiquetas_de_tarea
 from loombit_operator.comprension import _salvar_objetos
 from loombit_operator.tool_labels import humanize_user_text, looks_like_code, safe_user_result
@@ -113,3 +115,47 @@ def test_agota_reintentos_y_devuelve_el_ultimo(monkeypatch):
     r = llm._post_con_reintento(c, "http://x/chat", {})
     assert r.status_code == 503
     assert c.calls == 3  # tope de intentos
+
+
+# ── ALG-0.1 · asegurar_contexto (evita el 400 por desbordar el contexto) ──────
+def test_contexto_no_recorta_si_cabe():
+    m = [{"role": "system", "content": "sys"}, {"role": "user", "content": "hola"}]
+    t = [{"a": 1}]
+    mm, tt, rec = ajustar_a_contexto(m, t, n_ctx=8192, max_tokens=1024)
+    assert rec is False and mm == m and tt == t
+
+
+def test_contexto_recorta_historial_conservando_system_y_ultimo():
+    grande = "x" * 4000
+    m = [{"role": "system", "content": "sys"}] + [
+        {"role": "user", "content": grande} for _ in range(10)
+    ]
+    mm, tt, rec = ajustar_a_contexto(m, [{"a": 1}], n_ctx=2000, max_tokens=512)
+    assert rec is True
+    assert len(mm) < len(m)
+    assert mm[0]["content"] == "sys"  # nunca toca el system
+
+
+def test_contexto_recorta_tools_como_ultimo_recurso():
+    m = [{"role": "system", "content": "x" * 5000}, {"role": "user", "content": "hola"}]
+    t = [{"n": i, "d": "y" * 300} for i in range(20)]
+    mm, tt, rec = ajustar_a_contexto(m, t, n_ctx=2000, max_tokens=512, min_tools=4)
+    assert rec is True and 4 <= len(tt) < 20
+
+
+# ── F1.8 · _describe_for_approval (borrador real en la tarjeta de aprobación) ──
+def test_describe_calendar_lee_title_no_summary():
+    reason, prop = _describe_for_approval(
+        "calendar_create",
+        {"title": "Reunión con David", "start_iso": "2026-06-14T10:00:00Z", "duration_minutes": 30},
+    )
+    assert "evento" in reason.lower()
+    assert "Reunión con David" in prop  # antes salía vacío (leía 'summary')
+    assert "30" in prop
+
+
+def test_describe_gmail_muestra_destinatario_y_asunto():
+    reason, prop = _describe_for_approval(
+        "gmail_send", {"to": "a@b.com", "subject": "Hola", "body": "Texto del correo"}
+    )
+    assert "a@b.com" in prop and "Hola" in prop and "Texto del correo" in prop
