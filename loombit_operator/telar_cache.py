@@ -118,6 +118,13 @@ def warm(tejer: Callable[[], dict] | None = None) -> None:
     _refresh_async(tejer or _default_tejer)
 
 
+def invalidate() -> None:
+    """Olvida el caché (p.ej. al cambiar el perfil) → el próximo /telar se reconstruye al instante
+    con los datos nuevos (que el saludo no se quede con el nombre viejo)."""
+    global _mem
+    _mem = None
+
+
 def _reset_para_tests() -> None:  # pragma: no cover - utilidad de test
     global _mem, _refreshing
     _mem = None

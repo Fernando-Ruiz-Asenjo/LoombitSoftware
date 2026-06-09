@@ -854,11 +854,47 @@ pre.fb-code { background: var(--lb-navy,#0a0e1a); border: 1px solid var(--lb-bor
       <button class="icon-btn" onclick="clearChat()" title="Nueva conversación">
         <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
       </button>
-      <button class="icon-btn" title="Ajustes (próximamente)">
+      <button class="icon-btn" onclick="openSettings()" title="Ajustes">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
     </div>
   </header>
+
+  <!-- Ajustes (el ⚙️ ya NO es decorativo): perfil + conexión + privacidad + atajos -->
+  <div id="settings-overlay" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.55);backdrop-filter:blur(3px)" onclick="if(event.target===this)closeSettings()">
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(520px,calc(100% - 32px));background:var(--lb-navy3,#1a2235);border:1px solid var(--lb-border2,rgba(255,255,255,.12));border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.5);padding:22px 24px;color:var(--lb-text,#f1f5f9);max-height:86vh;overflow:auto">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+        <span style="font-size:19px">⚙️</span><span style="font-size:17px;font-weight:700">Ajustes</span>
+        <button onclick="closeSettings()" title="Cerrar" style="margin-left:auto;background:none;border:none;color:var(--lb-text3,#64748b);font-size:18px;cursor:pointer">✕</button>
+      </div>
+
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--lb-text3,#64748b);margin:4px 0 8px">Tu perfil</div>
+      <label style="display:block;font-size:13px;color:var(--lb-text2,#94a3b8);margin-bottom:4px">Tu nombre — con él te saludo y firmo tus correos</label>
+      <input id="set-name" placeholder="Ej. Fernando" style="width:100%;background:var(--lb-navy2,#111827);border:1px solid var(--lb-border,#293247);border-radius:10px;color:var(--lb-text,#f1f5f9);font:inherit;padding:10px 12px;margin-bottom:10px;outline:none">
+      <label style="display:block;font-size:13px;color:var(--lb-text2,#94a3b8);margin-bottom:4px">Tu empresa (opcional)</label>
+      <input id="set-company" placeholder="Ej. Mi Empresa S.L." style="width:100%;background:var(--lb-navy2,#111827);border:1px solid var(--lb-border,#293247);border-radius:10px;color:var(--lb-text,#f1f5f9);font:inherit;padding:10px 12px;margin-bottom:10px;outline:none">
+      <div style="display:flex;align-items:center;gap:10px">
+        <button onclick="saveOwner()" style="background:linear-gradient(135deg,var(--lb-purple,#8b5cf6),var(--lb-cyan,#06b6d4));color:#fff;border:none;border-radius:999px;padding:9px 18px;font-weight:600;cursor:pointer;font-size:13px">Guardar</button>
+        <span id="set-saved" style="color:var(--lb-green,#2ec27e);font-size:13px;display:none">Guardado ✅</span>
+      </div>
+
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--lb-text3,#64748b);margin:18px 0 8px">Conexión</div>
+      <div style="display:flex;align-items:center;gap:10px;font-size:14px">
+        <span>Google</span>
+        <span id="set-google-badge" style="font-size:12px;color:var(--lb-text3,#64748b)">…</span>
+        <button id="set-google-btn" onclick="toggleGoogle()" style="margin-left:auto;background:var(--lb-navy2,#111827);color:var(--lb-text,#f1f5f9);border:1px solid var(--lb-border,#293247);border-radius:999px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">…</button>
+      </div>
+
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--lb-text3,#64748b);margin:18px 0 8px">Privacidad</div>
+      <div style="font-size:13px;color:var(--lb-text2,#94a3b8);display:flex;align-items:center;gap:6px">🔒 Todo se procesa en tu máquina. Nada sale de aquí sin tu aprobación.</div>
+
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--lb-text3,#64748b);margin:18px 0 8px">Atajos</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="closeSettings();openGalaxia()" style="background:var(--lb-navy2,#111827);color:var(--lb-text2,#94a3b8);border:1px solid var(--lb-border,#293247);border-radius:999px;padding:7px 14px;font-size:13px;cursor:pointer">🌌 Galaxia</button>
+        <button onclick="closeSettings();openFabrica()" style="background:var(--lb-navy2,#111827);color:var(--lb-text2,#94a3b8);border:1px solid var(--lb-border,#293247);border-radius:999px;padding:7px 14px;font-size:13px;cursor:pointer">🏭 Fábrica</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Chat body -->
   <div id="chat-body">
@@ -1581,6 +1617,39 @@ async function disconnectGoogle() {
     await fetch(`${API}/skill-blanca/oauth/google/disconnect`, { method: 'DELETE' });
   } catch { /* noop */ }
   refreshConnections();
+}
+
+// ── Ajustes (el ⚙️ con función real) ──────────────────
+function openSettings() {
+  const ov = document.getElementById('settings-overlay'); if (!ov) return;
+  ov.style.display = 'block';
+  // Rellena con el perfil actual
+  fetch(`${API}/home/context`).then(r => r.json()).then(d => {
+    const o = d.owner || {};
+    const n = document.getElementById('set-name'); if (n) n.value = o.name || '';
+    const c = document.getElementById('set-company'); if (c) c.value = o.company || '';
+  }).catch(() => {});
+  // Estado de Google (del global que mantiene refreshConnections)
+  const badge = document.getElementById('set-google-badge'), btn = document.getElementById('set-google-btn');
+  if (badge) { badge.textContent = googleConnected ? 'conectado' : 'desconectado'; badge.style.color = googleConnected ? 'var(--lb-green,#2ec27e)' : 'var(--lb-text3,#64748b)'; }
+  if (btn) btn.textContent = googleConnected ? 'Desconectar' : 'Conectar';
+}
+function closeSettings() { const ov = document.getElementById('settings-overlay'); if (ov) ov.style.display = 'none'; }
+async function saveOwner() {
+  const name = (document.getElementById('set-name').value || '').trim();
+  const company = (document.getElementById('set-company').value || '').trim();
+  try {
+    const r = await fetch(`${API}/home/owner`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, company }) });
+    if (!r.ok) throw new Error('save');
+    const d = await r.json(); const o = d.owner || {};
+    // Refleja el cambio EN VIVO: saludo, avatar, nombre, y el telar (que saluda con el nombre)
+    const wh = document.querySelector('#welcome .welcome-text h2'); if (wh && o.name) wh.textContent = 'Hola, ' + o.name;
+    const ua = document.getElementById('user-avatar'); if (ua && o.initial) ua.textContent = o.initial;
+    const unl = document.getElementById('user-name-label'); if (unl) unl.textContent = o.name || '';
+    if (window.ME) ME.name = o.name || ME.name;
+    const s = document.getElementById('set-saved'); if (s) { s.style.display = 'inline'; setTimeout(() => { s.style.display = 'none'; }, 1800); }
+    if (typeof cargarTelar === 'function') cargarTelar();
+  } catch (e) { alert('No pude guardar los ajustes. Inténtalo de nuevo.'); }
 }
 
 // ── Aprobar todo ──────────────────────────────────────

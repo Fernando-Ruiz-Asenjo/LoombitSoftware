@@ -11,7 +11,7 @@ from __future__ import annotations
 import re
 from collections import Counter
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Body
 
 router = APIRouter(tags=["home"])
 
@@ -137,4 +137,32 @@ def home_context() -> dict:
         "fuente_contactos": fuente,
         "aviso": aviso,
         "owner": owner,
+    }
+
+
+@router.post("/home/owner")
+def set_owner(payload: dict = Body(default={})) -> dict:
+    """Guarda los datos del dueño (nombre/empresa/email/idioma) desde Ajustes. BLANCO: lo pone el
+    usuario; el agente firma los correos y saluda con esto."""
+    from ..agent.memory import get_memory
+
+    allowed = {
+        k: str(v) for k, v in (payload or {}).items() if k in ("name", "company", "email", "idioma")
+    }
+    o = get_memory().set_owner(**allowed)
+    # El perfil cambió → invalida la tela para que el saludo se actualice ya (no con el nombre viejo).
+    try:
+        from ..telar_cache import invalidate as _inv_telar
+
+        _inv_telar()
+    except Exception:
+        pass
+    nombre = (o.get("name") or "").strip()
+    return {
+        "ok": True,
+        "owner": {
+            "name": nombre,
+            "initial": (nombre[:1].upper() if nombre else ""),
+            "company": (o.get("company") or "").strip(),
+        },
     }
