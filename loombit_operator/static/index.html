@@ -2401,21 +2401,37 @@ function gxPaletteOpen() {
 }
 function gxPaletteClose() { document.getElementById('gx-palette').classList.remove('open'); }
 function gxPaletteFilter(q) {
-  q = (q||'').trim().toLowerCase();
-  const items = GXLayout
-    .filter(o => !q || (o.label||'').toLowerCase().includes(q) || (o.node.email||'').toLowerCase().includes(q))
+  const raw = (q||'').trim();
+  const ql = raw.toLowerCase();
+  const planets = GXLayout
+    .filter(o => !ql || (o.label||'').toLowerCase().includes(ql) || (o.node.email||'').toLowerCase().includes(ql))
     .slice(0, 30);
-  GXPalItems = items; GXPalSel = 0;
+  // Items = planetas + (si hay texto) una ACCIÓN real: pedírselo a Loombit (cumple "escribir una acción").
+  GXPalItems = planets.map(o => ({ planet: o }));
+  if (raw) GXPalItems.push({ action: true, text: raw });
+  GXPalSel = 0;
   const list = document.getElementById('gx-pal-list');
-  list.innerHTML = items.map((o,i) => {
+  list.innerHTML = GXPalItems.map((it,i) => {
+    if (it.action) {
+      return `<div class="gx-pal-item ${i===0?'active':''}" data-i="${i}" onclick="gxPaletteGo(${i})" onmouseenter="gxPalHover(${i})">
+        <span class="dot" style="background:var(--lb-purple,#8b5cf6)"></span><span>Pedir a Loombit: «${esc(it.text)}»</span><span class="sub">Enter</span></div>`;
+    }
+    const o = it.planet;
     const sub = o.kind==='cuenta' ? `${Number(o.node.importe).toLocaleString('es-ES')} € · ${o.node.estado}` : `${o.node.peso} envíos`;
     return `<div class="gx-pal-item ${i===0?'active':''}" data-i="${i}" onclick="gxPaletteGo(${i})" onmouseenter="gxPalHover(${i})">
       <span class="dot" style="background:${o.color}"></span><span>${esc(o.label||'')}</span><span class="sub">${esc(sub)}</span></div>`;
-  }).join('') || `<div class="gx-pal-item" style="color:var(--lb-text3)">Sin coincidencias</div>`;
+  }).join('') || `<div class="gx-pal-item" style="color:var(--lb-text3)">Escribe para buscar un contacto o pedir una acción…</div>`;
 }
 function gxPalHover(i){ GXPalSel=i; [...document.querySelectorAll('.gx-pal-item')].forEach((el,j)=>el.classList.toggle('active',j===i)); }
 function gxPaletteGo(i) {
-  const o = GXPalItems[i]; if (!o) return;
+  const it = GXPalItems[i]; if (!it) return;
+  if (it.action) {  // "escribir una acción" → la mandamos al chat/agente (con su gate)
+    gxPaletteClose(); closeGalaxia();
+    if (typeof msgInput !== 'undefined' && msgInput) msgInput.value = it.text;
+    if (typeof sendMessage === 'function') sendMessage();
+    return;
+  }
+  const o = it.planet;
   GXFocus = o.id; GXPing = o.id; GXPingT = Date.now();
   gxPaletteClose();
   gxShowDetail(o);
