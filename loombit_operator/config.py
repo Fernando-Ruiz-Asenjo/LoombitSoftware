@@ -39,10 +39,19 @@ class AppSettings(BaseSettings):
     llm_coder_base_url: str = ""
     llm_coder_model_name: str = "qwen2.5-coder-7b-instruct"
 
+    # Embeddings (RAG / índice semántico local) — mismo endpoint OpenAI-like, modelo de embeddings.
+    llm_embeddings_model_name: str = "text-embedding-nomic-embed-text-v1.5"
+    rag_index_path: Path = Path("runtime/local/rag_index.json")
+
     # ── Almacenamiento local ──────────────────────────────────────────────────
     lm_job_store_path: Path = Path("runtime/local/lm_jobs.json")
     agent_run_store_path: Path = Path("runtime/local/agent_runs.json")
     skill_manifest_dir: Path = Path("skills")
+
+    # ── Fábrica de Skills (Skill X) — auto-autoría gobernada ───────────────────
+    # Cargar al arrancar las tools que un humano APROBÓ (gate sagrado): off por defecto.
+    # Solo se cargan propuestas en estado APROBADA, re-verificadas por el gate de seguridad.
+    fabrica_autocargar_generadas: bool = False
 
     # ── Routines (agentes proactivos programados) ─────────────────────────────
     routine_store_path: Path = Path("runtime/local/routines.json")

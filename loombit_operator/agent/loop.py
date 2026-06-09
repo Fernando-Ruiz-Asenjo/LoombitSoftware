@@ -38,6 +38,21 @@ _SENTINEL_DONE = "TASK_DONE:"
 _SENTINEL_APPROVAL = "PENDING_APPROVAL:"
 _SENTINEL_QUESTION = "PENDING_QUESTION:"
 
+# Anti-flailing: si la MISMA tool falla esta cantidad de veces SEGUIDAS, el bucle corta en seco
+# (no quema los 20 pasos martilleando algo roto). El 1er fallo solo avisa; el 2º detiene.
+_TOOL_ERROR_CUT = 2
+
+# Prefijos con los que el propio bucle marca un resultado como ERROR de ejecución de tool (tool
+# inexistente, argumentos inválidos, excepción, o fallo al ejecutar lo ya aprobado). Se centralizan
+# aquí para que productor (_execute_tool_call / resume) y detector (_is_error_result) no se
+# desincronicen.
+_ERROR_PREFIXES = (
+    "ERROR: tool desconocida",
+    "ERROR: argumentos invalidos",
+    "ERROR en '",
+    "ERROR al ejecutar",
+)
+
 # El asunto/cuerpo de un correo los redacta el agente, no el usuario. Si el modelo intenta
 # preguntarlos vía ask_user, lo interceptamos y le devolvemos la orden de redactarlos él.
 _PREGUNTA_AUTORREDACTABLE = re.compile(r"asunto|subject|cuerpo|\bbody\b|t[ií]tulo del correo", re.I)
@@ -103,15 +118,28 @@ class AgentLoop:
         run = self.store.get(run_id)
         return self._execute(run)
 
-    def resume(self, run_id: str) -> AgentRun:
-        """Reanuda un AgentRun en pending_approval tras recibir aprobación humana.
-
-        Ejecuta la tool aprobada y reemplaza el placeholder PENDING_APPROVAL
-        en el historial de mensajes con el resultado real antes de continuar.
-        """
+    def accept_approval(self, run_id: str) -> AgentRun:
+        """SÍNCRONO y rápido: acepta la aprobación humana y deja el run en RUNNING. NO ejecuta la
+        tool aprobada ni el LLM — de eso se encarga `_resume_execute` (en background). Separar la
+        ACEPTACIÓN (instantánea) de la EJECUCIÓN evita la ventana de carrera en la que la UI recibía
+        el run aún en `pending_approval` y volvía a pintar la misma tarjeta."""
         run = self.store.get(run_id)
         if run.status != AgentStatus.PENDING_APPROVAL:
             raise ValueError(f"El run {run_id} no está en pending_approval (status={run.status})")
+        run.approve()  # → RUNNING; limpia pending_approval. Los steps a ejecutar siguen marcados.
+        self.store.save_run(run)
+        return run
+
+    def resume(self, run_id: str) -> AgentRun:
+        """Acepta la aprobación y ejecuta hasta el siguiente hito (uso directo y en tests)."""
+        self.accept_approval(run_id)
+        return self._resume_execute(run_id)
+
+    def _resume_execute(self, run_id: str) -> AgentRun:
+        """Ejecuta la(s) tool(s) ya aprobada(s) y continúa el bucle. Asume que el run YA está en
+        RUNNING (lo dejó `accept_approval`). Reemplaza cada placeholder PENDING_APPROVAL del
+        historial por el resultado real antes de seguir."""
+        run = self.store.get(run_id)
 
         # Ejecutar TODOS los steps que están esperando aprobación
         pending_steps = [
@@ -141,12 +169,35 @@ class AgentLoop:
                     msg["content"] = actual_result
                     break
 
-        run.approve()
+        # Si la acción que el usuario YA APROBÓ falló al ejecutarse, NO re-pausamos en silencio:
+        # se lo decimos al modelo para que la corrija UNA vez o lo explique con task_done, en lugar
+        # de volver a sacar la misma tarjeta a ciegas (el bug de "la ventanita que reaparece").
+        fallos_aprobados = [s for s in pending_steps if _is_error_result(s.result)]
+
+        if fallos_aprobados:
+            detalle = "; ".join(
+                f"«{s.tool_name}» → {_error_brief(s.result)}" for s in fallos_aprobados
+            )
+            run.messages.append(
+                {
+                    "role": "user",
+                    "content": (
+                        f"[SISTEMA: La acción que el usuario YA APROBÓ falló al ejecutarse "
+                        f"({detalle}). NO vuelvas a pedir la misma aprobación a ciegas. Si puedes "
+                        f"corregir el problema de forma determinista (p. ej. un argumento), hazlo "
+                        f"UNA sola vez; si no, explica el fallo al usuario con task_done. No repitas "
+                        f"la acción idéntica.]"
+                    ),
+                }
+            )
         self.store.save_run(run)
         return self._execute(run)
 
-    def answer(self, run_id: str, answer_text: str) -> AgentRun:
-        """Inyecta la respuesta del usuario a una pregunta y reanuda el agente."""
+    def accept_answer(self, run_id: str, answer_text: str) -> AgentRun:
+        """SÍNCRONO y rápido: inyecta la respuesta del usuario EN EL SITIO de la pregunta y deja el
+        run en RUNNING. NO ejecuta el LLM — de eso se encarga `execute_run` (en background). Separar
+        la ACEPTACIÓN de la EJECUCIÓN evita que la UI reciba el run aún en `pending_question` y vuelva
+        a pintar la misma pregunta (el bug de «me preguntó la hora dos veces»)."""
         run = self.store.get(run_id)
         if run.status != AgentStatus.PENDING_QUESTION:
             raise ValueError(f"El run {run_id} no está en pending_question (status={run.status})")
@@ -168,13 +219,15 @@ class AgentLoop:
         # Añadir la respuesta como mensaje de usuario al historial del LLM
         run.messages.append({"role": "user", "content": answer_text})
 
-        run.answer()
+        run.answer()  # → RUNNING; limpia pending_question
         self.store.save_run(run)
-
-        # Guardar en memoria conversacional
         _log_conversation_event(run, "user_answer", answer_text)
+        return run
 
-        return self._execute(run)
+    def answer(self, run_id: str, answer_text: str) -> AgentRun:
+        """Inyecta la respuesta y reanuda el agente hasta el siguiente hito (uso directo y tests)."""
+        self.accept_answer(run_id, answer_text)
+        return self.execute_run(run_id)
 
     # ── Motor interno ─────────────────────────────────────────────────────────
 
@@ -227,7 +280,9 @@ class AgentLoop:
 
                 # ── Caso: el LLM no quiere usar tools ─────────────────────────
                 if not response.has_tool_calls:
-                    content = response.content.strip()
+                    # El modelo a veces escribe el nombre de una tool (p.ej. "task_done")
+                    # como texto en vez de llamarla; lo quitamos antes de mostrar nada.
+                    content = _strip_tool_artifacts(response.content.strip())
 
                     # Puede que devuelva el sentinel en texto plano
                     done_result = _extract_sentinel(content, _SENTINEL_DONE)
@@ -345,6 +400,14 @@ class AgentLoop:
                     self.store.save_run(run)
                     return run
 
+                # ── Anti-flailing: una tool que falla en seco repetidamente ───
+                corte = self._maybe_cut_for_flailing(run, response.tool_calls)
+                if corte is not None:
+                    run.mark_failed(corte)
+                    self._aprender_de_fallo(run)
+                    self.store.save_run(run)
+                    return run
+
                 self.store.save_run(run)
 
         except Exception as exc:
@@ -457,6 +520,37 @@ class AgentLoop:
 
         return result_text, False
 
+    def _maybe_cut_for_flailing(self, run: AgentRun, tool_calls: list[ToolCall]) -> str | None:
+        """Anti-flailing. Si una tool acaba de fallar por 2ª vez SEGUIDA, devuelve el mensaje de
+        corte honesto (el bucle marcará el run como fallido en vez de quemar pasos). Si es el 1er
+        fallo, inyecta un aviso preciso para que el modelo cambie antes de gastar otro paso.
+        Devuelve None si no hay que cortar."""
+        for tc in tool_calls:
+            fallos = _consecutive_tool_errors(run, tc.tool_name)
+            ultimo = next((s for s in reversed(run.steps) if s.tool_name == tc.tool_name), None)
+            if fallos >= _TOOL_ERROR_CUT:
+                causa = _error_brief(ultimo.result) if ultimo else "error desconocido"
+                logger.warning(
+                    "Anti-flailing: corto run=%s tool='%s' x%d", run.id, tc.tool_name, fallos
+                )
+                return (
+                    f"No pude completar la tarea: la herramienta «{tc.tool_name}» falló "
+                    f"{fallos} veces seguidas y dejé de intentarlo. Causa: {causa}"
+                )
+            if fallos == 1 and ultimo is not None:
+                run.messages.append(
+                    {
+                        "role": "user",
+                        "content": (
+                            f"[SISTEMA: «{tc.tool_name}» falló: {_error_brief(ultimo.result)}. "
+                            f"Si la herramienta no existe o no encaja, NO la vuelvas a llamar igual: "
+                            f"usa otra vía o termina con task_done explicando la limitación. "
+                            f"Un 2º fallo idéntico me detendrá.]"
+                        ),
+                    }
+                )
+        return None
+
     def _aprender_de_fallo(self, run: AgentRun) -> None:
         """Reflexión (sin fine-tuning): saca una lección general del fallo y la guarda en memoria.
         Best-effort — nunca rompe el run. La lección se recuperará en tareas futuras parecidas."""
@@ -551,6 +645,20 @@ def _describe_for_approval(tool_name: str, args: dict[str, Any]) -> tuple[str, s
     )
 
 
+def _strip_tool_artifacts(text: str) -> str:
+    """Quita líneas sueltas que sean SOLO el nombre de una tool. A veces el modelo
+    escribe 'task_done' (u otro nombre de tool) como texto al final del mensaje en vez
+    de llamar a la tool. Son identificadores snake_case, nunca prosa de usuario → se
+    eliminan sin tocar el mensaje real (que el usuario sí debe ver)."""
+    from ..tools import tool_registry
+
+    nombres = {t.name for t in tool_registry.list()}
+    lineas = [
+        ln for ln in text.splitlines() if ln.strip().strip("`*_-•().:").strip() not in nombres
+    ]
+    return "\n".join(lineas).strip()
+
+
 def _extract_sentinel(text: str, prefix: str) -> str | None:
     if text.startswith(prefix):
         return text[len(prefix) :]
@@ -596,6 +704,33 @@ def _log_conversation_event(run: "AgentRun", event_type: str, content: str) -> N
             f.write(event + "\n")
     except Exception:
         pass
+
+
+def _is_error_result(text: str) -> bool:
+    """True si el texto es un resultado de error generado por el propio bucle al ejecutar una tool."""
+    return bool(text) and text.startswith(_ERROR_PREFIXES)
+
+
+def _error_brief(text: str, limit: int = 160) -> str:
+    """Versión corta y legible (1 línea) de un resultado de error, para mensajes al modelo/usuario."""
+    if not text:
+        return ""
+    linea = text.strip().splitlines()[0]
+    return linea if len(linea) <= limit else linea[:limit] + "…"
+
+
+def _consecutive_tool_errors(run: "AgentRun", tool_name: str) -> int:
+    """Cuántas veces SEGUIDAS ha fallado `tool_name` (ignorando otras tools intercaladas). Se corta
+    en cuanto esa tool tuvo un resultado no-error → mide flailing real, no fallos sueltos."""
+    n = 0
+    for s in reversed(run.steps):
+        if s.tool_name != tool_name:
+            continue
+        if _is_error_result(s.result):
+            n += 1
+        else:
+            break
+    return n
 
 
 def _inject_loop_hint(run: "AgentRun", incoming_calls: list) -> None:

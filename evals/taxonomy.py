@@ -66,4 +66,10 @@ TAXONOMIA: dict[str, Fallo] = {
         "Decenas de runs en 'running' martilleando el 14B tras reinicios",
         "alta",
     ),
+    "FAB": Fallo(
+        "FAB",
+        "Auto-autoría insegura (la Fábrica de Skills debe rechazar código peligroso)",
+        "Una tool auto-escrita con os/subprocess/eval/dunders no debe pasar el gate de seguridad",
+        "alta",
+    ),
 }

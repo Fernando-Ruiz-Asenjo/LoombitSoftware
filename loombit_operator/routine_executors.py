@@ -31,10 +31,40 @@ _MEJORA_SYSTEM = (
 )
 
 
-def _señales_reales() -> list[str]:
-    """Señales REALES de hoy para el brief: respuestas sin leer de contactos + aprobaciones
-    pendientes. Sin inventar nada; si una fuente falla, simplemente no aporta señal."""
+def _señales_reales(now: datetime | None = None) -> list[str]:
+    """Señales REALES de hoy para el brief: agenda de hoy + respuestas sin leer de contactos
+    + aprobaciones pendientes + cuentas a cobrar. Sin inventar nada; si una fuente falla,
+    simplemente no aporta señal."""
     señales: list[str] = []
+    try:
+        from .skill_blanca_calendar_read import eventos_de_hoy
+
+        eventos = eventos_de_hoy(now=now)
+        if eventos:
+            titulos = "; ".join(e.get("summary", "") for e in eventos[:5])
+            señales.append(f"{len(eventos)} evento(s) hoy en tu agenda: {titulos}")
+        else:
+            señales.append("sin eventos en tu calendario hoy")
+    except Exception:
+        pass
+    # Asuntos COMPRENDIDOS de la bandeja (Skill D · Comprensión): se leen de la caché que el motor
+    # calcula en segundo plano (reuniones reconciliadas, notificaciones oficiales, plazos), con su
+    # estado. El brief NO llama al LLM aquí — lee lo ya comprendido. Si la caché está vacía, no aporta.
+    try:
+        from .comprension import comprension_cacheada
+
+        for a in comprension_cacheada()[0][:5]:
+            cuando = ""
+            if a.get("fecha"):
+                from datetime import date as _date
+
+                d = _date.fromisoformat(a["fecha"])
+                cuando = " " + ("lun", "mar", "mié", "jue", "vie", "sáb", "dom")[d.weekday()]
+                cuando += f" {d.day}/{d.month}" + (f" {a['hora']}" if a.get("hora") else "")
+            estado = f" ({a['estado'].replace('_', ' ')})" if a.get("estado") else ""
+            señales.append(f"{a.get('titulo', 'asunto')}{cuando}{estado}".strip())
+    except Exception:
+        pass
     try:
         from types import SimpleNamespace
 
@@ -58,6 +88,16 @@ def _señales_reales() -> list[str]:
                 if n
                 else "ningún correo sin leer de contactos"
             )
+    except Exception:
+        pass
+    # Percepción AMPLIA: cuántos correos recientes hay en la bandeja (de cualquiera, no solo
+    # contactos). Las reuniones ya las destila el bloque de arriba. Best-effort.
+    try:
+        from .telar import _fuente_inbox
+
+        inbox = _fuente_inbox(None, incluir_leidos=True)
+        if inbox:
+            señales.append(f"{len(inbox)} correo(s) reciente(s) en tu bandeja")
     except Exception:
         pass
     try:
@@ -240,8 +280,9 @@ def reply_watch_executor(routine: Routine, now: datetime) -> str:
             continue
         task = (
             f"Responde al correo que te ha enviado {rsp['from']} (asunto: «{rsp['subject']}»). "
-            f"Su mensaje: «{rsp['snippet']}». Redacta una respuesta breve y natural COMO Fernando "
-            f"(primera persona, sin decir que eres IA) y envíala con gmail_send a {dest} "
+            f"Su mensaje: «{rsp['snippet']}». Redacta una respuesta breve y natural EN MI NOMBRE "
+            f"(en primera persona, firmando con mi nombre de la memoria; sin decir que eres IA) "
+            f"y envíala con gmail_send a {dest} "
             f"con asunto «RE: {rsp['subject']}»."
         )
         try:
@@ -280,12 +321,80 @@ def vigilar_respuestas_routine() -> Routine:
     )
 
 
+def fabrica_skills_routine() -> Routine:
+    """Routine de la Fábrica de Skills (Skill X): en 2º plano detecta huecos útiles, redacta y valida
+    una tool con el coder local y PROPONE con gate. Nunca aplica. OPT-IN (enabled=False)."""
+    return Routine(
+        name="Fábrica de Skills",
+        schedule=CronSchedule("0 4 * * *", tz="Europe/Madrid"),
+        objective=(
+            "Detecta huecos útiles (tools que el agente pidió o que fallan), redacta y valida una "
+            "tool nueva con el arnés grado-foso y propónla para aprobación. No apliques nada."
+        ),
+        safety=SkillSafetyClass.SAFETY_SENSITIVE,
+        output_kind="fabrica",
+        enabled=False,
+    )
+
+
+def fabrica_skills_executor(routine: Routine, now: datetime) -> str:
+    """Corre un ciclo de la Fábrica y resume las propuestas pendientes nuevas (no aplica nada)."""
+    try:
+        from .fabrica.ciclo import ejecutar_ciclo
+
+        informe = ejecutar_ciclo(max_necesidades=3, max_intentos=2)
+    except Exception as exc:  # noqa: BLE001
+        return f"Fábrica: no pude correr el ciclo: {exc!r}"
+    nuevas = informe.get("tools", {}).get("propuestas_pendientes_nuevas", [])
+    hallazgos = informe.get("hallazgos_red_meta", {}).get("nuevos", 0)
+    if not nuevas and not hallazgos:
+        n = informe.get("oportunidades_detectadas", 0)
+        return f"Fábrica: {n} oportunidad(es) analizada(s); sin novedad que aprobar/revisar."
+    partes = []
+    if nuevas:
+        partes.append(f"{len(nuevas)} propuesta(s) de tool para aprobar (/fabrica/propuestas)")
+    if hallazgos:
+        partes.append(
+            f"{hallazgos} hallazgo(s) de la Red/meta para revisar (/fabrica/oportunidades)"
+        )
+    return "Fábrica: " + " · ".join(partes) + "."
+
+
+def aprendizaje_routine() -> Routine:
+    """Routine de aprendizaje proactivo (cierra Fase 5): de madrugada consolida la memoria —
+    reindexa el índice semántico (RAG) y destila lecciones generales de los runs recientes. PASSIVE
+    (solo lee/escribe en memoria e índice LOCALES; ningún efecto externo). Enabled, opt-in vía daemon.
+    """
+    return Routine(
+        name="Aprendizaje",
+        schedule=CronSchedule("30 4 * * *", tz="Europe/Madrid"),
+        objective=(
+            "Consolida la memoria: mantén fresco el índice semántico del histórico y destila "
+            "lecciones generales de las últimas ejecuciones, para recordar mejor por significado."
+        ),
+        safety=SkillSafetyClass.PASSIVE,
+        output_kind="aprendizaje",
+        enabled=True,
+    )
+
+
+def aprendizaje_executor(routine: Routine, now: datetime) -> str:
+    """Consolida la memoria (reindexa el RAG + Reflexion proactiva de los runs recientes)."""
+    from .aprendizaje import consolidar
+
+    return consolidar().get("resumen", "Aprendizaje: sin resultado.")
+
+
 def default_executor(routine: Routine, now: datetime) -> str:
     """Despacha al executor según el tipo de routine (un solo punto de entrada para el scheduler)."""
     if routine.output_kind == "mejora":
         return mejora_continua_executor(routine, now)
     if routine.output_kind == "reply_watch":
         return reply_watch_executor(routine, now)
+    if routine.output_kind == "fabrica":
+        return fabrica_skills_executor(routine, now)
+    if routine.output_kind == "aprendizaje":
+        return aprendizaje_executor(routine, now)
     return brief_executor(routine, now)
 
 
@@ -298,6 +407,10 @@ def ensure_default_routines(store: RoutineStore) -> RoutineStore:
         store.add(mejora_continua_routine())
     if "Vigilar respuestas" not in nombres:
         store.add(vigilar_respuestas_routine())
+    if "Fábrica de Skills" not in nombres:
+        store.add(fabrica_skills_routine())
+    if "Aprendizaje" not in nombres:
+        store.add(aprendizaje_routine())
     return store
 
 

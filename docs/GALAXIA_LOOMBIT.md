@@ -108,3 +108,100 @@ Priorizados por "cuánto te obliga a salir de Loombit":
 **Idea clave:** los tres gaps (correo, calendario, ficheros) no son pantallas sueltas — son **las
 órbitas de la Galaxia**. Construir la Galaxia y construir esas vistas es **el mismo trabajo** visto
 de dos maneras: cada gap es una órbita más de planetas con los que interactuar.
+
+---
+
+# Profundización con investigación (2026-06-08)
+
+> Antes de construir, se investigaron enfoques reales (librerías de grafos, CRMs relacionales,
+> lienzos espaciales, técnicas de visualización). Esto **destila** lo aplicable y **corrige** la idea.
+
+## 9. Qué existe ahí fuera (y qué tomamos / evitamos)
+
+- **CRMs relacionales** (Dex, Clay, Monica, YourPond): el patrón que funciona no es "una galaxia"
+  sino **fuerza de la relación** (Dex muestra qué conexiones *crecen o se enfrían*), **enriquecido
+  proactivamente** desde correo/calendario (Clay construye y actualiza tu red solo) y, en el caso de
+  **Monica, local/auto-alojado** (= nuestra privacidad). → **Tomamos**: temperatura de relación +
+  auto-construcción desde Enviados (ya lo hacemos) + local-first como diferencial.
+- **Lienzos espaciales / PKM** (Heptabase, Kosmik, Scrintal, Obsidian Canvas/graph): organizar como
+  "papeles en una mesa", lo espacial le va a quien piensa en relaciones; lo lista a quien tría. →
+  **Lección**: la Galaxia es la **vista de conjunto y relación**, NO el sitio para triar/buscar fino.
+- **Clientes de correo IA** (Shortwave, Superhuman): Shortwave = panel multi-vista (Calendar,
+  *Activity* de quién abrió/respondió, *todo el correo de un contacto*) + *Tasklet* (automatiza flujos
+  en lenguaje natural); Superhuman = **command palette** (⌘K hace cualquier cosa sin ratón) + velocidad.
+  El mercado se parte en "organizar el trabajo" vs "ejecutarlo más rápido". → **Loombit es la tercera
+  posición, más fuerte: lo HACE por ti y te enseña el mapa vivo de tu negocio.** Tomamos: command
+  palette (precisión) + "todo de un contacto" = las **lunas** de su planeta.
+- **Librerías de grafos** (D3-force, Cytoscape.js, Sigma/graphology): Cytoscape = mejor equilibrio
+  interactividad/algoritmos (canvas, ~3-5k nodos); Sigma/WebGL para decenas de miles; D3 = control
+  total pero mucho trabajo. → Para una PYME (decenas–cientos de entidades) **no necesitamos un motor
+  de grafos**; ver §11.
+
+## 10. La corrección crítica: huir del "hairball"
+
+El hallazgo más importante de la investigación: un grafo nodo-arista con todo conectado se convierte
+en una **maraña ("hairball") inusable a partir de ~30 nodos**. Si pintáramos contactos+facturas+
+correos+documentos+eventos con todas sus líneas a la vez, sería ruido. Cómo lo evita la Galaxia
+**por construcción** (no por parche):
+
+1. **Órbitas = sin aristas por defecto.** El layout radial codifica la relación por **posición**
+   (órbita = categoría, radio = prioridad/urgencia, ángulo/cercanía = agrupación), no por líneas.
+   La investigación de *radial layouts* lo confirma: "las aristas consumen mucho espacio; el radial es
+   *edgeless*". **Las líneas solo aparecen al hacer foco/hover en UN planeta** (su constelación), nunca
+   todas a la vez. Esto, solo, mata la maraña.
+2. **Focus + Context con zoom semántico** (técnica académica establecida; p. ej. *MoireGraphs*: focus+
+   context radial con nodos visuales). Tres niveles donde **cambia la codificación, no solo la escala**:
+   - **Galaxia** (conjunto): sol + KPIs + los ~12-15 planetas que importan + **cinturones** para el resto.
+   - **Sistema** (foco en una entidad): esa entidad pasa al centro y sus **lunas radian a su alrededor**
+     (layout radial *parent-centered*): sus facturas, sus correos, sus eventos.
+   - **Planeta** (detalle): se abre en el chat para leer entero / actuar (reusa lo ya hecho).
+3. **Cinturón de asteroides para la cola larga.** Los contactos fríos / facturas viejas no se pintan
+   como planetas: se agrupan en un **cinturón** (un anillo de "polvo") expandible. Es la técnica
+   anti-hairball de *agrupar en nodos de nivel superior*, pero coherente con la metáfora.
+4. **Temperatura de relación** (de Dex): un planeta **brilla y se acerca** al interactuar, y **se
+   enfría/atenúa** si llevas semanas sin trato → empuja a la acción ("hace 3 meses que no hablas con X").
+5. **Gravedad semántica** (idea original, ahora validada): lo urgente es atraído al centro.
+6. **Command palette** (de Superhuman): ⌘K para **saltar a cualquier planeta o disparar una acción**
+   ("reclamar a Jana", "agenda con David"). Lo espacial da la visión; la paleta da la precisión y la
+   velocidad — cubre justo donde "las listas ganan al grafo".
+
+## 11. Decisión técnica
+
+- **Render: canvas propio con layout orbital DETERMINISTA** (no físico). Motivos: (a) la metáfora
+  "sistema estelar" es bespoke y queremos control total del aspecto (marca violeta→cian, el halo);
+  (b) un layout determinista por órbitas **no produce maraña** (no hay física que enrede); (c) cero
+  dependencia pesada, local-first, encaja en la single-page actual. Aristas solo en foco.
+- **Cuándo subir a una librería**: si algún día necesitamos algoritmos de grafo (caminos, comunidades)
+  o miles de nodos, **Cytoscape.js** (interactividad+algoritmos) o **Sigma+graphology** (WebGL, escala).
+  Para una PYME no hace falta; se deja documentado como salida.
+- **Datos**: un único `GET /galaxia` agrega lo que ya existe (§5) en `{ sol, nodos[], aristas[] }`,
+  con `peso`, `estado`, `temperatura` y `urgencia` por nodo → el canvas coloca por órbita/radio.
+
+## 12. MVP revisado (anti-hairball desde el día 1) — ✅ HECHO 🟢 (2026-06-08, D-26)
+
+1. `GET /galaxia`: sol (entidad + KPIs) · nodos contacto (peso=frecuencia, temperatura=intensidad de
+   trato) · nodos cuenta (estado, urgencia=días a vencer) · **aristas solo contacto↔cuenta** (no se
+   pintan salvo foco). + test. → `loombit_operator/galaxia.py` + `routers/galaxia.py` + `test_galaxia.py` (6).
+2. Canvas orbital determinista: sol al centro, órbita de contactos (tamaño=peso, brillo=temperatura),
+   órbita de cuentas (color=estado, radio=urgencia → las que vencen, más adentro), **cinturón** para
+   la cola. **Hover** = tooltip; **clic** = foco (aparecen sus líneas); **⌘K** = saltar; doble clic =
+   abrir en el chat. → vista 🌌 en `static/index.html` (canvas propio, sin dependencia).
+3. ✅ 🟢 **verificado EN VIVO en el servidor real**: con datos reales (8 contactos de Enviados + 4
+   cuentas de prueba) la vista colocó las facturas vencidas hacia el centro en rojo, sin maraña, y al
+   enfocar un cliente apareció **solo SU** arista (3 aristas correctas, 0 espurias). Datos de prueba
+   borrados tras verificar. Ver **D-26** en `DECISIONES.md`.
+
+> **Nota honesta sobre `temperatura`:** en el MVP es *intensidad de trato* (frecuencia normalizada en
+> [0.35, 1.0]), no la *recencia* (último contacto). La recencia real necesita la marca de tiempo de los
+> mensajes de Enviados → siguiente slice. El brillo ya distingue "con quién tratas más".
+
+*Siguientes slices*: `temperatura`=recencia real; drag-to-act; latido por novedad (daemon); órbitas de
+correo/eventos/documentos (= los 3 gaps de Google); zoom semántico completo.
+
+## Fuentes
+- [JS graph libs (Cytoscape/Sigma/D3) — comparación](https://www.cylynx.io/blog/a-comparison-of-javascript-graph-network-visualisation-libraries/) · [Cytoscape.js](https://js.cytoscape.org/)
+- [Personal CRMs (Dex/Clay/Monica/YourPond)](https://getdex.com/guides/finding-the-right-personal-crm/)
+- [PKM espacial (Kosmik/Heptabase/Obsidian)](https://www.kosmik.app/blog/best-pkm-apps)
+- [El problema del "hairball" y cómo arreglarlo](https://cambridge-intelligence.com/how-to-fix-hairballs/) · [Por qué el grafo no siempre es ideal (DISSINET)](https://dissinet.cz/news/articles/why-is-the-graph-visualisation-not-always-an-ideal-way-to-display-network-data)
+- [Focus+Context / zoom semántico](https://www.researchgate.net/publication/221006041_MoireGraphs_Radial_FocusContext_Visualization_and_Interaction_for_Graphs_with_Visual_Nodes)
+- [Shortwave vs Superhuman (email IA, command center)](https://zapier.com/blog/shortwave-vs-superhuman/)

@@ -84,13 +84,18 @@ from .routers import (  # noqa: E402
     credentials,
     cuentas,
     docs,
+    fabrica,
     fiscal,
+    galaxia,
     health,
     home,
+    mcp,
     pilot,
+    rag,
     routines,
     skill_blanca_actions,
     skill_blanca_oauth,
+    telar,
     ui,
 )
 
@@ -122,6 +127,29 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass
 
+    # Calienta la COMPRENSIÓN de la bandeja en segundo plano: así el telar tiene el resultado bueno
+    # listo desde el principio y NUNCA muestra el calendario crudo (el dato sin verificar).
+    try:
+        from .comprension import calentar_al_arrancar
+
+        calentar_al_arrancar()
+    except Exception:
+        pass
+
+    # Fábrica de Skills (Skill X): carga las tools que un humano APROBÓ (gate sagrado). Opt-in,
+    # off por defecto; cada tool se re-verifica con el gate de seguridad antes de registrarse.
+    if settings.fabrica_autocargar_generadas:
+        try:
+            from .fabrica.materializar import cargar_tools_aprobadas
+
+            cargadas = cargar_tools_aprobadas()
+            if cargadas:
+                logging.getLogger(__name__).info(
+                    "Fábrica: %d tool(s) aprobada(s) cargada(s): %s", len(cargadas), cargadas
+                )
+        except Exception:
+            pass
+
     daemon = None
     if settings.routines_daemon_enabled:
         from .routine_executors import build_default_scheduler
@@ -152,8 +180,13 @@ app.include_router(routines.router)
 app.include_router(fiscal.router)
 app.include_router(conciliacion.router)
 app.include_router(cuentas.router)
+app.include_router(galaxia.router)
 app.include_router(home.router)
 app.include_router(credentials.router)
+app.include_router(mcp.router)
+app.include_router(telar.router)
+app.include_router(fabrica.router)
+app.include_router(rag.router)
 
 # UI estatico y home
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

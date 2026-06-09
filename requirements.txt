@@ -26,6 +26,9 @@ keyring>=24.0.0
 
 # Inteligencia documental — extracción de texto de PDFs de facturas
 pypdf>=4.0.0
+# Facturas ESCANEADAS (OCR con visión local Qwen2.5-VL): renderiza PDF→imagen.
+# Import perezoso: solo para PDFs sin capa de texto; las imágenes sueltas no lo necesitan.
+pypdfium2>=4.0.0
 
 # Dev / calidad
 pytest>=8.0.0

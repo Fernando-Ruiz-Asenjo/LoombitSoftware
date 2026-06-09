@@ -6,8 +6,10 @@ reclamar y en qué tono, calculando plazos, compensación e interés con criteri
 administrativo con oficio.
 
 Gates de honestidad (del banco de supuestos):
-  - El **tipo de interés de demora es variable** (BCE + 8 puntos, por semestre) y
-    NUNCA se inventa: si no se aporta, se marca como "a verificar" (S-02).
+  - El **tipo de interés de demora es variable** (BCE + 8 puntos, por semestre) y NUNCA se
+    inventa. Si el llamante no aporta un tipo, se resuelve del **tipo legal publicado en el BOE**
+    (`tipos_demora`, con cita de la resolución); solo se abstiene ("a verificar") si la fecha cae
+    fuera de la tabla verificada (S-02).
   - **Cobro parcial**: se reclama SOLO el saldo pendiente, nunca el total (S-03).
   - **Factura ya cobrada**: no se reclama (S-01).
   - **Vía judicial**: el operador NO la ejecuta; escala a un profesional y, desde
@@ -18,6 +20,8 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from typing import Any
+
+from . import tipos_demora
 
 # Compensación fija por costes de cobro (art. 8 Ley 3/2004). Es importe legal fijo.
 LATE_FEE_FIXED_EUR = 40.0
@@ -127,10 +131,16 @@ def dunning_plan(
         plan["action"] = "esperar" if overdue < 0 else "preparar_recordatorio"
         return plan
 
-    # Vencida: aplica compensación fija de 40 € e interés (con el gate del tipo).
+    # Vencida: aplica compensación fija de 40 € e interés de demora.
+    # Si el llamante NO aporta un tipo, ya no nos abstenemos a ciegas: resolvemos el tipo LEGAL
+    # publicado en el BOE (BCE + 8, por semestre) desde `tipos_demora`, repartido por tramos. Solo
+    # se abstiene si la fecha cae fuera de la tabla verificada. Un tipo explícito tiene prioridad.
     plan["action"] = "reclamar"
     plan["fixed_compensation_eur"] = LATE_FEE_FIXED_EUR
-    plan["interest"] = late_interest(outstanding, overdue, annual_rate_pct)
+    if annual_rate_pct is not None:
+        plan["interest"] = late_interest(outstanding, overdue, annual_rate_pct)
+    else:
+        plan["interest"] = tipos_demora.interes_demora_legal(outstanding, due_date, today)
 
     if stage == "via_judicial":
         plan["escalate_to_human"] = True

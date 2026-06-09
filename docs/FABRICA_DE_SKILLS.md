@@ -5,6 +5,34 @@
 > pesos** (el aprendizaje es memoria operativa + prompts + manifests), **con evals** y
 > **con procedencia**. *Generado: 2026-06-08. Fases: 5 (núcleo) y transversal.*
 
+## Estado: 🟡 construido (2026-06-08) — `loombit_operator/fabrica/` (Skill X)
+
+El núcleo de auto-autoría GOBERNADA ya existe y está testeado (+16 tests; D-39). Diseño destilado
+del estado del arte 2025-26 (ver `RADAR_INNOVACION.md` barrido 4). Mapa de módulos:
+
+| Módulo | Qué hace |
+|---|---|
+| `fabrica/seguridad.py` | **Gate de seguridad** (linchpin): AST allowlist + sandbox de builtins recortados. El código auto-escrito no se ejecuta sin vetarse. |
+| `fabrica/validacion.py` | **Arnés grado-foso** (la recompensa verificable): 7 puertas en cascada — seguridad→contrato→black→ruff→import→**su eval**→sin regresión. |
+| `fabrica/necesidad.py` | Detecta huecos ÚTILES (lo que el agente pidió + tools que fallan en bucle). No micro-tweaks. |
+| `fabrica/autoria.py` | Redacta la tool con el **coder local** + lazo de auto-reparación (realimenta el fallo del arnés). |
+| `fabrica/propuesta.py` | Store gobernado + **linaje** con fitness. Estado PENDIENTE→APROBADA solo por gate humano. |
+| `fabrica/ciclo.py` | Orquesta `detectar→redactar→validar→proponer`. **Solo propone, nunca aplica.** |
+| `fabrica/materializar.py` | Tras aprobar, materializa la tool en cuarentena `generadas/` (re-verificada) y la registra. |
+| `fabrica/fuentes.py` | **El abanico**: registro EXPANDIBLE de fuentes de oportunidad (dentro + fuera + meta). |
+| `fabrica/red.py` | **Lo de FUERA**: radar de inteligencia (GitHub/HackerNews/arXiv/BOE) que trae mejoras con cita. |
+| `fabrica/meta.py` | **Meta**: la Fábrica amplía su propio abanico de escenarios (auto-mejora del motor). |
+| `fabrica/interno.py` | **Lo de DENTRO (código en uso)**: marca bugs (ruff-B), TODO/FIXME, ficheros >400 líneas, prompts (GEPA), huecos de eval. |
+| `fabrica/reparar.py` | Propone una reparación del código/prompt en uso como **diff validado con gate** (no escribe; guard de API en uso). |
+| `fabrica/oportunidades.py` | Store de hallazgos de la Red/cognición/meta (inteligencia citada) para revisión humana. |
+| `routers/fabrica.py` | API `/fabrica/*` (ciclo, propuestas, oportunidades, aprobar, descartar, estado). |
+
+**La línea dura aplicada:** evolucionamos el andamiaje (código/tools/manifests), **nunca los pesos**.
+**Por qué gobernado:** SkillsBench (2025) mide que la auto-generación SIN verificación iterativa
+**empeora** el sistema; el validador-foso + gate humano + local es lo que la vuelve net-positiva.
+**Pendiente a 🟢:** ciclo contra el coder real proponiendo tools útiles de carencias reales; promoción
+Skill X→estable tras N aprobaciones; sandbox en contenedor (hardening).
+
 ## Por qué importa
 Es la pieza que convierte a Loombit de "buen asistente" en "sistema que mejora solo".
 Junto con Routines y la familia de Skills forma un **volante**:

@@ -42,9 +42,11 @@ def mem(tmp_store: Path):
 
 
 def test_memory_creates_default_owner(mem):
-    assert mem.owner["name"] == "Fernando"
-    assert mem.owner["email"] == "fernando.ruizasenjo@gmail.com"
-    assert mem.owner["company"] == "LoomBit Software Inc."
+    # BLANCO: la identidad nace VACÍA (la personaliza cada usuario); las claves existen.
+    assert mem.owner["name"] == ""
+    assert mem.owner["email"] == ""
+    assert set(mem.owner) >= {"name", "email", "company", "language", "timezone"}
+    assert mem.owner["language"] == "es"  # default de la cuña (España), no identidad de usuario
 
 
 def test_memory_starts_empty(mem):
@@ -213,9 +215,12 @@ def test_persistence_across_instances(tmp_store: Path):
 
 
 def test_context_block_includes_owner(mem):
+    # BLANCO: el owner lo configura el usuario; configurado, debe ir al contexto.
+    mem.owner["name"] = "Juan Pérez"
+    mem.owner["company"] = "Acme SL"
     block = mem.to_context_block()
-    assert "Fernando" in block
-    assert "LoomBit Software Inc." in block
+    assert "Juan Pérez" in block
+    assert "Acme SL" in block
 
 
 def test_context_block_includes_contacts(mem):
