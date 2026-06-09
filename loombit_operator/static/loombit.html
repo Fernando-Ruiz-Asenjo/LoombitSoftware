@@ -118,7 +118,7 @@
 
 <script>
   // ── Datos de muestra (en prod: /telar y /galaxia) ──
-  const HILOS=[
+  const HILOS_SAMPLE=[
     {ic:"📨",estado:"rojo",tit:"Construcciones Mar te debe 1.250 €",por:"9 días sin contestar · te preparé el 2º aviso",
      card:{draft:"«Hola, te recuerdo la factura 24/0312 (1.250 €), vencida el 28/05. ¿Me confirmas fecha de pago? Gracias.»",why:"vence hace 9 días · suele pagar tarde",src:"factura 24/0312 + hilo del 2/6",cta:"Enviar recordatorio"}},
     {ic:"🧾",estado:"ambar",tit:"303 del 2T: preparado, vence el 20",por:"calculado con tus facturas del trimestre · tú revisas y presentas",
@@ -139,16 +139,35 @@
     {t:"cuenta",label:"Fact. 24/0356 · 1.820 €",estado:"verde",urg:.2,rel:null},
   ];
 
-  // ── TELA ──
-  const cont=document.getElementById("hilos");
-  HILOS.forEach((h,i)=>{const el=document.createElement("div");el.className="hilo "+h.estado;el.style.animationDelay=(i*60)+"ms";
-    let l2="";if(h.card){l2=`<div class="l2"><div class="card"><div class="draft">${h.card.draft}</div>
-      <div class="meta"><span class="why">Porqué: ${h.card.why}</span><span class="src">🔗 ${h.card.src}</span></div>
-      <div class="lock">🔒 nada saldrá hasta que pulses el botón</div>
-      <div class="acts"><button class="btn sec">Editar</button><button class="btn pri" onclick="enviar(event)">✅ ${h.card.cta}</button></div></div></div>`;}
-    el.innerHTML=`<div class="l0" onclick="toggle(this)"><span class="ic">${h.ic}</span>
-      <span class="mid"><span class="tit">${h.tit}</span><div class="por">${h.por}</div></span><span class="chev">›</span></div>${l2}`;
-    cont.appendChild(el);});
+  // ── TELA (datos REALES de /telar, mismo origen; fallback a muestra) ──
+  function render(list){
+    const cont=document.getElementById("hilos");cont.innerHTML="";
+    list.forEach((h,i)=>{const el=document.createElement("div");el.className="hilo "+h.estado;el.style.animationDelay=(i*60)+"ms";
+      let l2="";if(h.card){l2=`<div class="l2"><div class="card"><div class="draft">${h.card.draft}</div>
+        <div class="meta"><span class="why">Porqué: ${h.card.why}</span><span class="src">🔗 ${h.card.src}</span></div>
+        <div class="lock">🔒 nada saldrá hasta que pulses el botón</div>
+        <div class="acts"><button class="btn sec">Editar</button><button class="btn pri" onclick="enviar(event)">✅ ${h.card.cta}</button></div></div></div>`;}
+      el.innerHTML=`<div class="l0" onclick="toggle(this)"><span class="ic">${h.ic}</span>
+        <span class="mid"><span class="tit">${h.tit}</span><div class="por">${h.por}</div></span><span class="chev">›</span></div>${l2}`;
+      cont.appendChild(el);});
+  }
+  function mapHilo(h){
+    const urg=h.urgencia||0, acc=h.accion||{};
+    const estado=urg>=2?"rojo":(urg===1?"ambar":(h.tipo==="novedad"||h.tipo==="correo"?"cian":"verde"));
+    const card=acc.label?{draft:acc.task||h.detalle||"",why:h.detalle||h.tipo||"",src:"telar · "+(h.tipo||""),cta:acc.label}:null;
+    return {ic:h.icono||"•",estado,tit:h.titulo||"",por:h.detalle||"",card};
+  }
+  async function cargar(){
+    try{
+      const r=await fetch("/telar",{headers:{Accept:"application/json"}});
+      if(!r.ok) throw 0;
+      const d=await r.json();
+      if(d.saludo) document.querySelector(".saludo").textContent=d.saludo+" ☀️";
+      const reales=(d.hilos||[]).map(mapHilo);
+      render(reales.length?reales:HILOS_SAMPLE);
+    }catch(e){ render(HILOS_SAMPLE); }   // sin servidor (file://) → muestra
+  }
+  cargar();
   function toggle(l0){const h=l0.parentElement;if(h.querySelector(".l2"))h.classList.toggle("open");}
   function enviar(ev){ev.stopPropagation();const h=ev.target.closest(".hilo");h.classList.remove("open");h.classList.add("hecho");
     const a=document.getElementById("ahorro");a.textContent=(+a.textContent+8);toast("Hecho ✅ Te aviso si responde · +8 min");}
