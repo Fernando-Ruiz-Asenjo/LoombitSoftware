@@ -286,6 +286,9 @@ class ToolDefinition:
     requires_approval: bool = False
     safety_class: str = "passive"  # passive | assisted | safety_sensitive
     category: str = "base"  # base | file | web | shell | connector | computer
+    # ALG-4.1 (relay fiel): si True, su resultado es AUTORITATIVO (cálculo determinista) y debe
+    # mostrarse VERBATIM al usuario; el LLM no debe parafrasear sus cifras. Lo garantiza el bucle.
+    authoritative: bool = False
 
     def to_openai(self) -> dict[str, Any]:
         """Formato que espera /chat/completions con tools."""

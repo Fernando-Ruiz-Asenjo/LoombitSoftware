@@ -259,6 +259,7 @@ tool_registry.register(
         },
         fn=_calcular_303_registradas,
         category="base",
+        authoritative=True,
     )
 )
 
@@ -301,6 +302,7 @@ tool_registry.register(
         },
         fn=_registrar_factura,
         category="base",
+        authoritative=True,
     )
 )
 
@@ -337,6 +339,7 @@ tool_registry.register(
         },
         fn=_plan_cobro,
         category="base",
+        authoritative=True,
     )
 )
 
@@ -388,5 +391,6 @@ tool_registry.register(
         },
         fn=_calcular_303,
         category="base",
+        authoritative=True,
     )
 )

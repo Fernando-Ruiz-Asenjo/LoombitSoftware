@@ -315,6 +315,7 @@ class AgentLoop:
                     # Puede que devuelva el sentinel en texto plano
                     done_result = _extract_sentinel(content, _SENTINEL_DONE)
                     if done_result is not None:
+                        done_result = self._relay_fiel(run, done_result)
                         run.mark_completed(done_result)
                         _log_conversation_event(run, "completed", done_result)
                         _update_memory(run)
@@ -335,7 +336,7 @@ class AgentLoop:
                     # Respuesta de texto sin sentineles: seguimos (el LLM está razonando)
                     # Si finish_reason=stop y no hay sentineles, asumimos tarea completada
                     if response.finish_reason == "stop":
-                        run.mark_completed(content or "(sin resultado)")
+                        run.mark_completed(self._relay_fiel(run, content or "(sin resultado)"))
                         _update_memory(run)
                         self.store.save_run(run)
                         return run
@@ -391,7 +392,7 @@ class AgentLoop:
                     [tr["content"] for tr in tool_results], _SENTINEL_DONE
                 )
                 if done_summary is not None:
-                    run.mark_completed(done_summary)
+                    run.mark_completed(self._relay_fiel(run, done_summary))
                     _update_memory(run)
                     self.store.save_run(run)
                     return run
@@ -450,6 +451,25 @@ class AgentLoop:
             from ..pilot import overlay_manager
 
             overlay_manager.stop_session()
+
+    def _relay_fiel(self, run: AgentRun, result: str) -> str:
+        """ALG-4.1 (relay fiel): garantiza que la salida VERBATIM de la última tool AUTORITATIVA
+        (cálculo determinista: cobro, 303, factura) está en el resultado, aunque el LLM la haya
+        parafraseado. Así las cifras que ve el usuario == las que calculó el código."""
+        for s in reversed(run.steps):
+            try:
+                td = self.registry.get(s.tool_name)
+            except Exception:
+                continue
+            if not getattr(td, "authoritative", False):
+                continue
+            if _is_error_result(s.result):
+                return result
+            verbatim = (s.result or "").strip()
+            if verbatim and verbatim not in (result or ""):
+                return verbatim + ("\n\n" + result if result and result.strip() else "")
+            return result
+        return result
 
     def _execute_tool_call(self, tc: ToolCall, step_num: int, run: AgentRun) -> tuple[str, bool]:
         try:

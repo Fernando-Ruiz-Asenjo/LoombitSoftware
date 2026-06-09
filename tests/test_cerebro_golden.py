@@ -13,6 +13,7 @@ from loombit_operator import llm
 from loombit_operator.agent import smalltalk
 from loombit_operator.agent.contexto import ajustar_a_contexto
 from loombit_operator.agent.loop import (
+    AgentLoop,
     _consecutive_tool_errors,
     _describe_for_approval,
     _destinatario_claro,
@@ -475,3 +476,33 @@ def test_hilo_asunto_con_accion_es_agent_task_con_gate():
     assert "Verifica esta deuda" in h["accion"]["task"]
     assert "no envíes ni ejecutes nada externo" in h["accion"]["task"]  # gate en el propio task
     assert "Pide acción" in h["porque"]
+
+
+# ── ALG-4.1 · relay fiel: el número de la tool == el que ve el usuario ────────
+def test_relay_fiel_garantiza_las_cifras_de_la_tool():
+    loop = AgentLoop(llm=SimpleNamespace())
+    verbatim = "Saldo pendiente: 1500.0 €. Interés de demora: 16,27 €."
+    run = SimpleNamespace(steps=[SimpleNamespace(tool_name="plan_cobro", result=verbatim)])
+    out = loop._relay_fiel(
+        run, "Te he calculado el cobro, son unos 1500 euros."
+    )  # paráfrasis floja
+    assert "16,27" in out  # la cifra EXACTA del cálculo, no la del LLM
+    assert verbatim in out
+
+
+def test_relay_fiel_no_duplica_si_ya_esta():
+    loop = AgentLoop(llm=SimpleNamespace())
+    verbatim = "Saldo pendiente: 1500.0 €."
+    run = SimpleNamespace(steps=[SimpleNamespace(tool_name="plan_cobro", result=verbatim)])
+    out = loop._relay_fiel(run, "Aquí tienes: " + verbatim)
+    assert out.count(verbatim) == 1  # no lo repite
+
+
+def test_relay_fiel_ignora_no_autoritativas_y_errores():
+    loop = AgentLoop(llm=SimpleNamespace())
+    run = SimpleNamespace(steps=[SimpleNamespace(tool_name="gmail_search", result="3 correos")])
+    assert loop._relay_fiel(run, "narración") == "narración"  # gmail_search NO es autoritativa
+    run2 = SimpleNamespace(
+        steps=[SimpleNamespace(tool_name="plan_cobro", result="ERROR en 'plan_cobro': x")]
+    )
+    assert loop._relay_fiel(run2, "narración") == "narración"  # un error no se relaya
