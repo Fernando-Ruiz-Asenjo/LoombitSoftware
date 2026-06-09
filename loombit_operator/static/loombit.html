@@ -33,6 +33,9 @@
   .chip b{color:var(--text);font-variant-numeric:tabular-nums}
   .chip.local{color:var(--cian);border-color:#29e0d840}
   .dot{width:8px;height:8px;border-radius:50%;background:var(--cian);animation:latido 1.8s infinite}
+  .gbtn{cursor:pointer;font:inherit}.gbtn:hover{border-color:#ffffff33;color:var(--text)}
+  .gdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--faint)}
+  .gdot.ok{background:var(--verde);box-shadow:0 0 0 3px #36d39933}
 
   .escena{position:absolute;inset:64px 0 0 0}
   .vista{position:absolute;inset:0;transition:opacity .35s ease, transform .45s cubic-bezier(.2,.7,.3,1);overflow:auto}
@@ -117,6 +120,7 @@
       <span class="chip local">🔒 local</span>
       <span class="chip">⏱ <b id="ahorro">14</b> min</span>
       <span class="chip"><span class="dot"></span> 1 nuevo</span>
+      <button class="chip gbtn" id="g-chip" type="button" onclick="gToggle()"><span class="gdot"></span> Google</button>
     </div>
   </header>
 
@@ -236,6 +240,31 @@
     }catch(e){ /* conserva la muestra */ }
   }
   cargarGalaxia();
+
+  // ── Google: estado + conectar/desconectar (mismos endpoints que la home; paridad). ──
+  async function gStatus(){
+    const c=document.getElementById("g-chip");if(!c)return;
+    try{
+      const r=await fetch("/skill-blanca/oauth/google/status",{signal:AbortSignal.timeout(4000)});
+      const s=await r.json();window._gConn=!!s.connected;
+      if(s.connected){c.innerHTML='<span class="gdot ok"></span> Google';c.title="Google conectado · clic para desconectar";c.disabled=false;}
+      else if(!s.enabled||!s.configured){c.innerHTML='<span class="gdot"></span> Google n/d';c.title="OAuth de Google sin configurar";c.disabled=true;}
+      else{c.innerHTML='<span class="gdot"></span> Conectar Google';c.title="Conectar tu cuenta de Google";c.disabled=false;}
+    }catch(e){ c.innerHTML='<span class="gdot"></span> Google'; }
+  }
+  async function gToggle(){
+    if(window._gConn){
+      if(!confirm("¿Desconectar Google? Se borra el token local."))return;
+      try{await fetch("/skill-blanca/oauth/google/disconnect",{method:"DELETE"});}catch(e){}
+      gStatus();return;
+    }
+    try{
+      const r=await fetch("/skill-blanca/oauth/google/start");if(!r.ok)throw 0;
+      const d=await r.json();window.open(d.authorization_url,"_blank","noopener");
+      let n=0;const iv=setInterval(async()=>{n++;await gStatus();if(window._gConn||n>60)clearInterval(iv);},2000);
+    }catch(e){ toast("No pude iniciar la conexión con Google."); }
+  }
+  gStatus();
 
   function toggle(l0){const h=l0.parentElement;if(h.querySelector(".l2"))h.classList.toggle("open");}
   function enviar(ev){ev.stopPropagation();const h=ev.target.closest(".hilo");h.classList.remove("open");h.classList.add("hecho");
