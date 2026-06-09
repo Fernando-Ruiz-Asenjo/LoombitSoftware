@@ -57,16 +57,20 @@ class PropuestaStore:
 
     # ── Gate humano (las ÚNICAS transiciones a aprobada/descartada) ──────────────
 
-    def aprobar(self, propuesta_id: str, nota: str = "") -> PropuestaSkill:
+    def aprobar(self, propuesta_id: str, nota: str = "", playbook: Any = None) -> PropuestaSkill:
         """Acción HUMANA: autoriza la propuesta. No materializa por sí sola el artefacto — eso lo
-        hace `materializar.escribir_tool_aprobada` como paso explícito y reviewable."""
-        return self._decidir(propuesta_id, EstadoPropuesta.APROBADA, nota)
+        hace `materializar.escribir_tool_aprobada` como paso explícito y reviewable. Si se pasa
+        `playbook`, refuerza (helpful) las reglas de autoría que guiaron esta propuesta (ACE)."""
+        return self._decidir(propuesta_id, EstadoPropuesta.APROBADA, nota, playbook)
 
-    def descartar(self, propuesta_id: str, nota: str = "") -> PropuestaSkill:
-        """Acción HUMANA: rechaza la propuesta (queda en el linaje como peldaño descartado)."""
-        return self._decidir(propuesta_id, EstadoPropuesta.DESCARTADA, nota)
+    def descartar(self, propuesta_id: str, nota: str = "", playbook: Any = None) -> PropuestaSkill:
+        """Acción HUMANA: rechaza la propuesta (queda en el linaje como peldaño descartado). Si se
+        pasa `playbook`, penaliza (harmful) las reglas que guiaron esta propuesta (ACE)."""
+        return self._decidir(propuesta_id, EstadoPropuesta.DESCARTADA, nota, playbook)
 
-    def _decidir(self, propuesta_id: str, estado: EstadoPropuesta, nota: str) -> PropuestaSkill:
+    def _decidir(
+        self, propuesta_id: str, estado: EstadoPropuesta, nota: str, playbook: Any = None
+    ) -> PropuestaSkill:
         prop = self.get(propuesta_id)
         if prop.estado != EstadoPropuesta.PENDIENTE:
             raise ValueError(
@@ -78,6 +82,15 @@ class PropuestaStore:
         prop.decision_humana = nota
         prop.updated_at = datetime.now(UTC).isoformat()
         self._save()
+        # Feedback ACE: el gate humano refuerza/penaliza las reglas que guiaron la autoría.
+        if playbook is not None:
+            try:
+                playbook.reforzar_relevantes(
+                    f"{prop.necesidad.titulo} {prop.necesidad.descripcion}",
+                    util=(estado == EstadoPropuesta.APROBADA),
+                )
+            except Exception:  # noqa: BLE001 — el aprendizaje es best-effort; no rompe el gate
+                pass
         return prop
 
     def snapshot(self) -> dict[str, Any]:
