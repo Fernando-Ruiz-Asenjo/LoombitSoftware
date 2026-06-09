@@ -44,7 +44,7 @@ Rota sectores; anota fallos con severidad. Correos SOLO a fernando.ruizasenjo@gm
 | Agencia de viajes | buscar vuelo+hotel, presupuesto a cliente, factura, cobro | 🟠 vuelos→Pilot pendiente; factura sin tool; cobro 🟢 |
 | Gestoría / asesoría | 303/130 de un cliente, recordar plazos, redactar a Hacienda | 🟠 303 no fiable (14B mis-asigna) |
 | Autónomo / freelance | emitir factura, reclamar impago, agenda con cliente | ⬜ |
-| E-commerce / tienda | conciliar cobros, responder incidencia de pedido | ⬜ |
+| E-commerce / tienda | conciliar cobros, responder incidencia de pedido | 🔴 conciliación: 0 steps, NO abstiene honesto (flaquea «te hago un plan manual») — recibo run 21bf3ce4 |
 | Clínica / consulta | agendar citas, recordatorios a pacientes | ⬜ |
 | Despacho de abogados | plazos procesales, redactar escrito, control de minutas | ⬜ |
 | Restaurante / hostelería | pedidos a proveedor, control de facturas, reservas | ⬜ |
