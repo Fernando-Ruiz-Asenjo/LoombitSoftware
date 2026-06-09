@@ -99,17 +99,33 @@ class AgentLoop:
         return self._execute(agent_run)
 
     def create(
-        self, task: str, max_steps: int | None = None, profile: str = "administrativo"
+        self,
+        task: str,
+        max_steps: int | None = None,
+        profile: str = "administrativo",
+        history: list[dict] | None = None,
     ) -> AgentRun:
-        """Crea un AgentRun sin ejecutarlo — para lanzar en background."""
+        """Crea un AgentRun sin ejecutarlo — para lanzar en background.
+
+        `history` son los turnos previos de la conversación
+        (`[{"role": "user"|"assistant", "content": str}, ...]`). Se siembran ANTES de la
+        tarea actual para que el agente tenga MEMORIA del hilo: así un "sí" sabe a qué
+        responde, en vez de nacer de cero (la causa del fallo de amnesia del chat).
+        """
         run = self.store.create(task, max_steps=max_steps or self.max_steps)
         run.profile = profile
         # Pasar la tarea como hint para que la memoria incluya procedimientos relevantes
         memory_block = get_memory().to_context_block(task_hint=task)
-        run.messages = [
-            {"role": "system", "content": build_system_prompt(profile, memory_block)},
-            {"role": "user", "content": task},
+        messages: list[dict] = [
+            {"role": "system", "content": build_system_prompt(profile, memory_block)}
         ]
+        for turn in history or []:
+            role = turn.get("role")
+            content = turn.get("content")
+            if role in ("user", "assistant") and isinstance(content, str) and content.strip():
+                messages.append({"role": role, "content": content})
+        messages.append({"role": "user", "content": task})
+        run.messages = messages
         self.store.save_run(run)
         return run
 

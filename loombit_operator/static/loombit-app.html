@@ -72,6 +72,16 @@ body{font-family:var(--d);color:var(--ink);background:var(--paper);overflow:hidd
 .thread.hot{border-left-color:var(--coral)}.thread.ok{border-left-color:var(--mint)}.thread.due{border-left-color:#f59e0b}
 .thread .t{font-size:12.5px;font-weight:600}.thread .s{font-size:11px;color:var(--ink2);margin-top:2px}
 .muted{color:var(--ink2);font-size:12px}
+/* Preparado para ti — tarjeta canónica de aprobación (gate sagrado) */
+.appr{border-radius:14px;padding:12px;margin-bottom:9px;background:var(--surf);border:1px solid var(--bd);border-left:4px solid var(--mint);box-shadow:0 10px 26px -22px var(--shadow)}
+.appr .at{font-size:12.5px;font-weight:600;line-height:1.32}
+.appr .draft{font-size:11px;color:var(--ink2);background:var(--surf2);border:1px solid var(--bd);border-radius:9px;padding:8px 10px;margin:8px 0;white-space:pre-wrap;max-height:140px;overflow:auto;line-height:1.4}
+.appr .lock{font-size:10px;color:var(--ink2);margin:6px 0 0;display:flex;align-items:center;gap:5px}
+.appr .acts{display:flex;gap:7px;margin-top:9px}
+.appr .ok{flex:1;background:var(--mint);color:#0b3b2a;border:none;border-radius:10px;padding:8px;font-weight:700;font-size:12px;cursor:pointer;font-family:var(--d)}
+.appr .ok:disabled{opacity:.6;cursor:default}
+.appr .no{background:var(--surf2);color:var(--ink2);border:1px solid var(--bd);border-radius:10px;padding:8px 12px;font-size:12px;cursor:pointer;font-family:var(--d)}
+.cnt{font-size:9px;font-weight:700;background:var(--coral);color:#fff;border-radius:999px;padding:1px 7px;margin-left:6px;vertical-align:middle}
 </style></head>
 <body>
 <div class="aurora"><span class="a1"></span><span class="a2"></span><span class="a3"></span></div>
@@ -106,7 +116,7 @@ body{font-family:var(--d);color:var(--ink);background:var(--paper);overflow:hidd
     <div class="rail glass">
       <div class="lbl">Tu día</div>
       <div id="metrics"></div>
-      <div class="lbl">Preparado para ti</div>
+      <div class="lbl" id="readyLbl">Preparado para ti</div>
       <div id="ready"><div class="thread"><div class="t muted">Nada preparado aún.</div><div class="s">Cuando cierre algo por ti, aparece aquí para tu OK.</div></div></div>
       <div class="lbl">Hilos de hoy</div>
       <div id="hilos"><div class="muted" style="padding:6px">…</div></div>
@@ -128,13 +138,15 @@ async function loadTelar(){
   try{
     const t=await (await fetch(API+'/telar',{signal:AbortSignal.timeout(15000)})).json();
     const u=t.usuario||''; document.getElementById('av').textContent=(u[0]||'·').toUpperCase();
-    const nAcc=(t.hilos||[]).filter(h=>(h.accion||{}).modo==='agent_task').length;
+    // Las aprobaciones viven SOLO en «Preparado para ti» (loadReady); no las dupliques como hilo.
+    const hilos=(t.hilos||[]).filter(h=>h.tipo!=='aprobacion');
+    window._hilos=hilos;
+    const nAcc=hilos.filter(h=>(h.accion||{}).modo==='agent_task').length;
     document.getElementById('greet').innerHTML=`<div class="k">${esc(t.saludo||'Hola')}</div><h1>${esc(u||'')}.</h1>`+
-      `<p>${(t.hilos||[]).length} hilos hoy · <b>${nAcc}</b> piden tu atención · el resto, preparado.</p>`;
+      `<p>${hilos.length} hilos hoy · <b>${nAcc}</b> piden tu atención · el resto, preparado.</p>`;
     // accionables (agent_task) → centro ; resto → derecha
     const acc=[],resto=[];
-    (t.hilos||[]).forEach((h,i)=>((h.accion||{}).modo==='agent_task'?acc:resto).push({h,i}));
-    window._hilos=t.hilos;
+    hilos.forEach((h,i)=>((h.accion||{}).modo==='agent_task'?acc:resto).push({h,i}));
     document.getElementById('accionables').innerHTML = acc.length?('<div class="csec">Pide acción — un toque y te lo dejo listo</div>'+acc.map(({h,i})=>{
       const hot=h.tipo==='notificacion'; return `<div class="tcard ${hot?'hot':''}"><div class="tav">${esc(h.icono||'•')}</div>`+
         `<div style="flex:1;min-width:0"><h3>${esc(h.titulo)}</h3>`+(h.porque?`<div class="why">${esc(h.porque)}</div>`:'')+(h.detalle?`<div class="sub">${esc(h.detalle)}</div>`:'')+`<span class="pill act">Requiere acción</span></div>`+
@@ -146,7 +158,7 @@ async function loadTelar(){
     }).join(''):'<div class="muted" style="padding:6px">Nada más por hoy ✅</div>';
     document.getElementById('metrics').innerHTML=
       `<div class="metric"><span class="v">${nAcc}</span><span class="l">piden acción</span></div>`+
-      `<div class="metric"><span class="v">${(t.hilos||[]).length}</span><span class="l">hilos hoy</span></div>`;
+      `<div class="metric"><span class="v">${hilos.length}</span><span class="l">hilos hoy</span></div>`;
   }catch(e){document.getElementById('greet').innerHTML='<div class="k">Hola</div><h1>Loombit</h1><p class="muted">No pude cargar el telar ahora mismo.</p>';}
 }
 // ── contexto: acciones + conexiones ──
@@ -169,34 +181,90 @@ function actuar(i){const h=(window._hilos||[])[i];if(!h)return;const a=h.accion|
   if(a.modo==='agent_task'&&a.task){runTask(a.task,a.label||'Preparando…');}
   else if(a.modo==='navigate'&&h.enlace){window.open(h.enlace,'_blank','noopener');}
 }
-// ── chat real ──
+// ── Preparado para ti: aprobaciones reales (gate sagrado) ──
+async function loadReady(){
+  const box=document.getElementById('ready');const lbl=document.getElementById('readyLbl');
+  try{
+    const r=await fetch(API+'/agent/runs?status=pending_approval',{signal:AbortSignal.timeout(8000)});
+    if(!r.ok)return;
+    const runs=await r.json();
+    if(lbl)lbl.innerHTML='Preparado para ti'+(runs.length?`<span class="cnt">${runs.length}</span>`:'');
+    if(!runs.length){box.innerHTML='<div class="thread"><div class="t muted">Nada preparado aún.</div><div class="s">Cuando cierre algo por ti, aparece aquí para tu OK.</div></div>';return;}
+    box.innerHTML=runs.slice(0,6).map(run=>{
+      const pa=run.pending_approval||{};
+      const titulo=esc(String(pa.reason||run.task||'Acción preparada').trim());
+      const draft=String(pa.proposed_action||'').trim();
+      const draftHtml=draft?`<div class="draft">${esc(draft.slice(0,600))}${draft.length>600?'…':''}</div>`:'';
+      return `<div class="appr"><div class="at">${titulo}</div>${draftHtml}`+
+        `<div class="lock">🔒 Nada sale de tu máquina hasta que apruebes.</div>`+
+        `<div class="acts"><button class="ok" onclick="aprobar('${run.id}',this)">Aprobar</button>`+
+        `<button class="no" onclick="rechazar('${run.id}',this)">Descartar</button></div></div>`;
+    }).join('');
+  }catch(e){/* conserva lo último bueno */}
+}
+async function aprobar(id,btn){
+  btn.disabled=true;btn.textContent='Aprobando…';
+  try{
+    await fetch(API+'/agent/runs/'+id+'/approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({comment:''})});
+    addMsg('a','✓ Aprobado. Lo dejo hecho.');
+  }catch(e){addMsg('e','No pude aprobar ahora mismo. Reinténtalo en unos segundos.');btn.disabled=false;btn.textContent='Aprobar';return;}
+  setTimeout(()=>{loadReady();loadTelar();},800);
+}
+async function rechazar(id,btn){
+  btn.disabled=true;
+  try{await fetch(API+'/agent/runs/'+id+'/cancel',{method:'POST'});}catch(e){}
+  setTimeout(loadReady,400);
+}
+// ── chat real (CON MEMORIA de conversación) ──
 let busy=false;
+window._chat=[];     // transcripto de turnos {role,content} → contexto del hilo (un "sí" sabe a qué responde)
+window._await=null;  // run_id si el agente espera TU respuesta (pending_question) → continúa ESE run, no abre otro
 function addMsg(role,txt){const f=document.getElementById('chatmsgs');const d=document.createElement('div');d.className='msg '+role;d.textContent=txt;f.appendChild(d);document.getElementById('feed').scrollTop=1e9;return d;}
-async function enviar(){const inp=document.getElementById('msg');const txt=inp.value.trim();if(!txt||busy)return;inp.value='';runTask(txt,null,true);}
-async function runTask(task,label,showUser){
-  if(busy)return;busy=true;
-  if(showUser)addMsg('u',task);
+function pushTurn(role,content){if(content&&String(content).trim())window._chat.push({role,content:String(content)});if(window._chat.length>16)window._chat=window._chat.slice(-16);}
+async function pollRun(id,think){
+  for(let k=0;k<200;k++){await new Promise(r=>setTimeout(r,1500));
+    const rr=await (await fetch(API+'/agent/runs/'+id)).json();
+    if(['completed','failed','pending_approval','pending_question'].includes(rr.status)){return render(rr,think);}
+  }
+  think.textContent='Tardó demasiado. Inténtalo de nuevo.';
+}
+async function enviar(){
+  const inp=document.getElementById('msg');const txt=inp.value.trim();if(!txt||busy)return;inp.value='';
+  addMsg('u',txt);pushTurn('user',txt);
+  if(window._await){answerRun(window._await,txt);return;}   // el agente preguntaba → responde a ESE run
+  runTask(txt,null,false);
+}
+async function answerRun(runId,answer){
+  if(busy)return;busy=true;window._await=null;
   const think=addMsg('a','Procesando…');
   try{
-    const r=await fetch(API+'/agent/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({task})});
+    await fetch(API+'/agent/runs/'+runId+'/answer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({answer})});
+    await pollRun(runId,think);
+  }catch(e){think.className='msg e';think.textContent='No pude continuar ahora mismo. Reinténtalo en unos segundos.';}
+  finally{busy=false;}
+}
+async function runTask(task,label,showUser){
+  if(busy)return;busy=true;window._await=null;
+  if(showUser){addMsg('u',task);pushTurn('user',task);}
+  const think=addMsg('a','Procesando…');
+  try{
+    const history=window._chat.slice(0,-1);  // todo el hilo menos el turno actual = memoria
+    const r=await fetch(API+'/agent/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({task,history})});
     const run=await r.json();
     if(run.status&&run.status!=='running'&&run.status!=='pending'){return render(run,think);}
-    for(let k=0;k<200;k++){await new Promise(r=>setTimeout(r,1500));
-      const rr=await (await fetch(API+'/agent/runs/'+run.id)).json();
-      if(['completed','failed','pending_approval','pending_question'].includes(rr.status)){return render(rr,think);}
-    }
-    think.textContent='Tardó demasiado. Inténtalo de nuevo.';
+    await pollRun(run.id,think);
   }catch(e){think.className='msg e';think.textContent='No pude completarlo ahora mismo: el modelo local estaba ocupado. Dame unos segundos y reinténtalo.';}
   finally{busy=false;}
 }
 function render(run,think){
   busy=false;
-  if(run.status==='completed'){think.textContent=run.result||'(hecho)';}
-  else if(run.status==='pending_question'){think.textContent=(run.pending_question||{}).question||'¿Puedes darme un dato más?';}
-  else if(run.status==='pending_approval'){think.textContent='He preparado algo que espera tu aprobación. Revísalo en «Preparado para ti».';loadTelar();}
-  else{think.className='msg e';think.textContent='No pude completarlo ahora mismo. Inténtalo de nuevo.';}
+  if(run.status==='completed'){const r=run.result||'(hecho)';think.textContent=r;pushTurn('assistant',r);window._await=null;}
+  else if(run.status==='pending_question'){const q=(run.pending_question||{}).question||'¿Puedes darme un dato más?';think.textContent=q;pushTurn('assistant',q);window._await=run.id;}
+  else if(run.status==='pending_approval'){think.textContent='He preparado algo que espera tu aprobación. Revísalo en «Preparado para ti».';pushTurn('assistant','(he preparado algo para tu aprobación)');window._await=null;loadReady();loadTelar();}
+  else{think.className='msg e';think.textContent='No pude completarlo ahora mismo. Inténtalo de nuevo.';window._await=null;}
 }
-loadTelar();loadCtx();
+loadTelar();loadCtx();loadReady();
 setInterval(()=>{if(document.visibilityState==='visible')loadTelar();},60000);
+setInterval(()=>{if(document.visibilityState==='visible')loadReady();},8000);
 </script>
 </body></html>

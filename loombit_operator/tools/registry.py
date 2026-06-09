@@ -24,6 +24,22 @@ from typing import Any, Callable
 # (requires_approval=True), no una tool aparte → una sola puerta, sin redundancia.
 CORE_TOOLS: set[str] = {"task_done", "ask_user", "propose_improvement"}
 
+# Reach admin SIEMPRE disponible: el agente NUNCA debe estar ciego a su correo, su agenda,
+# sus contactos, su memoria, la web ni a leer un documento. Son las manos del oficio. Antes
+# se ocultaban tras palabras clave frágiles → el vocabulario de medio oficio (p.ej. "vuelo",
+# "hotel", "viaje") no casaba con nada y el agente se quedaba solo con correo+calendario,
+# diciendo "no tengo capacidad para abrir webs" cuando SÍ tiene web_fetch. Esto es el piso.
+ADMIN_BASE: set[str] = {
+    "gmail_search",
+    "gmail_send",
+    "contacts_find",
+    "calendar_create",
+    "calendar_today",
+    "memory_search",
+    "web_fetch",
+    "read_invoice",
+}
+
 # Grupos que se activan cuando la petición casa con sus palabras clave.
 TOOL_GROUPS: list[tuple[tuple[str, ...], set[str]]] = [
     (
@@ -166,21 +182,21 @@ TOOL_GROUPS: list[tuple[tuple[str, ...], set[str]]] = [
     ),
 ]
 
-# Si la petición no casa con ningún grupo: set administrativo básico (API).
-_DEFAULT_GROUP: set[str] = {"contacts_find", "gmail_search", "gmail_send", "calendar_create"}
-
 
 def select_tool_names(task: str) -> set[str]:
-    """Núcleo + los grupos cuya palabra clave aparece en la petición."""
+    """Piso robusto (núcleo + reach admin) + los grupos especialistas cuya palabra clave aparece.
+
+    Antes: si la petición no casaba con ninguna keyword, el agente se quedaba solo con
+    correo+calendario y quedaba CIEGO a la web, la memoria y los documentos que sí tiene.
+    Ahora el reach admin (`ADMIN_BASE`) está SIEMPRE disponible; los grupos especialistas
+    (ficheros, escritorio/Pilot, etc.) se añaden encima por intención. ~11-15 tools, dentro
+    de lo que el 14B maneja sin confundirse, y sin manos atadas.
+    """
     t = (task or "").lower()
-    names = set(CORE_TOOLS)
-    matched = False
+    names = set(CORE_TOOLS) | set(ADMIN_BASE)
     for keywords, group in TOOL_GROUPS:
         if any(k in t for k in keywords):
             names |= group
-            matched = True
-    if not matched:
-        names |= _DEFAULT_GROUP
     return names
 
 

@@ -59,6 +59,9 @@ class RunRequest(BaseModel):
     task: str
     max_steps: int = 20
     profile: str = "administrativo"
+    # Turnos previos de la conversación [{role:'user'|'assistant', content:str}] para que el
+    # agente tenga MEMORIA del hilo (un "sí" sabe a qué responde). Vacío = run aislado.
+    history: list[dict] = []
 
 
 class ApproveRequest(BaseModel):
@@ -127,7 +130,12 @@ async def start_run(body: RunRequest, background_tasks: BackgroundTasks) -> RunR
     """
     loop = _get_loop()
     try:
-        run = loop.create(body.task, max_steps=body.max_steps, profile=body.profile)
+        run = loop.create(
+            body.task,
+            max_steps=body.max_steps,
+            profile=body.profile,
+            history=body.history,
+        )
         # Fricción cero: una cortesía pura ("hola", "gracias") se responde AL INSTANTE, sin gastar el
         # bucle ReAct del 14B (que en local son decenas de segundos de "Procesando…" para nada).
         from ..agent.smalltalk import respuesta_social
@@ -317,7 +325,7 @@ async def list_tools() -> list[dict]:
             "category": t.category,
             "requires_approval": t.requires_approval,
         }
-        for t in tool_registry.all()
+        for t in tool_registry.list()
     ]
 
 

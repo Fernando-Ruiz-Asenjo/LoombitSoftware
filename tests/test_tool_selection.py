@@ -17,8 +17,10 @@ def test_email_task_selects_email_tools():
 
 def test_desktop_task_selects_desktop_tools():
     names = select_tool_names("abre Excel y haz una captura de pantalla")
-    assert "desktop_screenshot" in names
-    assert "gmail_send" not in names
+    assert "desktop_screenshot" in names  # el grupo especialista se activa
+    # El reach admin (web/correo) sigue disponible: permite flujos cruzados
+    # (p.ej. "abre Excel, rellénalo y mándamelo por correo") y nunca deja ciego al agente.
+    assert "web_fetch" in names
 
 
 def test_calendar_task_selects_calendar():
@@ -26,10 +28,20 @@ def test_calendar_task_selects_calendar():
     assert "calendar_create" in names
 
 
-def test_unmatched_task_gets_default_admin_set():
+def test_unmatched_task_keeps_admin_reach():
+    # Una petición que no casa con ninguna keyword NO debe dejar al agente con
+    # solo correo+calendario: mantiene su reach (web, memoria, documentos).
     names = select_tool_names("échame una mano con una gestión")
-    assert "gmail_send" in names  # set básico por defecto
+    assert {"gmail_send", "web_fetch", "memory_search", "read_invoice"} <= names
     assert CORE_TOOLS <= names
+
+
+def test_travel_task_not_blind_to_web():
+    # Regresión: el vocabulario de una agencia de viajes no casaba con ninguna
+    # keyword → el agente quedaba ciego a web_fetch y decía "no puedo abrir webs".
+    names = select_tool_names("búscame vuelos a Londres y un hotel de 4 estrellas para Marta")
+    assert "web_fetch" in names
+    assert "memory_search" in names
 
 
 def test_brief_task_selects_daily_brief():
