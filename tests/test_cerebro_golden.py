@@ -11,10 +11,14 @@ from loombit_operator import llm
 from loombit_operator.agent import smalltalk
 from loombit_operator.agent.contexto import ajustar_a_contexto
 from loombit_operator.agent.loop import (
+    _consecutive_tool_errors,
     _describe_for_approval,
     _destinatario_claro,
+    _error_brief,
+    _is_error_result,
     _recipiente_resuelto,
 )
+from loombit_operator.agent.memory import EntityProfile
 from loombit_operator.agent.reflexion import etiquetas_de_tarea
 from loombit_operator.comprension import _normalizar, _salvar_objetos
 from loombit_operator.tool_labels import (
@@ -272,3 +276,44 @@ def test_normalizar_hora_y_descarta_lo_pasado_o_sin_ancla():
     assert out["hora"] == "09:00"
     assert _normalizar({}, _HOY) is None  # sin título ni origen → no se afirma
     assert _normalizar({"titulo": "X", "fecha": "2020-01-01"}, _HOY) is None  # cosa pasada → fuera
+
+
+# ── F3.5 · EntityProfile: perfil de pagador (alimenta cobros y antifraude) ────
+def test_entity_profile_pays_late():
+    moroso = EntityProfile("Cliente A", payments=[10, 20, 30])
+    assert moroso.avg_days_late == 20.0
+    assert moroso.late_count == 3
+    assert moroso.pays_late is True
+
+    puntual = EntityProfile("Cliente B", payments=[1, -2, 0])
+    assert puntual.pays_late is False  # media <= 5
+
+    sin_datos = EntityProfile("Cliente C")
+    assert sin_datos.avg_days_late == 0.0
+    assert sin_datos.pays_late is False  # sin pagos no se afirma morosidad
+
+
+# ── F1.9 / F1.6 · anti-bucle del motor (detectar errores y flailing) ──────────
+def test_is_error_result_solo_marca_errores_del_bucle():
+    assert _is_error_result("ERROR en 'gmail_send': boom") is True
+    assert _is_error_result("ERROR: argumentos invalidos para 'x'") is True
+    assert _is_error_result("Listo, te lo he enviado.") is False
+    assert _is_error_result("ERROR: algo no listado en prefijos") is False
+
+
+def test_error_brief_una_linea_y_recorta():
+    assert _error_brief("primera línea\nsegunda línea") == "primera línea"
+    largo = "x" * 200
+    assert _error_brief(largo).endswith("…") and len(_error_brief(largo)) <= 161
+
+
+def test_consecutive_tool_errors_cuenta_seguidos_e_ignora_otras_tools():
+    run = _fake_run(
+        steps=[
+            {"tool_name": "gmail_search", "result": "ok"},
+            {"tool_name": "calendar_create", "result": "creado"},
+            {"tool_name": "gmail_search", "result": "ERROR en 'gmail_search': a"},
+            {"tool_name": "gmail_search", "result": "ERROR en 'gmail_search': b"},
+        ]
+    )
+    assert _consecutive_tool_errors(run, "gmail_search") == 2  # los 2 del final, el "ok" corta
