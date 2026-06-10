@@ -53,7 +53,8 @@ construir 130/retención IRPF). **P2 menores:** typo'd dates (mitigado por gate)
 > 3. **[Producto/UX]** Responsive del shell (0 media queries hoy): ¿lo queremos y en qué fase del rediseño?
 > 4. **[Fiscal/AEAT]** Rectificativas: VERIFICADO 2026-06-10 — financieramente CORRECTA (devolución 50€ → base -41,32 + IVA -8,68, reduce bien el devengado del 303), pero se guarda como emitida normal en negativo, SIN tipo=rectificativa ni ref. a la factura original. ¿Añadimos el etiquetado formal AEAT (tipo + serie rectificativa + referencia)?
 > 5. **[Seguridad]** HMAC/sello temporal en entregables si se usan como PRUEBA legal ante terceros.
-> 6. **[Operativa]** ~50 commits del loop en `feat/ux-top-ola1` (local, sin PR): subir a PR cuando quieras.
+> 6. **[Operativa]** ~159 commits del loop en `feat/ux-top-ola1` (local, sin PR; incluyen los 3 arreglos
+>    fiscales SERIOS): subir a PR cuando quieras (el push directo a main lo bloquea el clasificador → vía `gh pr`).
 > 7. **[Menor]** Borrar el evento de prueba del calendario (el gate bloquea borrarlo desde aquí).
 > 8. **[Producto/fiscal]** El telar recuerda los plazos de 130/111/115 pero el agente NO puede calcularlos aún (solo el 303 está construido; abstiene honesto, no inventa). Siguiente modelo natural a construir = 130 (IRPF pago fraccionado). ¿Lo abordamos tras cerrar el 303-fiable?
 > 9. **[Producto/fiscal]** Retención IRPF no modelada: `registrar_factura` no tiene campo de retención → un profesional (abogado/consultor) no puede facturar con su retención del 15% (estándar en su sector; va al 111/130). Lo flaggea al construir 130/111. Hallazgo asociado: el agente, ante una minuta con retención, NO registró la factura y narró «✅ Factura emitida» a la vez que «no se puede ejecutar» — sobre-afirma; revisar el task_done cuando no hubo acción real.
