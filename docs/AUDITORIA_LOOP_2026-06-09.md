@@ -41,9 +41,12 @@
   la conflación, recomienda gestor) pero el modelo SIGUE inventando tipos/exenciones. **Decisión:** ¿(a)
   base de conocimiento fiscal curada que el agente CITE, o (b) política dura "Loombit no da tipos ni
   exenciones de IVA; te lo confirma tu gestor" (rehúsa el específico)? Hoy: riesgo mitigado, no cerrado.
-- **303 fiable:** el cálculo del 303 desde una frase con el 14B NO es fiable (mis-asigna/inventa).
-  Ahora que `registrar_factura` persiste, el camino bueno es **calcular el 303 desde las facturas
-  registradas** (determinista). Propuesta para una próxima iteración. ¿OK?
+- **303 fiable desde facturas registradas → VERIFICADO + BUG ARREGLADO (2026-06-10):** el camino bueno
+  (calcular el 303 determinista desde las facturas persistidas, no parseando una frase con el 14B) ya
+  funciona vía `calcular_303_registradas`. Al probarlo e2e encontré y arreglé un BUG SERIO: una factura
+  con `sentido='repercutido'`/'devengado' (términos fiscales estándar de salida) se clasificaba como
+  RECIBIDA → el 303 salía INVERTIDO (devolver en vez de ingresar). Ahora 1000@21 emitida + 500@21
+  recibida → 210 devengado − 105 deducible = 105 A INGRESAR (correcto). +1 golden, gate verde.
 - **~~Fecha relativa del calendario~~ → ARREGLADO (2026-06-10):** el 14B erraba fechas relativas
   ('próximo lunes'→sábado, 'mañana'→hoy). Ahora `_corregir_fecha_calendario` recalcula con `parsear_fecha`
   (determinista) y corrige el `start_iso` antes del gate. Verificado en vivo. Cierra el item T5.
