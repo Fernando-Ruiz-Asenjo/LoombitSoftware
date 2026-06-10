@@ -72,6 +72,7 @@ sin regresión, y el aviso NO se cuela en cálculos (cobro/303 limpios).
 **4º pase 13/13 verde** tras calendar_semana + fmt_evento (días) + hace-N-meses + ruteo cierre-de-mes:
 sin regresión, y MEJORA visible — `leer_agenda` ahora responde la semana con días correctos (antes
 daba el fallback "me he liado").
+**5º pase 13/13 verde** tras los 3 arreglos fiscales en core (dominio.py sentido + intake.py periodo + inferir_tipo_iva negativos): sin regresión; cobro/303/agenda/seguridad/abstención intactos.
 
 **Dogfooding construcción (multi-ítem) — 2026-06-10:** "apúntame 3 facturas recibidas (200/350/500€ al
 21%)" → registró LAS 3 correctas, `sentido=soportado` (verificado en disco). Datos OK. **P2 recurrente
