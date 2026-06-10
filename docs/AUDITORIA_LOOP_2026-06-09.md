@@ -36,7 +36,7 @@
 | 2 | Telar (cognición→tarjetas, dedup, dudup caché) | 🟢 auditado (2026-06-10) | P1 DUP agenda↔reunión comprendida ARREGLADO (suprime evento de calendario ya cubierto) + robustez `_hilo_asunto` (no tumba el home por un asunto malformado). 4 golden. Falta: dedup también plazos/correos repetidos |
 | 3 | Aprobaciones «Preparado para ti» | 🟢 verificado clicando (Aprobar→evento real) | falta probar Descartar en vivo |
 | 4 | Home / shell `loombit-app.html` | ⬜ | |
-| 5 | Tools dominio: cobro ✅, 303 ✅, factura ✅ / conciliación | 🟠 | factura e2e 🟢 (persiste); conciliación PENDIENTE; falta "calcular 303 desde facturas registradas" (camino fiable) |
+| 5 | Tools dominio: cobro ✅, 303 ✅, factura ✅, conciliación ✅ | 🟢 | factura e2e 🟢; 303 desde registradas 🟢 (validado e2e); **conciliación CABLEADA** (`conciliar_banco`, motor N43 existente expuesto como tool, solo-propuesta; verificado: pide N43 / usa la tool) 2026-06-10. Falta: soporte CSV de extracto (hoy solo N43) |
 | 6 | Galaxia | ⬜ | |
 | 7 | Fábrica | ⬜ | |
 | 8 | Ajustes | ⬜ | |
