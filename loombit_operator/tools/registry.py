@@ -76,7 +76,7 @@ TOOL_GROUPS: list[tuple[tuple[str, ...], set[str]]] = [
             "queda con",
             "videollamada",
         ),
-        {"calendar_create", "contacts_find"},
+        {"calendar_create", "calendar_today", "calendar_semana", "contacts_find"},
     ),
     (
         ("busca correo", "buscar correo", "lee correo", "leer correo", "bandeja", "recibido"),
@@ -120,8 +120,14 @@ TOOL_GROUPS: list[tuple[tuple[str, ...], set[str]]] = [
             "en que centrar",
             "organiza mi día",
             "organiza mi dia",
+            "esta semana",
+            "semana",
+            "próximos días",
+            "proximos dias",
+            "qué reuniones",
+            "que reuniones",
         ),
-        {"daily_brief", "calendar_today", "gmail_search"},
+        {"daily_brief", "calendar_today", "calendar_semana", "gmail_search"},
     ),
     (
         (

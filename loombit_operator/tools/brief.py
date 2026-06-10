@@ -96,6 +96,29 @@ def _calendar_today(**_: object) -> str:
     return "Hoy en tu agenda:\n" + "\n".join(f"• {_fmt_evento(e)}" for e in eventos)
 
 
+def _calendar_semana(**_: object) -> str:
+    """Lista los eventos de HOY y los PRÓXIMOS 7 DÍAS (la semana). Cierra la pregunta '¿qué reuniones
+    tengo esta semana?', que con calendar_today (solo hoy) quedaba sin responder. Solo lectura."""
+    try:
+        from ..skill_blanca_calendar_read import eventos_de_hoy, eventos_proximos
+
+        eventos = list(eventos_de_hoy()) + list(eventos_proximos(dias=7))
+    except ValueError as exc:
+        if "no_token" in str(exc):
+            return "Tu Google Calendar no está conectado. Conéctalo para que pueda ver tu agenda."
+        if "unauthorized" in str(exc):
+            return "El acceso a tu calendario ha caducado. Vuelve a conectar Google."
+        return f"No pude leer el calendario ({exc})."
+    except Exception as exc:  # noqa: BLE001
+        return f"No pude leer el calendario ({exc})."
+
+    if not eventos:
+        return "No tienes eventos en el calendario para esta semana."
+    return "Tu agenda de esta semana (hoy y próximos días):\n" + "\n".join(
+        f"• {_fmt_evento(e)}" for e in eventos
+    )
+
+
 # ── Registro ──────────────────────────────────────────────────────────────────
 
 tool_registry.register(
@@ -122,6 +145,20 @@ tool_registry.register(
         ),
         parameters={"type": "object", "properties": {}},
         fn=_calendar_today,
+        category="connector",
+    )
+)
+
+tool_registry.register(
+    ToolDefinition(
+        name="calendar_semana",
+        description=(
+            "Lee los eventos de HOY y los PRÓXIMOS 7 DÍAS del calendario de Google (solo lectura). "
+            "Úsala cuando el usuario pregunte por su agenda/reuniones de ESTA SEMANA o los próximos "
+            "días (no solo hoy)."
+        ),
+        parameters={"type": "object", "properties": {}},
+        fn=_calendar_semana,
         category="connector",
     )
 )

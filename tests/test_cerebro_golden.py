@@ -764,6 +764,16 @@ def test_filtrar_lineas_303_no_toca_si_no_hay_cifras():
     assert quitadas == 0 and out["iva_repercutido"] == [{"base": 1000, "tipo": 0.21}]
 
 
+def test_calendar_semana_registrada_y_ruteada():
+    from loombit_operator.tools import tool_registry
+    from loombit_operator.tools.registry import select_tool_names
+
+    assert tool_registry.get("calendar_semana").category == "connector"  # existe
+    # '¿qué reuniones tengo esta semana?' → debe ofrecer la tool de semana (antes solo había hoy)
+    assert "calendar_semana" in select_tool_names("¿qué reuniones tengo esta semana?")
+    assert "calendar_semana" in select_tool_names("enséñame mi agenda de los próximos días")
+
+
 def test_es_lectura_agenda():
     # preguntas de agenda = lectura (no crear evento)
     assert es_lectura_agenda("¿qué reuniones tengo esta semana?") is True
