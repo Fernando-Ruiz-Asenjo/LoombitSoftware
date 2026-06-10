@@ -124,6 +124,8 @@ anti-destinatario-inventado y lo malinterpreté; re-test correcto → GATE.
 
 **Extracción de factura (docs_intel, 2026-06-10):** correcta en formato multi-línea realista (base 1000 / IVA 210 / total 1210 / nº / NIF / fecha, cruce base+IVA==total OK, flaggea proveedor dudoso). ⚠️ Falso positivo retirado: una 1ª prueba con TODO en una línea daba valores iguales y los malinterpreté; el extractor trabaja línea a línea (real). El caso degenerado de una línea rompe base+IVA==total → lo caza el cross_check (defensa en profundidad). Sin bug.
 
+**P2 registrar≠enviar (2026-06-10):** al pedir registrar una factura con datos completos, el agente pedía el email del cliente (confundía anotar-para-303 con enviar) — fricción + bloqueo. Cura: línea de prompt (registrar_factura es anotar en libros, no enviar; no pidas el email salvo que te pidan enviarla). Verificado 2/2: registra sin pedir email y encadena el 303. Gate verde.
+
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |
 |---|---|---|---|
