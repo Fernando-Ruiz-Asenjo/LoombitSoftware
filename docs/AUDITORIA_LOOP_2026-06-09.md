@@ -18,6 +18,18 @@
   Borra lo que crees en pruebas. Verifica contra el CÓDIGO.
 
 ## ⭐ PARA FERNANDO (cosas que aparté durante el loop, sin parar a preguntar)
+
+> **ÍNDICE de decisiones pendientes (priorizado, detalle abajo y en el log):**
+> 1. **[P1 riesgo real]** Asesoramiento fiscal/legal regulado: el 14B inventa tipos/exenciones de IVA
+>    y un prompt NO lo cierra. Decidir: ¿KB fiscal curada que CITE, o política "no doy específicos,
+>    confírmalo con tu gestor"? (lo más importante de cerrar)
+> 2. **[Producto]** Modelo de entidad: ¿multi-entidad (una por cliente) o single «principal»?
+> 3. **[Producto/UX]** Responsive del shell (0 media queries hoy): ¿lo queremos y en qué fase del rediseño?
+> 4. **[Fiscal/AEAT]** Etiquetar rectificativas (tipo=rectificativa + ref. a la factura original).
+> 5. **[Seguridad]** HMAC/sello temporal en entregables si se usan como PRUEBA legal ante terceros.
+> 6. **[Operativa]** ~50 commits del loop en `feat/ux-top-ola1` (local, sin PR): subir a PR cuando quieras.
+> 7. **[Menor]** Borrar el evento de prueba del calendario (el gate bloquea borrarlo desde aquí).
+
 - **Modelo de entidad:** el agente de chat registra facturas/cobros en UNA entidad por defecto
   («principal»). ¿Quieres modelo **multi-entidad (una por cliente)** o single? Afecta a cómo se
   agrupan facturas/303/cobros. Por ahora: single «principal».
