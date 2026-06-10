@@ -131,6 +131,8 @@ anti-destinatario-inventado y lo malinterpreté; re-test correcto → GATE.
 
 **Recordatorios → RESUELTO determinista (2026-06-10):** 'recuérdame pagar al proveedor el viernes' se tomaba como registrar un pago (pedía NIF). El prompt solo mejoró el encuadre; el 14B se escapaba a task_done para pedir NIF. SOLUCIÓN: nueva intención 'recordatorio' que FUERZA calendar_create (foco SOLO esa tool, sin ask_user ni task_done). calendar_create GATEA → el usuario aprueba. Verificado 3/3: crea 'Pago al proveedor' el 2026-06-12 (fecha-fiel), sin pedir NIF, gateado. 'apúntame 3 facturas' (sin 'que') sigue siendo factura. +1 golden, gate verde.
 
+**Bordes recordatorio (2026-06-10):** verificado que el force-tool no sobre-dispara — 'recuérdame llamar al gestor mañana' crea evento; 'recuérdame QUÉ reuniones tengo el viernes' NO crea (es_lectura_agenda excluye calendar_create → lee con calendar_today). Sin regresión.
+
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |
 |---|---|---|---|
