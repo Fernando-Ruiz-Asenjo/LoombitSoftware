@@ -54,7 +54,7 @@ def lleva_retencion(task: str, args: dict | None = None) -> bool:
 
 _HACER_FACTURA = re.compile(r"\b(minuta\w*|factura\w*)\b", re.IGNORECASE)
 _VERBO_HACER = re.compile(
-    r"\b(haz\w*|hacer|hag\w+|prepar\w+|reg[ií]str\w+|em[ií]t\w+|fact[uú]r\w+|ap[uú]nt\w+"
+    r"\b(haz\w*|hacer|hag\w+|prep[aá]r\w+|reg[ií]str\w+|em[ií]t\w+|fact[uú]r\w+|ap[uú]nt\w+"
     r"|gener\w+|cre\w+)\b",
     re.IGNORECASE,
 )
@@ -85,7 +85,7 @@ def es_registro_con_retencion(task: str) -> bool:
 # ── IBAN inválido: no fabricamos un «✅ guardado» de un IBAN que no cuadra (longitud/checksum mod-97).
 _IBAN_TOKEN = re.compile(r"\bES\s?\d[\d\s]{6,30}", re.IGNORECASE)
 _GUARDA_IBAN = re.compile(
-    r"\b(guarda\w*|gu[aá]rda\w*|ap[uú]nta\w*|reg[ií]stra\w*|anota\w*|almacena\w*)\b",
+    r"\b(gu[aá]rda\w*|ap[uú]nta\w*|reg[ií]stra\w*|an[oó]ta\w*|almac[eé]na\w*)\b",
     re.IGNORECASE,
 )
 _IBAN_O_CUENTA = re.compile(

@@ -29,7 +29,7 @@ _FACTURA = re.compile(
     r"\b(reg[ií]strame|ap[uú]ntame|fact[uú]rame|em[ií]teme)\b"
     # …o un verbo de registro (incluido coloquial: mete/anota/añade/introduce/carga) cerca del
     # sustantivo factura/venta/minuta o de «facturé/vendí». Acota a REGISTRAR, no a consultar.
-    r"|\b(reg[ií]stra\w*|ap[uú]nta\w*|emit\w+|an[oó]ta\w*|mete\w*|pon\w*|a[ñn]ade\w*|introduce|carga\w*"
+    r"|\b(reg[ií]stra\w*|ap[uú]nta\w*|emit\w+|an[oó]ta\w*|m[eé]te\w*|pon\w*|a[ñn][aá]de\w*|introd[uú]ce\w*|c[aá]rga\w*"
     r"|fact[uú]r\w*)\b[^.\n]{0,30}\b(factur\w+|venta\w*|vend[ií]\w*|minuta\w*)\b"
 )
 _BUSCAR_CORREO = re.compile(

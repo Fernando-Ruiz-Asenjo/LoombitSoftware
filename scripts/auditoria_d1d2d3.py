@@ -1208,6 +1208,42 @@ chk(
     None,
 )
 
+# ═══ CAMPAÑA 5-cero · audit #4 (barrido de ACENTOS en imperativos con enclítico) ═══
+_IBN = "ES00 0000 0000 0000 0000 0000"
+chk("A4", "IBAN 'anótame'", G.iban_invalido_a_guardar("anótame el IBAN de pago: " + _IBN), True)
+chk("A4", "IBAN 'almacéname'", G.iban_invalido_a_guardar("almacéname el IBAN " + _IBN), True)
+chk(
+    "A4",
+    "factura 'métela'",
+    intencion_consecuente("métela en el sistema: una factura a López de 500 al 21 el 5 junio"),
+    "factura",
+)
+chk(
+    "A4",
+    "factura 'introdúceme'",
+    intencion_consecuente("introdúceme una factura a López de 500 al 21% el 5 junio de 2026"),
+    "factura",
+)
+chk(
+    "A4",
+    "factura 'cárgame'",
+    intencion_consecuente("cárgame una factura a López de 500 al 21% el 5 junio de 2026"),
+    "factura",
+)
+chk(
+    "A4",
+    "reten 'prepárame la minuta con retención'",
+    G.es_registro_con_retencion("prepárame la minuta del abogado con retención"),
+    True,
+)
+chk("A4", "comp 'compáralo'", intencion_consecuente("compáralo con el mes pasado"), "comparativo")
+chk(
+    "A4",
+    "NEG IBAN válido",
+    G.iban_invalido_a_guardar("guarda el IBAN ES9121000418450200051332"),
+    False,
+)
+
 
 def main() -> int:
     fam_tot: dict[str, list[int]] = {}
