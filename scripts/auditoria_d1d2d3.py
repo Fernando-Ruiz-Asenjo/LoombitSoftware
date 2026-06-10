@@ -878,6 +878,65 @@ chk(
     "comparativo",
 )
 
+# ═══════════════ RONDA EN VIVO → golden: 2 fallos que el 14B destapó, ahora deterministas ═══════════
+# Conciliación por SINÓNIMO «cuadrar» (+ acento «cuádrame») → pide N43, no muestra cobros/finanzas
+chk(
+    "RDL",
+    "cuádrame el banco (acento)",
+    bool(registro_guardas.aplicar("cuádrame el banco con mis cobros")),
+    True,
+)
+chk(
+    "RDL",
+    "cuadra el extracto",
+    bool(registro_guardas.aplicar("cuadra mis cobros con el extracto bancario")),
+    True,
+)
+chk(
+    "RDL",
+    "NEG cuadra agenda (no banco)",
+    registro_guardas.aplicar("cuadra mi agenda de la semana"),
+    None,
+)
+chk("RDL", "NEG cuadra cuentas 303", registro_guardas.aplicar("cuadra las cuentas del 303"), None)
+# Predicción financiera del FUTURO → abstención determinista (el 14B la mandaba a comparativo)
+chk(
+    "RDL",
+    "pred 'a este ritmo facturaré'",
+    bool(registro_guardas.aplicar("a este ritmo, ¿cuánto facturaré este año?")),
+    True,
+)
+chk(
+    "RDL",
+    "pred 'voy a facturar mes que viene'",
+    bool(registro_guardas.aplicar("¿cuánto voy a facturar el mes que viene?")),
+    True,
+)
+chk(
+    "RDL",
+    "pred 'proyecta mis ingresos'",
+    bool(registro_guardas.aplicar("proyecta mis ingresos del próximo trimestre")),
+    True,
+)
+chk(
+    "RDL",
+    "pred NEG pasado 'facturé'",
+    registro_guardas.aplicar("¿facturé más que el mes pasado?"),
+    None,
+)
+chk(
+    "RDL",
+    "pred NEG reunión futura (no $)",
+    registro_guardas.aplicar("el mes que viene tengo una reunión"),
+    None,
+)
+chk(
+    "RDL",
+    "pred NO bloquea comparativa",
+    registro_guardas.aplicar("compara este mes con el anterior"),
+    None,
+)
+
 
 def main() -> int:
     fam_tot: dict[str, list[int]] = {}

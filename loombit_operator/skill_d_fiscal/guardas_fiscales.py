@@ -151,7 +151,9 @@ def _guarda_modelo_aeat(task: str) -> str | None:
 # ── Conciliación bancaria: SIEMPRE necesita el extracto en Norma 43. En chat (sin fichero) la
 # respuesta determinista es pedir el N43 — así «concíliame los cobros con el banco» NUNCA se confunde
 # con «cuánto me deben» (el free-form del 14B a veces caía en cobros_pendientes). ──────────────────
-_CONCILIACION = re.compile(r"\bconc[ií]li\w+", re.IGNORECASE)
+_CONCILIACION = re.compile(
+    r"\bconc[ií]li\w+|\bcu[aá]dr\w+[^.\n]{0,25}\b(banco|extracto|norma\s*43|n43)", re.IGNORECASE
+)
 _MSG_CONCILIACION = (
     "Para conciliar tus cobros con el banco necesito el EXTRACTO bancario en formato Norma 43 (N43) "
     "— lo exportas desde tu banca online. Pásamelo y cruzo cada apunte con tus facturas; lo que cuadre "
@@ -162,3 +164,31 @@ _MSG_CONCILIACION = (
 @registro_guardas.register
 def _guarda_conciliacion(task: str) -> str | None:
     return _MSG_CONCILIACION if _CONCILIACION.search(task or "") else None
+
+
+# ── Predicción del FUTURO financiero: Loombit NO adivina lo que aún no ha pasado (sería inventar). Sin
+# esta guarda, el 14B en free-form llamaba a resumen_comparativo (datos del pasado) para una predicción.
+# Exige señal financiera + de futuro → no se confunde con «¿facturé el mes pasado?» (pasado). ──────────
+_PREDICCION_FINANCIERA = re.compile(
+    r"\b(facturar[eé]|ganar[eé]|ingresar[eé]|vender[eé]|cobrar[eé])\b"
+    r"|\ba\s+este\s+ritmo\b[^.\n]{0,40}\b(factur\w+|ingres\w+|ganar\w+|vend\w+|benefici\w+|cobr\w+)"
+    r"|\b(cu[aá]nto|qu[eé])\b[^.\n]{0,30}\b(voy|vas|vamos)\s+a\s+(factur\w+|ingres\w+|ganar|vend\w+|cobr\w+)"
+    r"|\b(predic\w+|proyec\w+|estima\w+|previsi\w+|forecast)\b[^.\n]{0,30}"
+    r"\b(factur\w+|ingres\w+|ventas|benefici\w+|cobr\w+)",
+    re.IGNORECASE,
+)
+_MSG_PREDICCION = (
+    "No puedo predecir el futuro: solo trabajo con lo que YA ha pasado (tus facturas registradas). "
+    "Te digo lo que llevas facturado y te lo comparo con periodos anteriores si quieres, pero adivinar "
+    "lo que facturarás sería inventar — y prefiero no darte un número que no es real."
+)
+
+
+def es_prediccion_financiera(task: str) -> bool:
+    """True si pide PREDECIR/PROYECTAR finanzas futuras (no computable; se abstiene honesto)."""
+    return bool(_PREDICCION_FINANCIERA.search(task or ""))
+
+
+@registro_guardas.register
+def _guarda_prediccion(task: str) -> str | None:
+    return _MSG_PREDICCION if es_prediccion_financiera(task) else None
