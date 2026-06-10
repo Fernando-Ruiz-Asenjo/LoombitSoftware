@@ -16,8 +16,11 @@ import re
 
 _COBRO = re.compile(r"\b(cobro|cobrar|reclam\w+|moros\w+|impag\w+|deuda|deudas|vencid\w+|demora)\b")
 _F303 = re.compile(r"\b(303|iva|trimestral|repercutid\w+|soportad\w+|devengad\w+|liquidaci[oó]n)\b")
+# OJO: debe casar el COMANDO de crear factura ("regístrame/emite una factura"), NO el adjetivo
+# "facturas registradas/emitidas" (eso es una consulta sobre lo YA registrado → intención 303).
 _FACTURA = re.compile(
-    r"\b(emit\w+|reg[ií]str\w+|fact[uú]rame|emp[ií]te|apunta(?:me)? una factura)\b"
+    r"\b(reg[ií]strame|ap[uú]ntame|fact[uú]rame|em[ií]teme"
+    r"|(reg[ií]stra|ap[uú]nta|emite|emitir|crea)\s+(una\s+|la\s+|mi\s+|esta\s+)?factura)\b"
 )
 _BUSCAR_CORREO = re.compile(
     r"\b(busca\w*|b[uú]scame|encuentra|revisa|mira)\b[^\n]{0,25}\b"

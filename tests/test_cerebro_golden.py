@@ -522,7 +522,16 @@ def test_intencion_consecuente_con_datos():
     )
     assert intencion_consecuente("calcula mi 303 con ventas de 10000 al 21%") == "303"
     assert intencion_consecuente("regístrame una factura de 2000 más IVA") == "factura"
+    assert intencion_consecuente("registra una factura emitida a López de 5000 al 21%") == "factura"
     assert intencion_consecuente("busca en mi correo los mensajes de David") == "buscar"
+
+
+def test_factura_registradas_no_es_intencion_factura():
+    # "facturas registradas/emitidas" = CONSULTA sobre lo ya registrado → 303, NO crear factura
+    assert (
+        intencion_consecuente("con las facturas registradas, calcula mi 303 del trimestre") == "303"
+    )
+    assert intencion_consecuente("¿cuánto IVA llevo con las 303 facturas emitidas?") == "303"
 
 
 def test_intencion_consecuente_sin_datos_no_fuerza():
