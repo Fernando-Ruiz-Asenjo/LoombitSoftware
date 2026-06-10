@@ -620,6 +620,16 @@ def test_texto_para_intencion_hereda_en_seguimiento_corto():
     assert _texto_para_intencion(run3) == "Emitida."
 
 
+def test_modelo_no_modelado_abstiene_menos_303():
+    from loombit_operator.agent.loop import _modelo_no_modelado
+
+    assert _modelo_no_modelado("Hazme el modelo 111 de retenciones") == "111"
+    assert _modelo_no_modelado("Hazme el modelo 349 intracomunitario") == "349"
+    assert _modelo_no_modelado("calcula el modelo 130 del trimestre") == "130"
+    assert _modelo_no_modelado("calcula mi modelo 303 del 2T") is None  # el 303 SÍ se modela
+    assert _modelo_no_modelado("¿cuánto he facturado este mes?") is None
+
+
 def test_relay_fiel_recoge_TODAS_las_autoritativas():
     # N facturas registradas → el usuario ve las N (antes solo salía la última)
     loop = AgentLoop(llm=SimpleNamespace())

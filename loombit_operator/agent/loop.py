@@ -306,6 +306,16 @@ class AgentLoop:
             self.store.save_run(run)
             return run
 
+        # Modelo AEAT no modelado (111/349/130…): abstención honesta ANTES del ReAct (no confundir con
+        # el 303 ni fabricar). El 303 sí se modela y NO entra aquí.
+        _mod_na = _modelo_no_modelado(run.task)
+        if _mod_na:
+            logger.info("modelo %s no modelado → abstención honesta run=%s", _mod_na, run.id)
+            run.mark_completed(_MSG_MODELO_NO_MODELADO.format(m=_mod_na))
+            _log_conversation_event(run, "completed", run.result)
+            self.store.save_run(run)
+            return run
+
         try:
             tools_schema = self.registry.to_openai(profile=run.profile, task=run.task)
             # P0 fiabilidad: en intenciones consecuentes (cobro/303/factura/buscar) el 14B a veces
@@ -1213,6 +1223,25 @@ def _iban_invalido_a_guardar(task: str) -> bool:
         return False
     m = _IBAN_TOKEN.search(t)
     return bool(m) and not validar_iban(m.group(0))
+
+
+# Modelos AEAT que Loombit NO calcula todavía (hoy solo el 303 de IVA). Pedir uno → abstención HONESTA
+# (no confundirlo con el 303 pidiendo ventas/compras, ni fabricar un resultado). Construirlos = decisión
+# de Fernando (#8/#9). El 303 NO entra aquí (sí se modela).
+_MODELO_NO_MODELADO = re.compile(
+    r"\bmodelo\s+(111|115|123|130|180|184|190|193|347|349|390)\b", re.IGNORECASE
+)
+_MSG_MODELO_NO_MODELADO = (
+    "Todavía no calculo el modelo {m} — hoy Loombit prepara el 303 (IVA) desde tus facturas. Ese "
+    "modelo lo lleva tu gestor; cuando lo construyamos, te lo preparo yo. Mientras, te ayudo con el "
+    "303, registrar facturas o tus cobros."
+)
+
+
+def _modelo_no_modelado(task: str) -> str | None:
+    """Devuelve el número del modelo AEAT pedido si NO está modelado (111/349/130…), o None."""
+    m = _MODELO_NO_MODELADO.search(task or "")
+    return m.group(1) if m else None
 
 
 def _paso_es_fallo(step: object) -> bool:
