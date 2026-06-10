@@ -14,6 +14,7 @@ from loombit_operator.agent import smalltalk
 from loombit_operator.agent.contexto import ajustar_a_contexto
 from loombit_operator.agent.loop import (
     AgentLoop,
+    _con_aviso_regulado,
     _consecutive_tool_errors,
     _corregir_fecha_calendario,
     _corregir_fecha_cobro,
@@ -683,6 +684,20 @@ def test_corregir_fecha_calendario_proximo_lunes():
     )
     assert cambio is True
     assert args["start_iso"] == "2026-06-15T10:00:00Z"  # lunes correcto, misma hora
+
+
+def test_con_aviso_regulado_fiscal_pregunta_vs_calculo():
+    # pregunta de asesoramiento regulado → SIEMPRE antepone el aviso (aunque el 14B no lo dé)
+    out = _con_aviso_regulado(
+        "soy fisioterapeuta, ¿tengo que ponerle iva a las facturas?", "Debes aplicar IVA del 21%."
+    )
+    assert out.startswith("⚠️") and "gestor" in out.lower()
+    assert _con_aviso_regulado("¿puedo deducir el coche?", "Sí, es deducible.").startswith("⚠️")
+    # un CÁLCULO (no es asesoramiento) → NO se le mete el aviso
+    calc = _con_aviso_regulado("calcula el 303 con ventas de 1000 al 21%", "IVA devengado: 210 €")
+    assert calc == "IVA devengado: 210 €"
+    # cobro → tampoco
+    assert _con_aviso_regulado("reclama el cobro de 1500", "Saldo: 1500 €") == "Saldo: 1500 €"
 
 
 def test_trimestre_actual_y_correccion_303():

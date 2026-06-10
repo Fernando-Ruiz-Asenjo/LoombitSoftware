@@ -509,10 +509,11 @@ class AgentLoop:
             verbatim = (s.result or "").strip()
             if verbatim and verbatim not in (result or "") and verbatim not in autoritativos:
                 autoritativos.append(verbatim)
-        if not autoritativos:
-            return result
-        bloque = "\n\n".join(autoritativos)
-        return bloque + ("\n\n" + result if result and result.strip() else "")
+        if autoritativos:
+            bloque = "\n\n".join(autoritativos)
+            result = bloque + ("\n\n" + result if result and result.strip() else "")
+        # Aviso determinista en preguntas fiscales reguladas (getattr: los tests pasan run sin .task).
+        return _con_aviso_regulado(getattr(run, "task", ""), result)
 
     def _execute_tool_call(self, tc: ToolCall, step_num: int, run: AgentRun) -> tuple[str, bool]:
         try:
@@ -933,6 +934,36 @@ def _corregir_periodo_303(args: dict, task: str, hoy: date | None = None) -> boo
         return False
     args["periodo"] = actual
     return True
+
+
+# Preguntas de asesoramiento fiscal/legal REGULADO (¿qué IVA lleva mi actividad?, ¿estoy exento?,
+# ¿puedo deducir?). El 14B inventa tipos/exenciones aunque le digas que no → garantizamos por CÓDIGO
+# un aviso de "no es asesoramiento, confírmalo con tu gestor" (el modelo lo da de forma estocástica).
+_FISCAL_REGULADO = re.compile(
+    r"\btengo que (poner|ponerle|aplicar|cobrar|cargar|incluir)\w*[^.\n]{0,30}\biva\b"
+    r"|\bqu[eé] (tipo de )?iva\b[^.\n]{0,30}(lleva|tiene|aplic\w+|pong|corresponde|debo|facturo)"
+    r"|\b(estoy|est[aá]n?|estamos) exent|\bexenci[oó]n\b|\bexent[oa]s?\b"
+    r"|\b(puedo|podr[ií]a) (deducir|desgravar)\b|\b(es|son) deducibles?\b"
+    r"|\bme (deduzco|desgravo)\b|\bqu[eé] puedo (deducir|desgravar)\b",
+    re.I,
+)
+_AVISO_REGULADO = (
+    "⚠️ Esto es orientación general, NO asesoramiento fiscal: el tipo o la exención de IVA dependen de "
+    "tu actividad y tienen matices, así que NO te lo doy como dato seguro. Confírmalo con tu gestor o "
+    "en la AEAT antes de aplicarlo."
+)
+
+
+def _con_aviso_regulado(task: str, result: str) -> str:
+    """Antepone un aviso determinista si la petición es fiscal/legal regulada. Garantiza la cautela
+    que el 14B da de forma estocástica (y de-autoritativiza un tipo/exención que pueda haber inventado).
+    """
+    if not _FISCAL_REGULADO.search(task or ""):
+        return result
+    low = (result or "").lower()
+    if "no asesoramiento fiscal" in low or ("asesoramiento" in low and "gestor" in low):
+        return result  # ya lleva un aviso fuerte
+    return _AVISO_REGULADO + ("\n\n" + result if result and result.strip() else "")
 
 
 def _is_error_result(text: str) -> bool:
