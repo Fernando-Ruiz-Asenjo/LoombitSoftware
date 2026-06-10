@@ -26,7 +26,7 @@ _F303_REGISTRADAS = re.compile(
 # "facturas registradas/emitidas" (eso es una consulta sobre lo YA registrado → intención 303).
 _FACTURA = re.compile(
     # verbos de registro «pegados» (regístrame/apúntame/factúrame/emíteme)…
-    r"\b(reg[ií]strame|ap[uú]ntame|fact[uú]rame|em[ií]teme)\b"
+    r"\b(reg[ií]strame|ap[uú]ntame|fact[uú]ra(?:me|le|les|nos|lo|la)|em[ií]teme)\b"
     # …o un verbo de registro (incluido coloquial: mete/anota/añade/introduce/carga) cerca del
     # sustantivo factura/venta/minuta o de «facturé/vendí». Acota a REGISTRAR, no a consultar.
     r"|\b(reg[ií]stra\w*|ap[uú]nta\w*|em[ií]t\w+|an[oó]ta\w*|m[eé]te\w*|pon\w*|gu[aá]rda\w*|a[ñn][aá]de\w*|introd[uú]ce\w*|c[aá]rga\w*"
