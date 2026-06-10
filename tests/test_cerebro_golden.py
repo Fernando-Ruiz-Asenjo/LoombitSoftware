@@ -720,6 +720,14 @@ def test_parsear_fecha_hace_n_semanas_y_dias():
     assert parsear_fecha("hace una semana", hoy) == date(2026, 6, 3)
 
 
+def test_parsear_fecha_hace_n_meses_calendario():
+    assert parsear_fecha("venció hace un mes", date(2026, 6, 10)) == date(2026, 5, 10)
+    assert parsear_fecha("hace dos meses", date(2026, 6, 10)) == date(2026, 4, 10)
+    assert parsear_fecha("hace 7 meses", date(2026, 6, 10)) == date(2025, 11, 10)  # cruza el año
+    # clamp del día: 31 de marzo - 1 mes = 28 feb (no existe 31 feb)
+    assert parsear_fecha("hace un mes", date(2026, 3, 31)) == date(2026, 2, 28)
+
+
 def test_corregir_fecha_cobro_vencimiento_relativo():
     # el 14B puso 2026-05-17 (24 días); 'hace tres semanas' desde el 10/6 = 2026-05-20 (21)
     args = {"total": 1000, "fecha_vencimiento": "2026-05-17"}

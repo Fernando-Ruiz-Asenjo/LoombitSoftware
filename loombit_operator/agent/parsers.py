@@ -9,6 +9,7 @@ Ver docs/ALGORITMO_CEREBRO.md (ALG-1.3/1.4) y docs/REPARACION_CANONICA.md.
 from __future__ import annotations
 
 import re
+from calendar import monthrange
 from datetime import date, timedelta
 
 # Tipos de IVA válidos en España (fracción): exento, superreducido, temporal, reducido, general.
@@ -139,6 +140,23 @@ def parsear_fecha(texto: object, hoy: date | None = None) -> date | None:
                 n = None
         if n is not None:
             return hoy - timedelta(days=7 * n if m[2].startswith("sem") else n)
+    # 'hace N meses' → aritmética de calendario (no 30 días, que deriva), con clamp del día.
+    m = re.search(
+        r"\bhace\s+(\d+|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)\s+mes(?:es)?\b", s
+    )
+    if m:
+        n = _PALABRA_NUM.get(m[1])
+        if n is None:
+            try:
+                n = int(m[1])
+            except ValueError:
+                n = None
+        if n is not None:
+            mes, anio = hoy.month - n, hoy.year
+            while mes <= 0:
+                mes += 12
+                anio -= 1
+            return date(anio, mes, min(hoy.day, monthrange(anio, mes)[1]))
     if "pasado manana" in s or "pasado mañana" in s:
         return hoy + timedelta(days=2)
     if "manana" in s or "mañana" in s:

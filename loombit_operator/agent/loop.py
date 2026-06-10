@@ -868,7 +868,7 @@ def _filtrar_lineas_303(args: dict, task: str) -> tuple[dict, int]:
 _REL_FECHA = re.compile(
     r"\b(mañana|manana|pasado\s+mañana|pasado\s+manana|hoy|lunes|martes|mi[eé]rcoles|jueves|"
     r"viernes|s[aá]bado|domingo|que\s+viene|pr[oó]xim\w+)\b"
-    r"|hace\s+\w+\s+(?:d[ií]as?|semanas?)"
+    r"|hace\s+\w+\s+(?:d[ií]as?|semanas?|mes(?:es)?)"
 )
 
 
