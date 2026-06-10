@@ -102,6 +102,13 @@ ESCENARIOS = [
         lambda r, t, x: "calendar_create" in t and "registrar_factura" not in t and "nif" not in x,
     ),
     (
+        # «¿cuánto he facturado este mes?» = force-tool resumen_facturacion (suma emitidas), NO el 303
+        # ni memory_search. Sin facturas en el arnés → responde «no tienes facturas», pero DEBE llamarla.
+        "facturacion_usa_resumen",
+        "¿Cuánto he facturado este mes?",
+        lambda r, t, x: "resumen_facturacion" in t and "calcular_303" not in t,
+    ),
+    (
         "abstencion_conciliacion",
         "Concíliame los cobros con el extracto del banco de este mes.",
         lambda r, t, x: any(
