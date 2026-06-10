@@ -1,11 +1,11 @@
 """
-Detección DETERMINISTA de intención CONSECUENTE — para FORZAR la herramienta.
+Detección DETERMINISTA de intención que EXIGE herramienta — para forzar la tool CORRECTA.
 
-El 14B a veces responde a ojo en cobros/303/facturas (cálculos), inventando cifras (p.ej. un
-interés de demora del 4,5 % en vez del legal del BOE) en vez de llamar a la tool determinista.
-Aquí detectamos esas intenciones por palabra clave: cuando lo son, el bucle fuerza `tool_choice`
-para que el modelo NO pueda calcular a mano. La tool correcta la elige él entre las que el router
-ya filtró (cobro→plan_cobro, 303→calcular_303, factura→registrar_factura).
+El 14B a veces (a) calcula a ojo y fabrica cifras (cobro/303), (b) dice que buscó sin buscar. Para
+esas intenciones forzamos `tool_choice` Y enfocamos las tools a la(s) correcta(s), de modo que:
+  - en cobro/303/factura NO pueda calcular a mano NI elegir la tool equivocada;
+  - PERO solo si la petición trae el DATO (un número): si faltan datos, NO forzamos → que pregunte,
+    no que invente (regresión observada: forzar sin datos hacía que Qwen inventara importes).
 
 Puro y testeable. Ver docs/ALGORITMO_CEREBRO.md.
 """
@@ -14,22 +14,50 @@ from __future__ import annotations
 
 import re
 
-# Intenciones donde el resultado son CIFRAS que deben salir de código, no del LLM.
 _COBRO = re.compile(r"\b(cobro|cobrar|reclam\w+|moros\w+|impag\w+|deuda|deudas|vencid\w+|demora)\b")
 _F303 = re.compile(r"\b(303|iva|trimestral|repercutid\w+|soportad\w+|devengad\w+|liquidaci[oó]n)\b")
-_FACTURA = re.compile(r"\b(factura|facturas|fact[uú]rame|emit\w+|registrar|reg[ií]strame)\b")
-# Búsqueda en el correo: el 14B a veces DICE que buscó sin buscar (0 tools) e inventa el resultado.
-# Forzamos la tool para que busque de verdad.
+_FACTURA = re.compile(
+    r"\b(emit\w+|reg[ií]str\w+|fact[uú]rame|emp[ií]te|apunta(?:me)? una factura)\b"
+)
 _BUSCAR_CORREO = re.compile(
     r"\b(busca\w*|b[uú]scame|encuentra|revisa|mira)\b[^\n]{0,25}\b"
     r"(correo|correos|email|e-mail|mail|bandeja|mensaje\w*|inbox)\b"
 )
+# Hay un DATO numérico (cifra o número en palabras) → tiene sentido calcular; si no, hay que preguntar.
+_TIENE_DATO = re.compile(
+    r"\d|\b(mil|cien|ciento|doscient\w+|trescient\w+|cuatrocient\w+|quinient\w+|"
+    r"seiscient\w+|setecient\w+|ochocient\w+|novecient\w+)\b"
+)
+
+# Tools a las que se LIMITA la llamada forzada (+ ask_user/task_done para poder preguntar o terminar).
+_TOOLS_POR_INTENCION: dict[str, set[str]] = {
+    "cobro": {"plan_cobro"},
+    "303": {"calcular_303", "calcular_303_registradas"},
+    "factura": {"registrar_factura"},
+    "buscar": {"gmail_search"},
+}
+_SIEMPRE = {"ask_user", "task_done"}
 
 
-def fuerza_tool(task: str) -> bool:
-    """True si la petición EXIGE una herramienta: cobro/303/factura (no fabricar cifras a ojo) o
-    buscar en el correo (no decir que buscó sin buscar). El bucle forzará tool_choice."""
+def intencion_consecuente(task: str) -> str | None:
+    """Intención que EXIGE herramienta: 'cobro'|'303'|'factura'|'buscar', o None.
+    Para cobro/303/factura exige además un DATO numérico (si no, None → que pregunte)."""
     t = (task or "").lower()
-    return bool(
-        _COBRO.search(t) or _F303.search(t) or _FACTURA.search(t) or _BUSCAR_CORREO.search(t)
-    )
+    if _BUSCAR_CORREO.search(t):
+        return "buscar"
+    tiene_dato = bool(_TIENE_DATO.search(t))
+    # factura ANTES que 303: "regístrame una factura … más IVA" menciona IVA pero es factura.
+    if _FACTURA.search(t) and tiene_dato:
+        return "factura"
+    if _COBRO.search(t) and tiene_dato:
+        return "cobro"
+    if _F303.search(t) and tiene_dato:
+        return "303"
+    return None
+
+
+def tools_foco(intencion: str | None) -> set[str]:
+    """Conjunto de nombres de tool al que limitar la llamada forzada para esa intención."""
+    if not intencion:
+        return set()
+    return _TOOLS_POR_INTENCION.get(intencion, set()) | _SIEMPRE

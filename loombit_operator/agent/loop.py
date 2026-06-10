@@ -31,7 +31,7 @@ from ..tools import tool_registry
 from ..tools.registry import ToolRegistry
 from .memory import get_memory
 from .contexto import ajustar_a_contexto
-from .intencion import fuerza_tool
+from .intencion import intencion_consecuente, tools_foco
 from .prompts import build_system_prompt
 from .run import AgentRun, AgentStatus, AgentStep, AgentStore
 
@@ -266,10 +266,10 @@ class AgentLoop:
 
         try:
             tools_schema = self.registry.to_openai(profile=run.profile, task=run.task)
-            # P0 fiabilidad: en intenciones consecuentes (cobro/303/factura) el 14B a veces calcula a
-            # ojo y FABRICA cifras. Forzamos la tool mientras no haya ejecutado ninguna (step_count==0)
-            # para que use la herramienta determinista, no su aritmética. LM Studio: tool_choice="required".
-            _forzar_tool = fuerza_tool(run.task)
+            # P0 fiabilidad: en intenciones consecuentes (cobro/303/factura/buscar) el 14B a veces
+            # calcula/contesta a ojo (fabrica) o llama a la tool equivocada. En el PRIMER paso forzamos
+            # la tool Y la enfocamos a la correcta. Solo si la petición trae datos (si no, que pregunte).
+            _intencion = intencion_consecuente(run.task)
             while True:
                 # Guard: cancelación externa (el usuario pulsó "Detener")
                 fresh = self.store.get(run.id)
@@ -302,7 +302,13 @@ class AgentLoop:
                 )
                 if _recortado:
                     logger.info("ALG-0.1 recortó el contexto para que quepa run=%s", run.id)
-                _tool_choice = "required" if (_forzar_tool and run.step_count == 0) else "auto"
+                _tool_choice = "auto"
+                if _intencion and run.step_count == 0:
+                    _foco = tools_foco(_intencion)
+                    _filtradas = [t for t in tools_llm if t["function"]["name"] in _foco]
+                    if _filtradas:  # solo forzar si la tool correcta está disponible
+                        tools_llm = _filtradas
+                        _tool_choice = "required"
                 response: ChatResponse = self.llm.chat(
                     messages=msgs_llm,
                     tools=tools_llm,

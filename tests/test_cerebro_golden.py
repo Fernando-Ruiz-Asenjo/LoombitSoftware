@@ -21,7 +21,7 @@ from loombit_operator.agent.loop import (
     _is_error_result,
     _recipiente_resuelto,
 )
-from loombit_operator.agent.intencion import fuerza_tool
+from loombit_operator.agent.intencion import intencion_consecuente, tools_foco
 from loombit_operator.agent.memory import AgentMemory, EntityProfile
 from loombit_operator.agent.reflexion import etiquetas_de_tarea
 from loombit_operator.agent.run import AgentRun, AgentStatus, AgentStep
@@ -509,23 +509,32 @@ def test_relay_fiel_ignora_no_autoritativas_y_errores():
     assert loop._relay_fiel(run2, "narración") == "narración"  # un error no se relaya
 
 
-# ── P0 fiabilidad · fuerza_tool: intenciones consecuentes NO se responden a ojo ──
-def test_fuerza_tool_en_intenciones_consecuentes():
-    # cobro/303/factura → forzar la tool (no fabricar cifras a ojo)
-    assert fuerza_tool("reclama el cobro de una factura de 800 que venció el 15 de abril") is True
-    assert fuerza_tool("calcula mi 303 con ventas de 10000 al 21%") is True
-    assert fuerza_tool("emite una factura a un cliente de 2000 más IVA") is True
+# ── P0 fiabilidad · intencion_consecuente: forzar la tool CORRECTA, solo con datos ──
+def test_intencion_consecuente_con_datos():
+    assert (
+        intencion_consecuente("reclama el cobro de una factura de 800 que venció ayer") == "cobro"
+    )
+    assert intencion_consecuente("calcula mi 303 con ventas de 10000 al 21%") == "303"
+    assert intencion_consecuente("regístrame una factura de 2000 más IVA") == "factura"
+    assert intencion_consecuente("busca en mi correo los mensajes de David") == "buscar"
 
 
-def test_fuerza_tool_en_busqueda_de_correo():
-    # "busca en mi correo" → forzar gmail_search (no decir que buscó sin buscar)
-    assert fuerza_tool("busca en mi correo los mensajes de David") is True
-    assert fuerza_tool("búscame correos de la gestoría") is True
+def test_intencion_consecuente_sin_datos_no_fuerza():
+    # sin número → NO forzar (que pregunte, no que invente; regresión observada)
+    assert intencion_consecuente("reclama el cobro de la factura de Acme") is None
+    assert intencion_consecuente("reclámale el cobro al cliente de siempre") is None
 
 
-def test_no_fuerza_tool_en_lecturas_ni_cortesias():
-    # charlar/agenda/correo-enviar NO se fuerza (evita forzar una acción donde no toca)
-    assert fuerza_tool("¿qué reuniones tengo esta semana?") is False
-    assert fuerza_tool("hola, ¿qué tal?") is False
-    assert fuerza_tool("hazme un resumen de hoy") is False
-    assert fuerza_tool("manda un correo a Ana") is False
+def test_intencion_consecuente_lecturas_y_cortesias_no():
+    assert intencion_consecuente("¿qué reuniones tengo esta semana?") is None
+    assert intencion_consecuente("hola, ¿qué tal?") is None
+    assert intencion_consecuente("hazme un resumen de hoy") is None
+    assert intencion_consecuente("manda un correo a Ana") is None
+
+
+def test_tools_foco_enfoca_la_tool_correcta():
+    # cobro → solo plan_cobro (+ ask_user/task_done), NUNCA registrar_factura (era el bug)
+    foco = tools_foco("cobro")
+    assert "plan_cobro" in foco and "ask_user" in foco
+    assert "registrar_factura" not in foco
+    assert tools_foco(None) == set()
