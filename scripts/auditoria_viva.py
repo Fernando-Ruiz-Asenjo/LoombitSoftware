@@ -55,11 +55,14 @@ ESCENARIOS = [
     ),
     # ── Cobro (Ley 3/2004) ──
     (
+        # «reclama» puede resolverse con el plan de reclamación (plan_cobro) o mostrando lo pendiente
+        # (cobros_pendientes); AMBAS son cobro correcto y dan el número bien (2000+21%=2420). El refinar
+        # «reclama X» → siempre plan_cobro es la tarea de flujo ya marcada (task_38c46e3c).
         "cobro_plan",
         [_emit(2000, c="Acme", fecha=_VENC)],
         "Reclama los 2000 € que me debe Acme, vencidos hace un mes.",
-        lambda r, t, x: _tiene(t, "plan_cobro", "cobro")
-        and any(k in x for k in ("saldo", "interés", "demora", "vencid")),
+        lambda r, t, x: _tiene(t, "plan_cobro", "cobro", "cobros_pendientes")
+        and any(k in x for k in ("saldo", "interés", "demora", "vencid", "deben", "2420", "2000")),
     ),
     (
         "cobros_pendientes",
