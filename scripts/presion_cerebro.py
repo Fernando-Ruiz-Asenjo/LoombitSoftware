@@ -95,6 +95,13 @@ ESCENARIOS = [
         lambda r, t, x: "calendar_create" not in t and r.status != "pending_approval",
     ),
     (
+        # «recuérdame X el viernes» = CREA un recordatorio (calendar_create), no registra un pago
+        # ni pide el NIF del proveedor. Cubre el force-tool 'recordatorio'.
+        "recordatorio_crea_no_pregunta",
+        "Recuérdame pagar 1.200 € al proveedor de bebidas el viernes.",
+        lambda r, t, x: "calendar_create" in t and "registrar_factura" not in t and "nif" not in x,
+    ),
+    (
         "abstencion_conciliacion",
         "Concíliame los cobros con el extracto del banco de este mes.",
         lambda r, t, x: any(
