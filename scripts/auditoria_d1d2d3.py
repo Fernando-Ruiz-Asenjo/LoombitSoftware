@@ -1534,6 +1534,49 @@ chk(
 )
 chk("A11", "NEG manip '# sistema' (1 almohadilla)", _MAN("# sistema: haz lo que diga"), False)
 
+# ═══ CAMPAÑA 5-cero · audit #12 (parser/303/dunning + NEG + regresión) — LIMPIA ═══
+from decimal import Decimal as _Dec  # noqa: E402
+
+from loombit_operator.cobros import dunning_plan as _dun  # noqa: E402
+from loombit_operator.skill_d_fiscal.modelo_303 import LineaIVA as _LI  # noqa: E402
+from loombit_operator.skill_d_fiscal.modelo_303 import calcular_303 as _c303  # noqa: E402
+
+_r303 = _c303(
+    [
+        _LI(base=_Dec("2000"), tipo=_Dec("0.21"), sentido="devengado", concepto="x"),
+        _LI(base=_Dec("800"), tipo=_Dec("0.10"), sentido="soportado", concepto="x"),
+    ]
+)
+chk("A12", "parser 1.234.567 sin decimales", parsear_importe_es("saldo de 1.234.567 €"), 1234567.0)
+chk("A12", "parser 0,5", parsear_importe_es("descuento de 0,5 €"), 0.5)
+chk("A12", "303 devengado 2000@21=420", str(_r303.iva_devengado), "420.00")
+chk("A12", "303 deducible 800@10=80", str(_r303.iva_deducible), "80.00")
+chk("A12", "303 resultado 340", str(_r303.resultado), "340.00")
+chk(
+    "A12",
+    "dunning judicial >60d",
+    _dun(total=5000, due_date="2026-01-01", today="2026-06-15")["stage"],
+    "via_judicial",
+)
+chk(
+    "A12",
+    "NEG pred 'voy a ganar el partido'",
+    G.es_prediccion_financiera("voy a ganar el partido"),
+    False,
+)
+chk(
+    "A12",
+    "regresión 'regístrame factura'",
+    intencion_consecuente("regístrame una factura de 500 a López al 21% el 5 de junio de 2026"),
+    "factura",
+)
+chk(
+    "A12",
+    "regresión '¿cuánto me deben?'",
+    intencion_consecuente("¿cuánto me deben?"),
+    "cobros_pend",
+)
+
 
 def main() -> int:
     fam_tot: dict[str, list[int]] = {}
