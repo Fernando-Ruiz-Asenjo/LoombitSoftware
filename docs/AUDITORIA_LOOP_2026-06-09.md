@@ -76,6 +76,13 @@ en vivo: 3 facturas → las 3 visibles en el resultado. +2 golden, gate verde.
 profesional, firmado como el usuario (nombre+empresa de la memoria), saludo/despedida, NO se delata
 como IA/bot. Feature de uso diario OK; sin bug.
 
+**Auditoría ROUTINES (proactivas) — seguridad (2026-06-10):** SEGURO por recibo. Una routine proactiva
+(p.ej. reply_watch) redacta y llama a gmail_send, pero el run lleva `proactive=True` (campo persistido,
+sobrevive recarga) y la política de aprobación lo FUERZA al gate (PENDING_APPROVAL) aunque el
+destinatario sea claro — "lo proactivo SIEMPRE se confirma" (loop.py:580). NO auto-envía. ⚠️ Falso
+positivo retirado: una 1ª prueba mal montada (email solo en messages, no en task) chocó con el guard
+anti-destinatario-inventado y lo malinterpreté; re-test correcto → GATE.
+
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |
 |---|---|---|---|
