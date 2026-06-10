@@ -32,11 +32,12 @@ from ..tools import tool_registry
 from ..tools.registry import ToolRegistry
 from .memory import get_memory
 from .contexto import ajustar_a_contexto
-from .descomposicion import MENU, resolver
+from .descomposicion import MENU, clasificar_intencion, merece_clasificar, resolver
 from .guardas import registro_guardas
 from .intencion import (
     es_lectura_agenda,
     intencion_consecuente,
+    tiene_dato,
     tools_excluir,
     tools_foco,
 )
@@ -305,9 +306,22 @@ class AgentLoop:
             # P0 fiabilidad: en intenciones consecuentes (cobro/303/factura/buscar) el 14B a veces
             # calcula/contesta a ojo (fabrica) o llama a la tool equivocada. En el PRIMER paso forzamos
             # la tool Y la enfocamos a la correcta. Solo si la petición trae datos (si no, que pregunte).
-            # En conversación, una respuesta corta hereda la intención del turno anterior (ver
-            # _texto_para_intencion) → un «Emitida.» fuerza registrar_factura en vez de fabricar.
-            _intencion = intencion_consecuente(_texto_para_intencion(run))
+            # ROUTING (D-1): el regex es el FAST-PATH barato; si NO casa pero la petición tiene señal
+            # de dominio, un clasificador LLM cubre la cola larga (fin del whack-a-mole: no hay que
+            # añadir un regex por cada fraseo nuevo). En conversación, una respuesta corta hereda la
+            # intención del turno anterior (_texto_para_intencion) → «Emitida.» fuerza registrar_factura.
+            _texto_rt = _texto_para_intencion(run)
+            _intencion = intencion_consecuente(_texto_rt)
+            if _intencion is None and merece_clasificar(_texto_rt):
+                _cand = clasificar_intencion(_texto_rt, self.llm)
+                # cobro/303/factura SIN dato no se fuerzan (que pregunte, no que invente un importe).
+                if _cand and not (
+                    _cand in ("cobro", "303", "factura") and not tiene_dato(_texto_rt)
+                ):
+                    _intencion = _cand
+                    logger.info(
+                        "intención por clasificador LLM (regex no casó): %s run=%s", _cand, run.id
+                    )
             # A1 (gate de ambigüedad INTERNO): si la petición cruza varias intenciones de LECTURA
             # (cross-domain, p.ej. financiero + agenda), se descompone, se ejecuta cada métrica con su
             # tool determinista y se compone UNA respuesta aquí — sin preguntar al usuario. Si no

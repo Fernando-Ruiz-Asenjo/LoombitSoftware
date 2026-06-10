@@ -99,6 +99,12 @@ _TOOLS_POR_INTENCION: dict[str, set[str]] = {
 _SIEMPRE = {"ask_user", "task_done"}
 
 
+def tiene_dato(task: str) -> bool:
+    """True si la petición trae un DATO numérico (cifra o número en palabras). Lo usa el clasificador
+    LLM de respaldo: cobro/303/factura SIN dato no se fuerzan (que pregunte, no que invente)."""
+    return bool(_TIENE_DATO.search((task or "").lower()))
+
+
 def intencion_consecuente(task: str) -> str | None:
     """Intención que EXIGE herramienta: 'cobro'|'303'|'factura'|'buscar', o None.
     Para cobro/303/factura exige además un DATO numérico (si no, None → que pregunte)."""

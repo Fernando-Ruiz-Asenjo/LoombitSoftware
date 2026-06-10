@@ -30,7 +30,17 @@ con LLM + extraer con código + calcular con código.** Hoy hacemos: clasificar 
 
 ---
 
-## D-1 · Routing por regex no escala (ALTA)
+## D-1 · Routing por regex no escala (ALTA) — ✅ HECHO (2026-06-10)
+
+> **RESUELTO (aditivo, bajo riesgo).** El regex (`intencion_consecuente`) sigue siendo el FAST-PATH
+> barato; cuando NO casa pero la petición tiene señal de dominio (`merece_clasificar`), un
+> **clasificador LLM** (`descomposicion.clasificar_intencion`, temp 0, menú cerrado, confianza ≥0.6)
+> cubre la cola larga. Así una frase nueva que el regex no previó la clasifica el LLM — **se acabó
+> añadir un regex por cada fraseo**. Data-gate: cobro/303/factura SIN dato no se fuerzan (que pregunte).
+> Verificado EN VIVO: «¿cuánto me ADEUDAN mis clientes?» (regex None) → cobros_pendientes; «ANOTAR una
+> VENTA a Endesa de 500€» (regex None) → registrar_factura. +2 golden (fake LLM) + gate verde + arnés
+> sin regresión (el fast-path preserva el comportamiento; el LLM solo se llama cuando el regex falla).
+
 
 **Síntoma repetido:** cada ciclo amplío `intencion.py` — `vencid→venc`, «mis ingresos», `retención→reten`,
 modelos AEAT, `_texto_para_intencion`… Es whack-a-mole: cada fraseo nuevo del usuario = un gap = un parche.

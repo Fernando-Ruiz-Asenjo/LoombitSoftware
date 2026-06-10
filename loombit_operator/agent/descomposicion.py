@@ -194,3 +194,74 @@ def resolver(task: str, llm) -> list[Sub]:
         a_ejec = list(por_id.values())
     # A1 solo aplica a MULTI-métrica (≥2). Una sola → que la resuelva el single-intent (no duplicar).
     return a_ejec if len(a_ejec) >= 2 else []
+
+
+# ── D-1: clasificador LLM de intención (fin del whack-a-mole del regex) ───────────────────────────
+# El regex (`intencion_consecuente`) es el FAST-PATH barato; cuando NO casa (una frase nueva que no
+# previmos), este clasificador LLM cubre la cola larga: clasifica a un MENÚ CERRADO con confianza, sin
+# inventar. Así no hay que añadir un regex por cada fraseo nuevo. Las cifras siguen por código.
+_MENU_INTENCION: dict[str, str] = {
+    "cobro": "reclamar/cobrar UNA factura impagada o vencida (necesita un importe)",
+    "303": "calcular el IVA, el modelo 303 o la liquidación trimestral",
+    "factura": "registrar, apuntar o emitir UNA factura nueva",
+    "facturacion": "cuánto ha facturado / ingresado / gastado, o su beneficio, en un periodo",
+    "cobros_pend": "cuánto le deben, quién le debe, o sus cobros pendientes",
+    "resumen_financiero": "una visión GLOBAL o VARIAS métricas financieras a la vez",
+    "buscar": "buscar correos/emails en su bandeja sobre alguien o algo",
+    "recordatorio": "crear un recordatorio o evento en su agenda",
+}
+_SISTEMA_INTENCION = (
+    "Eres un CLASIFICADOR de intención para un operador administrativo de un autónomo español. "
+    "Clasifica el mensaje en EXACTAMENTE UNA de estas intenciones, o 'ninguna' si no encaja en ninguna. "
+    "NO inventes; sé conservador.\nIntenciones:\n"
+    + "\n".join(f"- {k}: {d}" for k, d in _MENU_INTENCION.items())
+    + "\n\nDevuelve SOLO un JSON: "
+    '{"intencion": "<una de las claves | ninguna>", "confianza": <0..1>}'
+)
+
+# Señal AMPLIA de que la petición PODRÍA ser una intención forzable (evita llamar al LLM en tareas
+# claramente ajenas —p.ej. «redacta un correo a Ana», «búscame un vuelo»—). No es whack-a-mole: es un
+# umbral de dominio amplio, no un patrón por fraseo.
+_SENAL_FORZABLE = re.compile(
+    r"\b(factur\w+|cobr\w+|iva|303|reclam\w+|moros\w+|impag\w+|deud\w+|adeud\w+|venc\w+|ingres\w+"
+    r"|gast\w+|benefici\w+|vent\w+|pendiente\w*|cliente\w*|proveedor\w*|recu[eé]rda\w*|recordatorio"
+    r"|agenda|reuni\w+|cita\w*|busca\w*|b[uú]scame|correo\w*|email\w*)\b|[€$]|\beuros?\b|me deben|me debe"
+)
+
+
+def merece_clasificar(task: str) -> bool:
+    """True si la petición tiene señal de dominio forzable → vale la pena el clasificador LLM cuando el
+    regex no casó. Amplio a propósito (mejor una llamada de más que dejar un routing sin cubrir)."""
+    return bool(_SENAL_FORZABLE.search((task or "").lower()))
+
+
+# Flujos que NO son intenciones del menú force (tienen su propio camino multi-paso) → el clasificador
+# NO debe arrastrarlos. P.ej. CONCILIAR cobros con un EXTRACTO bancario menciona «cobros» pero NO es
+# «cuánto me deben»: necesita el N43 y se resuelve en free-form (pide el extracto).
+_NO_CLASIFICAR = re.compile(r"\bconc[ií]li\w+|\bextracto\b|\bnorma\s*43\b|\bn43\b", re.IGNORECASE)
+
+
+def clasificar_intencion(task: str, llm) -> str | None:
+    """Clasifica la intención con el LLM (temp 0, menú cerrado). Devuelve la clave si confianza ≥ 0.6,
+    o None (→ free-form). Es el RESPALDO del regex, no su sustituto: solo se llama cuando el regex falló.
+    """
+    if _NO_CLASIFICAR.search(task or ""):
+        return (
+            None  # flujo con camino propio (conciliación…) → free-form, no forzar una tool del menú
+        )
+    msgs = [
+        {"role": "system", "content": _SISTEMA_INTENCION},
+        {"role": "user", "content": task or ""},
+    ]
+    try:
+        resp = llm.chat(messages=msgs, temperature=0.0)
+        data = _parse_json(resp.content)
+    except Exception as exc:  # noqa: BLE001 — sin clasificación se queda en free-form
+        logger.info("clasificar_intencion: fallo LLM/parse (%s)", exc)
+        return None
+    iid = str(data.get("intencion", "")).strip()
+    try:
+        conf = float(data.get("confianza", 0))
+    except (ValueError, TypeError):
+        conf = 0.0
+    return iid if iid in _MENU_INTENCION and conf >= 0.6 else None

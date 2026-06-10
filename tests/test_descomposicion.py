@@ -90,3 +90,43 @@ def test_resolver_buscar_correo_extrae_termino():
     subs = D.resolver("¿cuánto me debe Acme y qué correos suyos tengo?", llm)
     correo = next(s for s in subs if s.intencion == "buscar_correo")
     assert correo.args.get("query") == "Acme"
+
+
+def test_clasificar_intencion_menu_confianza_y_robusto():
+    # confiado y en el menú → devuelve la intención (cubre la cola larga que el regex no pilla)
+    assert (
+        D.clasificar_intencion(
+            "dame mis ingresos de junio", _FakeLLM(['{"intencion":"facturacion","confianza":0.9}'])
+        )
+        == "facturacion"
+    )
+    # baja confianza → None (no fuerza a ciegas)
+    assert (
+        D.clasificar_intencion("algo raro", _FakeLLM(['{"intencion":"cobro","confianza":0.3}']))
+        is None
+    )
+    # 'ninguna' o fuera del menú → None
+    assert (
+        D.clasificar_intencion(
+            "redacta un correo a Ana", _FakeLLM(['{"intencion":"ninguna","confianza":0.9}'])
+        )
+        is None
+    )
+    # JSON roto → None (no rompe, cae a free-form)
+    assert D.clasificar_intencion("x", _FakeLLM(["no es json"])) is None
+    # conciliación NO es del menú force (camino propio: pide el N43) → None aunque el LLM diga cobros_pend
+    assert (
+        D.clasificar_intencion(
+            "concíliame los cobros con el extracto del banco",
+            _FakeLLM(['{"intencion":"cobros_pend","confianza":0.9}']),
+        )
+        is None
+    )
+
+
+def test_merece_clasificar_amplio_pero_no_ajeno():
+    assert D.merece_clasificar("dame mis ventas de junio")  # vent → señal de dominio
+    assert D.merece_clasificar("¿cuánto me deben?")  # me deben
+    assert D.merece_clasificar("reclama 1000 € a Acme")  # euros + reclam
+    assert not D.merece_clasificar("hola, ¿qué tal?")  # ajeno → no se llama al LLM
+    assert not D.merece_clasificar("¿qué tiempo hace hoy?")  # ajeno
