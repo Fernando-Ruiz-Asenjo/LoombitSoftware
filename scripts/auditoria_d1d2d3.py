@@ -1067,6 +1067,45 @@ chk("TODAS", "parser '1,5k' → None", parsear_importe_es("factura de 1,5k"), No
 chk("TODAS", "parser '100 kg' → 100 (no escala)", parsear_importe_es("paquete de 100 kg"), 100.0)
 chk("TODAS", "parser minus Unicode −200", parsear_importe_es("rectificativa de −200 €"), -200.0)
 
+# ═══ CAMPAÑA 5-cero · audit #1 (símbolos/formatos raros, routing, guardas) ═══
+chk("A1", "parser $500", parsear_importe_es("paga $500 ya"), 500.0)
+chk("A1", "parser 500.- contable", parsear_importe_es("importe 500.- euros"), 500.0)
+chk("A1", "parser 5e3 científica → None", parsear_importe_es("factura de 5e3 €"), None)
+chk("A1", "parser nbsp", parsear_importe_es("cobro de 500\xa0€"), 500.0)
+chk("A1", "parser miles enormes", parsear_importe_es("saldo de 1.234.567.890,12 €"), 1234567890.12)
+chk("A1", "parser un decimal 200,5", parsear_importe_es("factura de 200,5 €"), 200.5)
+chk(
+    "A1",
+    "parser '- 200' (espacio) = 200 seguro",
+    parsear_importe_es("rectificativa de - 200 €"),
+    200.0,
+)
+chk(
+    "A1",
+    "routing 'pásame lo que me deben'",
+    intencion_consecuente("pásame lo que me deben los clientes"),
+    "cobros_pend",
+)
+chk(
+    "A1",
+    "routing 'anótame' (acento ó)",
+    intencion_consecuente("anótame que le vendí una factura a López de 500 al 21 el 5 de junio"),
+    "factura",
+)
+chk("A1", "modelo 184", G.modelo_no_modelado("hazme el modelo 184"), "184")
+chk(
+    "A1",
+    "modelo 100 por nombre",
+    G.modelo_no_modelado("ayúdame con mi declaración de la renta"),
+    "100",
+)
+chk(
+    "A1",
+    "NEG factura normal IVA",
+    G.es_registro_con_retencion("emite la factura de 1000 al 21% de IVA, fecha 5 junio"),
+    False,
+)
+
 
 def main() -> int:
     fam_tot: dict[str, list[int]] = {}
