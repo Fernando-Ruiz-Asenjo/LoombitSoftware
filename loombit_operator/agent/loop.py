@@ -846,7 +846,8 @@ def _recipiente_resuelto(to: str, run: AgentRun) -> bool:
 # SEGURIDAD: marcadores de intento de MANIPULACIÓN / inyección (falso bloque de sistema, petición de
 # saltarse la aprobación, jailbreak). Si aparecen, no se concede el auto-envío sin tarjeta.
 _MANIPULACION = re.compile(
-    r"#{2,}\s*sistema|<\s*/?\s*system\b|\bsystem\s*:"  # falso bloque de sistema
+    r"#{2,}\s*sistema|<\s*/?\s*system\b|\bsystem\s*:|system\s+prompt|(?:begin|end)\s+system"  # falso sistema
+    r"|\[/?\s*inst\s*\]|<\|?\s*im_(?:start|end)"  # marcadores de chat-template/instrucción (Llama, ChatML)
     r"|ignora\s+(tus|las|todas|cualquier)\b[^.\n]{0,20}(regla|restriccion|instruccion|limitaci|norma)"
     r"|olvida\s+(tus|las)\b[^.\n]{0,20}(regla|instruccion)|eres\s+dan\b|modo\s+desarrollador"
     r"|sin\s+restriccion\w*|jailbreak|act[uú]a\s+como\s+si\s+no\s+tuvieras",
