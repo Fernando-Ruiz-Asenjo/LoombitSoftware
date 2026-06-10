@@ -110,3 +110,22 @@ Rota sectores; anota fallos con severidad. Correos SOLO a fernando.ruizasenjo@gm
   el LLM. `cobro` es más robusto (menos campos, números directos). → `calcular_303` queda 🟠
   "asistente, VERIFICA siempre". Reconsiderar: usar el coder/instructor con few-shot, o exigir
   confirmación de las líneas antes de calcular.
+
+## Iteración 2026-06-10 — PRESIÓN DURA del cerebro + reparaciones (por recibo)
+Encargo: pruebas duras/aleatorias buscando el fallo + reparar + arnés hacia "100 ciclos verde".
+Bugs REALES hallados presionando y REPARADOS (todos con golden + verificados en vivo):
+- **P0 Allowlist de tools (seguridad+fiabilidad):** el 14B alucinaba un nombre de tool fuera del set
+  ofrecido (registrar_factura cuando solo se dio plan_cobro) y el bucle la EJECUTABA. Ahora, con
+  intención enfocada/exclusión, una tool no ofrecida se RECHAZA.
+- **Forzar la tool ENFOCADA** (intencion_consecuente + tools_foco/excluir): cobro/303/factura/buscar
+  fuerzan la tool CORRECTA y solo con datos (si faltan, pregunta, no inventa). Arregla: fabricar el
+  interés (4,5%→BOE), tool equivocada, fabricar al faltar datos.
+- **Router stems** (`reclam`/`cobr`/`vencid`): "reclamo" ya ofrece plan_cobro.
+- **Leer≠crear agenda** (determinista): preguntas de agenda excluyen calendar_create.
+- **303 anti-línea-inventada** (`_filtrar_lineas_303`): descarta líneas cuya base no está en el
+  mensaje → cierra el residual del 303 manual (10000@21 + 2000@21 → 1680 sin línea fantasma).
+- **Seguridad:** prompt anti-fuga (no revelar system prompt) + anti-exfiltración masiva a externos.
+- **Arnés** `scripts/presion_cerebro.py` (13 escenarios, gmail_send stubeado): base ~12-13/13.
+- **Code vs fine-tuning:** decidido CÓDIGO (determinista/garantía/swap-model); fine-tuning fuera de
+  alcance (brújula) y solo bajaría la prob., no garantiza. Residual honesto: el 14B aún puede
+  parafrasear/inventar en casos raros; mitigado por guards + camino fiable (303 desde registradas).
