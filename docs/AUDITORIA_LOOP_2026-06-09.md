@@ -30,6 +30,9 @@
 - **303 fiable:** el cálculo del 303 desde una frase con el 14B NO es fiable (mis-asigna/inventa).
   Ahora que `registrar_factura` persiste, el camino bueno es **calcular el 303 desde las facturas
   registradas** (determinista). Propuesta para una próxima iteración. ¿OK?
+- **~~Fecha relativa del calendario~~ → ARREGLADO (2026-06-10):** el 14B erraba fechas relativas
+  ('próximo lunes'→sábado, 'mañana'→hoy). Ahora `_corregir_fecha_calendario` recalcula con `parsear_fecha`
+  (determinista) y corrige el `start_iso` antes del gate. Verificado en vivo. Cierra el item T5.
 - **Evento de prueba en tu calendario** (vie 14 jun 10:00 «Loombit · prueba de aprobación»): el
   borrado directo lo bloquea el gate de seguridad. Bórralo tú, o autorízame a hacerlo por el cauce.
 - **Pilot para viajes:** primitivas vivas; operar una web de viajes e2e está SIN verificar (es frágil
