@@ -75,7 +75,7 @@ en vivo: 3 facturas → las 3 visibles en el resultado. +2 golden, gate verde.
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |
 |---|---|---|---|
-| 1 | Chat / agente / cognición (memoria, tools, abstención) | 🟠 en curso | memoria ✅, router ✅, cobro/303 tools ✅, cobro e2e 🟢; **P0 contexto 4096→8192 ✅**; abstención honesta MEJORADA (prompt) 🟠 aún sobre-promete; durabilidad del contexto PENDIENTE |
+| 1 | Chat / agente / cognición (memoria, tools, abstención) | 🟢 muy reforzado | memoria ✅, router ✅, cobro/303/factura/conciliación tools ✅; force-tool enfocado ✅; allowlist ✅; relay_fiel multi ✅; fecha-fiel (calendario+cobro) ✅; trimestre 303 ✅; aviso fiscal determinista ✅; **F-7 agenda de la semana CERRADA** (`calendar_semana`, verificado en vivo) ✅; 13/13 bajo presión. Residual: narración del 14B (días de semana, específicos fiscales) |
 | 2 | Telar (cognición→tarjetas, dedup, dudup caché) | 🟢 auditado (2026-06-10) | P1 DUP agenda↔reunión comprendida ARREGLADO (suprime evento de calendario ya cubierto) + robustez `_hilo_asunto` (no tumba el home por un asunto malformado). 4 golden. Falta: dedup también plazos/correos repetidos |
 | 3 | Aprobaciones «Preparado para ti» | 🟢 verificado clicando (Aprobar→evento real) | falta probar Descartar en vivo |
 | 4 | Home / shell `loombit-app.html` | 🟢 auditado en Chrome real (2026-06-10) | Carga OK; hilos del día RENDERIZAN (pide acción/impuestos/reunión); fetches same-origin `/telar`→200 `/galaxia`→200 (el **middleware CSRF NO rompe la UI**); sin errores JS de Loombit (consola = MetaMask, ajeno). Cobertura: load+telar+fetch+consola; NO re-cliqué cada chip ni reenvié chat este turno (chat ya verificado antes) |
