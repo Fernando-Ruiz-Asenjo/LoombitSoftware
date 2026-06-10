@@ -764,6 +764,15 @@ def test_filtrar_lineas_303_no_toca_si_no_hay_cifras():
     assert quitadas == 0 and out["iva_repercutido"] == [{"base": 1000, "tipo": 0.21}]
 
 
+def test_fmt_evento_con_fecha_pone_el_dia_correcto():
+    from loombit_operator.tools.brief import _fmt_evento
+
+    ev = {"start": "2026-06-11T09:00:00+02:00", "summary": "Reunión con David"}
+    # 2026-06-11 es JUEVES → el código lo pone (el 14B no tiene que adivinar)
+    assert _fmt_evento(ev, con_fecha=True) == "Jueves 11/06 · 09:00 Reunión con David"
+    assert _fmt_evento(ev) == "09:00 Reunión con David"  # sin fecha (vista de hoy), igual que antes
+
+
 def test_calendar_semana_registrada_y_ruteada():
     from loombit_operator.tools import tool_registry
     from loombit_operator.tools.registry import select_tool_names

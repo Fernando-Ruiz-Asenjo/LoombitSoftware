@@ -13,17 +13,30 @@ se devuelve un resumen determinista en viñetas (sigue siendo útil y honesto).
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from .registry import ToolDefinition, tool_registry
 
+_DIAS_ES = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
 
-def _fmt_evento(ev: dict[str, Any]) -> str:
+
+def _fmt_evento(ev: dict[str, Any], con_fecha: bool = False) -> str:
+    """Formatea un evento. `con_fecha=True` antepone el DÍA y la fecha (computados en código) para
+    listados de varios días: así el 14B no tiene que adivinar el día de la semana (y equivocarse).
+    """
     if ev.get("all_day"):
-        return f"{ev['summary']} (todo el día)"
-    hora = str(ev.get("start", ""))[11:16]  # HH:MM de un dateTime ISO
-    return f"{hora} {ev['summary']}".strip()
+        base = f"{ev['summary']} (todo el día)"
+    else:
+        hora = str(ev.get("start", ""))[11:16]  # HH:MM de un dateTime ISO
+        base = f"{hora} {ev['summary']}".strip()
+    if con_fecha:
+        try:
+            d = date.fromisoformat(str(ev.get("start", ""))[:10])
+            return f"{_DIAS_ES[d.weekday()].capitalize()} {d.day:02d}/{d.month:02d} · {base}"
+        except ValueError:
+            pass
+    return base
 
 
 def _señales_del_dia(now: datetime | None = None) -> list[str]:
@@ -115,7 +128,7 @@ def _calendar_semana(**_: object) -> str:
     if not eventos:
         return "No tienes eventos en el calendario para esta semana."
     return "Tu agenda de esta semana (hoy y próximos días):\n" + "\n".join(
-        f"• {_fmt_evento(e)}" for e in eventos
+        f"• {_fmt_evento(e, con_fecha=True)}" for e in eventos
     )
 
 
