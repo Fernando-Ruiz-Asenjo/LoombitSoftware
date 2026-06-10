@@ -183,8 +183,10 @@ def _guarda_modelo_aeat(task: str) -> str | None:
 # respuesta determinista es pedir el N43 — así «concíliame los cobros con el banco» NUNCA se confunde
 # con «cuánto me deben» (el free-form del 14B a veces caía en cobros_pendientes). ──────────────────
 _CONCILIACION = re.compile(
-    r"\bconc[ií]li\w+"
-    r"|\b(cu[aá]dr\w+|punt[eé]\w+|cruz\w+)[^.\n]{0,25}\b(banco|extracto|norma\s*43|n43)",
+    # verbo de conciliación (conciliar/reconciliar/cuadrar/puntear/cruzar) + objeto FINANCIERO cerca
+    # → así «reconcilia con tu pareja» (sin objeto financiero) NO dispara.
+    r"\b(?:(?:re)?conc[ií]li\w+|cu[aá]dr\w+|punt[eé]\w+|cruz\w+)[^.\n]{0,30}"
+    r"\b(banc\w*|extracto\w*|n43|norma\s*43)",  # señal BANCARIA (no «cuentas del 303», que es contable)
     re.IGNORECASE,
 )
 _MSG_CONCILIACION = (

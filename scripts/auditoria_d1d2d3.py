@@ -1106,6 +1106,61 @@ chk(
     False,
 )
 
+# ═══ CAMPAÑA 5-cero · audit #2 (miles/decimales, 303-registradas, conciliación conjugada) ═══
+chk("A2", "parser 1.500 miles", parsear_importe_es("factura de 1.500 €"), 1500.0)
+chk("A2", "parser 4 decimales → céntimos", parsear_importe_es("precio de 1.234,5678 €"), 1234.57)
+chk("A2", "parser 21% solo → None", parsear_importe_es("aplica el 21% de IVA"), None)
+chk("A2", "parser 0 € → 0", parsear_importe_es("factura de 0 €"), 0.0)
+chk(
+    "A2",
+    "routing factúrame standalone",
+    intencion_consecuente("factúrame 500 a López al 21 el 5 de junio de 2026"),
+    "factura",
+)
+chk(
+    "A2",
+    "303 con registradas (sin número)",
+    intencion_consecuente("calcúlame el IVA del trimestre con mis facturas registradas"),
+    "303",
+)
+chk(
+    "A2",
+    "303 con lo apuntado",
+    intencion_consecuente("calcula mi IVA del trimestre con lo que tengo apuntado"),
+    "303",
+)
+chk(
+    "A2",
+    "NEG registra factura → factura",
+    intencion_consecuente("registra una factura de 1000 al 21% de IVA, fecha 5 junio"),
+    "factura",
+)
+chk("A2", "NEG calcula iva sin nada → None", intencion_consecuente("calcula el iva"), None)
+chk(
+    "A2",
+    "conciliación 'reconcilia'",
+    bool(registro_guardas.aplicar("reconcilia mis cobros con el banco")),
+    True,
+)
+chk(
+    "A2",
+    "conciliación 'concilio'",
+    bool(registro_guardas.aplicar("concilio el banco con los cobros")),
+    True,
+)
+chk(
+    "A2",
+    "NEG 'reconcilia con tu pareja'",
+    registro_guardas.aplicar("reconcilia con tu pareja"),
+    None,
+)
+chk(
+    "A2",
+    "NEG 'cuadra cuentas del 303'",
+    registro_guardas.aplicar("cuadra las cuentas del 303"),
+    None,
+)
+
 
 def main() -> int:
     fam_tot: dict[str, list[int]] = {}

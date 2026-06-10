@@ -18,6 +18,10 @@ import re
 # en pasado NO casaba y la consulta de cobro se iba a un free-form que alucinaba tools).
 _COBRO = re.compile(r"\b(cobro|cobrar|reclam\w+|moros\w+|impag\w+|deuda|deudas|venc\w+|demora)\b")
 _F303 = re.compile(r"\b(303|iva|trimestral|repercutid\w+|soportad\w+|devengad\w+|liquidaci[oó]n)\b")
+# 303 «con lo que tengo registrado/apuntado»: lee las facturas registradas → NO necesita un número.
+_F303_REGISTRADAS = re.compile(
+    r"registrad\w+|apuntad\w+|mis\s+factura|con\s+lo\s+que\s+tengo|lo\s+(que\s+tengo\s+)?(registr|apunt)"
+)
 # OJO: debe casar el COMANDO de crear factura ("regístrame/emite una factura"), NO el adjetivo
 # "facturas registradas/emitidas" (eso es una consulta sobre lo YA registrado → intención 303).
 _FACTURA = re.compile(
@@ -173,7 +177,8 @@ def intencion_consecuente(task: str) -> str | None:
         return "factura"
     if _COBRO.search(t) and tiene_dato:
         return "cobro"
-    if _F303.search(t) and tiene_dato:
+    # 303 con DATO, o «calcula el IVA del trimestre con mis facturas registradas» (sin número: las lee).
+    if _F303.search(t) and (tiene_dato or _F303_REGISTRADAS.search(t)):
         return "303"
     return None
 
