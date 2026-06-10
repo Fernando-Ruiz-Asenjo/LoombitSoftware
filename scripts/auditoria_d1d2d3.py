@@ -1161,6 +1161,53 @@ chk(
     None,
 )
 
+# ═══ CAMPAÑA 5-cero · audit #3 (ponme, compárame acento, contra, más modelos) ═══
+chk(
+    "A3",
+    "routing 'ponme una factura'",
+    intencion_consecuente("ponme una factura a López de 600 al 21% el 5 de junio de 2026"),
+    "factura",
+)
+chk("A3", "NEG 'pon la mesa'", intencion_consecuente("pon la mesa para cenar"), None)
+chk(
+    "A3",
+    "NEG 'ponme un recordatorio'",
+    intencion_consecuente("ponme un recordatorio para el día 5"),
+    "recordatorio",
+)
+chk(
+    "A3",
+    "comp 'compárame' (acento)",
+    intencion_consecuente("compárame los dos últimos meses"),
+    "comparativo",
+)
+chk(
+    "A3",
+    "comp 'año contra anterior'",
+    intencion_consecuente("¿cómo va este año contra el anterior?"),
+    "comparativo",
+)
+chk(
+    "A3",
+    "NEG 'lucha contra el fraude'",
+    intencion_consecuente("lucha contra el fraude fiscal"),
+    None,
+)
+chk("A3", "modelo 115", G.modelo_no_modelado("hazme el modelo 115 de alquileres"), "115")
+chk("A3", "modelo 123", G.modelo_no_modelado("prepárame el modelo 123"), "123")
+chk(
+    "A3",
+    "pred 'preveo facturar'",
+    G.es_prediccion_financiera("preveo facturar 50000 este año"),
+    True,
+)
+chk(
+    "A3",
+    "parser 'mil quinientos' palabras→None",
+    parsear_importe_es("factura de mil quinientos euros"),
+    None,
+)
+
 
 def main() -> int:
     fam_tot: dict[str, list[int]] = {}

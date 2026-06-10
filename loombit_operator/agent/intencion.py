@@ -29,7 +29,7 @@ _FACTURA = re.compile(
     r"\b(reg[ií]strame|ap[uú]ntame|fact[uú]rame|em[ií]teme)\b"
     # …o un verbo de registro (incluido coloquial: mete/anota/añade/introduce/carga) cerca del
     # sustantivo factura/venta/minuta o de «facturé/vendí». Acota a REGISTRAR, no a consultar.
-    r"|\b(reg[ií]stra\w*|ap[uú]nta\w*|emit\w+|an[oó]ta\w*|mete\w*|a[ñn]ade\w*|introduce|carga\w*"
+    r"|\b(reg[ií]stra\w*|ap[uú]nta\w*|emit\w+|an[oó]ta\w*|mete\w*|pon\w*|a[ñn]ade\w*|introduce|carga\w*"
     r"|fact[uú]r\w*)\b[^.\n]{0,30}\b(factur\w+|venta\w*|vend[ií]\w*|minuta\w*)\b"
 )
 _BUSCAR_CORREO = re.compile(
@@ -90,9 +90,10 @@ _REGISTRO_FACTURA = re.compile(
 # D-4: COMPARATIVA periodo-vs-anterior («¿facturé más que el mes pasado?», «¿cuánto he crecido?»,
 # evolución/tendencia). El autónomo piensa en evolución. NO incluye la PREDICCIÓN del futuro (sin datos).
 _COMPARATIVA = re.compile(
-    r"\b(compar\w+|crec\w+|crecimiento|evoluci\w+|tendenci\w+|versus)\b|\bvs\b"
+    r"\b(comp[aá]r\w+|crec\w+|crecimiento|evoluci\w+|tendenci\w+|versus)\b|\bvs\b"
     r"|\b(m[aá]s|menos|mejor|peor|igual)\b[^.\n]{0,45}\bque\b[^.\n]{0,25}\b(mes|trimestre|a[ñn]o|ejercicio|anterior|pasad\w+)"
     r"|\brespecto\s+al?\b[^.\n]{0,25}\b(mes|trimestre|a[ñn]o|ejercicio)"
+    r"|\bcontra\s+(el\s+|la\s+)?(mes|trimestre|a[ñn]o|ejercicio|anterior|pasad\w+)"
     r"|\b(mes|trimestre|a[ñn]o|ejercicio)\s+(pasad\w+|anterior)\b",
     re.IGNORECASE,
 )
