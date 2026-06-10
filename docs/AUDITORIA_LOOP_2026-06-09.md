@@ -107,6 +107,8 @@ anti-destinatario-inventado y lo malinterpreté; re-test correcto → GATE.
 
 **TELAR e2e (2026-06-10):** flagship OK — teje 5 hilos multi-fuente ordenados por urgencia (reunión, 303 2T, 3 aprobaciones, plazo fiscal 40d), deduplicado (fix dedup funciona) y accionable. (David 'jueves 11/6' viene de la comprensión del correo, no del calendario en vivo 14/15 — email>calendario por diseño.) Sin bug.
 
+**BUG SERIO 303 — periodo (2026-06-10):** `calcular_303_registradas`/`liquidar_303_periodo` IGNORABAN el trimestre y sumaban TODAS las facturas (todo el año en cualquier 'T') → declaración gravemente errónea. ARREGLADO: rango_trimestre + recopilar_lineas(desde,hasta) filtra por fecha; excluye otros trimestres y facturas sin fecha (con aviso). Verificado e2e (feb=210/jun=420 separados) + test de integración (1T no se cuela en 2T). +2 golden, gate verde, server al día. JUNTO con el bug 'repercutido↔recibida' (mismo turno): el 303-fiable ya da cifras correctas.
+
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |
 |---|---|---|---|
