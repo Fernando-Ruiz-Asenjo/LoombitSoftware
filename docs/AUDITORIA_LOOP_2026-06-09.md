@@ -43,7 +43,7 @@
 | 9 | Entregables | ⬜ | |
 | 10 | Pilot (operar web real e2e) | 🟠 primitivas OK, e2e SIN verificar | |
 | 11 | Responsive / móvil | ⬜ | |
-| 12 | Seguridad / operativa / privacidad (datos≠órdenes, IBAN, Origin/CSRF) | ⬜ | red-team aimafia pendiente |
+| 12 | Seguridad / operativa / privacidad (datos≠órdenes, IBAN, Origin/CSRF) | 🟠 en curso | datos≠órdenes ✅ (allowlist+prompt); anti-fuga prompt ✅; **IBAN: checksum mod-97 cableado + low_confidence (estaba MUERTO) aflorado en facturas** ✅ (2026-06-10). Pendiente: Origin/CSRF, red-team aimafia, exfiltración avanzada |
 | 13 | Estética / voz / motion / accesibilidad AA | ⬜ | |
 
 ## Dogfooding MULTISECTOR (encargo de Fernando) — hacerme pasar por usuarios reales
