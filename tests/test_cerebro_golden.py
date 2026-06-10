@@ -772,6 +772,22 @@ def test_filtrar_lineas_303_no_toca_si_no_hay_cifras():
     assert quitadas == 0 and out["iva_repercutido"] == [{"base": 1000, "tipo": 0.21}]
 
 
+def test_intencion_recordatorio_fuerza_calendario_sin_preguntar():
+    from loombit_operator.agent.intencion import intencion_consecuente, tools_foco
+
+    assert (
+        intencion_consecuente("recuérdame pagar 1.200€ al proveedor el viernes") == "recordatorio"
+    )
+    assert intencion_consecuente("recuérdame llamar a Ana mañana") == "recordatorio"
+    assert intencion_consecuente("apúntame que tengo que renovar el seguro") == "recordatorio"
+    # 'apúntame [3 facturas]' SIN 'que' sigue siendo factura, no recordatorio
+    assert intencion_consecuente("apúntame 3 facturas recibidas de 200€ al 21%") == "factura"
+    # el foco de recordatorio es SOLO calendar_create (sin ask_user ni task_done): que lo CREE, no
+    # pueda escaparse a preguntar el NIF. calendar_create gatea → el usuario lo aprueba.
+    assert tools_foco("recordatorio") == {"calendar_create"}
+    assert "ask_user" not in tools_foco("recordatorio")
+
+
 def test_rango_trimestre_acota_el_303():
     from datetime import date
 

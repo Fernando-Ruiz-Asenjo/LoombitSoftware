@@ -26,6 +26,12 @@ _BUSCAR_CORREO = re.compile(
     r"\b(busca\w*|b[uú]scame|encuentra|revisa|mira)\b[^\n]{0,25}\b"
     r"(correo|correos|email|e-mail|mail|bandeja|mensaje\w*|inbox)\b"
 )
+# «recuérdame [hacer X] [cuándo]» = crear un EVENTO de recordatorio, NO registrar/ejecutar la acción.
+# El 14B lo confundía con registrar un pago/factura y pedía NIF; aquí forzamos calendar_create.
+# OJO: «apúntame QUE …» = recordatorio; «apúntame [3 facturas]» (sin «que») sigue siendo factura.
+_RECORDATORIO = re.compile(
+    r"\b(recu[eé]rdame\w*|recordatorio|acu[eé]rdame|no se me olvide|ap[uú]ntame que)\b"
+)
 # Hay un DATO numérico (cifra o número en palabras) → tiene sentido calcular; si no, hay que preguntar.
 _TIENE_DATO = re.compile(
     r"\d|\b(mil|cien|ciento|doscient\w+|trescient\w+|cuatrocient\w+|quinient\w+|"
@@ -38,6 +44,7 @@ _TOOLS_POR_INTENCION: dict[str, set[str]] = {
     "303": {"calcular_303", "calcular_303_registradas"},
     "factura": {"registrar_factura"},
     "buscar": {"gmail_search"},
+    "recordatorio": {"calendar_create"},
 }
 _SIEMPRE = {"ask_user", "task_done"}
 
@@ -46,6 +53,8 @@ def intencion_consecuente(task: str) -> str | None:
     """Intención que EXIGE herramienta: 'cobro'|'303'|'factura'|'buscar', o None.
     Para cobro/303/factura exige además un DATO numérico (si no, None → que pregunte)."""
     t = (task or "").lower()
+    if _RECORDATORIO.search(t):  # antes que todo: «recuérdame pagar…» es recordatorio, no un pago
+        return "recordatorio"
     if _BUSCAR_CORREO.search(t):
         return "buscar"
     tiene_dato = bool(_TIENE_DATO.search(t))
@@ -63,6 +72,11 @@ def tools_foco(intencion: str | None) -> set[str]:
     """Conjunto de nombres de tool al que limitar la llamada forzada para esa intención."""
     if not intencion:
         return set()
+    if intencion == "recordatorio":
+        # SOLO calendar_create: un recordatorio se CREA. Sin ask_user NI task_done, el 14B no puede
+        # escaparse a «necesito el NIF» — lo crea con el texto y la fecha (calendar_create GATEA, así
+        # que el usuario lo aprueba; ningún efecto autónomo).
+        return {"calendar_create"}
     return _TOOLS_POR_INTENCION.get(intencion, set()) | _SIEMPRE
 
 
