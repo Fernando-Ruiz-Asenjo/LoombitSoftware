@@ -111,6 +111,17 @@ _MODELO_POR_NOMBRE = (
         re.compile(r"retenci\w+\s+(a\s+)?(profesional\w+|trabajador\w+|cuenta)", re.IGNORECASE),
         "111",
     ),
+    # Modelos por su NOMBRE coloquial (sin citar el número). Acotado a «impuesto … X»/«declaración de
+    # la renta» para no confundir «la renta del local» (alquiler) ni «la sociedad» (una empresa).
+    (
+        re.compile(
+            r"declaraci\w+\s+de\s+la\s+renta|\brenta\s+anual\b|impuesto\w*\s+de\s+la\s+renta",
+            re.IGNORECASE,
+        ),
+        "100",
+    ),
+    (re.compile(r"impuesto\w*\s+(de|sobre)\s+(las?\s+)?sociedades", re.IGNORECASE), "200"),
+    (re.compile(r"impuesto\w*\s+(de|sobre)\s+(el\s+)?patrimonio", re.IGNORECASE), "714"),
 )
 _MSG_MODELO_NO_MODELADO = (
     "Todavía no calculo el modelo {m} — hoy Loombit prepara el 303 (IVA) desde tus facturas. Ese "
@@ -174,7 +185,9 @@ _PREDICCION_FINANCIERA = re.compile(
     r"|\ba\s+este\s+ritmo\b[^.\n]{0,40}\b(factur\w+|ingres\w+|ganar\w+|vend\w+|benefici\w+|cobr\w+)"
     r"|\b(cu[aá]nto|qu[eé])\b[^.\n]{0,30}\b(voy|vas|vamos)\s+a\s+(factur\w+|ingres\w+|ganar|vend\w+|cobr\w+)"
     r"|\b(predic\w+|proyec\w+|estima\w+|previsi\w+|forecast)\b[^.\n]{0,30}"
-    r"\b(factur\w+|ingres\w+|ventas|benefici\w+|cobr\w+)",
+    r"\b(factur\w+|ingres\w+|ventas|benefici\w+|cobr\w+)"
+    r"|\b(llegar[eé]|alcanzar[eé]|cumplir[eé]|lograr[eé])\b[^.\n]{0,40}"
+    r"(\d|€|euros?|facturaci\w+|ingres\w+|objetivo|meta)",  # «¿llegaré a los 50.000 €?»
     re.IGNORECASE,
 )
 _MSG_PREDICCION = (

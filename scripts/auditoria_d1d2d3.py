@@ -937,6 +937,51 @@ chk(
     None,
 )
 
+# ═══ VUELTA 1 en vivo → golden: modelos por NOMBRE coloquial + predicción «llegaré/cumpliré» ═══
+chk(
+    "RDL2",
+    "modelo patrimonio (nombre)",
+    G.modelo_no_modelado("hazme el impuesto sobre el patrimonio"),
+    "714",
+)
+chk(
+    "RDL2",
+    "modelo sociedades (nombre)",
+    G.modelo_no_modelado("prepárame el impuesto de sociedades"),
+    "200",
+)
+chk(
+    "RDL2",
+    "modelo renta (nombre)",
+    G.modelo_no_modelado("ayúdame con la declaración de la renta"),
+    "100",
+)
+chk("RDL2", "NEG 'renta del local'", G.modelo_no_modelado("no he cobrado la renta del local"), None)
+chk(
+    "RDL2",
+    "NEG 'la sociedad de Acme'",
+    G.modelo_no_modelado("la sociedad de Acme me debe 500"),
+    None,
+)
+chk(
+    "RDL2",
+    "pred 'llegaré a 50.000 €'",
+    G.es_prediccion_financiera("¿llegaré a los 50.000 € este año?"),
+    True,
+)
+chk(
+    "RDL2",
+    "pred 'cumpliré objetivo'",
+    G.es_prediccion_financiera("¿cumpliré mi objetivo de facturación?"),
+    True,
+)
+chk(
+    "RDL2",
+    "pred NEG 'llegaré tarde'",
+    G.es_prediccion_financiera("llegaré tarde a la reunión"),
+    False,
+)
+
 
 def main() -> int:
     fam_tot: dict[str, list[int]] = {}
