@@ -64,6 +64,9 @@ sin regresión; la interceptación de fechas relativas NO toca las fechas explí
 sigue dando 40 días correctos).
 **3er pase 13/13 verde** tras el trimestre-fiel del 303 y el AVISO fiscal determinista en `_relay_fiel`:
 sin regresión, y el aviso NO se cuela en cálculos (cobro/303 limpios).
+**4º pase 13/13 verde** tras calendar_semana + fmt_evento (días) + hace-N-meses + ruteo cierre-de-mes:
+sin regresión, y MEJORA visible — `leer_agenda` ahora responde la semana con días correctos (antes
+daba el fallback "me he liado").
 
 **Dogfooding construcción (multi-ítem) — 2026-06-10:** "apúntame 3 facturas recibidas (200/350/500€ al
 21%)" → registró LAS 3 correctas, `sentido=soportado` (verificado en disco). Datos OK. **P2 recurrente
