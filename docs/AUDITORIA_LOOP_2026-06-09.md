@@ -90,6 +90,8 @@ anti-destinatario-inventado y lo malinterpreté; re-test correcto → GATE.
 
 **Composición verificada (2026-06-10):** flujo compuesto 'cobro hace 3 semanas + correo de reclamación a López' → plan_cobro (force-tool) + 21 días (fecha-fiel) + interés BOE 11,68€ (relay-fiel) + contacts_find, sin auto-envío a tercero. Los arreglos recientes componen bien.
 
+**Producto en vivo al día (2026-06-10):** servidor `:8787` REINICIADO con el código de ~15 iteraciones (relay multi, aviso fiscal, fechas, calendar_semana, etc.). Verificado e2e en Chrome real: '¿qué reuniones esta semana?' → UI→server→calendar_semana→render con días correctos (Domingo 14, Lunes 15), sin crear evento. Nota: computer.type de Chrome no fiable (solo metía tildes); usé el handler real del shell (set value + Enter) — ruta real, no POST falso.
+
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |
 |---|---|---|---|
