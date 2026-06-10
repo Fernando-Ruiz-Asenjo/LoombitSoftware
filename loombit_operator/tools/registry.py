@@ -257,6 +257,27 @@ TOOL_GROUPS: list[tuple[tuple[str, ...], set[str]]] = [
         },
     ),
     (
+        # D-4: COMPARATIVA periodo-vs-anterior (evolución/crecimiento) → ofrece la tool que compara.
+        (
+            "compar",
+            "crecimiento",
+            "crecid",
+            "crecí",
+            "creci",
+            "evolución",
+            "evolucion",
+            "tendencia",
+            "mes pasado",
+            "trimestre anterior",
+            "año pasado",
+            "ano pasado",
+            "voy mejor",
+            "más que el",
+            "mas que el",
+        ),
+        {"resumen_comparativo", "resumen_facturacion", "resumen_financiero"},
+    ),
+    (
         (
             "concilia",
             "conciliac",

@@ -83,6 +83,30 @@ _REGISTRO_FACTURA = re.compile(
 )
 
 
+# D-4: COMPARATIVA periodo-vs-anterior («¿facturé más que el mes pasado?», «¿cuánto he crecido?»,
+# evolución/tendencia). El autónomo piensa en evolución. NO incluye la PREDICCIÓN del futuro (sin datos).
+_COMPARATIVA = re.compile(
+    r"\b(compar\w+|crec\w+|crecimiento|evoluci\w+|tendenci\w+|versus)\b|\bvs\b"
+    r"|\b(m[aá]s|menos|mejor|peor|igual)\b[^.\n]{0,45}\bque\b[^.\n]{0,25}\b(mes|trimestre|a[ñn]o|anterior|pasad\w+)"
+    r"|\brespecto\s+al?\b[^.\n]{0,25}\b(mes|trimestre|a[ñn]o)"
+    r"|\b(mes|trimestre|a[ñn]o)\s+(pasad\w+|anterior)\b",
+    re.IGNORECASE,
+)
+# Predicción del FUTURO: NO se computa (no hay datos) → excluye la comparativa (que es pasado/actual).
+_PREDICCION = re.compile(
+    r"\b(facturar[eé]|ganar[eé]|ingresar[eé]|tendr[eé]|ir[eé]\b|voy\s+a\s+\w+"
+    r"|pr[oó]xim\w+\s+(mes|trimestre|a[ñn]o|semana)|(mes|trimestre|a[ñn]o|semana)\s+que\s+viene"
+    r"|a\s+este\s+ritmo|predic\w+|estimaci\w+|proyec\w+|previsi\w+|forecast)\b",
+    re.IGNORECASE,
+)
+
+
+def _es_comparativa(t: str) -> bool:
+    """True si pide comparar un periodo con el ANTERIOR (evolución/crecimiento), y NO es una predicción
+    del futuro (que no se computa)."""
+    return bool(_COMPARATIVA.search(t)) and not _PREDICCION.search(t)
+
+
 def _es_resumen_financiero(t: str) -> bool:
     """True si pide una visión GLOBAL ('resumen financiero', '¿cómo va mi negocio?') o COMPUESTA
     (≥2 familias de métrica financiera coordinadas) → se compone con la tool resumen_financiero."""
@@ -112,6 +136,7 @@ _TOOLS_POR_INTENCION: dict[str, set[str]] = {
     "facturacion": {"resumen_facturacion"},
     "cobros_pend": {"cobros_pendientes"},
     "resumen_financiero": {"resumen_financiero"},
+    "comparativo": {"resumen_comparativo"},
 }
 _SIEMPRE = {"ask_user", "task_done"}
 
@@ -128,12 +153,15 @@ def intencion_consecuente(task: str) -> str | None:
     t = (task or "").lower()
     if _RECORDATORIO.search(t):  # antes que todo: «recuérdame pagar…» es recordatorio, no un pago
         return "recordatorio"
+    if _es_comparativa(t):  # D-4: «¿facturé más que el mes pasado?» → comparativa, no foto suelta
+        return "comparativo"
     # Query GLOBAL o COMPUESTA (≥2 métricas) → resumen_financiero ANTES que las single-métrica, porque
     # una compuesta también casa con facturacion/cobros_pend/303 (y antes solo respondía la 1ª).
     if _es_resumen_financiero(t):
         return "resumen_financiero"
     # «¿cuánto he facturado?» = resumen; pero «¿cuánto IVA con las 303 facturas?» es 303, no facturación.
-    if _FACTURACION.search(t) and not _F303.search(t):
+    # «¿cuánto voy a facturar el mes que viene?» = PREDICCIÓN (futuro) → no se fuerza (abstención honesta).
+    if _FACTURACION.search(t) and not _F303.search(t) and not _PREDICCION.search(t):
         return "facturacion"
     if _COBROS_PEND.search(t):  # «¿cuánto me deben?» = agregado de cobros pendientes
         return "cobros_pend"

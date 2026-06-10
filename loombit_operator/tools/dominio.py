@@ -12,6 +12,8 @@ pasando por gmail_send con su gate.
 
 from __future__ import annotations
 
+from calendar import monthrange
+from datetime import date
 from typing import Any
 
 from ..cobros import LATE_FEE_FIXED_EUR, dunning_plan
@@ -402,6 +404,154 @@ def _resumen_financiero(periodo: str = "") -> str:
             "(p.ej. «2T 2026» o «junio 2026») para acotarlo."
         )
     return "\n".join(partes)
+
+
+# ── D-4: COMPARATIVA periodo-vs-anterior (el autónomo piensa en EVOLUCIÓN, no en fotos sueltas) ────
+_MES_NOM = [
+    "",
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre",
+]
+_UNIDAD_NOMBRE = {"mes": "mes", "trimestre": "trimestre", "anio": "año"}
+
+
+def _norm_unidad(unidad: str) -> str:
+    """Normaliza la unidad de comparación a 'mes' | 'trimestre' | 'anio' (por defecto 'mes')."""
+    u = (unidad or "").lower()
+    if "trimestr" in u or u in ("t", "q", "3m"):
+        return "trimestre"
+    if "añ" in u or "an" in u or "anual" in u or "year" in u or "ejercicio" in u:
+        return "anio"
+    return "mes"
+
+
+def _rango_mes_d4(anio: int, mes: int) -> tuple[date, date, str]:
+    return date(anio, mes, 1), date(anio, mes, monthrange(anio, mes)[1]), f"{_MES_NOM[mes]} {anio}"
+
+
+def _periodos_comparados(unidad: str, hoy: date):
+    """(unidad_norm, (desde,hasta,etiq) ACTUAL, (desde,hasta,etiq) ANTERIOR) para mes/trimestre/año."""
+    u = _norm_unidad(unidad)
+    if u == "anio":
+        a = hoy.year
+        return (
+            u,
+            (date(a, 1, 1), date(a, 12, 31), str(a)),
+            (
+                date(a - 1, 1, 1),
+                date(a - 1, 12, 31),
+                str(a - 1),
+            ),
+        )
+    if u == "trimestre":
+        a, q = hoy.year, (hoy.month - 1) // 3 + 1
+        sm = (q - 1) * 3 + 1
+        act = (date(a, sm, 1), date(a, sm + 2, monthrange(a, sm + 2)[1]), f"{q}T {a}")
+        pq, pa = (q - 1, a) if q > 1 else (4, a - 1)
+        psm = (pq - 1) * 3 + 1
+        ant = (date(pa, psm, 1), date(pa, psm + 2, monthrange(pa, psm + 2)[1]), f"{pq}T {pa}")
+        return u, act, ant
+    a, m = hoy.year, hoy.month
+    pa, pm = (a, m - 1) if m > 1 else (a - 1, 12)
+    return u, _rango_mes_d4(a, m), _rango_mes_d4(pa, pm)
+
+
+def _metricas_periodo(store: "ExpedienteStore", desde: date, hasta: date) -> dict:
+    """Facturado/gastado/beneficio (base, sin IVA) de un rango, desde las facturas registradas."""
+    lineas, _ = _recopilar_lineas(store, desde, hasta)
+    emit = [ln for ln in lineas if ln.sentido == "devengado"]
+    recib = [ln for ln in lineas if ln.sentido == "soportado"]
+    base_e = round(sum(float(ln.base) for ln in emit), 2)
+    base_g = round(sum(float(ln.base) for ln in recib), 2)
+    return {
+        "n_emit": len(emit),
+        "base_e": base_e,
+        "n_recib": len(recib),
+        "base_g": base_g,
+        "beneficio": round(base_e - base_g, 2),
+        "vacio": not emit and not recib,
+    }
+
+
+def _variacion(actual: float, anterior: float) -> tuple[str, str]:
+    """(Δ en €, Δ en %). Maneja anterior=0 (sin base de comparación → no se inventa un %)."""
+    delta = round(actual - anterior, 2)
+    signo = "+" if delta > 0 else ""
+    if anterior == 0:
+        pct = "—" if actual == 0 else "(no había nada el periodo anterior)"
+    else:
+        pct = f"{signo}{round(delta / abs(anterior) * 100, 1):.1f}%"
+    return f"{signo}{delta:.2f} €", pct
+
+
+def _resumen_comparativo(unidad: str = "mes") -> str:
+    """Compara un periodo con el ANTERIOR (este mes vs el mes pasado, trimestre vs trimestre anterior,
+    año vs año pasado): FACTURADO, GASTOS y BENEFICIO, con la variación en € y en %. Responde «¿facturé
+    más que el mes pasado?», «¿cómo va mi crecimiento?». Determinista; NO predice el futuro."""
+    u, (d_a, h_a, et_a), (d_b, h_b, et_b) = _periodos_comparados(unidad, date.today())
+    try:
+        store = ExpedienteStore(entity_id=_ENTIDAD_DEFECTO)
+        ma = _metricas_periodo(store, d_a, h_a)
+        mb = _metricas_periodo(store, d_b, h_b)
+    except Exception as exc:  # noqa: BLE001
+        return f"ERROR al leer tus facturas registradas: {exc}"
+    if ma["vacio"] and mb["vacio"]:
+        return (
+            f"No tienes facturas registradas en {et_a} ni en {et_b}, así que no hay nada que comparar. "
+            "Regístralas y te comparo la evolución."
+        )
+    fact_d, fact_p = _variacion(ma["base_e"], mb["base_e"])
+    gast_d, gast_p = _variacion(ma["base_g"], mb["base_g"])
+    ben_d, ben_p = _variacion(ma["beneficio"], mb["beneficio"])
+    if ma["base_e"] > mb["base_e"]:
+        titular = "facturaste MÁS"
+    elif ma["base_e"] < mb["base_e"]:
+        titular = "facturaste MENOS"
+    else:
+        titular = "facturaste IGUAL"
+    return (
+        f"Comparativa {et_a} vs {et_b} (datos reales de tus facturas registradas):\n"
+        f"  Facturado: {ma['base_e']:.2f} € vs {mb['base_e']:.2f} € → {fact_d} ({fact_p})\n"
+        f"  Gastos:    {ma['base_g']:.2f} € vs {mb['base_g']:.2f} € → {gast_d} ({gast_p})\n"
+        f"  Beneficio: {ma['beneficio']:.2f} € vs {mb['beneficio']:.2f} € → {ben_d} ({ben_p})\n"
+        f"En resumen: este {_UNIDAD_NOMBRE[u]} {titular} que el anterior."
+    )
+
+
+tool_registry.register(
+    ToolDefinition(
+        name="resumen_comparativo",
+        description=(
+            "COMPARA un periodo con el ANTERIOR (este mes vs el mes pasado, este trimestre vs el "
+            "anterior, este año vs el pasado): facturado, gastos y beneficio, con la variación en € y "
+            "en %. Úsala para «¿he facturado más que el mes pasado?», «¿cuánto he crecido?», «¿voy "
+            "mejor que el año pasado?», evolución/tendencia. NO predice el futuro. Solo lectura."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "unidad": {
+                    "type": "string",
+                    "enum": ["mes", "trimestre", "anio"],
+                    "description": "Unidad a comparar con su anterior: 'mes', 'trimestre' o 'anio'.",
+                },
+            },
+        },
+        fn=_resumen_comparativo,
+        category="base",
+        authoritative=True,
+    )
+)
 
 
 tool_registry.register(

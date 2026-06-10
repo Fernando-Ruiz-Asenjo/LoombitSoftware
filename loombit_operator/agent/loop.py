@@ -665,6 +665,11 @@ class AgentLoop:
             tc.arguments, run.task
         ):
             logger.info("resumen_financiero: trimestre relativo puesto al actual run=%s", run.id)
+        # D-4: la unidad de la comparativa (mes/trimestre/año) la fija el código desde el texto.
+        if tc.tool_name == "resumen_comparativo" and _corregir_unidad_comparativa(
+            tc.arguments, run.task
+        ):
+            logger.info("resumen_comparativo: unidad fijada desde el texto run=%s", run.id)
         # D-3: el 14B a veces nombra los args base_imponible/tipo_iva; la tool espera base/tipo.
         if tc.tool_name == "registrar_factura":
             _normalizar_alias_factura(tc.arguments)
@@ -1089,6 +1094,25 @@ def _corregir_trimestre_relativo(args: dict, task: str, hoy: date | None = None)
     if str(args.get("periodo") or "").strip() == actual:
         return False
     args["periodo"] = actual
+    return True
+
+
+# D-4: la UNIDAD de la comparativa (mes/trimestre/año) la fija el CÓDIGO desde el texto, no el 14B.
+_UNIDAD_TRIMESTRE = re.compile(r"\btrimestr", re.IGNORECASE)
+_UNIDAD_ANIO = re.compile(r"\ba[ñn]o\b|\banual\b|\bejercicio\b", re.IGNORECASE)
+
+
+def _corregir_unidad_comparativa(args: dict, task: str) -> bool:
+    """Pone args['unidad'] (mes/trimestre/anio) según el texto. Determinista. Devuelve True si cambió."""
+    if _UNIDAD_TRIMESTRE.search(task or ""):
+        u = "trimestre"
+    elif _UNIDAD_ANIO.search(task or ""):
+        u = "anio"
+    else:
+        u = "mes"
+    if str(args.get("unidad") or "") == u:
+        return False
+    args["unidad"] = u
     return True
 
 

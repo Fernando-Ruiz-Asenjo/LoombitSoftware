@@ -465,6 +465,105 @@ chk(
 )
 
 
+# ══════════════════ D-4 · COMPARATIVAS / PREDICCIONES (routing + corrector) ══════════════════
+from datetime import date as _date  # noqa: E402
+
+from loombit_operator.agent.loop import _corregir_unidad_comparativa  # noqa: E402
+from loombit_operator.tools import dominio as _Dm  # noqa: E402
+
+# comparativa → intención 'comparativo'
+chk(
+    "D4",
+    "más que el mes pasado",
+    intencion_consecuente("¿he facturado más este mes que el pasado?"),
+    "comparativo",
+)
+chk("D4", "crecimiento", intencion_consecuente("¿cuánto ha crecido mi facturación?"), "comparativo")
+chk(
+    "D4", "evolución", intencion_consecuente("enséñame la evolución de mis ingresos"), "comparativo"
+)
+chk(
+    "D4",
+    "voy mejor que el año pasado",
+    intencion_consecuente("¿voy mejor que el año pasado?"),
+    "comparativo",
+)
+chk(
+    "D4",
+    "trimestre anterior",
+    intencion_consecuente("compáralo con el trimestre anterior"),
+    "comparativo",
+)
+# PREDICCIÓN del futuro → NO comparativo, NO facturacion (abstención honesta = None)
+chk(
+    "D4",
+    "NEG predicción 'voy a facturar'",
+    intencion_consecuente("¿cuánto voy a facturar el mes que viene?"),
+    None,
+)
+chk(
+    "D4",
+    "NEG predicción 'a este ritmo'",
+    intencion_consecuente("a este ritmo, ¿cuánto facturaré este año?"),
+    None,
+)
+chk(
+    "D4",
+    "NEG predicción 'proyecta'",
+    intencion_consecuente("proyecta mis ingresos del próximo trimestre"),
+    None,
+)
+# NO comparativa (no debe robar a facturacion/cobros/mejor-cliente)
+chk(
+    "D4",
+    "NEG '¿cuánto facturé?'→facturacion",
+    intencion_consecuente("¿cuánto he facturado este mes?"),
+    "facturacion",
+)
+chk(
+    "D4",
+    "NEG 'mejor cliente'≠comparativo",
+    intencion_consecuente("¿cuál es mi mejor cliente?") != "comparativo",
+    True,
+)
+# corrector de unidad (determinista)
+chk(
+    "D4",
+    "unidad año",
+    (lambda a: (_corregir_unidad_comparativa(a, "¿voy mejor que el año pasado?"), a.get("unidad")))(
+        {}
+    ),
+    (True, "anio"),
+)
+chk(
+    "D4",
+    "unidad trimestre",
+    (
+        lambda a: (
+            _corregir_unidad_comparativa(a, "respecto al trimestre anterior"),
+            a.get("unidad"),
+        )
+    )({}),
+    (True, "trimestre"),
+)
+chk(
+    "D4",
+    "unidad mes (defecto)",
+    (lambda a: (_corregir_unidad_comparativa(a, "más que el mes pasado"), a.get("unidad")))({}),
+    (True, "mes"),
+)
+# periodos + variación (cálculo determinista)
+chk("D4", "periodos mes", _Dm._periodos_comparados("mes", _date(2026, 6, 10))[1][2], "junio 2026")
+chk(
+    "D4",
+    "periodos trimestre",
+    _Dm._periodos_comparados("trimestre", _date(2026, 6, 10))[2][2],
+    "1T 2026",
+)
+chk("D4", "variación +50%", _Dm._variacion(1500, 1000), ("+500.00 €", "+50.0%"))
+chk("D4", "variación anterior=0", "no había" in _Dm._variacion(500, 0)[1], True)
+
+
 def main() -> int:
     fam_tot: dict[str, list[int]] = {}
     fallos = 0

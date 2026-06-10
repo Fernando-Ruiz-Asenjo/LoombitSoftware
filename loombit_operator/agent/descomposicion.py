@@ -205,6 +205,7 @@ _MENU_INTENCION: dict[str, str] = {
     "303": "calcular el IVA, el modelo 303 o la liquidación trimestral",
     "factura": "registrar, apuntar o emitir UNA factura nueva",
     "facturacion": "cuánto ha facturado / ingresado / gastado, o su beneficio, en un periodo",
+    "comparativo": "COMPARAR un periodo con el anterior (¿facturó más que el mes pasado?, crecimiento, evolución, ¿va mejor que el año pasado?)",
     "cobros_pend": "cuánto le deben, quién le debe, o sus cobros pendientes",
     "resumen_financiero": "una visión GLOBAL o VARIAS métricas financieras a la vez",
     "buscar": "buscar correos/emails en su bandeja sobre alguien o algo",
@@ -224,8 +225,9 @@ _SISTEMA_INTENCION = (
 # umbral de dominio amplio, no un patrón por fraseo.
 _SENAL_FORZABLE = re.compile(
     r"\b(factur\w+|cobr\w+|iva|303|reclam\w+|moros\w+|impag\w+|deud\w+|adeud\w+|venc\w+|ingres\w+"
-    r"|gast\w+|benefici\w+|vent\w+|pendiente\w*|cliente\w*|proveedor\w*|recu[eé]rda\w*|recordatorio"
-    r"|agenda|reuni\w+|cita\w*|busca\w*|b[uú]scame|correo\w*|email\w*)\b|[€$]|\beuros?\b|me deben|me debe"
+    r"|gast\w+|benefici\w+|vent\w+|pendiente\w*|cliente\w*|proveedor\w*|compar\w+|crec\w+|evoluci\w+"
+    r"|tendenci\w+|recu[eé]rda\w*|recordatorio|agenda|reuni\w+|cita\w*|busca\w*|b[uú]scame|correo\w*"
+    r"|email\w*)\b|[€$]|\beuros?\b|me deben|me debe"
 )
 
 

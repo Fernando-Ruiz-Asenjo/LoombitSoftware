@@ -105,7 +105,19 @@ force-tool ANTES de pasárselos al modelo —o que CORRIJA los del modelo, como 
 `_corregir_fecha_cobro`/`_corregir_periodo_303` para las fechas. Extender ese patrón a los IMPORTES.
 **Dueño:** Claude. Cierra de raíz una familia entera de fallos de extracción.
 
-## D-4 · Sin razonamiento comparativo/temporal (MED-ALTA, carencia de producto)
+## D-4 · Sin razonamiento comparativo/temporal (MED-ALTA, carencia de producto) — ✅ HECHO (2026-06-10)
+
+> **RESUELTO.** Nueva tool determinista `resumen_comparativo(unidad)` (dominio.py): compara un periodo
+> con el ANTERIOR (mes/trimestre/año) — facturado, gastos, beneficio, con la variación en € y en %
+> (maneja anterior=0 sin inventar %). Routing `_es_comparativa` en intencion.py (intención
+> `comparativo`) + en el menú del clasificador LLM. Corrector determinista de `unidad` desde el texto.
+> **PREDICCIÓN del futuro EXCLUIDA** (de comparativa Y de facturacion) → abstención honesta (no se
+> muestra el pasado como si fuera el futuro). Verificado EN VIVO: «¿facturé más este mes que el
+> pasado?» → «junio vs mayo: 2000 € vs 1000 € → +1000 € (+100%)»; «¿cuánto voy a facturar el mes que
+> viene?» → STEPS=[] abstención. Golden (periodos/variación/routing/corrector) + 17 casos en la
+> auditoría (gate) + e2e 3/3. Limitación v1: compara ACTUAL-vs-anterior, no pares arbitrarios (el
+> encabezado dice siempre qué periodos compara → honesto).
+
 
 Loombit responde «cuánto facturé en junio» pero no «¿facturé más que en mayo?», «¿va mejorando?»,
 «¿mi mejor mes?», «a este ritmo, ¿cuánto en el año?». El autónomo **piensa en evolución**, no en

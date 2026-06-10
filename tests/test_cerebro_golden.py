@@ -741,6 +741,55 @@ def test_factura_coloquial_rutea_a_factura():
     assert I("¿cuánto le facturé a Endesa este mes?") == "facturacion"  # query → NO factura
 
 
+def test_d4_comparativo_periodos_y_variacion():
+    from datetime import date
+
+    from loombit_operator.tools import dominio as Dm
+
+    u, act, ant = Dm._periodos_comparados("mes", date(2026, 6, 10))
+    assert u == "mes" and act[2] == "junio 2026" and ant[2] == "mayo 2026"
+    _, act, ant = Dm._periodos_comparados("trimestre", date(2026, 6, 10))
+    assert act[2] == "2T 2026" and ant[2] == "1T 2026"
+    _, act, ant = Dm._periodos_comparados("año", date(2026, 1, 5))  # enero → año anterior
+    assert act[2] == "2026" and ant[2] == "2025"
+    _, act, ant = Dm._periodos_comparados("mes", date(2026, 1, 5))
+    assert act[2] == "enero 2026" and ant[2] == "diciembre 2025"
+    assert Dm._variacion(1500, 1000) == ("+500.00 €", "+50.0%")
+    assert Dm._variacion(1000, 1000) == ("0.00 €", "0.0%")
+    assert "no había" in Dm._variacion(500, 0)[1]  # sin base previa → no inventa un %
+
+
+def test_d4_routing_comparativa_y_prediccion():
+    from loombit_operator.agent.intencion import intencion_consecuente as I
+
+    assert I("¿He facturado más este mes que el mes pasado?") == "comparativo"
+    assert I("¿cuánto he crecido respecto al trimestre anterior?") == "comparativo"
+    assert I("¿voy mejor que el año pasado?") == "comparativo"
+    # PREDICCIÓN del futuro → NO se fuerza (abstención honesta; no se muestra el pasado como si fuera)
+    assert I("¿cuánto voy a facturar el mes que viene?") is None
+    assert I("a este ritmo, ¿cuánto facturaré este año?") is None
+    assert I("¿cuánto he facturado este mes?") == "facturacion"  # no comparativa → intacto
+
+
+def test_d4_corregir_unidad_comparativa():
+    from loombit_operator.agent.loop import _corregir_unidad_comparativa
+
+    a: dict = {}
+    assert (
+        _corregir_unidad_comparativa(a, "¿voy mejor que el año pasado?") and a["unidad"] == "anio"
+    )
+    b: dict = {}
+    assert (
+        _corregir_unidad_comparativa(b, "crecí respecto al trimestre anterior")
+        and b["unidad"] == "trimestre"
+    )
+    c: dict = {}
+    assert (
+        _corregir_unidad_comparativa(c, "¿facturé más este mes que el pasado?")
+        and c["unidad"] == "mes"
+    )
+
+
 def test_auditoria_fuerte_d1d2d3_en_el_gate():
     # Mete en el gate los casos adversariales DETERMINISTAS de scripts/auditoria_d1d2d3.py (10 ciclos de
     # presión): falsos positivos/negativos, agujeros de regex, sobre-corrección. Si un cambio futuro
