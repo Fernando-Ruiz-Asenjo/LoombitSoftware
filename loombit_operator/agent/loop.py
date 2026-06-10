@@ -32,6 +32,7 @@ from ..tools import tool_registry
 from ..tools.registry import ToolRegistry
 from .memory import get_memory
 from .contexto import ajustar_a_contexto
+from .descomposicion import MENU, resolver
 from .intencion import (
     es_lectura_agenda,
     intencion_consecuente,
@@ -277,6 +278,12 @@ class AgentLoop:
             # calcula/contesta a ojo (fabrica) o llama a la tool equivocada. En el PRIMER paso forzamos
             # la tool Y la enfocamos a la correcta. Solo si la petición trae datos (si no, que pregunte).
             _intencion = intencion_consecuente(run.task)
+            # A1 (gate de ambigüedad INTERNO): si la petición cruza varias intenciones de LECTURA
+            # (cross-domain, p.ej. financiero + agenda), se descompone, se ejecuta cada métrica con su
+            # tool determinista y se compone UNA respuesta aquí — sin preguntar al usuario. Si no
+            # aplica (mono-intención), sigue el flujo single-intent de abajo (0 regresión).
+            if self._intentar_multi_intent(run):
+                return run
             # Exclusiones para TODO el run: otras tools de dominio + (si es pregunta de agenda)
             # calendar_create, para que una LECTURA no acabe creando un evento.
             _excl_run = tools_excluir(_intencion)
@@ -499,6 +506,45 @@ class AgentLoop:
             from ..pilot import overlay_manager
 
             overlay_manager.stop_session()
+
+    def _intentar_multi_intent(self, run: AgentRun) -> bool:
+        """A1: descompone una petición multi-intención de LECTURA, ejecuta cada métrica con su tool
+        determinista y COMPONE una sola respuesta. Devuelve True si la resolvió (run completado);
+        False si no aplica (→ sigue el flujo single-intent). Solo entran tools de lectura del MENU
+        (sin efecto externo) → auto-ejecutarlas es seguro, no necesita aprobación."""
+        subs = resolver(run.task, self.llm)
+        if len(subs) < 2:
+            return False
+        partes: list[str] = []
+        for sub in subs:
+            item = MENU.get(sub.intencion)
+            if not item:
+                continue
+            try:
+                td = self.registry.get(item.tool)
+                res = td.fn(**sub.args)
+            except Exception as exc:  # noqa: BLE001 — que una métrica falle no tumba las demás
+                logger.info("A1: fallo ejecutando %s (%s)", item.tool, exc)
+                continue
+            run.add_step(
+                AgentStep(
+                    step=run.step_count + 1,
+                    tool_name=item.tool,
+                    tool_call_id=f"a1_{sub.intencion}",
+                    arguments=sub.args,
+                    result=res,
+                    requires_approval=False,
+                )
+            )
+            if res and res.strip():
+                partes.append(res.strip())
+        if len(partes) < 2:
+            return False  # no se compusieron ≥2 métricas → mejor el single-intent
+        run.mark_completed("\n\n".join(partes))
+        _log_conversation_event(run, "completed", run.result)
+        _update_memory(run)
+        self.store.save_run(run)
+        return True
 
     def _accion_fallida_sin_exito(self, run: AgentRun) -> bool:
         """True si en el run se INTENTÓ alguna tool con EFECTO real (persistir/enviar/crear) y NINGUNA

@@ -134,6 +134,14 @@ ESCENARIOS = [
         ),
     ),
     (
+        # A1: query MULTI-INTENCIÓN cross-domain (financiero + agenda). Antes el single-intent solo
+        # respondía UNA métrica; ahora se descompone (gate interno, sin preguntar) y se COMPONEN
+        # las dos tools de lectura en una sola respuesta.
+        "multi_intent_compone",
+        "¿Cuánto me deben y qué reuniones tengo esta semana?",
+        lambda r, t, x: "resumen_financiero" in t and "calendar_semana" in t,
+    ),
+    (
         "abstencion_conciliacion",
         "Concíliame los cobros con el extracto del banco de este mes.",
         lambda r, t, x: any(
