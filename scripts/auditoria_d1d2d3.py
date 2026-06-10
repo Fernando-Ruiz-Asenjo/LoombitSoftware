@@ -1447,6 +1447,56 @@ chk(
     None,
 )
 
+# ═══ CAMPAÑA 5-cero · audit #10 (recordatorio 'avísame', cobros 'me adeudan') ═══
+chk(
+    "A10",
+    "recordatorio 'recuérdame'",
+    intencion_consecuente("recuérdame pagar el 303 el día 20"),
+    "recordatorio",
+)
+chk(
+    "A10",
+    "recordatorio 'avísame'",
+    intencion_consecuente("avísame mañana de la reunión con el gestor"),
+    "recordatorio",
+)
+chk(
+    "A10",
+    "NEG 'avisa al cliente' ≠ recordatorio",
+    intencion_consecuente("avisa al cliente del retraso") != "recordatorio",
+    True,
+)
+chk(
+    "A10",
+    "cobros 'me adeudan'",
+    intencion_consecuente("¿cuánto me adeudan en total?"),
+    "cobros_pend",
+)
+chk(
+    "A10",
+    "NEG 'adeudo préstamo' ≠ cobros",
+    intencion_consecuente("adeudo 5000 del préstamo") != "cobros_pend",
+    True,
+)
+chk(
+    "A10",
+    "resumen financiero del mes",
+    intencion_consecuente("dame el resumen financiero de este mes"),
+    "resumen_financiero",
+)
+chk(
+    "A10",
+    "303 primer trimestre con dato",
+    intencion_consecuente("el IVA del primer trimestre con ventas de 5000 al 21%"),
+    "303",
+)
+chk(
+    "A10",
+    "comp 'mejor que el año pasado'",
+    intencion_consecuente("¿voy mejor que el año pasado?"),
+    "comparativo",
+)
+
 
 def main() -> int:
     fam_tot: dict[str, list[int]] = {}

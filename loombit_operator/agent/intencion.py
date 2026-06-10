@@ -41,7 +41,9 @@ _BUSCAR_CORREO = re.compile(
 # NO incluimos «apúntame que …»: es AMBIGUO («apúntame que el cliente prefiere transferencia» es un
 # HECHO/nota sin fecha, no un evento) → forzar calendar_create creaba un evento absurdo. Solo señales
 # inequívocas de recordatorio temporal.
-_RECORDATORIO = re.compile(r"\b(recu[eé]rdame\w*|recordatorio|acu[eé]rdame|no se me olvide)\b")
+_RECORDATORIO = re.compile(
+    r"\b(recu[eé]rdame\w*|recordatorio|acu[eé]rdame|av[ií]same\w*|no se me olvide)\b"
+)
 # «¿cuánto he facturado/ingresado este mes?» = sumar las emitidas (resumen_facturacion), NO el 303 ni
 # registrar. El 14B no la elegía de forma fiable → la forzamos. Pregunta nº1 de un autónomo.
 _FACTURACION = re.compile(
@@ -53,7 +55,7 @@ _FACTURACION = re.compile(
 # «¿cuánto me deben?»/«¿quién me debe?» = sumar los cobros pendientes (cobros_pendientes), NO plan_cobro
 # (una factura) ni el 303. El agente caía a memory_search y daba un número contaminado.
 _COBROS_PEND = re.compile(
-    r"\b(me deben|me debe|qui[eé]n me debe|por cobrar|cobros pendientes|pendiente[s]? de cobro"
+    r"\b(me deben|me debe|me adeud\w*|qui[eé]n me debe|por cobrar|cobros pendientes|pendiente[s]? de cobro"
     r"|sin cobrar|facturas? impagad\w+)\b"
 )
 # «resumen financiero», «¿cómo voy?» o una pregunta COMPUESTA que cruza ≥2 familias de métrica
