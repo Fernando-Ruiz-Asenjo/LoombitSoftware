@@ -98,6 +98,8 @@ anti-destinatario-inventado y lo malinterpreté; re-test correcto → GATE.
 
 **Antifraude albarán (2026-06-10):** factura 100€ vs albarán 120€ → cross_check {match:False, difference:-20, action:'bloquear_y_solicitar_rectificacion'}. Avisa del descuadre. Determinista, sólido por recibo. (El 400 de un curl previo era encoding mío con 'º/ñ', no bug del server.)
 
+**Conciliación N43 e2e (2026-06-10):** hueco que marqué CERRADO — un N43 válido (EXTRACTO_OK) pasa por conciliar_banco y PARSEA+corre el motor: 'Conciliación de 2 movimientos... PROPUESTA, no he marcado nada' + lista cargo/abono + pide confirmación humana. Read-only, conforme brújula. El casado contra pendientes reales ya está en test_conciliacion.py.
+
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |
 |---|---|---|---|
