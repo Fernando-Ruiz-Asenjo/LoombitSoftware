@@ -593,6 +593,8 @@ def test_es_registro_con_retencion_corta_solo_creacion():
     assert not _es_registro_con_retencion("¿qué retención de IRPF me corresponde?")
     assert not _es_registro_con_retencion("registra una factura de 1000 al 21% de IVA")
     assert not _es_registro_con_retencion("emite una factura sin retención")
+    # auditoría (falso positivo): «no me retienen» = SIN retención → NO abstiene
+    assert not _es_registro_con_retencion("registra la factura de 1000, no me retienen nada")
 
 
 def test_texto_para_intencion_hereda_en_seguimiento_corto():
@@ -716,10 +718,13 @@ def test_registro_guardas_aplica_dominio_fiscal():
 def test_modelo_por_numero_suelto_y_nombre():
     from loombit_operator.skill_d_fiscal.guardas_fiscales import modelo_no_modelado as M
 
-    assert M("prepárame el 130 del pago fraccionado") == "130"  # «el NNN» sin «modelo»
+    assert M("prepárame el 130 del pago fraccionado") == "130"  # por NOMBRE (pago fraccionado)
     assert M("hazme el de operaciones intracomunitarias") == "349"  # por nombre
     assert M("el modelo 303 del 2T") is None  # el 303 SÍ se modela
     assert M("prepárame el 303") is None  # «el 303» no abstiene
+    # auditoría (falsos positivos): «el 130 €» / «el 190 que me debe» son IMPORTES, no modelos
+    assert M("te debo el 130 € de la cena") is None
+    assert M("reclama el 190 € que me debe") is None
 
 
 def test_factura_coloquial_rutea_a_factura():

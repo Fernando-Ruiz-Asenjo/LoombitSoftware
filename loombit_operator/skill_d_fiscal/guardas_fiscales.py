@@ -20,7 +20,10 @@ from ..agent.parsers import validar_iban
 # («el IRPF que me retienen» — antes se escapaba porque «retienen» no empieza por «reten»). ──────────
 _RETENCION_IRPF = re.compile(r"\breten\w+\b|\breti[eé]n\w+\b", re.IGNORECASE)
 _SIN_RETENCION = re.compile(
-    r"\b(sin|no\s+(lleva|tiene|hay|aplica))\b[^.\n]{0,18}reten", re.IGNORECASE
+    r"\bsin\b[^.\n]{0,18}reten"  # «sin (…) retención»
+    r"|\bno\s+(?:lleva|tiene|hay|aplica)\b[^.\n]{0,18}reten"  # «no lleva (…) retención»
+    r"|\bno\s+(?:me\s+|le\s+|nos\s+|te\s+)?reti?en\w+",  # «no me retienen / no retengas / no retener»
+    re.IGNORECASE,
 )
 _MSG_RETENCION_NO_MODELADA = (
     "⚠️ No he registrado la factura: lleva RETENCIÓN de IRPF y todavía no modelo la retención. "
@@ -86,10 +89,11 @@ def iban_invalido_a_guardar(task: str) -> bool:
 
 
 # ── Modelos AEAT no modelados (hoy solo el 303 de IVA): abstención HONESTA. El 303 NO entra aquí. ──
-# Se pide «el modelo NNN», pero también «el/del NNN» a secas («prepárame el 130») o por su NOMBRE
-# («pago fraccionado»=130, «operaciones intracomunitarias»=349…) sin citar el número. El 303 nunca.
+# Se pide «el modelo NNN» o por su NOMBRE («pago fraccionado»=130, «operaciones intracomunitarias»=349…)
+# sin citar el número. El 303 nunca. NO casamos «el 130» a secas: «el 130 €» / «el 190 que me debe» son
+# IMPORTES, no modelos (falsos positivos que destapó la auditoría) → exige «modelo» o el nombre.
 _MODELO_NO_MODELADO = re.compile(
-    r"\b(?:modelo|el|del)\s+(111|115|123|130|180|184|190|193|347|349|390)\b", re.IGNORECASE
+    r"\bmodelo\s+(111|115|123|130|180|184|190|193|347|349|390)\b", re.IGNORECASE
 )
 _MODELO_POR_NOMBRE = (
     (re.compile(r"pago\s+fraccionad\w+", re.IGNORECASE), "130"),
