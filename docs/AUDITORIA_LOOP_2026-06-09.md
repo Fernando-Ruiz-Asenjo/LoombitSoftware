@@ -45,6 +45,9 @@
 `scripts/presion_cerebro.py` → **13/13 VERDE** tras ~10 iteraciones de cambios (router stems, force-tool
 enfocado, telar dedup, conciliar_banco, IBAN checksum, CSRF/Origin). Nada regresó. La conciliación ya
 pide el N43 (no niega capacidad) y sigue pasando la abstención; el 303 anti-línea-inventada aguanta.
+**2º pase 13/13 verde** tras los arreglos de fecha (calendar/cobro), relay_fiel multi y prompt fiscal:
+sin regresión; la interceptación de fechas relativas NO toca las fechas explícitas (cobro 'el 1 de mayo'
+sigue dando 40 días correctos).
 
 **Dogfooding construcción (multi-ítem) — 2026-06-10:** "apúntame 3 facturas recibidas (200/350/500€ al
 21%)" → registró LAS 3 correctas, `sentido=soportado` (verificado en disco). Datos OK. **P2 recurrente
