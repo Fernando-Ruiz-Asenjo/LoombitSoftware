@@ -382,12 +382,12 @@ tool_registry.register(
     ToolDefinition(
         name="calcular_303",
         description=(
-            "Calcula un BORRADOR del modelo 303 (IVA trimestral, régimen general) a partir de "
-            "las bases imponibles y tipos de tus facturas emitidas (IVA repercutido) y recibidas "
-            "(IVA soportado). Devuelve IVA devengado, deducible y resultado a ingresar/compensar. "
-            "Es un borrador, NO una presentación. Úsala para el 303 / IVA del trimestre. "
-            "IMPORTANTE: pasa EXACTAMENTE las cifras y tipos que te dé el usuario; NO inventes ni "
-            "añadas líneas, importes ni tipos. Si faltan datos, NO los rellenes: pregunta con ask_user."
+            "Calcula un BORRADOR del 303 a partir de cifras que el USUARIO TE DICTA EN EL MENSAJE "
+            "(p.ej. «mi 303 con ventas 10.000 al 21% y compras 2.000 al 21%»). Úsala SOLO en ese caso. "
+            "Si el usuario tiene facturas REGISTRADAS (lo normal), NO uses esta: usa "
+            "calcular_303_registradas (fiable, sin dictar cifras). Devuelve devengado, deducible y "
+            "resultado. Borrador, NO presentación. Pasa EXACTAMENTE las cifras del usuario; NO inventes "
+            "ni añadas líneas, importes ni tipos. Si faltan datos, NO los rellenes: pregunta con ask_user."
         ),
         parameters={
             "type": "object",
