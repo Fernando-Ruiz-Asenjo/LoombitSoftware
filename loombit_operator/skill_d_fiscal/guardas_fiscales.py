@@ -204,15 +204,21 @@ def _guarda_conciliacion(task: str) -> str | None:
 # ── Predicción del FUTURO financiero: Loombit NO adivina lo que aún no ha pasado (sería inventar). Sin
 # esta guarda, el 14B en free-form llamaba a resumen_comparativo (datos del pasado) para una predicción.
 # Exige señal financiera + de futuro → no se confunde con «¿facturé el mes pasado?» (pasado). ──────────
+_DINERO = r"(\d|€|euros?|dinero|facturaci\w+|ingres\w+|benefici\w+|objetivo|meta)"
 _PREDICCION_FINANCIERA = re.compile(
-    r"\b(facturar[eé]|ganar[eé]|ingresar[eé]|vender[eé]|cobrar[eé])\b"
-    r"|\ba\s+este\s+ritmo\b[^.\n]{0,40}\b(factur\w+|ingres\w+|ganar\w+|vend\w+|benefici\w+|cobr\w+)"
+    # FUTURO de verbo financiero = forecast («facturaré»). OJO: la PERÍFRASIS «voy a facturar/cobrar» es
+    # ACCIÓN (registrar/cobrar), NO predicción → no entra aquí (solo «voy a ingresar/ganar+dinero»).
+    r"\b(facturar[eé]|ingresar[eé]|vender[eé]|cobrar[eé])\b"
+    # «ganar» es AMBIGUO (ganar el partido) → exige contexto de DINERO cerca
+    rf"|\bganar[eé]\b[^.\n]{{0,20}}{_DINERO}|{_DINERO}[^.\n]{{0,20}}\bganar[eé]"
+    rf"|\b(voy|vas|vamos|va)\s+a\s+(ingresar\b|ganar\w*\b[^.\n]{{0,20}}{_DINERO})"
+    # «a este ritmo … (objeto financiero, NO 'ganar' suelto)»
+    r"|\ba\s+este\s+ritmo\b[^.\n]{0,40}\b(factur\w+|ingres\w+|vend\w+|benefici\w+|cobr\w+)"
     r"|\b(cu[aá]nto|qu[eé])\b[^.\n]{0,30}\b(voy|vas|vamos)\s+a\s+(factur\w+|ingres\w+|ganar|vend\w+|cobr\w+)"
     r"|\b(predic\w+|proyec\w+|estima\w+|previsi\w+|forecast)\b[^.\n]{0,30}"
     r"\b(factur\w+|ingres\w+|ventas|benefici\w+|cobr\w+)"
     r"|\b(llegar[eé]|alcanzar[eé]|cumplir[eé]|lograr[eé])\b[^.\n]{0,40}"
     r"(\d|€|euros?|facturaci\w+|ingres\w+|objetivo|meta)"  # «¿llegaré a los 50.000 €?»
-    r"|\b(voy|vas|vamos|va)\s+a\s+(ganar\w*|ingresar)\b"  # «¿voy a ganar dinero?» (resultado, no acción)
     r"|\b(espero|prev[eé]\w*|aspiro)\s+(a\s+)?(factur|ingres|gan|vend|cobr)ar",  # «espero facturar 50.000»
     re.IGNORECASE,
 )

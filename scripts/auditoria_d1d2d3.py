@@ -1385,6 +1385,68 @@ chk(
 )
 chk("A8", "parser 'mil€' palabra → None", parsear_importe_es("cuesta mil€"), None)
 
+# ═══ CAMPAÑA 5-cero · audit #9 (caza de SOBRE-DISPAROS de predicción: ganar ambiguo) ═══
+chk(
+    "A9",
+    "NEG pred 'voy a ganar el partido'",
+    G.es_prediccion_financiera("voy a ganar el partido de tenis"),
+    False,
+)
+chk(
+    "A9",
+    "NEG pred 'a este ritmo ganaré la liga'",
+    G.es_prediccion_financiera("a este ritmo de partidos ganaré la liga"),
+    False,
+)
+chk(
+    "A9",
+    "NEG pred 'voy a facturar' (acción)",
+    G.es_prediccion_financiera("voy a facturar a López este mes"),
+    False,
+)
+chk(
+    "A9",
+    "NEG pred 'voy a cobrar' (acción)",
+    G.es_prediccion_financiera("voy a cobrar la factura a Acme"),
+    False,
+)
+chk(
+    "A9",
+    "POS pred 'voy a ganar dinero'",
+    G.es_prediccion_financiera("¿voy a ganar dinero este año?"),
+    True,
+)
+chk(
+    "A9",
+    "POS pred 'voy a ganar 5000 €'",
+    G.es_prediccion_financiera("voy a ganar 5000 € este mes"),
+    True,
+)
+chk(
+    "A9",
+    "NEG pred 'espero que llueva'",
+    G.es_prediccion_financiera("espero que llueva mañana"),
+    False,
+)
+chk(
+    "A9",
+    "NEG reten 'retención de líquidos'",
+    G.es_registro_con_retencion("tengo retención de líquidos"),
+    False,
+)
+chk(
+    "A9",
+    "NEG modelo 'qué modelo de coche'",
+    G.modelo_no_modelado("qué modelo de coche me recomiendas"),
+    None,
+)
+chk(
+    "A9",
+    "NEG concili 'banco de pruebas'",
+    registro_guardas.aplicar("configura el banco de pruebas del sistema"),
+    None,
+)
+
 
 def main() -> int:
     fam_tot: dict[str, list[int]] = {}

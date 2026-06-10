@@ -40,10 +40,10 @@ MUTACIONES = [
     ),
     (
         "loombit_operator/skill_d_fiscal/guardas_fiscales.py",
-        "|\\b(voy|vas|vamos|va)\\s+a\\s+(ganar\\w*|ingresar)\\b",
-        "",
+        "facturar[eé]|ingresar[eé]|vender[eé]|cobrar[eé]",
+        "ingresar[eé]|vender[eé]|cobrar[eé]",
         _AUDIT,
-        "guarda: quitar predicción 'voy a ganar'",
+        "guarda: quitar predicción 'facturaré'",
     ),
     (
         "loombit_operator/skill_d_fiscal/guardas_fiscales.py",
