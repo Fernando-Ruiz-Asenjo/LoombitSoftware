@@ -143,6 +143,13 @@ def extract_invoice_fields(text: str) -> InvoiceFields:
     m = _IBAN_ES_RE.search(text)
     if m:
         inv.iban = _norm_iban(m.group(0))
+        # Checksum mod-97: un IBAN con formato OK pero checksum inválido casi siempre es un error
+        # de lectura/typo (un dígito mal). Se marca para verificación: NO pagar a ciegas a esa cuenta.
+        # Import perezoso: agent.parsers tira de agent/__init__ → evita el ciclo con dominio→docs_intel.
+        from .agent.parsers import validar_iban
+
+        if not validar_iban(inv.iban):
+            inv.low_confidence.append("iban")
 
     # Número de factura
     m = _INVOICE_NO_RE.search(text)

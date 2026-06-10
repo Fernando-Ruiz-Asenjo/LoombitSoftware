@@ -72,6 +72,14 @@ def test_extract_marks_missing_total():
     assert "total" in inv.low_confidence
 
 
+def test_iban_checksum_invalido_marca_low_confidence():
+    # IBAN con formato correcto pero checksum (mod-97) MANIPULADO → lectura dudosa (typo/OCR).
+    malo = extract_invoice_fields("Factura Nº 9. IBAN: ES9121000418450200051333. Total: 100,00 €")
+    bueno = extract_invoice_fields("Factura Nº 9. IBAN: ES9121000418450200051332. Total: 100,00 €")
+    assert "iban" in malo.low_confidence  # checksum malo → se marca para verificar
+    assert "iban" not in bueno.low_confidence  # checksum válido → no se marca
+
+
 def test_invoice_roundtrip_dict():
     inv = InvoiceFields(numero="1", total=10.0)
     d = inv.to_dict()
