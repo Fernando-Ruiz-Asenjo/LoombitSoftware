@@ -152,19 +152,14 @@ TOOL_GROUPS: list[tuple[tuple[str, ...], set[str]]] = [
     ),
     (
         (
-            "cobro",
-            "cobrar",
-            "reclama",
-            "reclamar",
-            "reclamación",
-            "reclamacion",
-            "moroso",
-            "morosidad",
-            "impago",
-            "impagad",
+            "cobr",  # cobro/cobrar/cobra (stem)
+            "reclam",  # reclama/reclamo/reclamar/reclámame (stem)
+            "moros",
+            "impag",
             "deuda",
-            "vencida",
+            "vencid",  # vencida/vencido (stem)
             "vencimiento",
+            "vence",
             "pendiente de pago",
             "demora",
         ),

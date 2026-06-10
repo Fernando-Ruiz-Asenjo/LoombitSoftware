@@ -61,3 +61,15 @@ def tools_foco(intencion: str | None) -> set[str]:
     if not intencion:
         return set()
     return _TOOLS_POR_INTENCION.get(intencion, set()) | _SIEMPRE
+
+
+# Todas las tools de DOMINIO (cálculo/registro): durante una intención, se excluyen las de OTRAS
+# intenciones para que el agente no divague (p.ej. en un cobro NO registre una factura fantasma).
+_DOMINIO_TODAS = {"plan_cobro", "calcular_303", "calcular_303_registradas", "registrar_factura"}
+
+
+def tools_excluir(intencion: str | None) -> set[str]:
+    """Tools de dominio de OTRAS intenciones, a quitar del run completo (evita divagar de tool)."""
+    if not intencion:
+        return set()
+    return _DOMINIO_TODAS - _TOOLS_POR_INTENCION.get(intencion, set())

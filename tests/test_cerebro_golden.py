@@ -21,7 +21,11 @@ from loombit_operator.agent.loop import (
     _is_error_result,
     _recipiente_resuelto,
 )
-from loombit_operator.agent.intencion import intencion_consecuente, tools_foco
+from loombit_operator.agent.intencion import (
+    intencion_consecuente,
+    tools_excluir,
+    tools_foco,
+)
 from loombit_operator.agent.memory import AgentMemory, EntityProfile
 from loombit_operator.agent.reflexion import etiquetas_de_tarea
 from loombit_operator.agent.run import AgentRun, AgentStatus, AgentStep
@@ -538,3 +542,11 @@ def test_tools_foco_enfoca_la_tool_correcta():
     assert "plan_cobro" in foco and "ask_user" in foco
     assert "registrar_factura" not in foco
     assert tools_foco(None) == set()
+
+
+def test_tools_excluir_quita_las_otras_de_dominio():
+    # en un cobro se EXCLUYE registrar_factura/calcular_303 (no divagar a otra tool)
+    excl = tools_excluir("cobro")
+    assert "registrar_factura" in excl and "calcular_303" in excl
+    assert "plan_cobro" not in excl  # la propia no se excluye
+    assert tools_excluir(None) == set()

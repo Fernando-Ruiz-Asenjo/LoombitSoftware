@@ -31,7 +31,7 @@ from ..tools import tool_registry
 from ..tools.registry import ToolRegistry
 from .memory import get_memory
 from .contexto import ajustar_a_contexto
-from .intencion import intencion_consecuente, tools_foco
+from .intencion import intencion_consecuente, tools_excluir, tools_foco
 from .prompts import build_system_prompt
 from .run import AgentRun, AgentStatus, AgentStep, AgentStore
 
@@ -303,12 +303,22 @@ class AgentLoop:
                 if _recortado:
                     logger.info("ALG-0.1 recortó el contexto para que quepa run=%s", run.id)
                 _tool_choice = "auto"
-                if _intencion and run.step_count == 0:
-                    _foco = tools_foco(_intencion)
-                    _filtradas = [t for t in tools_llm if t["function"]["name"] in _foco]
-                    if _filtradas:  # solo forzar si la tool correcta está disponible
-                        tools_llm = _filtradas
-                        _tool_choice = "required"
+                if _intencion:
+                    # En TODO el run: quita las tools de dominio de OTRAS intenciones (no divagar).
+                    _excl = tools_excluir(_intencion)
+                    if _excl:
+                        tools_llm = [t for t in tools_llm if t["function"]["name"] not in _excl]
+                    # En el PRIMER paso: enfoca a la tool correcta y fuérzala.
+                    if run.step_count == 0:
+                        _foco = tools_foco(_intencion)
+                        _filtradas = [t for t in tools_llm if t["function"]["name"] in _foco]
+                        if _filtradas:
+                            tools_llm = _filtradas
+                            _tool_choice = "required"
+                # Allowlist: el modelo solo puede ejecutar las tools OFRECIDAS en este paso. El 14B a
+                # veces alucina un nombre de tool fuera del set (p.ej. registrar_factura cuando solo se
+                # le dio plan_cobro). Si lo hace, se rechaza, no se ejecuta. Seguridad + fiabilidad.
+                _ofrecidas = {t["function"]["name"] for t in tools_llm}
                 response: ChatResponse = self.llm.chat(
                     messages=msgs_llm,
                     tools=tools_llm,
@@ -366,7 +376,16 @@ class AgentLoop:
 
                 for idx, tc in enumerate(response.tool_calls):
                     step_num = run.step_count + 1
-                    result_text, needs_stop = self._execute_tool_call(tc, step_num, run)
+                    if _intencion and tc.tool_name not in _ofrecidas:
+                        # En una intención ENFOCADA, el 14B no puede invocar una tool fuera del set
+                        # (alucinó registrar_factura cuando solo se le ofreció plan_cobro): se rechaza.
+                        result_text, needs_stop = (
+                            f"ERROR al ejecutar '{tc.tool_name}': no disponible en este paso; "
+                            "usa una de las herramientas ofrecidas.",
+                            False,
+                        )
+                    else:
+                        result_text, needs_stop = self._execute_tool_call(tc, step_num, run)
 
                     step = AgentStep(
                         step=step_num,
