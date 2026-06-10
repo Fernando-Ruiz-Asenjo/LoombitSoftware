@@ -279,30 +279,36 @@ def _calcular_303_registradas(periodo: str = "") -> str:
 
 
 def _resumen_facturacion(periodo: str = "") -> str:
-    """Cuánto has FACTURADO (emitidas) en un periodo, sumado desde las facturas registradas. Responde la
-    pregunta nº1 de un autónomo: '¿cuánto he facturado este mes?'. Determinista (no estima)."""
+    """Resumen ECONÓMICO de un periodo desde las facturas registradas: cuánto has FACTURADO (ingresos),
+    cuánto has GASTADO (recibidas) y tu BENEFICIO. Responde las preguntas nº1 de un autónomo
+    ('¿cuánto he facturado/gastado este mes?'). Determinista (no estima)."""
     desde, hasta, etiqueta = _rango_periodo(periodo)
+    ámbito = etiqueta if desde else "total"
     try:
         store = ExpedienteStore(entity_id=_ENTIDAD_DEFECTO)
         lineas, _ = _recopilar_lineas(store, desde, hasta)
     except Exception as exc:  # noqa: BLE001
         return f"ERROR al leer tus facturas registradas: {exc}"
     emit = [ln for ln in lineas if ln.sentido == "devengado"]
-    if not emit:
-        ámbito = f"en {etiqueta}" if desde else "registradas"
-        return f"No tienes facturas emitidas {ámbito} todavía. Regístralas y te digo cuánto has facturado."
-    base = round(sum(float(ln.base) for ln in emit), 2)
-    iva = round(sum(float(ln.cuota) for ln in emit), 2)
-    total = round(base + iva, 2)
+    recib = [ln for ln in lineas if ln.sentido == "soportado"]
+    if not emit and not recib:
+        donde = f"en {etiqueta}" if desde else "registradas"
+        return f"No tienes facturas {donde} todavía. Regístralas y te digo cuánto has facturado y gastado."
+    base_e = round(sum(float(ln.base) for ln in emit), 2)
+    iva_e = round(sum(float(ln.cuota) for ln in emit), 2)
+    base_g = round(sum(float(ln.base) for ln in recib), 2)
+    iva_g = round(sum(float(ln.cuota) for ln in recib), 2)
+    beneficio = round(base_e - base_g, 2)
     cuerpo = (
-        f"Has facturado (emitidas) en {etiqueta if desde else 'total'}: {len(emit)} factura(s).\n"
-        f"  Base imponible: {base:.2f} €\n"
-        f"  IVA repercutido: {iva:.2f} €\n"
-        f"  TOTAL facturado: {total:.2f} €\n"
-        "(Datos reales de tus facturas registradas, no una estimación.)"
+        f"Resumen económico de {ámbito} (datos reales de tus facturas registradas):\n"
+        f"  Facturado (ingresos): {len(emit)} factura(s) → base {base_e:.2f} € + IVA {iva_e:.2f} € "
+        f"= {base_e + iva_e:.2f} €\n"
+        f"  Gastos (recibidas): {len(recib)} factura(s) → base {base_g:.2f} € + IVA {iva_g:.2f} € "
+        f"= {base_g + iva_g:.2f} €\n"
+        f"  Beneficio (ingresos − gastos, sin IVA): {beneficio:.2f} €"
     )
     if desde is None:
-        cuerpo += "\n\n⚠ No me diste un mes/trimestre claro, así que sumé TODAS tus emitidas. Dime el periodo (p.ej. «junio 2026») para acotar."
+        cuerpo += "\n\n⚠ No me diste un mes/trimestre claro, así que sumé TODO. Dime el periodo (p.ej. «junio 2026») para acotar."
     return cuerpo
 
 
@@ -310,10 +316,10 @@ tool_registry.register(
     ToolDefinition(
         name="resumen_facturacion",
         description=(
-            "Dice CUÁNTO has FACTURADO (tus facturas emitidas) en un periodo —mes ('junio', 'este "
-            "mes') o trimestre ('2T 2026')— sumando desde las facturas registradas. Úsala cuando el "
-            "usuario pregunte cuánto ha facturado/ingresado/emitido en un mes o trimestre. NO es el "
-            "303 (eso es el IVA a liquidar): esto es el total facturado. Solo lectura, datos reales."
+            "Resumen ECONÓMICO de un periodo —mes ('junio', 'este mes') o trimestre ('2T 2026')— desde "
+            "las facturas registradas: cuánto has FACTURADO (ingresos), cuánto has GASTADO (recibidas) "
+            "y tu BENEFICIO. Úsala cuando pregunten cuánto han facturado/ingresado/gastado o su "
+            "beneficio en un mes/trimestre. NO es el 303 (eso es el IVA a liquidar). Solo lectura."
         ),
         parameters={
             "type": "object",

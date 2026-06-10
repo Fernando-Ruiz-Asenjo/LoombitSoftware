@@ -35,8 +35,8 @@ _RECORDATORIO = re.compile(r"\b(recu[eé]rdame\w*|recordatorio|acu[eé]rdame|no 
 # «¿cuánto he facturado/ingresado este mes?» = sumar las emitidas (resumen_facturacion), NO el 303 ni
 # registrar. El 14B no la elegía de forma fiable → la forzamos. Pregunta nº1 de un autónomo.
 _FACTURACION = re.compile(
-    r"\bcu[aá]nto\b[^\n]{0,25}\b(factur\w+|ingres\w+)\b"
-    r"|\b(mi facturaci[oó]n|facturaci[oó]n de|total facturad\w+)\b"
+    r"\bcu[aá]nto\b[^\n]{0,25}\b(factur\w+|ingres\w+|gast\w+)\b"
+    r"|\b(mi facturaci[oó]n|facturaci[oó]n de|total facturad\w+|benefici\w+|mis gastos)\b"
 )
 # Hay un DATO numérico (cifra o número en palabras) → tiene sentido calcular; si no, hay que preguntar.
 _TIENE_DATO = re.compile(

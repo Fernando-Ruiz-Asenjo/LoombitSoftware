@@ -105,10 +105,11 @@ def test_resumen_facturacion_suma_solo_emitidas_del_periodo():
             contraparte="C", base=9000, tipo=21, sentido="emitida", fecha="2026-05-30"
         )
         out = dominio._resumen_facturacion("junio 2026")
-        assert "2 factura" in out  # solo las 2 emitidas de junio
-        assert "3000" in out  # base 1000+2000 (recibida y mayo excluidas)
-        assert "3630" in out  # total con IVA
-        assert "9000" not in out  # la de mayo NO se cuela
+        assert "3000" in out  # facturado (ingresos): base 1000+2000 emitidas de junio
+        assert "3630" in out  # facturado total con IVA
+        assert "500" in out  # gastos (la recibida de junio cuenta como gasto, no como facturado)
+        assert "2500" in out  # beneficio = 3000 (ingresos) − 500 (gastos)
+        assert "9000" not in out  # la emitida de mayo NO se cuela (otro mes)
     finally:
         dominio._ENTIDAD_DEFECTO = orig
         shutil.rmtree(base, ignore_errors=True)
