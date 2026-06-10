@@ -16,16 +16,17 @@ from ..agent.parsers import validar_iban
 
 # ── Retención de IRPF: registrar_factura NO la modela. Registrar una factura con retención SIN la
 # retención falsearía el 303 y el 111/130 → se rehúsa honesto, hasta construir el 130 (decisión #8/#9).
-# «reten\w+» cubre retención/retenido/retenida/retener; «reti[eé]n\w+» la conjugación «retiene/retienen»
-# («el IRPF que me retienen» — antes se escapaba porque «retienen» no empieza por «reten»). ──────────
-_RETENCION_IRPF = re.compile(r"\breten\w+\b|\breti[eé]n\w+\b", re.IGNORECASE)
+# «reten\w+» cubre retención/retenido/retenida/retener; «reti[eé]n\w+» la conjugación «retiene/retienen»;
+# «irpf» cubre «factura con IRPF del 15%» (la tasa de IRPF en una factura ES la retención, aunque no se
+# diga «retención»). El negativo («sin IRPF», «exento de IRPF») lo capta _SIN_RETENCION. ──────────────
+_RETENCION_IRPF = re.compile(r"\breten\w+\b|\breti[eé]n\w+\b|\birpf\b", re.IGNORECASE)
 _SIN_RETENCION = re.compile(
-    r"\bsin\b[^.\n]{0,18}reten"  # «sin (…) retención»
-    r"|\bno\s+(?:lleva|tiene|hay|aplica)\b[^.\n]{0,18}reten"  # «no lleva (…) retención»
+    r"\bsin\b[^.\n]{0,18}(?:reten|irpf)"  # «sin (…) retención / sin IRPF»
+    r"|\bno\s+(?:lleva|tiene|hay|aplica)\b[^.\n]{0,18}(?:reten|irpf)"  # «no lleva (…) retención»
     r"|\bno\s+(?:me\s+|le\s+|nos\s+|te\s+)?reti?en\w+"  # «no me retienen / no retengas / no retener»
-    r"|\bexent\w+[^.\n]{0,14}reten"  # «exenta de retención»
-    r"|\bning\w+[^.\n]{0,14}reten"  # «ninguna retención»
-    r"|\b0\s*%[^.\n]{0,14}reten",  # «0% de retención»
+    r"|\bexent\w+[^.\n]{0,14}(?:reten|irpf)"  # «exenta de retención / exento de IRPF»
+    r"|\bning\w+[^.\n]{0,14}(?:reten|irpf)"  # «ninguna retención»
+    r"|\b0\s*%[^.\n]{0,14}(?:reten|irpf)",  # «0% de retención»
     re.IGNORECASE,
 )
 _MSG_RETENCION_NO_MODELADA = (
@@ -100,7 +101,8 @@ def iban_invalido_a_guardar(task: str) -> bool:
 # sin citar el número. El 303 nunca. NO casamos «el 130» a secas: «el 130 €» / «el 190 que me debe» son
 # IMPORTES, no modelos (falsos positivos que destapó la auditoría) → exige «modelo» o el nombre.
 _MODELO_NO_MODELADO = re.compile(
-    r"\bmodelo\s+(111|115|123|130|180|184|190|193|347|349|390)\b", re.IGNORECASE
+    r"\bmodelo\s+(100|111|115|123|130|180|184|190|193|200|347|349|390|714|720)\b",
+    re.IGNORECASE,
 )
 _MODELO_POR_NOMBRE = (
     (re.compile(r"pago\s+fraccionad\w+", re.IGNORECASE), "130"),

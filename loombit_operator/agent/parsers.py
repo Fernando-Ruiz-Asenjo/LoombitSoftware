@@ -209,6 +209,10 @@ def parsear_importe_es(texto: object) -> float | None:
     # único importe → None (que el modelo haga la cuenta). «21% de IVA» (sin número detrás) NO entra.
     if re.search(r"\d\s*%\s+de\s+(?:los\s+|las\s+|el\s+|la\s+)?\d", t, re.IGNORECASE):
         return None
+    # «3,5 millones» → la palabra de ESCALA tras el dígito NO la sabe escalar el parser de dígitos →
+    # None (no corromper devolviendo 3.5; que lo resuelva el modelo). «1000000 €» (en dígitos) sí entra.
+    if re.search(r"\d[\d.,]*\s*mill[oó]n(?:es)?\b", t, re.IGNORECASE):
+        return None
     # tachar lo que NO es un importe (su número no debe contarse)
     t = re.sub(
         r"-?\d[\d.,]*\s*(%|por\s*ciento)", " ", t, flags=re.IGNORECASE
