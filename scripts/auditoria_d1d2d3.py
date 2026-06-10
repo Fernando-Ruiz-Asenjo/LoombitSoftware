@@ -799,6 +799,85 @@ chk(
     False,
 )
 
+# ═══════════════ RONDA DURA 3 — combinaciones, precisión es-ES, bisiesto, límites del clasificador ═══
+# D-3: alias + IVA-incluido EN SECUENCIA (como en el loop real) → base = imp/(1+tipo)
+
+
+def _alias_y_corrige(args, task):
+    _normalizar_alias_factura(args)
+    _corregir_importe("registrar_factura", args, task)
+    return args.get("base")
+
+
+chk(
+    "RD3c",
+    "alias+IVA-incluido secuencial",
+    _alias_y_corrige(
+        {"base_imponible": "1210", "tipo": 21}, "factura de 1210 € IVA incluido al 21%"
+    ),
+    1000.0,
+)
+chk("RD3c", "es-ES '12.34' ambiguo → None", parsear_importe_es("paga 12.34 cosas"), None)
+chk("RD3c", "miles '100.000' → 100000", parsear_importe_es("cobro de 100.000 €"), 100000.0)
+chk("RD3c", "millones en dígitos '1.234.567'", parsear_importe_es("base de 1.234.567 €"), 1234567.0)
+chk("RD3c", "'+500' (signo +) → 500", parsear_importe_es("paga +500 €"), 500.0)
+# D-2: primer modelo citado, modelo+otro
+chk(
+    "RD2c",
+    "modelo 130 antes que 303",
+    G.modelo_no_modelado("hazme el modelo 130 y luego el 303"),
+    "130",
+)
+chk(
+    "RD2c",
+    "IBAN 24c todo ceros inválido",
+    G.iban_invalido_a_guardar("guarda el iban ES0000000000000000000000"),
+    True,
+)
+# D-4: año BISIESTO (febrero 29) en el rango de mes
+chk("RD4c", "febrero bisiesto = 29 días", _Dm._rango_mes_d4(2024, 2)[1].day, 29)
+chk("RD4c", "variación % enorme redondea", _Dm._variacion(1000, 3), ("+997.00 €", "+33233.3%"))
+# D-5: caída total a 0
+chk(
+    "RD5c",
+    "pulso caída a 0 → 📉 -100%",
+    (
+        _hilo_pulso(
+            {"et1": "may", "et2": "abr", "fact": 0, "fact_prev": 1000, "ben": 0, "ben_prev": 500}
+        )["icono"],
+        "-100.0%"
+        in _hilo_pulso(
+            {"et1": "may", "et2": "abr", "fact": 0, "fact_prev": 1000, "ben": 0, "ben_prev": 500}
+        )["titulo"],
+    ),
+    ("📉", True),
+)
+# D-1: límites del clasificador (confianza en el umbral / como string / ausente)
+chk(
+    "RD1c",
+    "clasif confianza == 0.6 (umbral)",
+    D.clasificar_intencion("x", _FakeLLM('{"intencion":"303","confianza":0.6}')),
+    "303",
+)
+chk(
+    "RD1c",
+    "clasif confianza string '0.9'",
+    D.clasificar_intencion("x", _FakeLLM('{"intencion":"303","confianza":"0.9"}')),
+    "303",
+)
+chk(
+    "RD1c",
+    "clasif sin confianza → None",
+    D.clasificar_intencion("x", _FakeLLM('{"intencion":"303"}')),
+    None,
+)
+chk(
+    "RD1c",
+    "clasif comparativo en menú",
+    D.clasificar_intencion("x", _FakeLLM('{"intencion":"comparativo","confianza":0.9}')),
+    "comparativo",
+)
+
 
 def main() -> int:
     fam_tot: dict[str, list[int]] = {}
