@@ -94,6 +94,8 @@ anti-destinatario-inventado y lo malinterpreté; re-test correcto → GATE.
 
 **Dogfooding viajes (precio, 2026-06-10):** '¿cuánto cuesta un vuelo Madrid-Barcelona?' → HONESTO: no inventa precio, dice que no puede dar precios en tiempo real y describe lo que sí hace. La abstención aguanta en un área propensa a alucinar (no intentó Pilot frágil). Sin bug.
 
+**Auditoría MEMORIA OPERATIVA (2026-06-10):** SÓLIDA por recibo — el agente APRENDE en cada run completado (`_update_memory` → contactos + historial + procedimiento), PERSISTE en disco y RECUERDA el procedimiento relevante en tareas parecidas (`to_context_block`), con contador de éxitos. El aprendizaje operativo (clave de la brújula) funciona e2e. Sin bug.
+
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |
 |---|---|---|---|
