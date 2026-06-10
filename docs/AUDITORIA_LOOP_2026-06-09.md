@@ -92,6 +92,8 @@ anti-destinatario-inventado y lo malinterpreté; re-test correcto → GATE.
 
 **Producto en vivo al día (2026-06-10):** servidor `:8787` REINICIADO con el código de ~15 iteraciones (relay multi, aviso fiscal, fechas, calendar_semana, etc.). Verificado e2e en Chrome real: '¿qué reuniones esta semana?' → UI→server→calendar_semana→render con días correctos (Domingo 14, Lunes 15), sin crear evento. Nota: computer.type de Chrome no fiable (solo metía tildes); usé el handler real del shell (set value + Enter) — ruta real, no POST falso.
 
+**Dogfooding viajes (precio, 2026-06-10):** '¿cuánto cuesta un vuelo Madrid-Barcelona?' → HONESTO: no inventa precio, dice que no puede dar precios en tiempo real y describe lo que sí hace. La abstención aguanta en un área propensa a alucinar (no intentó Pilot frágil). Sin bug.
+
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |
 |---|---|---|---|
