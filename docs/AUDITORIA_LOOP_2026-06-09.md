@@ -115,6 +115,8 @@ anti-destinatario-inventado y lo malinterpreté; re-test correcto → GATE.
 
 **303 multi-tipo (2026-06-10):** emitida 1000@21 + 500@10 + recibida 200@21 → devengado 260 (suma 21%+10%), deducible 42, 218 a ingresar. Correcto. El 303-fiable maneja sentido + periodo + rectificativas + multi-tipo. Sin bug.
 
+**Interés de demora preciso (2026-06-10):** 1000€ vencido 100 días al 8% → 21,92€ exacto (1000×0,08×100/365), compensación art.8 = 40€, escala a profesional en vía judicial. Cifra legal verificada al céntimo. Sin bug.
+
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |
 |---|---|---|---|
