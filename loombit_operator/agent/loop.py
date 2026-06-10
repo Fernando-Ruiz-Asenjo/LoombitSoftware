@@ -39,7 +39,7 @@ from .intencion import (
     tools_excluir,
     tools_foco,
 )
-from .parsers import parsear_fecha
+from .parsers import parsear_fecha, validar_iban
 from .prompts import build_system_prompt
 from .run import AgentRun, AgentStatus, AgentStep, AgentStore
 
@@ -279,6 +279,14 @@ class AgentLoop:
         if _es_registro_con_retencion(run.task):
             logger.info("registro con retención IRPF no modelada → rehúso honesto run=%s", run.id)
             run.mark_completed(_MSG_RETENCION_NO_MODELADA)
+            _log_conversation_event(run, "completed", run.result)
+            self.store.save_run(run)
+            return run
+
+        # IBAN inválido a guardar: no fabricamos un «guardado» de un IBAN que no cuadra (checksum).
+        if _iban_invalido_a_guardar(run.task):
+            logger.info("IBAN inválido a guardar → rehúso honesto run=%s", run.id)
+            run.mark_completed(_MSG_IBAN_INVALIDO)
             _log_conversation_event(run, "completed", run.result)
             self.store.save_run(run)
             return run
@@ -631,6 +639,10 @@ class AgentLoop:
             tc.arguments, run.task
         ):
             logger.info("303: periodo (trimestre) puesto al actual run=%s", run.id)
+        if tc.tool_name == "resumen_financiero" and _corregir_trimestre_relativo(
+            tc.arguments, run.task
+        ):
+            logger.info("resumen_financiero: trimestre relativo puesto al actual run=%s", run.id)
 
         # Señal visible PERSISTENTE: si el agente usa una tool de pilotaje (escritorio/navegador),
         # abre la sesión de halo → el usuario VE a Loombit pilotando durante todo el run.
@@ -1030,6 +1042,25 @@ def _corregir_periodo_303(args: dict, task: str, hoy: date | None = None) -> boo
     return True
 
 
+_TRIMESTRE_RELATIVO = re.compile(
+    r"\b(este|el|nuestro)\s+trimestre\b|\btrimestre\s+actual\b|\beste\s+trim\b", re.IGNORECASE
+)
+
+
+def _corregir_trimestre_relativo(args: dict, task: str, hoy: date | None = None) -> bool:
+    """Corrige «este/el trimestre» al trimestre ACTUAL (el 14B a veces pasa un trimestre específico
+    equivocado, p.ej. 1T en junio). Solo toca referencias RELATIVAS de trimestre (no meses ni
+    trimestres explícitos), así no rompe «junio» ni «2T 2026». Devuelve True si cambió el periodo.
+    """
+    if not _TRIMESTRE_RELATIVO.search(task or ""):
+        return False
+    actual = _trimestre_actual(hoy)
+    if str(args.get("periodo") or "").strip() == actual:
+        return False
+    args["periodo"] = actual
+    return True
+
+
 # Preguntas de asesoramiento fiscal/legal REGULADO (¿qué IVA lleva mi actividad?, ¿estoy exento?,
 # ¿puedo deducir?). El 14B inventa tipos/exenciones aunque le digas que no → garantizamos por CÓDIGO
 # un aviso de "no es asesoramiento, confírmalo con tu gestor" (el modelo lo da de forma estocástica).
@@ -1096,9 +1127,11 @@ _TOOLS_EFECTO = ("registrar_factura", "gmail_send", "calendar_create")
 # retención falsearía el 303 y el 111/130 → se rehúsa honesto (mejor «no lo hago» que hacerlo mal),
 # hasta construir el modelo 130 (decisión de Fernando #8/#9). Lo destapó la presión del arnés: el 14B
 # narraba «calculado el total con retención… preparando borrador» registrando una factura distorsionada.
-_RETENCION_IRPF = re.compile(r"\bretenci[oó]n\w*\b", re.IGNORECASE)
+# «reten\w+» cubre retención/retenido/retenida/retener (antes solo «retención» → «IRPF retenido» no
+# casaba y la factura con retención no se rehusaba — destapado por la batería v2).
+_RETENCION_IRPF = re.compile(r"\breten\w+\b", re.IGNORECASE)
 _SIN_RETENCION = re.compile(
-    r"\b(sin|no\s+(lleva|tiene|hay|aplica))\b[^.\n]{0,18}retenci", re.IGNORECASE
+    r"\b(sin|no\s+(lleva|tiene|hay|aplica))\b[^.\n]{0,18}reten", re.IGNORECASE
 )
 _MSG_RETENCION_NO_MODELADA = (
     "⚠️ No he registrado la factura: lleva RETENCIÓN de IRPF y todavía no modelo la retención. "
@@ -1141,6 +1174,28 @@ def _es_registro_con_retencion(task: str) -> bool:
     if _SIN_RETENCION.search(t) or not _RETENCION_IRPF.search(t):
         return False
     return bool(_HACER_FACTURA.search(t) and _VERBO_HACER.search(t))
+
+
+# IBAN inválido: no fabricamos un «✅ guardado» de un IBAN que no cuadra (longitud/checksum). El 14B
+# lo aceptaba a ciegas (destapado por la batería v2). Validamos con `validar_iban` (mod-97) y rehusamos.
+_IBAN_TOKEN = re.compile(r"\bES\s?\d[\d\s]{6,30}", re.IGNORECASE)
+_GUARDA_IBAN = re.compile(
+    r"\b(guarda\w*|gu[aá]rdame|apunta\w*|registra\w*|anota\w*|almacena\w*|gu[aá]rdalo)\b",
+    re.IGNORECASE,
+)
+_MSG_IBAN_INVALIDO = (
+    "⚠️ No he guardado ese IBAN: no es válido (no cuadra por longitud o dígito de control). Revísalo "
+    "y pásamelo completo (un IBAN español tiene 24 caracteres) y lo guardo."
+)
+
+
+def _iban_invalido_a_guardar(task: str) -> bool:
+    """True si la petición pide GUARDAR un IBAN y el IBAN del texto es INVÁLIDO (longitud/checksum)."""
+    t = task or ""
+    if "iban" not in t.lower() or not _GUARDA_IBAN.search(t):
+        return False
+    m = _IBAN_TOKEN.search(t)
+    return bool(m) and not validar_iban(m.group(0))
 
 
 def _paso_es_fallo(step: object) -> bool:

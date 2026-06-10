@@ -14,7 +14,9 @@ from __future__ import annotations
 
 import re
 
-_COBRO = re.compile(r"\b(cobro|cobrar|reclam\w+|moros\w+|impag\w+|deuda|deudas|vencid\w+|demora)\b")
+# «venc\w+» cubre vence/venció/vencía/vencida/vencido/vencimiento (antes solo «vencid\w+» → «venció»
+# en pasado NO casaba y la consulta de cobro se iba a un free-form que alucinaba tools).
+_COBRO = re.compile(r"\b(cobro|cobrar|reclam\w+|moros\w+|impag\w+|deuda|deudas|venc\w+|demora)\b")
 _F303 = re.compile(r"\b(303|iva|trimestral|repercutid\w+|soportad\w+|devengad\w+|liquidaci[oó]n)\b")
 # OJO: debe casar el COMANDO de crear factura ("regístrame/emite una factura"), NO el adjetivo
 # "facturas registradas/emitidas" (eso es una consulta sobre lo YA registrado → intención 303).
@@ -36,7 +38,8 @@ _RECORDATORIO = re.compile(r"\b(recu[eé]rdame\w*|recordatorio|acu[eé]rdame|no 
 # registrar. El 14B no la elegía de forma fiable → la forzamos. Pregunta nº1 de un autónomo.
 _FACTURACION = re.compile(
     r"\bcu[aá]nto\b[^\n]{0,25}\b(factur\w+|ingres\w+|gast\w+)\b"
-    r"|\b(mi facturaci[oó]n|facturaci[oó]n de|total facturad\w+|benefici\w+|mis gastos)\b"
+    r"|\b(mi facturaci[oó]n|facturaci[oó]n de|total facturad\w+|benefici\w+|mis gastos"
+    r"|mis ingres\w+|ingres\w+ de|mis ventas)\b"
 )
 # «¿cuánto me deben?»/«¿quién me debe?» = sumar los cobros pendientes (cobros_pendientes), NO plan_cobro
 # (una factura) ni el 303. El agente caía a memory_search y daba un número contaminado.
