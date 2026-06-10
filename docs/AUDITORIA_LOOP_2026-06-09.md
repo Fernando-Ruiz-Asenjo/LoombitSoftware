@@ -33,6 +33,9 @@
 - **~~Fecha relativa del calendario~~ → ARREGLADO (2026-06-10):** el 14B erraba fechas relativas
   ('próximo lunes'→sábado, 'mañana'→hoy). Ahora `_corregir_fecha_calendario` recalcula con `parsear_fecha`
   (determinista) y corrige el `start_iso` antes del gate. Verificado en vivo. Cierra el item T5.
+  **Extendido a COBRO (2026-06-10):** 'venció hace N semanas' → el 14B daba 24 días (correcto 21),
+  cambiando la ETAPA legal e interés. `parsear_fecha` ahora entiende 'hace N días/semanas' y corrige
+  `fecha_vencimiento` en plan_cobro. Verificado: 21 días, etapa correcta.
 - **Evento de prueba en tu calendario** (vie 14 jun 10:00 «Loombit · prueba de aprobación»): el
   borrado directo lo bloquea el gate de seguridad. Bórralo tú, o autorízame a hacerlo por el cauce.
 - **Pilot para viajes:** primitivas vivas; operar una web de viajes e2e está SIN verificar (es frágil
