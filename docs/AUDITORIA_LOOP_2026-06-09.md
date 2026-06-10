@@ -27,7 +27,7 @@
 >    "no doy específicos"? (el aviso reduce el riesgo, no elimina el específico equivocado)
 > 2. **[Producto]** Modelo de entidad: ¿multi-entidad (una por cliente) o single «principal»?
 > 3. **[Producto/UX]** Responsive del shell (0 media queries hoy): ¿lo queremos y en qué fase del rediseño?
-> 4. **[Fiscal/AEAT]** Etiquetar rectificativas (tipo=rectificativa + ref. a la factura original).
+> 4. **[Fiscal/AEAT]** Rectificativas: VERIFICADO 2026-06-10 — financieramente CORRECTA (devolución 50€ → base -41,32 + IVA -8,68, reduce bien el devengado del 303), pero se guarda como emitida normal en negativo, SIN tipo=rectificativa ni ref. a la factura original. ¿Añadimos el etiquetado formal AEAT (tipo + serie rectificativa + referencia)?
 > 5. **[Seguridad]** HMAC/sello temporal en entregables si se usan como PRUEBA legal ante terceros.
 > 6. **[Operativa]** ~50 commits del loop en `feat/ux-top-ola1` (local, sin PR): subir a PR cuando quieras.
 > 7. **[Menor]** Borrar el evento de prueba del calendario (el gate bloquea borrarlo desde aquí).
