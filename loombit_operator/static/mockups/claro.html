@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Loombit · Claro</title>
+<style>
+@font-face{font-family:'Space Grotesk';font-weight:300 700;font-display:swap;src:url('/static/fonts/space-grotesk.woff2') format('woff2')}
+:root{
+  --bg:#eef3fb; --card:#ffffff; --ink:#0f1b2e; --ink2:#64748b;
+  --blue:#3b6ef6; --green:#16a34a; --amber:#f59e0b; --red:#ef4444; --violet:#8b5cf6; --cyan:#06b6d4;
+  --display:'Space Grotesk',system-ui,sans-serif;
+  --sh:0 8px 24px -10px rgba(20,40,80,.18);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--display);background:linear-gradient(180deg,#eef3fb,#e9eefb 60%,#eaf6f1);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased}
+.wrap{max-width:600px;margin:0 auto;padding:28px 22px 60px}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.brand{font-weight:700;font-size:20px;letter-spacing:-.03em;display:flex;align-items:center;gap:9px;color:var(--blue)}
+.brand .dot{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--blue),var(--cyan));display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px}
+.top .pill{font-size:11px;color:var(--ink2);background:#fff;border-radius:999px;padding:6px 13px;box-shadow:var(--sh)}
+.hi{font-size:22px;font-weight:700;letter-spacing:-.02em;margin-bottom:3px}
+.sub{color:var(--ink2);font-size:14px;margin-bottom:20px}
+.kpis{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:26px}
+.kpi{border-radius:16px;padding:14px;color:#fff;box-shadow:var(--sh)}
+.kpi .ic{font-size:16px;opacity:.9}
+.kpi .v{font-size:26px;font-weight:700;letter-spacing:-.02em;margin-top:8px;line-height:1}
+.kpi .l{font-size:11px;opacity:.92;margin-top:3px}
+.kpi.b{background:linear-gradient(135deg,#4f8bff,#3b6ef6)}
+.kpi.g{background:linear-gradient(135deg,#22c55e,#16a34a)}
+.kpi.a{background:linear-gradient(135deg,#fbbf24,#f59e0b)}
+.sec{font-size:13px;font-weight:700;letter-spacing:-.01em;margin:6px 2px 12px}
+.card{background:var(--card);border-radius:18px;padding:15px 17px;margin-bottom:11px;box-shadow:var(--sh);display:flex;gap:13px;align-items:flex-start}
+.av{width:42px;height:42px;border-radius:13px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:20px}
+.card .bd{flex:1;min-width:0}
+.card h3{font-size:15px;letter-spacing:-.01em;margin-bottom:3px}
+.card p{font-size:12.5px;color:var(--ink2);line-height:1.4}
+.tag{font-size:11px;font-weight:600;border-radius:999px;padding:4px 10px;display:inline-block;margin-top:8px}
+.tag.act{background:#fef2f2;color:#dc2626}
+.tag.ok{background:#f0fdf4;color:#16a34a}
+.tag.due{background:#fffbeb;color:#b45309}
+.go{align-self:center;font-size:12.5px;font-weight:600;color:#fff;background:var(--blue);border:none;border-radius:999px;padding:9px 15px;cursor:pointer;font-family:var(--display);white-space:nowrap}
+.go.ghost{background:#eef2fb;color:var(--blue)}
+.grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-top:4px}
+.act{background:#fff;border:none;border-radius:16px;padding:14px 12px;cursor:pointer;box-shadow:var(--sh);text-align:center;font-family:var(--display)}
+.act .ic{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;margin:0 auto 9px}
+.act .lb{font-size:11.5px;font-weight:600;color:var(--ink)}
+.act:hover{transform:translateY(-2px)}
+</style></head>
+<body><div class="wrap">
+  <div class="top"><div class="brand"><span class="dot">Lb</span>Loombit</div><div class="pill">🔒 Todo en tu máquina</div></div>
+
+  <div class="hi">Buenas tardes, Fernando 👋</div>
+  <div class="sub">5 cosas hoy · 2 piden tu atención · el resto, preparado.</div>
+
+  <div class="kpis">
+    <div class="kpi g"><div class="ic">💶</div><div class="v">0 €</div><div class="l">A cobrar</div></div>
+    <div class="kpi a"><div class="ic">🧾</div><div class="v">41 d</div><div class="l">Para el 303</div></div>
+    <div class="kpi b"><div class="ic">📌</div><div class="v">2</div><div class="l">Piden acción</div></div>
+  </div>
+
+  <div class="sec">Hoy en tu telar</div>
+  <div class="card"><div class="av" style="background:#fef2f2">⚠️</div>
+    <div class="bd"><h3>Deuda no reconocida</h3><p>Abogados CEA reclama una deuda que no reconoces. Verifícala antes de pagar.</p><span class="tag act">Requiere acción</span></div>
+    <button class="go">Gestionar</button></div>
+  <div class="card"><div class="av" style="background:#eff6ff">📅</div>
+    <div class="bd"><h3>Reunión con David Valentín</h3><p>Jueves 11 jun · 09:00 · Getafe. Confirmada por ambos.</p><span class="tag ok">Confirmada</span></div>
+    <button class="go ghost">Ver</button></div>
+  <div class="card"><div class="av" style="background:#fffbeb">🧾</div>
+    <div class="bd"><h3>Impuestos 2º trimestre (303·130·111·115)</h3><p>Vence el 2026-07-20.</p><span class="tag due">Vence en 41 días</span></div>
+    <button class="go">Preparar</button></div>
+
+  <div class="sec">¿Qué necesitas?</div>
+  <div class="grid">
+    <button class="act"><span class="ic" style="background:#eff6ff;color:#3b6ef6">✉️</span><span class="lb">Redactar correo</span></button>
+    <button class="act"><span class="ic" style="background:#f5f3ff;color:#8b5cf6">📅</span><span class="lb">Crear evento</span></button>
+    <button class="act"><span class="ic" style="background:#f0fdf4;color:#16a34a">🧾</span><span class="lb">Registrar factura</span></button>
+    <button class="act"><span class="ic" style="background:#fffbeb;color:#f59e0b">💶</span><span class="lb">Reclamar cobro</span></button>
+  </div>
+</div></body></html>

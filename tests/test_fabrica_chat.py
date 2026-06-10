@@ -83,10 +83,18 @@ def test_json_de_extrae_objeto_envuelto():
 # ── Extremo a extremo: el chat nunca rompe y enruta bien ───────────────────────
 def test_responder_charla_narra_con_modelo():
     res = chat.responder(
-        "hola, ¿quién eres?", llm=_stub_listo({"accion": "charla"}, "Soy la Fábrica.")
+        "cuéntame algo, por favor", llm=_stub_listo({"accion": "charla"}, "Soy la Fábrica.")
     )
     assert res["accion"] == "charla"
     assert "Fábrica" in res["respuesta"]
+
+
+def test_responder_identidad_es_fast_path_crisp():
+    # "¿qué eres?" NO debe caer al modelo (que da una evasiva): respuesta crisp y determinista.
+    res = chat.responder("¿qué eres y qué puedes hacer?", llm=_stub_listo({"accion": "charla"}))
+    assert res["accion"] == "identidad"
+    assert "Fábrica" in res["respuesta"]
+    assert "aprobación" in res["respuesta"]
 
 
 def test_responder_estado_da_cifras_por_codigo():

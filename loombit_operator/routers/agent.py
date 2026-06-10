@@ -59,6 +59,9 @@ class RunRequest(BaseModel):
     task: str
     max_steps: int = 20
     profile: str = "administrativo"
+    # Turnos previos de la conversación [{role:'user'|'assistant', content:str}] para que el
+    # agente tenga MEMORIA del hilo (un "sí" sabe a qué responde). Vacío = run aislado.
+    history: list[dict] = []
 
 
 class ApproveRequest(BaseModel):
@@ -127,7 +130,12 @@ async def start_run(body: RunRequest, background_tasks: BackgroundTasks) -> RunR
     """
     loop = _get_loop()
     try:
-        run = loop.create(body.task, max_steps=body.max_steps, profile=body.profile)
+        run = loop.create(
+            body.task,
+            max_steps=body.max_steps,
+            profile=body.profile,
+            history=body.history,
+        )
         # Fricción cero: una cortesía pura ("hola", "gracias") se responde AL INSTANTE, sin gastar el
         # bucle ReAct del 14B (que en local son decenas de segundos de "Procesando…" para nada).
         from ..agent.smalltalk import respuesta_social
@@ -175,6 +183,16 @@ async def get_run(run_id: str) -> RunDetailResponse:
     return RunDetailResponse.from_run(run)
 
 
+def _invalidar_telar() -> None:
+    """Aprobar/cancelar un run cambia lo que hay en la tela (p.ej. el nº de aprobaciones) → refresca."""
+    try:
+        from ..telar_cache import invalidate
+
+        invalidate()
+    except Exception:
+        pass
+
+
 @router.post(
     "/runs/{run_id}/approve",
     response_model=RunResponse,
@@ -216,6 +234,7 @@ async def approve_run(
     # aprobada + la continuación del LLM para background. Así la respuesta ya NO devuelve el estado
     # viejo (pending_approval) y la UI no vuelve a pintar la misma tarjeta; hace polling al estado real.
     run = loop.accept_approval(run_id)
+    _invalidar_telar()
     background_tasks.add_task(loop._resume_execute, run_id)
     return RunResponse.from_run(run)
 
@@ -229,6 +248,8 @@ async def approve_all(background_tasks: BackgroundTasks) -> dict:
     ids = [r.id for r in pendientes]
     for run_id in ids:
         background_tasks.add_task(loop.resume, run_id)
+    if ids:
+        _invalidar_telar()
     return {"approved": len(ids), "ids": ids}
 
 
@@ -290,6 +311,7 @@ async def cancel_run(run_id: str) -> RunResponse:
 
     run.cancel()
     store.save_run(run)
+    _invalidar_telar()
     return RunResponse.from_run(run)
 
 
@@ -303,7 +325,7 @@ async def list_tools() -> list[dict]:
             "category": t.category,
             "requires_approval": t.requires_approval,
         }
-        for t in tool_registry.all()
+        for t in tool_registry.list()
     ]
 
 

@@ -207,6 +207,36 @@ def _oversize_texto(raiz: Path) -> list[Necesidad]:
     return necesidades
 
 
+def _botones_muertos(raiz: Path) -> list[Necesidad]:
+    """Auditoría FUNCIONAL de la UI: botones que se pintan pero no hacen nada (sin onclick/type).
+    Lo que la higiene de CÓDIGO no veía (origen: Fernando cazó el ⚙️ y 'Editar' muertos, 2026-06-09).
+    """
+    from ..ui_audit import botones_sin_funcion
+
+    necesidades: list[Necesidad] = []
+    for p in _ficheros_texto(raiz):
+        if p.suffix.lower() != ".html":
+            continue
+        try:
+            muertos = botones_sin_funcion(p.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            continue
+        if muertos:
+            necesidades.append(
+                Necesidad(
+                    titulo=f"{len(muertos)} botón(es) SIN función en {_rel(p, raiz)} — dar acción o quitar",
+                    tipo=TipoNecesidad.MEJORA,
+                    fuente=Fuente.COGNICION,
+                    descripcion="Botones que se pintan pero no hacen nada (sin onclick ni type). "
+                    "Darles una acción real o eliminarlos (no fingir). Auditoría funcional de UI.",
+                    evidencia=muertos[:8],
+                    prioridad=2,
+                    procedencia=[_rel(p, raiz)],
+                )
+            )
+    return necesidades
+
+
 def _prompts(ficheros: list[Path], raiz: Path) -> list[Necesidad]:
     """Marca los prompts del sistema como candidatos a AUTO-EVOLUCIÓN (GEPA) contra los evals."""
     encontrados: list[str] = []
@@ -268,6 +298,7 @@ def marcar(raiz: Path | None = None, max_items: int = 20) -> list[Necesidad]:
     necesidades += _todos(ficheros, raiz, limite=10)
     necesidades += _oversize(ficheros, raiz)
     necesidades += _oversize_texto(raiz)
+    necesidades += _botones_muertos(raiz)
     necesidades += _prompts(ficheros, raiz)
     necesidades += _huecos_eval()
     necesidades.sort(key=lambda n: n.prioridad, reverse=True)

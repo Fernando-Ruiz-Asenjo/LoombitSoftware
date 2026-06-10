@@ -476,6 +476,18 @@ class AgentMemory:
     def owner(self) -> dict[str, str]:
         return self._data.get("owner", {})
 
+    def set_owner(self, **fields: str) -> dict[str, str]:
+        """Actualiza los datos del propietario (name, company, email, idioma) y persiste. Solo
+        escribe los campos NO vacíos que se pasen; el resto se conserva (no borra al guardar parcial).
+        """
+        owner = self._data.setdefault("owner", {})
+        for k, v in fields.items():
+            v = (v or "").strip()
+            if v:
+                owner[k] = v
+        self._save()
+        return dict(owner)
+
     @property
     def contacts(self) -> list[ContactEntry]:
         return [ContactEntry.from_dict(c) for c in self._data.get("contacts", [])]

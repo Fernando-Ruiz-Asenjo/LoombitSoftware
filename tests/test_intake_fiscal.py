@@ -20,7 +20,14 @@ def test_inferir_tipo_estandar():
 
 def test_inferir_tipo_no_estandar_o_invalido():
     assert inferir_tipo_iva(100, 5) is None  # 5% no es estándar
-    assert inferir_tipo_iva(0, 0) is None  # base inválida
+    assert inferir_tipo_iva(0, 0) is None  # base inválida (cero, no se puede inferir)
+
+
+def test_inferir_tipo_acepta_rectificativas_negativas():
+    # devolución/abono: base e IVA negativos → tipo por valor absoluto (antes daba None y se caía del 303)
+    assert inferir_tipo_iva(-200, -42) == Decimal("0.21")
+    assert inferir_tipo_iva(-100, -10) == Decimal("0.10")
+    assert inferir_tipo_iva(-200, -50) is None  # 25% sigue sin ser estándar
 
 
 def test_linea_desde_factura_ok():

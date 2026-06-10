@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Loombit</title>
+<style>
+@font-face{font-family:'Space Grotesk';font-weight:300 700;font-display:swap;src:url('/static/fonts/space-grotesk.woff2') format('woff2')}
+:root{
+  --paper:#f6f1e9;--ink:#1d1813;--ink2:#6b6256;
+  --coral:#f15a3e;--coral2:#ff7e63;--peach:#ffd9c2;--tech:#7c9cff;--mint:#8fe3c8;
+  --surf:rgba(255,255,255,.6);--surf2:rgba(255,255,255,.42);--bd:rgba(255,255,255,.85);
+  --skel:rgba(0,0,0,.06);--shadow:rgba(60,40,20,.4);--d:'Space Grotesk',system-ui,sans-serif;
+}
+[data-theme="dark"]{--paper:#15110d;--ink:#f4ece2;--ink2:#a99a8b;--coral:#ff6b4d;--coral2:#ff8e76;
+  --surf:rgba(255,255,255,.055);--surf2:rgba(255,255,255,.035);--bd:rgba(255,255,255,.1);--skel:rgba(255,255,255,.07);--shadow:rgba(0,0,0,.6)}
+*{box-sizing:border-box;margin:0;padding:0}html,body{height:100%}
+body{font-family:var(--d);color:var(--ink);background:var(--paper);overflow:hidden;-webkit-font-smoothing:antialiased;position:relative;transition:background .3s,color .3s}
+.aurora{position:fixed;inset:0;z-index:0;pointer-events:none;filter:blur(70px)}
+.aurora span{position:absolute;border-radius:50%}
+.a1{width:560px;height:560px;background:var(--coral2);opacity:.24;top:-200px;right:8%}
+.a2{width:460px;height:460px;background:var(--tech);opacity:.18;bottom:-200px;left:6%}
+.a3{width:380px;height:380px;background:var(--mint);opacity:.16;top:30%;right:-150px}
+[data-theme="dark"] .aurora{opacity:.5}
+.app{position:relative;z-index:1;height:100vh;display:grid;grid-template-rows:auto 1fr;gap:13px;padding:13px}
+.glass{background:var(--surf);backdrop-filter:blur(16px);border:1px solid var(--bd);box-shadow:0 12px 34px -20px var(--shadow)}
+.top{display:flex;align-items:center;gap:13px;border-radius:18px;padding:10px 15px}
+.brand{font-weight:700;font-size:19px;letter-spacing:-.03em;display:flex;align-items:center;gap:9px}
+.brand .dot{width:13px;height:13px;border-radius:50%;background:var(--coral);box-shadow:0 0 0 4px color-mix(in srgb,var(--coral) 22%,transparent)}
+.tabs{display:flex;gap:5px;margin-left:8px}
+.tab{font-size:13px;font-weight:600;color:var(--ink2);background:none;border:none;border-radius:999px;padding:7px 13px;cursor:pointer;font-family:var(--d)}
+.tab.on{background:var(--ink);color:var(--paper)}
+.tbtn{width:38px;height:38px;border-radius:11px;border:1px solid var(--bd);background:var(--surf2);font-size:15px;cursor:pointer;color:var(--ink)}
+.chip{font-size:11px;color:var(--ink2);background:var(--surf2);border:1px solid var(--bd);border-radius:999px;padding:7px 12px}
+.av{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--coral),var(--coral2));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+.body{display:grid;grid-template-columns:230px 1fr 320px;gap:13px;min-height:0}
+.rail{border-radius:20px;padding:15px;overflow:auto}
+.lbl{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink2);font-weight:700;margin:4px 4px 9px}
+.lbl:not(:first-child){margin-top:16px}
+.nav{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:12px;cursor:pointer;font-size:13px;font-weight:600;color:var(--ink);text-align:left;width:100%;background:none;border:none;font-family:var(--d)}
+.nav .ic{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;background:var(--surf2)}
+.nav:hover{background:var(--surf2)}.nav.on{background:var(--ink);color:var(--paper)}.nav.on .ic{background:rgba(255,255,255,.16)}
+.nav.dim{opacity:.5}.tagp{margin-left:auto;font-size:9px;font-weight:700;background:color-mix(in srgb,var(--coral) 18%,transparent);color:var(--coral);border-radius:999px;padding:2px 7px}
+.center{display:flex;flex-direction:column;min-height:0;border-radius:22px;overflow:hidden}
+.feed{flex:1;overflow:auto;padding:22px 26px}
+.greet .k{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--coral);font-weight:700}
+.greet h1{font-size:34px;letter-spacing:-.04em;line-height:1;margin:5px 0 4px}
+.greet p{color:var(--ink2);font-size:14px}.greet p b{color:var(--coral);font-size:17px}
+.csec{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink2);font-weight:700;margin:20px 2px 11px}
+.tcard{border-radius:18px;padding:16px 18px;margin-bottom:12px;background:var(--surf);border:1px solid var(--bd);box-shadow:0 12px 30px -20px var(--shadow);display:flex;gap:13px;align-items:flex-start}
+.tcard.hot{background:linear-gradient(135deg,#2a1410,#1d1813);border-color:color-mix(in srgb,var(--coral) 40%,transparent);color:#f7e7e0}
+.tav{width:46px;height:46px;border-radius:13px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:22px;background:var(--surf2)}
+.tcard.hot .tav{background:color-mix(in srgb,var(--coral) 22%,transparent)}
+.tcard h3{font-size:16px;letter-spacing:-.02em;margin-bottom:3px}
+.tcard .sub{font-size:12.5px;color:var(--ink2);line-height:1.4}.tcard.hot .sub{color:#e3bcae}
+.tcard .why{font-size:12px;color:var(--coral);margin-top:3px}
+.pill{font-size:10.5px;font-weight:700;border-radius:999px;padding:4px 10px;display:inline-block;margin-top:9px}
+.pill.act{background:var(--coral);color:#fff}.pill.ok{background:color-mix(in srgb,var(--mint) 30%,transparent);color:#1d8a5f}.pill.due{background:color-mix(in srgb,#f59e0b 26%,transparent);color:#a86510}
+[data-theme="dark"] .pill.ok{color:var(--mint)}[data-theme="dark"] .pill.due{color:#f7c14b}
+.prep{margin-left:auto;align-self:center;display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;cursor:pointer;font-family:var(--d)}
+.prep .pic{width:46px;height:46px;border-radius:14px;background:var(--coral);color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center}
+.prep .pl{font-size:10px;font-weight:700;color:var(--coral);max-width:74px;text-align:center;line-height:1.1}
+.go{align-self:center;margin-left:auto;font-size:12.5px;font-weight:700;border:none;border-radius:999px;padding:9px 15px;cursor:pointer;font-family:var(--d);background:var(--surf2);color:var(--ink);border:1px solid var(--bd)}
+.msg{max-width:80%;padding:11px 14px;border-radius:15px;font-size:13.5px;line-height:1.45;margin-top:12px;white-space:pre-wrap}
+.msg.a{align-self:flex-start;background:var(--surf);border:1px solid var(--bd)}
+.msg.u{align-self:flex-end;background:var(--ink);color:var(--paper)}
+.msg.e{align-self:flex-start;background:color-mix(in srgb,var(--coral) 14%,transparent);color:var(--coral);border:1px solid color-mix(in srgb,var(--coral) 35%,transparent)}
+.feed.chat{display:flex;flex-direction:column}
+.compose{padding:13px;border-top:1px solid var(--bd);display:flex;gap:9px;align-items:center;background:var(--surf2)}
+.compose input{flex:1;border:1px solid var(--bd);background:var(--surf);border-radius:13px;padding:12px 15px;font-size:14px;font-family:var(--d);color:var(--ink);outline:none}
+.send{width:44px;height:44px;border-radius:13px;border:none;background:var(--coral);color:#fff;font-size:17px;cursor:pointer}
+.metric{display:flex;align-items:baseline;justify-content:space-between;background:var(--surf2);border:1px solid var(--bd);border-radius:13px;padding:10px 13px;margin-bottom:8px}
+.metric .v{font-size:23px;font-weight:700;letter-spacing:-.03em;color:var(--coral)}.metric .l{font-size:11px;color:var(--ink2)}
+.thread{border-radius:13px;padding:11px;margin-bottom:8px;background:var(--surf2);border:1px solid var(--bd);border-left:4px solid var(--ink2)}
+.thread.hot{border-left-color:var(--coral)}.thread.ok{border-left-color:var(--mint)}.thread.due{border-left-color:#f59e0b}
+.thread .t{font-size:12.5px;font-weight:600}.thread .s{font-size:11px;color:var(--ink2);margin-top:2px}
+.muted{color:var(--ink2);font-size:12px}
+/* Preparado para ti — tarjeta canónica de aprobación (gate sagrado) */
+.appr{border-radius:14px;padding:12px;margin-bottom:9px;background:var(--surf);border:1px solid var(--bd);border-left:4px solid var(--mint);box-shadow:0 10px 26px -22px var(--shadow)}
+.appr .at{font-size:12.5px;font-weight:600;line-height:1.32}
+.appr .draft{font-size:11px;color:var(--ink2);background:var(--surf2);border:1px solid var(--bd);border-radius:9px;padding:8px 10px;margin:8px 0;white-space:pre-wrap;max-height:140px;overflow:auto;line-height:1.4}
+.appr .lock{font-size:10px;color:var(--ink2);margin:6px 0 0;display:flex;align-items:center;gap:5px}
+.appr .acts{display:flex;gap:7px;margin-top:9px}
+.appr .ok{flex:1;background:var(--mint);color:#0b3b2a;border:none;border-radius:10px;padding:8px;font-weight:700;font-size:12px;cursor:pointer;font-family:var(--d)}
+.appr .ok:disabled{opacity:.6;cursor:default}
+.appr .no{background:var(--surf2);color:var(--ink2);border:1px solid var(--bd);border-radius:10px;padding:8px 12px;font-size:12px;cursor:pointer;font-family:var(--d)}
+.cnt{font-size:9px;font-weight:700;background:var(--coral);color:#fff;border-radius:999px;padding:1px 7px;margin-left:6px;vertical-align:middle}
+</style></head>
+<body>
+<div class="aurora"><span class="a1"></span><span class="a2"></span><span class="a3"></span></div>
+<div class="app">
+  <div class="top glass">
+    <div class="brand"><span class="dot"></span>Loombit</div>
+    <div class="tabs"><button class="tab on">Hoy</button><button class="tab" onclick="location.href='/'">Galaxia</button><button class="tab" onclick="location.href='/'">Fábrica</button></div>
+    <div style="flex:1"></div>
+    <button class="tbtn" id="themeBtn" title="Modo claro/oscuro" onclick="toggleTheme()">🌙</button>
+    <div class="chip">🔒 Local</div>
+    <button class="tbtn" onclick="location.href='/'">⚙️</button>
+    <div class="av" id="av">·</div>
+  </div>
+  <div class="body">
+    <div class="rail glass">
+      <div class="lbl">Skills</div>
+      <button class="nav on"><span class="ic">🗂️</span>Administrativo</button>
+      <button class="nav dim"><span class="ic">⌨️</span>Coding<span class="tagp">pronto</span></button>
+      <div class="lbl">¿Qué necesitas?</div>
+      <div id="acciones"><div class="muted" style="padding:6px">Cargando…</div></div>
+      <div class="lbl">Conexiones</div>
+      <div id="conex"><div class="muted" style="padding:6px">…</div></div>
+    </div>
+    <div class="center glass">
+      <div class="feed chat" id="feed">
+        <div class="greet" id="greet"><div class="k">Cargando tu día…</div><h1>Loombit</h1></div>
+        <div id="accionables"></div>
+        <div id="chatmsgs" style="display:flex;flex-direction:column"></div>
+      </div>
+      <div class="compose"><input id="msg" placeholder="Escribe una tarea o pregunta…  (Enter para enviar)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviar()}"><button class="send" onclick="enviar()">➤</button></div>
+    </div>
+    <div class="rail glass">
+      <div class="lbl">Tu día</div>
+      <div id="metrics"></div>
+      <div class="lbl" id="readyLbl">Preparado para ti</div>
+      <div id="ready"><div class="thread"><div class="t muted">Nada preparado aún.</div><div class="s">Cuando cierre algo por ti, aparece aquí para tu OK.</div></div></div>
+      <div class="lbl">Hilos de hoy</div>
+      <div id="hilos"><div class="muted" style="padding:6px">…</div></div>
+    </div>
+  </div>
+</div>
+<script>
+const API='';
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+// ── tema (persistente) ──
+(function(){const t=localStorage.getItem('lb-theme')||'dark';document.documentElement.setAttribute('data-theme',t);})();
+function toggleTheme(){const h=document.documentElement;const d=h.getAttribute('data-theme')==='dark';const n=d?'light':'dark';h.setAttribute('data-theme',n);localStorage.setItem('lb-theme',n);syncThemeBtn();}
+function syncThemeBtn(){document.getElementById('themeBtn').textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀️':'🌙';}
+syncThemeBtn();
+const TIPO={reunion:'ok',agenda:'ok',fiscal:'due',plazo:'due',notificacion:'hot',aprobacion:'hot'};
+const PILL={confirmada:['ok','Confirmada'],requiere_accion:['act','Requiere acción'],vencida:['hot','Vencida'],pendiente:['due','Pendiente']};
+// ── telar real ──
+async function loadTelar(){
+  try{
+    const t=await (await fetch(API+'/telar',{signal:AbortSignal.timeout(15000)})).json();
+    const u=t.usuario||''; document.getElementById('av').textContent=(u[0]||'·').toUpperCase();
+    // Las aprobaciones viven SOLO en «Preparado para ti» (loadReady); no las dupliques como hilo.
+    const hilos=(t.hilos||[]).filter(h=>h.tipo!=='aprobacion');
+    window._hilos=hilos;
+    const nAcc=hilos.filter(h=>(h.accion||{}).modo==='agent_task').length;
+    document.getElementById('greet').innerHTML=`<div class="k">${esc(t.saludo||'Hola')}</div><h1>${esc(u||'')}.</h1>`+
+      `<p>${hilos.length} hilos hoy · <b>${nAcc}</b> piden tu atención · el resto, preparado.</p>`;
+    // accionables (agent_task) → centro ; resto → derecha
+    const acc=[],resto=[];
+    hilos.forEach((h,i)=>((h.accion||{}).modo==='agent_task'?acc:resto).push({h,i}));
+    document.getElementById('accionables').innerHTML = acc.length?('<div class="csec">Pide acción — un toque y te lo dejo listo</div>'+acc.map(({h,i})=>{
+      const hot=h.tipo==='notificacion'; return `<div class="tcard ${hot?'hot':''}"><div class="tav">${esc(h.icono||'•')}</div>`+
+        `<div style="flex:1;min-width:0"><h3>${esc(h.titulo)}</h3>`+(h.porque?`<div class="why">${esc(h.porque)}</div>`:'')+(h.detalle?`<div class="sub">${esc(h.detalle)}</div>`:'')+`<span class="pill act">Requiere acción</span></div>`+
+        `<button class="prep" onclick="actuar(${i})"><span class="pic">⚡</span><span class="pl">${esc(h.accion.label||'Preparar')}</span></button></div>`;
+    }).join('')):'';
+    document.getElementById('hilos').innerHTML = resto.length?resto.map(({h,i})=>{
+      const c=TIPO[h.tipo]||''; return `<div class="thread ${c}"><div class="t">${esc(h.icono||'')} ${esc(h.titulo)}</div>`+(h.porque?`<div class="s">${esc(h.porque)}</div>`:'')+
+        ((h.accion||{}).label?`<button class="go" style="margin-top:8px;font-size:11px;padding:5px 11px" onclick="actuar(${i})">${esc(h.accion.label)}</button>`:'')+`</div>`;
+    }).join(''):'<div class="muted" style="padding:6px">Nada más por hoy ✅</div>';
+    document.getElementById('metrics').innerHTML=
+      `<div class="metric"><span class="v">${nAcc}</span><span class="l">piden acción</span></div>`+
+      `<div class="metric"><span class="v">${hilos.length}</span><span class="l">hilos hoy</span></div>`;
+  }catch(e){document.getElementById('greet').innerHTML='<div class="k">Hola</div><h1>Loombit</h1><p class="muted">No pude cargar el telar ahora mismo.</p>';}
+}
+// ── contexto: acciones + conexiones ──
+async function loadCtx(){
+  try{
+    const c=await (await fetch(API+'/home/context',{signal:AbortSignal.timeout(15000)})).json();
+    const cols=['var(--coral)','#5a78e0','#1d8a5f','#a86510','#5a78e0','var(--coral)','#7c9cff'];
+    document.getElementById('acciones').innerHTML=(c.procesos_diarios||[]).map((p,i)=>
+      `<button class="nav" onclick="quick(${i})"><span class="ic" style="color:${cols[i%cols.length]}">${esc(p.icon||'•')}</span>${esc(p.label)}</button>`).join('');
+    window._proc=c.procesos_diarios||[];
+  }catch(e){document.getElementById('acciones').innerHTML='<div class="muted" style="padding:6px">—</div>';}
+  try{
+    const s=await (await fetch(API+'/skill-blanca/oauth/status',{signal:AbortSignal.timeout(8000)})).json();
+    const on=((s.providers||{}).google||{}).connected;
+    document.getElementById('conex').innerHTML=`<button class="nav"><span class="ic">📧</span>Google<span style="margin-left:auto;font-size:10px;color:${on?'#1d8a5f':'var(--ink2)'}">● ${on?'ON':'off'}</span></button>`;
+  }catch(e){}
+}
+function quick(i){const p=(window._proc||[])[i];if(!p)return;document.getElementById('msg').value=p.prompt||'';if(p.auto)enviar();else document.getElementById('msg').focus();}
+function actuar(i){const h=(window._hilos||[])[i];if(!h)return;const a=h.accion||{};
+  if(a.modo==='agent_task'&&a.task){runTask(a.task,a.label||'Preparando…');}
+  else if(a.modo==='navigate'&&h.enlace){window.open(h.enlace,'_blank','noopener');}
+}
+// ── Preparado para ti: aprobaciones reales (gate sagrado) ──
+async function loadReady(){
+  const box=document.getElementById('ready');const lbl=document.getElementById('readyLbl');
+  try{
+    const r=await fetch(API+'/agent/runs?status=pending_approval',{signal:AbortSignal.timeout(8000)});
+    if(!r.ok)return;
+    const runs=await r.json();
+    if(lbl)lbl.innerHTML='Preparado para ti'+(runs.length?`<span class="cnt">${runs.length}</span>`:'');
+    if(!runs.length){box.innerHTML='<div class="thread"><div class="t muted">Nada preparado aún.</div><div class="s">Cuando cierre algo por ti, aparece aquí para tu OK.</div></div>';return;}
+    box.innerHTML=runs.slice(0,6).map(run=>{
+      const pa=run.pending_approval||{};
+      const titulo=esc(String(pa.reason||run.task||'Acción preparada').trim());
+      const draft=String(pa.proposed_action||'').trim();
+      const draftHtml=draft?`<div class="draft">${esc(draft.slice(0,600))}${draft.length>600?'…':''}</div>`:'';
+      return `<div class="appr"><div class="at">${titulo}</div>${draftHtml}`+
+        `<div class="lock">🔒 Nada sale de tu máquina hasta que apruebes.</div>`+
+        `<div class="acts"><button class="ok" onclick="aprobar('${run.id}',this)">Aprobar</button>`+
+        `<button class="no" onclick="rechazar('${run.id}',this)">Descartar</button></div></div>`;
+    }).join('');
+  }catch(e){/* conserva lo último bueno */}
+}
+async function aprobar(id,btn){
+  btn.disabled=true;btn.textContent='Aprobando…';
+  try{
+    await fetch(API+'/agent/runs/'+id+'/approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({comment:''})});
+    addMsg('a','✓ Aprobado. Lo dejo hecho.');
+  }catch(e){addMsg('e','No pude aprobar ahora mismo. Reinténtalo en unos segundos.');btn.disabled=false;btn.textContent='Aprobar';return;}
+  setTimeout(()=>{loadReady();loadTelar();},800);
+}
+async function rechazar(id,btn){
+  btn.disabled=true;
+  try{await fetch(API+'/agent/runs/'+id+'/cancel',{method:'POST'});}catch(e){}
+  setTimeout(loadReady,400);
+}
+// ── chat real (CON MEMORIA de conversación) ──
+let busy=false;
+window._chat=[];     // transcripto de turnos {role,content} → contexto del hilo (un "sí" sabe a qué responde)
+window._await=null;  // run_id si el agente espera TU respuesta (pending_question) → continúa ESE run, no abre otro
+function addMsg(role,txt){const f=document.getElementById('chatmsgs');const d=document.createElement('div');d.className='msg '+role;d.textContent=txt;f.appendChild(d);document.getElementById('feed').scrollTop=1e9;return d;}
+function pushTurn(role,content){if(content&&String(content).trim())window._chat.push({role,content:String(content)});if(window._chat.length>16)window._chat=window._chat.slice(-16);}
+async function pollRun(id,think){
+  for(let k=0;k<200;k++){await new Promise(r=>setTimeout(r,1500));
+    const rr=await (await fetch(API+'/agent/runs/'+id)).json();
+    if(['completed','failed','pending_approval','pending_question'].includes(rr.status)){return render(rr,think);}
+  }
+  think.textContent='Tardó demasiado. Inténtalo de nuevo.';
+}
+async function enviar(){
+  const inp=document.getElementById('msg');const txt=inp.value.trim();if(!txt||busy)return;inp.value='';
+  addMsg('u',txt);pushTurn('user',txt);
+  if(window._await){answerRun(window._await,txt);return;}   // el agente preguntaba → responde a ESE run
+  runTask(txt,null,false);
+}
+async function answerRun(runId,answer){
+  if(busy)return;busy=true;window._await=null;
+  const think=addMsg('a','Procesando…');
+  try{
+    await fetch(API+'/agent/runs/'+runId+'/answer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({answer})});
+    await pollRun(runId,think);
+  }catch(e){think.className='msg e';think.textContent='No pude continuar ahora mismo. Reinténtalo en unos segundos.';}
+  finally{busy=false;}
+}
+async function runTask(task,label,showUser){
+  if(busy)return;busy=true;window._await=null;
+  if(showUser){addMsg('u',task);pushTurn('user',task);}
+  const think=addMsg('a','Procesando…');
+  try{
+    const history=window._chat.slice(0,-1);  // todo el hilo menos el turno actual = memoria
+    const r=await fetch(API+'/agent/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({task,history})});
+    const run=await r.json();
+    if(run.status&&run.status!=='running'&&run.status!=='pending'){return render(run,think);}
+    await pollRun(run.id,think);
+  }catch(e){think.className='msg e';think.textContent='No pude completarlo ahora mismo: el modelo local estaba ocupado. Dame unos segundos y reinténtalo.';}
+  finally{busy=false;}
+}
+function render(run,think){
+  busy=false;
+  if(run.status==='completed'){const r=run.result||'(hecho)';think.textContent=r;pushTurn('assistant',r);window._await=null;}
+  else if(run.status==='pending_question'){const q=(run.pending_question||{}).question||'¿Puedes darme un dato más?';think.textContent=q;pushTurn('assistant',q);window._await=run.id;}
+  else if(run.status==='pending_approval'){think.textContent='He preparado algo que espera tu aprobación. Revísalo en «Preparado para ti».';pushTurn('assistant','(he preparado algo para tu aprobación)');window._await=null;loadReady();loadTelar();}
+  else{think.className='msg e';think.textContent='No pude completarlo ahora mismo. Inténtalo de nuevo.';window._await=null;}
+}
+loadTelar();loadCtx();loadReady();
+setInterval(()=>{if(document.visibilityState==='visible')loadTelar();},60000);
+setInterval(()=>{if(document.visibilityState==='visible')loadReady();},8000);
+</script>
+</body></html>

@@ -13,17 +13,30 @@ se devuelve un resumen determinista en viñetas (sigue siendo útil y honesto).
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from .registry import ToolDefinition, tool_registry
 
+_DIAS_ES = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
 
-def _fmt_evento(ev: dict[str, Any]) -> str:
+
+def _fmt_evento(ev: dict[str, Any], con_fecha: bool = False) -> str:
+    """Formatea un evento. `con_fecha=True` antepone el DÍA y la fecha (computados en código) para
+    listados de varios días: así el 14B no tiene que adivinar el día de la semana (y equivocarse).
+    """
     if ev.get("all_day"):
-        return f"{ev['summary']} (todo el día)"
-    hora = str(ev.get("start", ""))[11:16]  # HH:MM de un dateTime ISO
-    return f"{hora} {ev['summary']}".strip()
+        base = f"{ev['summary']} (todo el día)"
+    else:
+        hora = str(ev.get("start", ""))[11:16]  # HH:MM de un dateTime ISO
+        base = f"{hora} {ev['summary']}".strip()
+    if con_fecha:
+        try:
+            d = date.fromisoformat(str(ev.get("start", ""))[:10])
+            return f"{_DIAS_ES[d.weekday()].capitalize()} {d.day:02d}/{d.month:02d} · {base}"
+        except ValueError:
+            pass
+    return base
 
 
 def _señales_del_dia(now: datetime | None = None) -> list[str]:
@@ -96,6 +109,29 @@ def _calendar_today(**_: object) -> str:
     return "Hoy en tu agenda:\n" + "\n".join(f"• {_fmt_evento(e)}" for e in eventos)
 
 
+def _calendar_semana(**_: object) -> str:
+    """Lista los eventos de HOY y los PRÓXIMOS 7 DÍAS (la semana). Cierra la pregunta '¿qué reuniones
+    tengo esta semana?', que con calendar_today (solo hoy) quedaba sin responder. Solo lectura."""
+    try:
+        from ..skill_blanca_calendar_read import eventos_de_hoy, eventos_proximos
+
+        eventos = list(eventos_de_hoy()) + list(eventos_proximos(dias=7))
+    except ValueError as exc:
+        if "no_token" in str(exc):
+            return "Tu Google Calendar no está conectado. Conéctalo para que pueda ver tu agenda."
+        if "unauthorized" in str(exc):
+            return "El acceso a tu calendario ha caducado. Vuelve a conectar Google."
+        return f"No pude leer el calendario ({exc})."
+    except Exception as exc:  # noqa: BLE001
+        return f"No pude leer el calendario ({exc})."
+
+    if not eventos:
+        return "No tienes eventos en el calendario para esta semana."
+    return "Tu agenda de esta semana (hoy y próximos días):\n" + "\n".join(
+        f"• {_fmt_evento(e, con_fecha=True)}" for e in eventos
+    )
+
+
 # ── Registro ──────────────────────────────────────────────────────────────────
 
 tool_registry.register(
@@ -122,6 +158,20 @@ tool_registry.register(
         ),
         parameters={"type": "object", "properties": {}},
         fn=_calendar_today,
+        category="connector",
+    )
+)
+
+tool_registry.register(
+    ToolDefinition(
+        name="calendar_semana",
+        description=(
+            "Lee los eventos de HOY y los PRÓXIMOS 7 DÍAS del calendario de Google (solo lectura). "
+            "Úsala cuando el usuario pregunte por su agenda/reuniones de ESTA SEMANA o los próximos "
+            "días (no solo hoy)."
+        ),
+        parameters={"type": "object", "properties": {}},
+        fn=_calendar_semana,
         category="connector",
     )
 )

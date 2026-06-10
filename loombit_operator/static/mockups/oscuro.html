@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Loombit · Oscuro atrevido</title>
+<style>
+@font-face{font-family:'Space Grotesk';font-weight:300 700;font-display:swap;src:url('/static/fonts/space-grotesk.woff2') format('woff2')}
+:root{
+  --bg:#0a0d16; --card:#141a28; --card2:#1b2233; --ink:#f4f7ff; --ink2:#93a0bd;
+  --violet:#a78bfa; --fuchsia:#e879f9; --cyan:#22d3ee; --green:#34d399; --amber:#fbbf24; --red:#fb7185;
+  --display:'Space Grotesk',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--display);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;
+  background-color:#0a0d16;
+  background-image:
+    repeating-linear-gradient(90deg,rgba(167,139,250,.07) 0 1px,transparent 1px 40px),
+    repeating-linear-gradient(0deg,rgba(34,211,238,.05) 0 1px,transparent 1px 40px),
+    radial-gradient(900px 480px at 50% -12%,rgba(124,58,237,.35),transparent 60%);}
+.wrap{max-width:600px;margin:0 auto;padding:28px 22px 60px}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.brand{font-weight:700;font-size:20px;letter-spacing:-.03em;display:flex;align-items:center;gap:9px}
+.brand .dot{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--violet),var(--fuchsia) 50%,var(--cyan));display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px}
+.top .pill{font-size:11px;color:var(--ink2);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:6px 13px}
+.hero{margin-bottom:24px}
+.hero .hi{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan);font-weight:600;margin-bottom:6px}
+.hero h1{font-size:30px;font-weight:700;letter-spacing:-.025em;line-height:1.05;
+  background:linear-gradient(120deg,#fff,#c4b5fd);-webkit-background-clip:text;background-clip:text;color:transparent}
+.kpis{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:18px 0 26px}
+.kpi{border-radius:16px;padding:14px;background:var(--card);border:1px solid rgba(255,255,255,.07)}
+.kpi .v{font-size:30px;font-weight:700;letter-spacing:-.03em;line-height:1}
+.kpi .l{font-size:11px;color:var(--ink2);margin-top:4px}
+.kpi.g .v{color:var(--green)} .kpi.a .v{color:var(--amber)} .kpi.b .v{color:var(--cyan)}
+.sec{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);font-weight:600;margin:6px 2px 12px}
+.card{border-radius:18px;padding:15px 17px;margin-bottom:11px;background:var(--card);
+  border:1px solid rgba(255,255,255,.07);border-left:4px solid var(--violet);display:flex;gap:13px;align-items:flex-start}
+.card.r{border-left-color:var(--red)} .card.k{border-left-color:var(--cyan)} .card.f{border-left-color:var(--amber)}
+.av{width:42px;height:42px;border-radius:12px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:20px}
+.bd{flex:1;min-width:0}.card h3{font-size:15px;letter-spacing:-.01em;margin-bottom:3px}
+.card p{font-size:12.5px;color:var(--ink2);line-height:1.4}
+.tag{font-size:11px;font-weight:700;border-radius:999px;padding:4px 10px;display:inline-block;margin-top:8px}
+.tag.act{background:rgba(251,113,133,.16);color:var(--red)}
+.tag.ok{background:rgba(52,211,153,.16);color:var(--green)}
+.tag.due{background:rgba(251,191,36,.16);color:var(--amber)}
+.big{font-size:40px;font-weight:700;letter-spacing:-.04em;color:var(--amber);line-height:.85}
+.big small{font-size:13px;color:var(--ink2);letter-spacing:0}
+.go{align-self:center;font-size:12.5px;font-weight:700;color:#0a0d16;background:linear-gradient(135deg,var(--violet),var(--cyan));border:none;border-radius:999px;padding:9px 16px;cursor:pointer;font-family:var(--display);white-space:nowrap}
+.go.ghost{background:transparent;color:var(--ink2);border:1px solid rgba(255,255,255,.18)}
+.grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-top:4px}
+.act{background:var(--card);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:14px 12px;cursor:pointer;text-align:left;font-family:var(--display)}
+.act .ic{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:17px;margin-bottom:9px}
+.act .lb{font-size:11.5px;font-weight:600;color:var(--ink)}
+.act:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.2)}
+</style></head>
+<body><div class="wrap">
+  <div class="top"><div class="brand"><span class="dot">Lb</span>Loombit</div><div class="pill">🔒 Todo en tu máquina</div></div>
+
+  <div class="hero"><div class="hi">Buenas tardes</div><h1>Fernando, tu telar de hoy</h1></div>
+
+  <div class="kpis">
+    <div class="kpi g"><div class="v">0 €</div><div class="l">A cobrar</div></div>
+    <div class="kpi a"><div class="v">41</div><div class="l">días para el 303</div></div>
+    <div class="kpi b"><div class="v">2</div><div class="l">piden acción</div></div>
+  </div>
+
+  <div class="sec">Hoy en tu telar</div>
+  <div class="card r"><div class="av" style="background:rgba(251,113,133,.14)">⚠️</div>
+    <div class="bd"><h3>Deuda no reconocida</h3><p>Abogados CEA reclama una deuda que no reconoces. Verifícala antes de pagar.</p><span class="tag act">Requiere acción</span></div>
+    <button class="go">Gestionar</button></div>
+  <div class="card k"><div class="av" style="background:rgba(34,211,238,.14)">📅</div>
+    <div class="bd"><h3>Reunión con David Valentín</h3><p>Jueves 11 jun · 09:00 · Getafe. Confirmada por ambos.</p><span class="tag ok">Confirmada</span></div>
+    <button class="go ghost">Ver</button></div>
+  <div class="card f"><div class="av" style="background:rgba(251,191,36,.14)">🧾</div>
+    <div class="bd"><h3>Impuestos 2º trimestre (303·130·111·115)</h3><p>Vence el 2026-07-20.</p>
+      <div style="display:flex;align-items:baseline;gap:8px;margin-top:6px"><span class="big">41<small> días</small></span></div></div>
+    <button class="go">Preparar</button></div>
+
+  <div class="sec">¿Qué necesitas?</div>
+  <div class="grid">
+    <button class="act"><span class="ic" style="background:rgba(34,211,238,.16);color:var(--cyan)">✉️</span><span class="lb">Redactar correo</span></button>
+    <button class="act"><span class="ic" style="background:rgba(167,139,250,.16);color:var(--violet)">📅</span><span class="lb">Crear evento</span></button>
+    <button class="act"><span class="ic" style="background:rgba(52,211,153,.16);color:var(--green)">🧾</span><span class="lb">Registrar factura</span></button>
+    <button class="act"><span class="ic" style="background:rgba(251,191,36,.16);color:var(--amber)">💶</span><span class="lb">Reclamar cobro</span></button>
+  </div>
+</div></body></html>

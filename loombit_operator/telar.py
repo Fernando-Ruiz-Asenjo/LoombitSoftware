@@ -18,9 +18,12 @@ saludo (con fallback). Todas las fuentes son inyectables → testeable sin red n
 
 from __future__ import annotations
 
+import logging
 import re
 from datetime import date, datetime
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 # Palabras que, junto a una fecha, indican un PLAZO real (no una fecha cualquiera).
 _PALABRAS_PLAZO = (
@@ -59,12 +62,45 @@ def _cuando_humano(fecha_iso: str, hora: str = "") -> str:
     return f"{base} · {hora}" if hora else base
 
 
+def _cal_dia_link(fecha_iso: str) -> str:
+    """Enlace a ese día en Google Calendar → 'Ver' una reunión/evento abre el calendario de verdad."""
+    try:
+        d = date.fromisoformat((fecha_iso or "")[:10])
+        return f"https://calendar.google.com/calendar/u/0/r/day/{d.year}/{d.month}/{d.day}"
+    except ValueError:
+        return ""
+
+
+def _gmail_buscar_link(query: str) -> str:
+    """Enlace a una búsqueda en Gmail → 'Ver' una notificación abre ese correo de verdad."""
+    if not (query or "").strip():
+        return ""
+    from urllib.parse import quote
+
+    return "https://mail.google.com/mail/u/0/#search/" + quote(query.strip())
+
+
 _ICONO_ASUNTO = {"reunion": "📆", "notificacion": "⚠️", "plazo": "⏰", "gestion": "📝"}
 _ESTADO_TXT = {
     "confirmada": "✅ confirmada por ambos",
     "requiere_accion": "⚠️ requiere acción",
     "pendiente": "pendiente de respuesta",
 }
+
+
+_URGENCIA_PALABRA = {"alta": 3, "urgente": 3, "media": 2, "normal": 2, "baja": 1, "low": 1}
+
+
+def _urgencia_de(a: dict) -> int:
+    """importancia → urgencia 1-3, ROBUSTA: acepta int, número en texto o palabra (alta/media/baja).
+    Nunca lanza: un asunto malformado no debe tumbar el telar (la pantalla de inicio)."""
+    v = a.get("importancia", 2)
+    if isinstance(v, str):
+        v = _URGENCIA_PALABRA.get(v.strip().lower(), v)
+    try:
+        return min(3, max(1, int(v)))
+    except (ValueError, TypeError):
+        return 2
 
 
 def _hilo_asunto(a: dict) -> dict:
@@ -94,14 +130,34 @@ def _hilo_asunto(a: dict) -> dict:
         }
     else:
         accion = {"modo": "navigate", "label": "Ver"}
+    if tipo == "reunion" and a.get("fecha"):
+        enlace = _cal_dia_link(a["fecha"])
+    else:
+        enlace = _gmail_buscar_link(a.get("origen", "") or titulo)
     return _hilo(
         tipo,
         _ICONO_ASUNTO.get(tipo, "•"),
         titulo.replace("  ", " ").strip(),
-        urgencia=int(a.get("importancia", 2)),
+        urgencia=_urgencia_de(a),
         accion=accion,
         detalle=" · ".join(partes),
+        porque=_porque_asunto(tipo, a.get("estado", "")),
+        enlace=enlace,
     )
+
+
+def _porque_asunto(tipo: str, estado: str) -> str:
+    """El PORQUÉ de un asunto comprendido: una línea causal (por qué está hoy en la tela),
+    distinta del detalle. Sale de la cognición (estado/tipo), no de repetir el resumen."""
+    if estado == "confirmada":
+        return "Confirmada por ambas partes; solo tienes que presentarte."
+    if estado == "requiere_accion":
+        return "Pide acción tuya — te lo dejo preparado."
+    if tipo == "reunion":
+        return "Está en tu agenda."
+    if tipo == "notificacion":
+        return "Notificación que conviene revisar."
+    return "Gestión pendiente de cerrar."
 
 
 def _saludo(now: datetime) -> str:
@@ -257,6 +313,7 @@ def _hilo_cobro_vencida(cu: Any, hoy: date) -> dict:
                     "(factura vencida), en mi nombre."
                 ),
             },
+            porque="Factura vencida; cuanto antes la reclames, antes cobras.",
         )
 
     dias = plan["overdue_days"]
@@ -318,6 +375,41 @@ def _hilo_cobro_vencida(cu: Any, hoy: date) -> dict:
         urgencia=2,
         accion=accion,
         detalle=detalle,
+        porque=f"Vencida hace {dias} días — el recordatorio ya está redactado.",
+    )
+
+
+def _hilo_pulso(p: dict) -> dict:
+    """Hilo de PULSO FINANCIERO (D-5): facturación del último mes cerrado y su variación vs el anterior.
+    Si bajó → urgencia 2 (atención); si subió → urgencia 1 (buenas noticias). Cifras deterministas.
+    """
+    fact, fact_prev = float(p.get("fact", 0)), float(p.get("fact_prev", 0))
+    delta = round(fact - fact_prev, 2)
+    if fact_prev:
+        pct = round(delta / abs(fact_prev) * 100, 1)
+        comp = f"{'+' if delta >= 0 else ''}{pct:.1f}% vs {p.get('et2')}"
+    else:
+        comp = f"no había facturación en {p.get('et2')}"
+    bajo = delta < 0
+    return _hilo(
+        "finanzas",
+        "📉" if bajo else "📈",
+        f"Facturación de {p.get('et1')}: {fact:.0f} € ({comp})",
+        urgencia=2 if bajo else 1,
+        accion={
+            "modo": "agent_task",
+            "label": "Ver comparativa",
+            "task": "Compara mi facturación de este mes con la del mes pasado.",
+        },
+        porque=(
+            "Tu facturación bajó respecto al mes anterior — conviene mirarlo."
+            if bajo
+            else "Vas por encima del mes anterior."
+        ),
+        detalle=(
+            f"Beneficio {p.get('et1')}: {float(p.get('ben', 0)):.0f} € "
+            f"(vs {float(p.get('ben_prev', 0)):.0f} € en {p.get('et2')})."
+        ),
     )
 
 
@@ -344,6 +436,7 @@ def tejer_dia(
     vencidas: list | None = None,
     proximas: list | None = None,
     aprobaciones: int | None = None,
+    pulso: dict | None = None,
 ) -> dict[str, Any]:
     """Teje la tela del día. Todas las fuentes son inyectables (None = se obtienen de verdad).
 
@@ -370,12 +463,52 @@ def tejer_dia(
     if aprobaciones is None:
         aprobaciones = _fuente_aprobaciones()
 
-    # 📅 Agenda de hoy
+    # 🧠 COMPRENSIÓN de la bandeja (Skill D): se resuelve ANTES de la agenda para DEDUPLICAR — una
+    # reunión que el modelo ya entendió del correo (reconciliada, más rica) NO debe repetirse como
+    # evento de calendario crudo (el correo manda sobre el calendario).
+    if asuntos is None:
+        from .comprension import comprension_cacheada, refrescar_async
+
+        asuntos, _edad = comprension_cacheada()
+        if _edad > 600:  # vacío/caducado → refresca en 2º plano (no bloquea ni llama al LLM aquí)
+            refrescar_async(
+                (correos or []) + (inbox or []), proximos or [], hoy, buscar=_buscar_correos
+            )
+        if not asuntos and _edad == float("inf"):
+            # nunca computado aún: aviso honesto, NUNCA un dato sin verificar
+            hilos.append(
+                _hilo(
+                    "gestion",
+                    "🧠",
+                    "Verificando tus correos y tu agenda…",
+                    urgencia=1,
+                    accion={"modo": "navigate", "label": "…"},
+                    detalle="Comprendiendo tus conversaciones para no darte nada sin verificar.",
+                )
+            )
+    # Claves (fecha, hora) de las reuniones YA comprendidas → para no duplicarlas desde la agenda.
+    _claves_reunion = {
+        (a.get("fecha"), str(a.get("hora") or ""))
+        for a in (asuntos or [])
+        if a.get("tipo") == "reunion" and a.get("fecha")
+    }
+
+    # 📅 Agenda de hoy (omite lo que la comprensión ya cubre como reunión, para no duplicar)
     for ev in eventos[:6]:
         hora = str(ev.get("start", ""))[11:16]
+        if (str(ev.get("start", ""))[:10], hora) in _claves_reunion:
+            continue  # esa cita ya sale como reunión comprendida (más rica) → no duplicar
         titulo = f"{hora} · {ev.get('summary', '(evento)')}".strip(" ·")
         hilos.append(
-            _hilo("agenda", "📅", titulo, urgencia=1, accion={"modo": "navigate", "label": "Ver"})
+            _hilo(
+                "agenda",
+                "📅",
+                titulo,
+                urgencia=1,
+                accion={"modo": "navigate", "label": "Ver"},
+                porque=(f"Hoy a las {hora}." if hora else "En tu agenda de hoy."),
+                enlace=_cal_dia_link(str(ev.get("start", ""))[:10]),
+            )
         )
 
     # 💰 Cobros — el hilo vencido lleva su desglose LEGAL (saldo + 40 € art. 8 + interés de demora
@@ -396,8 +529,17 @@ def tejer_dia(
                     "label": "Preparar aviso",
                     "task": f"Prepara un aviso amable de vencimiento próximo a {cliente} por {imp:.0f} €, en mi nombre.",
                 },
+                porque="Vence pronto; un aviso a tiempo evita el retraso.",
             )
         )
+
+    # 💹 Pulso financiero (D-5) — la EVOLUCIÓN del último mes CERRADO vs el anterior (sin partir un mes
+    # en curso, que sería injusto). El autónomo VE su tendencia sin pedirla. Determinista; None = no hay
+    # datos → no inventa nada.
+    if pulso is None:
+        pulso = _fuente_pulso_financiero(settings, hoy)
+    if pulso:
+        hilos.append(_hilo_pulso(pulso))
 
     # 🧾 Calendario fiscal del autónomo — siempre sabe tu próximo impuesto (el moat español)
     for ob in _obligaciones_fiscales(hoy):
@@ -414,6 +556,7 @@ def tejer_dia(
                     "task": f"Prepara un borrador del modelo 303 (IVA) del {ob['periodo']} a partir de mis facturas; yo lo reviso y lo presento en la AEAT. Avísame si falta algún dato.",
                 },
                 detalle="Fecha estándar de presentación; confirma festivos en la AEAT.",
+                porque=f"Vence el {ob['fecha']} ({ob['dias']} días); mejor con margen.",
             )
         )
 
@@ -433,38 +576,17 @@ def tejer_dia(
                     "label": "Redactar respuesta",
                     "task": f"Responde al correo de {de} ({email}) «{asunto}». Su mensaje: «{c.get('snippet', '')[:200]}». Redacta una respuesta breve y natural en mi nombre.",
                 },
+                porque=f"{de} te escribió y sigue sin respuesta.",
             )
         )
 
-    # 🧠 COMPRENSIÓN de la bandeja (Skill D · Comprensión): no extrae datos sueltos — el modelo
-    # ENTIENDE los hilos (quién es quién, de qué va, en qué estado: confirmada / requiere acción) y de
-    # ahí salen las reuniones (reconciliadas: la palabra del correo manda sobre el calendario), las
-    # notificaciones oficiales (Policía/AEAT…) y los plazos. FIABLE: se calcula en SEGUNDO PLANO y se
-    # cachea; el telar lee el último resultado bueno y NUNCA muestra el calendario crudo (sin verificar).
-    if asuntos is None:
-        from .comprension import comprension_cacheada, refrescar_async
-
-        asuntos, _edad = comprension_cacheada()
-        if (
-            _edad > 600
-        ):  # vacío o caducado → refresca en 2º plano (no bloquea el telar ni llama al LLM aquí)
-            refrescar_async(
-                (correos or []) + (inbox or []), proximos or [], hoy, buscar=_buscar_correos
-            )
-        if not asuntos and _edad == float("inf"):
-            # nunca computado aún: aviso honesto, NUNCA un dato sin verificar
-            hilos.append(
-                _hilo(
-                    "gestion",
-                    "🧠",
-                    "Verificando tus correos y tu agenda…",
-                    urgencia=1,
-                    accion={"modo": "navigate", "label": "…"},
-                    detalle="Comprendiendo tus conversaciones para no darte nada sin verificar.",
-                )
-            )
+    # 🧠 COMPRENSIÓN de la bandeja → hilos (ya resuelta arriba, para poder deduplicar la agenda).
     for a in (asuntos or [])[:6]:
-        hilos.append(_hilo_asunto(a))
+        # Un asunto malformado NUNCA debe tumbar el telar (dejaría el home en blanco): se omite.
+        try:
+            hilos.append(_hilo_asunto(a))
+        except Exception:  # noqa: BLE001
+            logger.warning("telar: asunto malformado omitido: %r", a, exc_info=True)
 
     # ✅ Aprobaciones pendientes
     if aprobaciones:
@@ -475,6 +597,7 @@ def tejer_dia(
                 f"{aprobaciones} acción(es) esperando tu aprobación",
                 urgencia=2,
                 accion={"modo": "navigate", "label": "Revisar"},
+                porque="Espera tu visto bueno antes de que salga nada.",
             )
         )
 
@@ -561,12 +684,24 @@ def _fuente_correos(settings: Any) -> list[dict]:
         token = fresh_access_token(st, "google")
         if not token:
             return []
+        propio = _email_propio()  # no te propongas responderte a ti mismo
         contactos = [
-            SimpleNamespace(name=c["name"], email=c["email"]) for c in _contactos_de_gmail(st)
+            SimpleNamespace(name=c["name"], email=c["email"])
+            for c in _contactos_de_gmail(st)
+            if (c.get("email") or "").lower() != propio
         ]
         return _buscar_respuestas(token, contactos)
     except Exception:
         return []
+
+
+def _email_propio() -> str:
+    try:
+        from .agent.memory import get_memory
+
+        return (get_memory().owner.get("email") or "").strip().lower()
+    except Exception:
+        return ""
 
 
 def _fuente_inbox(
@@ -627,6 +762,38 @@ def _fuente_cobros(settings: Any) -> tuple[list, list]:
         return cc.vencidas(), cc.proximas(7)
     except Exception:
         return [], []
+
+
+def _fuente_pulso_financiero(settings: Any, hoy: date) -> dict | None:
+    """Pulso financiero del último mes CERRADO vs el anterior (facturación + beneficio), o None si no
+    hay datos. Reusa los helpers DETERMINISTAS de D-4 (dominio). Best-effort: cualquier fallo → None.
+    """
+    try:
+        from .expedientes import ExpedienteStore
+        from .tools.dominio import _ENTIDAD_DEFECTO, _metricas_periodo, _rango_mes_d4
+
+        a, m = hoy.year, hoy.month
+        m1y, m1 = (
+            (a, m - 1) if m > 1 else (a - 1, 12)
+        )  # último mes COMPLETO (el actual está en curso)
+        m2y, m2 = (m1y, m1 - 1) if m1 > 1 else (m1y - 1, 12)  # el anterior a ese
+        store = ExpedienteStore(entity_id=_ENTIDAD_DEFECTO)
+        d1, h1, et1 = _rango_mes_d4(m1y, m1)
+        d2, h2, et2 = _rango_mes_d4(m2y, m2)
+        cur = _metricas_periodo(store, d1, h1)
+        prev = _metricas_periodo(store, d2, h2)
+        if cur["vacio"] and prev["vacio"]:
+            return None  # nada que mostrar → no se inventa un hilo
+        return {
+            "et1": et1,
+            "et2": et2,
+            "fact": cur["base_e"],
+            "fact_prev": prev["base_e"],
+            "ben": cur["beneficio"],
+            "ben_prev": prev["beneficio"],
+        }
+    except Exception:
+        return None
 
 
 def _fuente_aprobaciones() -> int:

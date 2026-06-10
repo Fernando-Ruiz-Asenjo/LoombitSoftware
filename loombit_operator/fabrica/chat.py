@@ -168,6 +168,24 @@ def _router_keywords(m: str, mensaje: str) -> dict[str, Any]:
         )
     ):
         return {"accion": "explicar", "tema": mensaje}
+    if any(
+        k in m
+        for k in (
+            "qué eres",
+            "que eres",
+            "quién eres",
+            "quien eres",
+            "qué puedes hacer",
+            "que puedes hacer",
+            "qué haces",
+            "que haces",
+            "para qué sirves",
+            "para que sirves",
+            "qué sabes hacer",
+            "que sabes hacer",
+        )
+    ):
+        return {"accion": "identidad"}
     return {"accion": "charla"}
 
 
@@ -250,6 +268,21 @@ def _ayuda() -> dict[str, Any]:
 
 
 # ── Handlers de cada acción (cifras por código; el modelo solo narra lo abierto) ─
+def _h_identidad(intent, mensaje, llm) -> dict[str, Any]:
+    # Respuesta crisp y determinista: «¿qué eres?» no debe caer al 14B y dar una evasiva.
+    return {
+        "accion": "identidad",
+        "respuesta": (
+            "Soy la **Fábrica**: el motor de auto-mejora gobernada de Loombit. Cuido la salud del "
+            "código y propongo mejoras, traigo del radar lo que hacen la competencia y el mercado, "
+            "puedo **proponer herramientas nuevas** (siempre con tu visto bueno) y **optimizar el "
+            "prompt** del agente (GEPA). No aplico nada sin tu aprobación. Prueba: «estado», "
+            "«busca <tema>», «salud del código» o «optimiza el prompt»."
+        ),
+        "datos": None,
+    }
+
+
 def _h_estado(intent, mensaje, llm) -> dict[str, Any]:
     from .oportunidades import OportunidadStore
     from .propuesta import EstadoPropuesta, PropuestaStore
@@ -421,6 +454,7 @@ def _h_charla(intent, mensaje, llm) -> dict[str, Any]:
 
 
 _HANDLERS: dict[str, Callable[..., dict[str, Any]]] = {
+    "identidad": _h_identidad,
     "estado": _h_estado,
     "radar": _h_radar,
     "oportunidades": _h_oportunidades,

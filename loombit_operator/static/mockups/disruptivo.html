@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Loombit · Disruptivo</title>
+<style>
+@font-face{font-family:'Space Grotesk';font-weight:300 700;font-display:swap;src:url('/static/fonts/space-grotesk.woff2') format('woff2')}
+:root{
+  --paper:#f6f1e9; --ink:#1d1813; --ink2:#6b6256;
+  --coral:#f15a3e; --coral2:#ff7e63; --peach:#ffd9c2; --tech:#7c9cff; --mint:#8fe3c8;
+  --glass:rgba(255,255,255,.55); --glass-bd:rgba(255,255,255,.85);
+  --display:'Space Grotesk',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased}
+body{font-family:var(--display);color:var(--ink);background:var(--paper);min-height:100vh;position:relative;overflow-x:hidden}
+/* aurora: malla de luz suave (liviano + tecnológico) */
+.aurora{position:fixed;inset:0;z-index:0;pointer-events:none;filter:blur(60px);opacity:.9}
+.aurora span{position:absolute;border-radius:50%}
+.a1{width:520px;height:520px;background:var(--coral2);opacity:.30;top:-180px;right:-120px}
+.a2{width:420px;height:420px;background:var(--tech);opacity:.22;bottom:-160px;left:-120px}
+.a3{width:360px;height:360px;background:var(--mint);opacity:.20;top:40%;right:-140px}
+.a4{width:300px;height:300px;background:var(--peach);opacity:.5;top:10%;left:-100px}
+/* trama de telar finísima sobre todo */
+body::after{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;
+  background:repeating-linear-gradient(90deg,rgba(29,24,19,.035) 0 1px,transparent 1px 46px),
+             repeating-linear-gradient(0deg,rgba(29,24,19,.025) 0 1px,transparent 1px 46px)}
+.wrap{position:relative;z-index:1;max-width:600px;margin:0 auto;padding:30px 24px 70px}
+.rise{opacity:0;transform:translateY(14px);animation:rise .7s cubic-bezier(.2,.7,.2,1) forwards}
+.rise:nth-child(2){animation-delay:.05s}.rise:nth-child(3){animation-delay:.1s}.rise:nth-child(4){animation-delay:.15s}
+.rise:nth-child(5){animation-delay:.2s}.rise:nth-child(6){animation-delay:.25s}.rise:nth-child(7){animation-delay:.3s}
+@keyframes rise{to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.rise{animation:none;opacity:1;transform:none}}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:30px}
+.brand{font-weight:700;font-size:21px;letter-spacing:-.03em;display:flex;align-items:center;gap:9px}
+.brand .dot{width:14px;height:14px;border-radius:50%;background:var(--coral);box-shadow:0 0 0 4px rgba(241,90,62,.18)}
+.chip{font-size:11px;color:var(--ink2);background:var(--glass);backdrop-filter:blur(12px);border:1px solid var(--glass-bd);border-radius:999px;padding:6px 13px}
+/* HERO wow */
+.hero{margin:6px 0 26px}
+.hero .kicker{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--coral);font-weight:700;margin-bottom:8px}
+.hero h1{font-size:58px;line-height:.92;letter-spacing:-.045em;font-weight:700}
+.hero .lead{font-size:16px;color:var(--ink2);margin-top:14px;max-width:380px;line-height:1.45}
+.hero .lead b{color:var(--coral);font-size:22px}
+/* métricas glass */
+.metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px;margin-bottom:28px}
+.m{background:var(--glass);backdrop-filter:blur(14px);border:1px solid var(--glass-bd);border-radius:18px;padding:15px 16px;box-shadow:0 10px 30px -16px rgba(60,40,20,.35)}
+.m .v{font-size:30px;font-weight:700;letter-spacing:-.03em;line-height:1}
+.m .l{font-size:11.5px;color:var(--ink2);margin-top:5px}
+.m.c .v{color:var(--coral)}
+.sec{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink2);font-weight:700;margin:6px 4px 13px}
+/* tarjeta glass (liviano) */
+.card{background:var(--glass);backdrop-filter:blur(14px);border:1px solid var(--glass-bd);border-radius:20px;padding:17px 19px;margin-bottom:13px;display:flex;gap:14px;align-items:flex-start;box-shadow:0 12px 34px -18px rgba(60,40,20,.4)}
+.av{width:44px;height:44px;border-radius:14px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:21px;background:rgba(255,255,255,.6)}
+.bd{flex:1;min-width:0}.card h3{font-size:16px;letter-spacing:-.02em;margin-bottom:4px}
+.card p{font-size:13px;color:var(--ink2);line-height:1.42}
+.pill{font-size:11px;font-weight:700;border-radius:999px;padding:4px 11px;display:inline-block;margin-top:9px}
+.pill.ok{background:rgba(35,160,110,.16);color:#1d8a5f}.pill.due{background:rgba(214,140,20,.18);color:#a86510}
+.go{align-self:center;font-size:13px;font-weight:700;border:none;border-radius:999px;padding:10px 17px;cursor:pointer;font-family:var(--display);white-space:nowrap}
+.go.p{background:var(--coral);color:#fff}.go.g{background:rgba(0,0,0,.06);color:var(--ink)}
+.go.w{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.3)}
+/* la URGENTE: tarjeta fuerte oscura coral (lo que importa, destaca = útil + drama) */
+.card.hot{background:linear-gradient(135deg,#2a1410,#1d1813);border:1px solid rgba(241,90,62,.4);color:#fbeee9;box-shadow:0 18px 50px -18px rgba(241,90,62,.55)}
+.card.hot .av{background:rgba(241,90,62,.2)} .card.hot h3{color:#fff} .card.hot p{color:#e9c9bd}
+.card.hot .pill.act{background:var(--coral);color:#fff}
+.card.hot .num{font-size:50px;font-weight:700;color:var(--coral2);letter-spacing:-.04em;line-height:.8}
+.card.hot .num small{font-size:14px;color:#e9c9bd;letter-spacing:0}
+/* acciones glass */
+.grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:11px}
+.act{background:var(--glass);backdrop-filter:blur(12px);border:1px solid var(--glass-bd);border-radius:18px;padding:15px 13px;cursor:pointer;text-align:left;font-family:var(--display);transition:transform .2s,box-shadow .2s}
+.act .ic{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:11px}
+.act .lb{font-size:12px;font-weight:600;color:var(--ink);line-height:1.2;display:flex;justify-content:space-between;align-items:center}
+.act:hover{transform:translateY(-3px);box-shadow:0 16px 36px -18px rgba(60,40,20,.5)}
+</style></head>
+<body>
+<div class="aurora"><span class="a1"></span><span class="a2"></span><span class="a3"></span><span class="a4"></span></div>
+<div class="wrap">
+  <div class="top rise"><div class="brand"><span class="dot"></span>Loombit</div><div class="chip">🔒 Todo en tu máquina</div></div>
+
+  <div class="hero rise">
+    <div class="kicker">Buenas tardes</div>
+    <h1>Fernando.</h1>
+    <div class="lead">Hoy tu telar trae 5 hilos. <b>2</b> piden tu atención — el resto ya te lo dejé preparado.</div>
+  </div>
+
+  <div class="metrics rise">
+    <div class="m"><div class="v">0 €</div><div class="l">A cobrar</div></div>
+    <div class="m c"><div class="v">41</div><div class="l">días para el 303</div></div>
+    <div class="m c"><div class="v">2</div><div class="l">piden acción</div></div>
+  </div>
+
+  <div class="sec rise">Lo que pide tu atención</div>
+  <div class="card hot rise"><div class="av">⚠️</div>
+    <div class="bd"><h3>Deuda no reconocida</h3><p>Abogados CEA reclama una deuda que no reconoces. Verifícala antes de pagar nada — posible fraude.</p><span class="pill act">Requiere acción</span></div>
+    <button class="go w">Gestionar →</button></div>
+  <div class="card rise"><div class="av">📅</div>
+    <div class="bd"><h3>Reunión con David Valentín</h3><p>Jueves 11 jun · 09:00 · Calle Manzana 8, Getafe. Confirmada por ambos.</p><span class="pill ok">Confirmada</span></div>
+    <button class="go g">Ver →</button></div>
+  <div class="card rise"><div class="av">🧾</div>
+    <div class="bd"><h3>Impuestos 2º trimestre · 303·130·111·115</h3><p>Vence el 2026-07-20. Mejor con margen.</p><span class="pill due">Vence en 41 días</span></div>
+    <button class="go p">Preparar →</button></div>
+
+  <div class="sec rise">¿Qué necesitas?</div>
+  <div class="grid rise">
+    <button class="act"><span class="ic" style="background:rgba(241,90,62,.15);color:var(--coral)">✉️</span><span class="lb">Redactar correo <span>→</span></span></button>
+    <button class="act"><span class="ic" style="background:rgba(124,156,255,.18);color:#5a78e0">📅</span><span class="lb">Crear evento <span>→</span></span></button>
+    <button class="act"><span class="ic" style="background:rgba(35,160,110,.16);color:#1d8a5f">🧾</span><span class="lb">Registrar factura <span>→</span></span></button>
+    <button class="act"><span class="ic" style="background:rgba(214,140,20,.18);color:#a86510">💶</span><span class="lb">Reclamar cobro <span>→</span></span></button>
+  </div>
+</div></body></html>

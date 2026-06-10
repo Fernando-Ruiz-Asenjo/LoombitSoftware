@@ -126,6 +126,14 @@ async def read_invoice(body: InvoiceRequest) -> dict[str, Any]:
     result = " ".join(parts) + "."
     if inv.missing:
         result += f" Faltan datos fiables: {', '.join(inv.missing)}."
+    # Datos LEÍDOS pero de baja confianza (p.ej. IBAN con checksum inválido, total ambiguo): el gate
+    # del dominio exige pedir verificación, no darlos por buenos. Antes esta señal no afloraba.
+    _dudosos = [c for c in inv.low_confidence if not c.startswith("__")]
+    if _dudosos:
+        result += (
+            f" ⚠ Datos de LECTURA DUDOSA (verifícalos antes de pagar/registrar): "
+            f"{', '.join(_dudosos)}."
+        )
     for w in warnings:
         result += " ⚠ " + w
 

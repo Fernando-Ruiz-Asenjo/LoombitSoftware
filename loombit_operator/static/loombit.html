@@ -33,6 +33,9 @@
   .chip b{color:var(--text);font-variant-numeric:tabular-nums}
   .chip.local{color:var(--cian);border-color:#29e0d840}
   .dot{width:8px;height:8px;border-radius:50%;background:var(--cian);animation:latido 1.8s infinite}
+  .gbtn{cursor:pointer;font:inherit}.gbtn:hover{border-color:#ffffff33;color:var(--text)}
+  .gdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--faint)}
+  .gdot.ok{background:var(--verde);box-shadow:0 0 0 3px #36d39933}
 
   .escena{position:absolute;inset:64px 0 0 0}
   .vista{position:absolute;inset:0;transition:opacity .35s ease, transform .45s cubic-bezier(.2,.7,.3,1);overflow:auto}
@@ -61,6 +64,11 @@
   .btn.sec{background:transparent;color:var(--muted);border:1px solid var(--line)}.btn.pri{background:var(--grad);color:#06121f}
   .btn.pri:hover{filter:brightness(1.08)}.hilo.hecho{opacity:.5}.hilo.hecho .tit::after{content:" ✅"}
   .pie{text-align:center;color:var(--faint);font-size:13px;margin:22px 0}.pie .l{color:var(--cian)}
+  /* esqueleto "tejiendo…": nunca un vacío mientras llega el telar (auditoría P0-3) */
+  .skel{height:52px;border-radius:var(--r);margin-bottom:13px;border:1px solid var(--line);
+        background:linear-gradient(100deg,var(--surface) 30%,#20264a 50%,var(--surface) 70%);
+        background-size:200% 100%;animation:shimmer 1.15s linear infinite}
+  @keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
 
   /* ── MAPA (galaxia) ── */
   #vMapa{display:flex;align-items:center;justify-content:center}
@@ -68,12 +76,34 @@
   .tip{position:fixed;z-index:30;background:var(--surface2);border:1px solid var(--line);border-radius:10px;
        padding:8px 12px;font-size:13px;color:var(--text);box-shadow:var(--shadow);pointer-events:none;opacity:0;transition:opacity .15s;max-width:240px}
   .tip.on{opacity:1}.tip .s{color:var(--muted);font-size:12px}
-  .leyenda{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:16px;color:var(--faint);font-size:12.5px}
+  .leyenda{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);display:flex;gap:16px;color:var(--faint);font-size:12.5px}
   .leyenda i{font-style:normal}.sw{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle}
 
-  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);
+  .toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);
          border:1px solid #29e0d855;padding:11px 18px;border-radius:12px;opacity:0;transition:var(--t);z-index:50;box-shadow:var(--shadow)}
   .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* ── Chat copiloto omnipresente (S4): cajón inferior, siempre a mano, se expande ── */
+  .copiloto{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:40;width:min(720px,calc(100% - 36px));
+            background:#0d0f1aee;backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+  .cop-msgs{max-height:0;overflow-y:auto;transition:max-height .3s ease;padding:0 14px}
+  .copiloto.open .cop-msgs{max-height:46vh;padding:14px 14px 4px}
+  .cop-form{display:flex;gap:8px;align-items:center;padding:10px 12px}
+  .cop-input{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:12px;color:var(--text);
+             font:inherit;padding:11px 14px;outline:none;transition:var(--t)}
+  .cop-input:focus{border-color:#7c5cff88}
+  .cop-send{border:0;border-radius:12px;background:var(--grad);color:#06121f;font-size:15px;font-weight:700;padding:11px 15px;cursor:pointer}
+  .cop-send:hover{filter:brightness(1.08)}
+  .cop-msg{margin:9px 0;display:flex;gap:9px;align-items:flex-start}
+  .cop-msg.user{flex-direction:row-reverse}
+  .cop-msg .av{width:25px;height:25px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+  .cop-msg.bot .av{background:var(--grad);color:#06121f}.cop-msg.user .av{background:var(--surface2);color:var(--text);border:1px solid var(--line)}
+  .cop-msg .bub{background:var(--surface2);border:1px solid var(--line);border-radius:12px;padding:9px 12px;max-width:80%;
+               white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.5}
+  .cop-msg.user .bub{background:var(--grad);color:#06121f;border-color:transparent}
+  .cop-think .bub{color:var(--muted);font-style:italic}
+  .cop-card{border-top:1px solid var(--line);margin-top:8px;padding-top:8px}
+  .cop-card .acts{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
   @keyframes latido{0%,100%{box-shadow:0 0 0 0 #29e0d880}50%{box-shadow:0 0 0 6px #29e0d800}}
   @keyframes tejer{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -90,6 +120,7 @@
       <span class="chip local">🔒 local</span>
       <span class="chip">⏱ <b id="ahorro">14</b> min</span>
       <span class="chip"><span class="dot"></span> 1 nuevo</span>
+      <button class="chip gbtn" id="g-chip" type="button" onclick="gToggle()"><span class="gdot"></span> Google</button>
     </div>
   </header>
 
@@ -116,6 +147,15 @@
   <div class="tip" id="tip"></div>
   <div class="toast" id="toast"></div>
 
+  <!-- Chat copiloto omnipresente (S4): no es una pestaña, es un cajón siempre a mano. -->
+  <div class="copiloto" id="copiloto">
+    <div class="cop-msgs" id="cop-msgs"></div>
+    <form class="cop-form" id="cop-form">
+      <input class="cop-input" id="cop-input" autocomplete="off" placeholder="Pídeme algo… (prueba «hola» o «¿qué tengo hoy?»)" aria-label="Hablar con Loombit" />
+      <button class="cop-send" type="submit" aria-label="Enviar">➤</button>
+    </form>
+  </div>
+
 <script>
   // ── Datos de muestra (en prod: /telar y /galaxia) ──
   const HILOS_SAMPLE=[
@@ -127,9 +167,10 @@
      card:{draft:"«¡Hola Jana! Te paso el presupuesto actualizado en adjunto. Cualquier ajuste, me dices.»",why:"respondió a tu hilo de ayer",src:"hilo con Jana (Acme)",cta:"Enviar respuesta"}},
     {ic:"📅",estado:"verde",tit:"Hoy: llamada con el gestor a las 12:30",por:"en tu agenda · sin conflictos",card:null},
   ];
-  // planetas para el mapa: contactos (cian, tamaño=trato) + cuentas (semáforo, urgencia=radio)
-  const SOL={cobrar:"3.890 €",venc:2};
-  const PLANETAS=[
+  // planetas para el mapa: contactos (cian, tamaño=trato) + cuentas (semáforo, urgencia=radio).
+  // Muestra por defecto; cargarGalaxia() los sustituye por los datos REALES de /galaxia.
+  let SOL={cobrar:"3.890 €",venc:2};
+  let PLANETAS=[
     {t:"contacto",label:"Construcciones Mar",trato:.9,rel:"Construcciones Mar"},
     {t:"contacto",label:"Jana · Acme",trato:.7,rel:null},
     {t:"contacto",label:"Talleres Ríos",trato:.5,rel:"Talleres Ríos"},
@@ -140,13 +181,18 @@
   ];
 
   // ── TELA (datos REALES de /telar, mismo origen; fallback a muestra) ──
+  let TELAR=[];
   function render(list){
+    TELAR=list;
     const cont=document.getElementById("hilos");cont.innerHTML="";
     list.forEach((h,i)=>{const el=document.createElement("div");el.className="hilo "+h.estado;el.style.animationDelay=(i*60)+"ms";
-      let l2="";if(h.card){l2=`<div class="l2"><div class="card"><div class="draft">${h.card.draft}</div>
-        <div class="meta"><span class="why">Porqué: ${h.card.why}</span><span class="src">🔗 ${h.card.src}</span></div>
+      let l2="";if(h.card){const c=h.card;
+        const draftHtml=c.draft?`<div class="draft">${c.draft}</div>`:"";
+        const whyHtml=c.why?`<span class="why">Porqué: ${c.why}</span>`:"";
+        l2=`<div class="l2"><div class="card">${draftHtml}
+        <div class="meta">${whyHtml}<span class="src">🔗 ${c.src}</span></div>
         <div class="lock">🔒 nada saldrá hasta que pulses el botón</div>
-        <div class="acts"><button class="btn sec">Editar</button><button class="btn pri" onclick="enviar(event)">✅ ${h.card.cta}</button></div></div></div>`;}
+        <div class="acts"><button class="btn sec" data-i="${i}" onclick="editar(event)">Editar</button><button class="btn pri" data-i="${i}" onclick="enviar(event)">✅ ${c.cta}</button></div></div></div>`;}
       el.innerHTML=`<div class="l0" onclick="toggle(this)"><span class="ic">${h.ic}</span>
         <span class="mid"><span class="tit">${h.tit}</span><div class="por">${h.por}</div></span><span class="chev">›</span></div>${l2}`;
       cont.appendChild(el);});
@@ -154,10 +200,14 @@
   function mapHilo(h){
     const urg=h.urgencia||0, acc=h.accion||{};
     const estado=urg>=2?"rojo":(urg===1?"ambar":(h.tipo==="novedad"||h.tipo==="correo"?"cian":"verde"));
-    const card=acc.label?{draft:acc.task||h.detalle||"",why:h.detalle||h.tipo||"",src:"telar · "+(h.tipo||""),cta:acc.label}:null;
-    return {ic:h.icono||"•",estado,tit:h.titulo||"",por:h.detalle||"",card};
+    const porque=h.porque||"";
+    // draft = el CONTEXTO que ya sabemos (detalle), nunca la orden interna al agente (acc.task).
+    const card=acc.label?{draft:h.detalle||"",why:porque,src:"telar · "+(h.tipo||""),cta:acc.label,modo:acc.modo,task:acc.task}:null;
+    return {ic:h.icono||"•",estado,tit:h.titulo||"",por:porque||h.detalle||"",card,enlace:h.enlace||"",tipo:h.tipo||""};
   }
   async function cargar(){
+    const cont=document.getElementById("hilos");
+    cont.innerHTML='<div class="skel"></div><div class="skel"></div><div class="skel"></div>';
     try{
       const r=await fetch("/telar",{headers:{Accept:"application/json"}});
       if(!r.ok) throw 0;
@@ -168,9 +218,86 @@
     }catch(e){ render(HILOS_SAMPLE); }   // sin servidor (file://) → muestra
   }
   cargar();
+
+  // ── GALAXIA: datos REALES de /galaxia (mismo origen; fallback a la muestra) ──
+  function eur(x){return (Math.round(Number(x)||0)).toLocaleString("es-ES")+" €";}
+  async function cargarGalaxia(){
+    try{
+      const r=await fetch("/galaxia",{headers:{Accept:"application/json"}});
+      if(!r.ok) throw 0;
+      const d=await r.json();
+      const k=(d.sol&&d.sol.kpis)||{};
+      const nodos=d.nodos||[];
+      if(!nodos.length) return;   // sin datos → conserva la muestra (nunca un mapa vacío)
+      SOL={cobrar:eur(k.total_cobrar||0), venc:k.vencidas||0};
+      PLANETAS=nodos.map(n=>{
+        if(n.tipo==="cuenta"){
+          const estado=n.estado||(n.vencida?"rojo":(n.proxima?"ambar":"verde"));
+          const urg=(typeof n.urgencia==="number")?n.urgencia:(1-(n.temperatura||0));
+          return {t:"cuenta",label:n.etiqueta||"",estado,urg,rel:n.rel||null};
+        }
+        return {t:"contacto",label:n.etiqueta||"",trato:(typeof n.temperatura==="number"?n.temperatura:0.5),rel:n.rel||null};
+      });
+      resize();   // recalcula ángulos/órbitas con los nodos reales
+    }catch(e){ /* conserva la muestra */ }
+  }
+  cargarGalaxia();
+
+  // ── Google: estado + conectar/desconectar (mismos endpoints que la home; paridad). ──
+  async function gStatus(){
+    const c=document.getElementById("g-chip");if(!c)return;
+    try{
+      const r=await fetch("/skill-blanca/oauth/google/status",{signal:AbortSignal.timeout(4000)});
+      const s=await r.json();window._gConn=!!s.connected;
+      if(s.connected){c.innerHTML='<span class="gdot ok"></span> Google';c.title="Google conectado · clic para desconectar";c.disabled=false;}
+      else if(!s.enabled||!s.configured){c.innerHTML='<span class="gdot"></span> Google n/d';c.title="OAuth de Google sin configurar";c.disabled=true;}
+      else{c.innerHTML='<span class="gdot"></span> Conectar Google';c.title="Conectar tu cuenta de Google";c.disabled=false;}
+    }catch(e){ c.innerHTML='<span class="gdot"></span> Google'; }
+  }
+  async function gToggle(){
+    if(window._gConn){
+      if(!confirm("¿Desconectar Google? Se borra el token local."))return;
+      try{await fetch("/skill-blanca/oauth/google/disconnect",{method:"DELETE"});}catch(e){}
+      gStatus();return;
+    }
+    try{
+      const r=await fetch("/skill-blanca/oauth/google/start");if(!r.ok)throw 0;
+      const d=await r.json();window.open(d.authorization_url,"_blank","noopener");
+      let n=0;const iv=setInterval(async()=>{n++;await gStatus();if(window._gConn||n>60)clearInterval(iv);},2000);
+    }catch(e){ toast("No pude iniciar la conexión con Google."); }
+  }
+  gStatus();
+
   function toggle(l0){const h=l0.parentElement;if(h.querySelector(".l2"))h.classList.toggle("open");}
-  function enviar(ev){ev.stopPropagation();const h=ev.target.closest(".hilo");h.classList.remove("open");h.classList.add("hecho");
-    const a=document.getElementById("ahorro");a.textContent=(+a.textContent+8);toast("Hecho ✅ Te aviso si responde · +8 min");}
+  // Ejecuta DE VERDAD la acción del hilo (no finge): agent_task → /agent/run; navigate/muestra → marcar visto.
+  async function enviar(ev){
+    ev.stopPropagation();
+    const btn=ev.target.closest("button"), h=ev.target.closest(".hilo");
+    const i=+(btn&&btn.getAttribute("data-i"));
+    const t=TELAR[i]||{}; const c=t.card||{};
+    if(c.modo!=="agent_task"||!c.task){           // navegar: abre el destino real (Calendar/Gmail) o marca visto
+      if(t.enlace){ window.open(t.enlace,"_blank","noopener"); return; }
+      h.classList.remove("open");h.classList.add("hecho");toast("Visto ✅");return;
+    }
+    btn.disabled=true;const old=btn.textContent;btn.textContent="Preparando…";
+    try{
+      const r=await fetch("/agent/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({task:c.task,max_steps:20})});
+      if(!r.ok) throw 0;
+      btn.textContent="✓ Preparado";h.classList.add("hecho");
+      const a=document.getElementById("ahorro");if(a)a.textContent=(+a.textContent+8);
+      toast("Hecho ✅ Te lo dejo listo para aprobar · +8 min");
+    }catch(e){ btn.disabled=false;btn.textContent=old;toast("No pude prepararlo. ¿Lo reintentamos?"); }
+  }
+  // "Editar": abre el chat con la petición sembrada para que la ajustes antes de lanzarla (no la finge).
+  function editar(ev){
+    ev.stopPropagation();
+    const btn=ev.target.closest("button"); const i=+(btn&&btn.getAttribute("data-i"));
+    const c=(TELAR[i]&&TELAR[i].card)||{};
+    let seed=(c.task||c.draft||"").replace(/\s*(Prepárame lo necesario;?\s*)?no envíes[^]*$/i,"").trim();
+    if(!seed) seed=(TELAR[i]&&TELAR[i].tit)||"";
+    const inp=document.getElementById("cop-input");
+    if(inp){ document.getElementById("copiloto").classList.add("open"); inp.value=seed; inp.focus(); inp.setSelectionRange(seed.length,seed.length); }
+  }
   function toast(t){const e=document.getElementById("toast");e.textContent=t;e.classList.add("on");setTimeout(()=>e.classList.remove("on"),2400);}
 
   // ── Conmutación de vista (zoom) ──
@@ -234,6 +361,85 @@
   const _frame=frame;frame=function(now){const time=(now-t0)/1000;_frame(now);frame._P=PLANETAS.map(p=>({p,...pos(p,time)}));};
   window.addEventListener("resize",()=>{if(!document.getElementById("vMapa").classList.contains("oculta"))resize();});
   document.addEventListener("keydown",e=>{if(e.key==="Escape")foco=null;});
+
+  // ── CHAT COPILOTO (S4): ejecuta por el agente REAL; smalltalk responde al instante (backend). ──
+  const cop=document.getElementById("copiloto"), copMsgs=document.getElementById("cop-msgs"),
+        copInput=document.getElementById("cop-input"), copForm=document.getElementById("cop-form");
+  let copBusy=false;
+  function copAdd(role,text){
+    const el=document.createElement("div");el.className="cop-msg "+role;
+    el.innerHTML='<div class="av"></div><div class="bub"></div>';
+    el.querySelector(".av").textContent=role==="user"?"Tú":"OL";
+    el.querySelector(".bub").textContent=text;            // textContent → sin inyección de HTML
+    cop.classList.add("open");copMsgs.appendChild(el);copMsgs.scrollTop=copMsgs.scrollHeight;return el;
+  }
+  function copThink(){
+    const el=document.createElement("div");el.className="cop-msg bot cop-think";
+    el.innerHTML='<div class="av">OL</div><div class="bub">pensando…</div>';
+    cop.classList.add("open");copMsgs.appendChild(el);copMsgs.scrollTop=copMsgs.scrollHeight;return el;
+  }
+  const TERM=["completed","failed","pending_approval","pending_question"];
+  copForm.addEventListener("submit",async(ev)=>{
+    ev.preventDefault();
+    const text=copInput.value.trim();if(!text||copBusy)return;
+    copInput.value="";copAdd("user",text);copBusy=true;const think=copThink();
+    try{
+      const r=await fetch("/agent/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({task:text,max_steps:20})});
+      if(!r.ok){think.remove();copAdd("bot","Uy, no pude procesar eso ("+r.status+"). ¿Lo reintentamos?");copBusy=false;return;}
+      const run=await r.json();
+      if(TERM.includes(run.status)){think.remove();copRender(run);copBusy=false;}
+      else await copPoll(run.id,think);
+    }catch(e){think.remove();copAdd("bot","No pude conectar con el operador. ¿LM Studio está arriba?");copBusy=false;}
+  });
+  async function copPoll(id,think){
+    for(let i=0;i<200;i++){
+      await new Promise(r=>setTimeout(r,1500));
+      try{const r=await fetch("/agent/runs/"+id);if(!r.ok)continue;const run=await r.json();
+        if(TERM.includes(run.status)){think.remove();copRender(run);copBusy=false;return;}
+      }catch(e){/* red inestable: seguir */}
+    }
+    think.remove();copAdd("bot","Se me ha hecho largo esperando. Vuelve a intentarlo en un momento.");copBusy=false;
+  }
+  function copRender(run){
+    if(run.status==="completed") copAdd("bot",run.result||"Hecho ✅");
+    else if(run.status==="failed") copAdd("bot","No pude terminar: "+(run.error||"sin detalle")+".");
+    else if(run.status==="pending_approval"){const pa=run.pending_approval||{};copApproval(run.id,pa.reason||pa.proposed_action||"");}
+    else if(run.status==="pending_question"){const pq=run.pending_question||{};copQuestion(run.id,pq.question||"¿Me das un dato más?");}
+  }
+  function copApproval(id,reason){
+    const el=document.createElement("div");el.className="cop-msg bot";
+    el.innerHTML='<div class="av">OL</div><div class="bub" style="max-width:88%"><div style="font-weight:600">Necesito tu visto bueno</div>'
+      +'<div class="cop-card"><div class="why"></div><div class="lock" style="margin-top:6px">🔒 nada saldrá hasta que pulses Enviar</div>'
+      +'<div class="acts"><button class="btn pri" type="button">✅ Enviar</button><button class="btn sec" type="button">Ahora no</button></div></div></div>';
+    el.querySelector(".why").textContent=reason;
+    const [okb,nob]=el.querySelectorAll("button");
+    okb.addEventListener("click",()=>copApprove(id,el));
+    nob.addEventListener("click",()=>el.remove());
+    cop.classList.add("open");copMsgs.appendChild(el);copMsgs.scrollTop=copMsgs.scrollHeight;
+  }
+  async function copApprove(id,el){
+    el.querySelectorAll("button").forEach(b=>b.disabled=true);copBusy=true;const think=copThink();
+    try{const r=await fetch("/agent/runs/"+id+"/approve",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({comment:"Aprobado desde la Tela."})});
+      if(!r.ok){think.remove();copAdd("bot","No pude aprobarlo.");copBusy=false;return;}
+      await copPoll(id,think);toast("Hecho ✅");cargar();   // refresca la tela tras el efecto
+    }catch(e){think.remove();copAdd("bot","Error al aprobar.");copBusy=false;}
+  }
+  function copQuestion(id,q){
+    const el=document.createElement("div");el.className="cop-msg bot";
+    el.innerHTML='<div class="av">OL</div><div class="bub" style="max-width:88%"><div class="q"></div>'
+      +'<form class="acts" style="margin-top:8px"><input class="cop-input" style="padding:8px 11px" placeholder="Tu respuesta…" aria-label="Tu respuesta"/>'
+      +'<button class="btn pri" type="submit">Responder</button></form></div>';
+    el.querySelector(".q").textContent=q;
+    const form=el.querySelector("form"), inp=el.querySelector("input");
+    form.addEventListener("submit",async(e)=>{
+      e.preventDefault();const a=inp.value.trim();if(!a)return;el.remove();copAdd("user",a);copBusy=true;const think=copThink();
+      try{const r=await fetch("/agent/runs/"+id+"/answer",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({answer:a})});
+        if(!r.ok){think.remove();copAdd("bot","No pude enviar tu respuesta.");copBusy=false;return;}
+        await copPoll(id,think);
+      }catch(err){think.remove();copAdd("bot","Error de red.");copBusy=false;}
+    });
+    cop.classList.add("open");copMsgs.appendChild(el);copMsgs.scrollTop=copMsgs.scrollHeight;setTimeout(()=>inp.focus(),50);
+  }
 </script>
 </body>
 </html>

@@ -25,6 +25,10 @@ from .modelo_303 import (
     procesar_303,
 )
 
+# (D-2) registrar las guardas de dominio fiscal (retención/IBAN/modelos AEAT) en `registro_guardas`
+# al cargar la skill; el núcleo blanco las consulta sin conocer la fiscalidad.
+from . import guardas_fiscales  # noqa: E402,F401
+
 __all__ = [
     "LineaIVA",
     "Resultado303",

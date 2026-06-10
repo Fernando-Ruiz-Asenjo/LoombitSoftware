@@ -10,6 +10,16 @@
    Design system: tokens → components → layout
 ═══════════════════════════════════════════════════════ */
 
+/* Fuente de marca self-hosted (OFL) — local-first: vive en el repo, no sale de la máquina, sin CDN.
+   Space Grotesk (variable, subconjunto latin con ñ/acentos/€) da carácter a titulares y marca. */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('/static/fonts/space-grotesk.woff2') format('woff2');
+}
+
 /* ── Tokens ── */
 :root {
   --lb-navy:      #0b0f1a;
@@ -24,6 +34,10 @@
   --lb-purple-dim:#2d1f5e;
   --lb-blue:      #3b82f6;
   --lb-cyan:      #06b6d4;
+
+  /* Marca: el HILO de Loombit — un degradado iridiscente (urdimbre→trama), no el violeta-cian
+     de catálogo. Se usa en los momentos de marca (logo, avatar, primarios). */
+  --lb-weave: linear-gradient(135deg, #8b5cf6 0%, #d946ef 48%, #06b6d4 100%);
 
   --lb-text:      #f1f5f9;
   --lb-text2:     #94a3b8;
@@ -43,11 +57,12 @@
   --r-full: 999px;
 
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
   --sidebar-w: 240px;
   --header-h:  56px;
-  --input-max: 720px;
+  --input-max: 900px;
 
   --transition: 160ms cubic-bezier(.4,0,.2,1);
 }
@@ -57,7 +72,13 @@
 html { font-size: 15px; -webkit-font-smoothing: antialiased; }
 body {
   font-family: var(--font-sans);
-  background: var(--lb-navy);
+  /* El LIENZO se TEJE: urdimbre (hilos verticales) + trama (horizontales) + halo cálido superior.
+     Es la identidad de Loombit (telar), no un dark-dashboard plano. Sutil: no estorba la lectura. */
+  background-color: #090d16;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(139,92,246,0.05) 0 1px, transparent 1px 44px),
+    repeating-linear-gradient(0deg, rgba(6,182,212,0.035) 0 1px, transparent 1px 44px),
+    radial-gradient(1100px 540px at 50% -14%, rgba(124,58,237,0.16), transparent 62%);
   color: var(--lb-text);
   height: 100dvh;
   display: flex;
@@ -66,6 +87,10 @@ body {
 button { cursor: pointer; font-family: inherit; border: none; background: none; }
 textarea, input { font-family: inherit; }
 a { color: inherit; text-decoration: none; }
+
+/* Identidad tipográfica: titulares y momentos de marca en la fuente display (Space Grotesk),
+   el cuerpo se queda en la sans (legibilidad). Da carácter sin sacrificar lectura. */
+.logo-text, .welcome-text h2, .nav-section-label, #skill-name { font-family: var(--font-display); letter-spacing: -0.01em; }
 
 /* ═══════════════════════════════════════════════════════
    SIDEBAR
@@ -95,7 +120,7 @@ a { color: inherit; text-decoration: none; }
 }
 .logo-icon {
   width: 30px; height: 30px; min-width: 30px; border-radius: var(--r-sm);
-  background: linear-gradient(135deg, var(--lb-purple), var(--lb-cyan));
+  background: var(--lb-weave);
   display: flex; align-items: center; justify-content: center;
   font-size: 13px; font-weight: 800; color: #fff;
   letter-spacing: -0.5px; flex-shrink: 0;
@@ -257,6 +282,8 @@ a { color: inherit; text-decoration: none; }
   overflow-y: auto;
   scroll-behavior: smooth;
   padding: 32px 0 24px;
+  display: flex;
+  flex-direction: column;
 }
 #chat-body::-webkit-scrollbar { width: 3px; }
 #chat-body::-webkit-scrollbar-track { background: transparent; }
@@ -266,7 +293,7 @@ a { color: inherit; text-decoration: none; }
 
 /* ── Welcome ── */
 #welcome {
-  max-width: var(--input-max); margin: 0 auto; padding: 48px 24px 32px;
+  max-width: var(--input-max); margin: auto; padding: 24px 24px 32px;
   animation: fadeIn .4s ease;
 }
 @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
@@ -274,7 +301,7 @@ a { color: inherit; text-decoration: none; }
 .welcome-header { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
 .welcome-avatar {
   width: 48px; height: 48px; border-radius: var(--r-md); flex-shrink: 0;
-  background: linear-gradient(135deg, var(--lb-purple), var(--lb-cyan));
+  background: var(--lb-weave);
   display: flex; align-items: center; justify-content: center;
   font-size: 20px; font-weight: 800; color: #fff;
 }
@@ -294,6 +321,27 @@ a { color: inherit; text-decoration: none; }
 .sug-card .sug-icon { font-size: 18px; margin-bottom: 6px; }
 .sug-card .sug-text { font-size: 13px; color: var(--lb-text2); line-height: 1.45; }
 .sug-card:hover .sug-text { color: var(--lb-text); }
+
+/* Hilos del telar: tacto (la tela responde al pasar). El borde-hilo se aviva y la fila se eleva. */
+.telar-hilo { transition: transform var(--transition), background var(--transition), box-shadow var(--transition); }
+.telar-hilo:hover {
+  transform: translateX(2px);
+  background: var(--lb-navy3, #1a2235) !important;
+  box-shadow: -3px 0 14px -6px var(--lb-purple, #8b5cf6);
+}
+@media (prefers-reduced-motion: reduce) { .telar-hilo { transition: none; } .telar-hilo:hover { transform: none; } }
+
+/* "¿Qué necesitas?" — acciones comunes a un toque (robado de los kits: utilidad + fricción 0). */
+#acciones-grid { max-width: var(--input-max); margin: 16px auto 0; }
+.acc-grid-title { font-family: var(--font-display); font-size: 12.5px; letter-spacing: -.01em; color: var(--lb-text2); margin: 0 2px 9px; }
+.acc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.acc-card { display: flex; flex-direction: column; gap: 9px; align-items: flex-start; padding: 13px 14px; border-radius: 14px; text-align: left;
+  background: var(--lb-navy2); border: 1px solid var(--lb-border); cursor: pointer;
+  transition: transform var(--transition), border-color var(--transition), background var(--transition); }
+.acc-card:hover { transform: translateY(-2px); border-color: var(--lb-border2); background: var(--lb-navy3); box-shadow: 0 8px 24px -12px rgba(124,58,237,.5); }
+.acc-card .acc-ic { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.acc-card .acc-lb { font-family: var(--font-display); font-size: 12.5px; font-weight: 600; letter-spacing: -.01em; color: var(--lb-text); line-height: 1.25; }
+@media (max-width: 760px) { .acc-grid { grid-template-columns: repeat(2, 1fr); } }
 
 /* ── Messages ── */
 .msg-row {
@@ -751,7 +799,7 @@ pre.fb-code { background: var(--lb-navy,#0a0e1a); border: 1px solid var(--lb-bor
       <span class="nav-label">Administrativo</span>
     </div>
 
-    <div class="nav-item" onclick="switchSkill('coding', this)">
+    <div class="nav-item" onclick="switchSkill('coding', this)" style="opacity:.55" title="Disponible pronto">
       <span class="nav-icon">⌨</span>
       <span class="nav-label">Coding</span>
       <span class="nav-badge">pronto</span>
@@ -851,21 +899,61 @@ pre.fb-code { background: var(--lb-navy,#0a0e1a); border: 1px solid var(--lb-bor
     <div class="topbar-actions">
       <button class="icon-btn" onclick="openFabrica()" title="Sala de la Fábrica — auto-mejora gobernada" style="font-size:16px;width:34px;height:34px;display:flex;align-items:center;justify-content:center">🏭</button>
       <button class="icon-btn" onclick="openGalaxia()" title="Galaxia — tu negocio como sistema estelar" style="font-size:17px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;position:relative">🌌<span id="gx-badge" style="display:none;position:absolute;top:3px;right:3px;min-width:8px;height:8px;border-radius:999px;background:var(--lb-red,#ef4444);box-shadow:0 0 0 2px var(--lb-navy2,#111827)"></span></button>
-      <button class="icon-btn" onclick="clearChat()" title="Nueva conversación">
+      <button class="icon-btn" id="new-chat-btn" onclick="clearChat()" title="Nueva conversación" style="display:none">
         <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
       </button>
-      <button class="icon-btn" title="Ajustes (próximamente)">
+      <button class="icon-btn" onclick="openSettings()" title="Ajustes">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
     </div>
   </header>
 
+  <!-- Ajustes (el ⚙️ ya NO es decorativo): perfil + conexión + privacidad + atajos -->
+  <div id="settings-overlay" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.55);backdrop-filter:blur(3px)" onclick="if(event.target===this)closeSettings()">
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(520px,calc(100% - 32px));background:var(--lb-navy3,#1a2235);border:1px solid var(--lb-border2,rgba(255,255,255,.12));border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.5);padding:22px 24px;color:var(--lb-text,#f1f5f9);max-height:86vh;overflow:auto">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+        <span style="font-size:19px">⚙️</span><span style="font-size:17px;font-weight:700">Ajustes</span>
+        <button onclick="closeSettings()" title="Cerrar" style="margin-left:auto;background:none;border:none;color:var(--lb-text3,#64748b);font-size:18px;cursor:pointer">✕</button>
+      </div>
+
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--lb-text3,#64748b);margin:4px 0 8px">Tu perfil</div>
+      <label style="display:block;font-size:13px;color:var(--lb-text2,#94a3b8);margin-bottom:4px">Tu nombre — con él te saludo y firmo tus correos</label>
+      <input id="set-name" placeholder="Ej. Fernando" style="width:100%;background:var(--lb-navy2,#111827);border:1px solid var(--lb-border,#293247);border-radius:10px;color:var(--lb-text,#f1f5f9);font:inherit;padding:10px 12px;margin-bottom:10px;outline:none">
+      <label style="display:block;font-size:13px;color:var(--lb-text2,#94a3b8);margin-bottom:4px">Tu empresa (opcional)</label>
+      <input id="set-company" placeholder="Ej. Mi Empresa S.L." style="width:100%;background:var(--lb-navy2,#111827);border:1px solid var(--lb-border,#293247);border-radius:10px;color:var(--lb-text,#f1f5f9);font:inherit;padding:10px 12px;margin-bottom:10px;outline:none">
+      <div style="display:flex;align-items:center;gap:10px">
+        <button onclick="saveOwner()" style="background:linear-gradient(135deg,var(--lb-purple,#8b5cf6),var(--lb-cyan,#06b6d4));color:#fff;border:none;border-radius:999px;padding:9px 18px;font-weight:600;cursor:pointer;font-size:13px">Guardar</button>
+        <span id="set-saved" style="color:var(--lb-green,#2ec27e);font-size:13px;display:none">Guardado ✅</span>
+      </div>
+
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--lb-text3,#64748b);margin:18px 0 8px">Conexión</div>
+      <div style="display:flex;align-items:center;gap:10px;font-size:14px">
+        <span>Google</span>
+        <span id="set-google-badge" style="font-size:12px;color:var(--lb-text3,#64748b)">…</span>
+        <button id="set-google-btn" onclick="toggleGoogle()" style="margin-left:auto;background:var(--lb-navy2,#111827);color:var(--lb-text,#f1f5f9);border:1px solid var(--lb-border,#293247);border-radius:999px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer">…</button>
+      </div>
+
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--lb-text3,#64748b);margin:18px 0 8px">Privacidad</div>
+      <div style="font-size:13px;color:var(--lb-text2,#94a3b8);display:flex;align-items:center;gap:6px">🔒 Todo se procesa en tu máquina. Nada sale de aquí sin tu aprobación.</div>
+
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--lb-text3,#64748b);margin:18px 0 8px">Atajos</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="closeSettings();openGalaxia()" style="background:var(--lb-navy2,#111827);color:var(--lb-text2,#94a3b8);border:1px solid var(--lb-border,#293247);border-radius:999px;padding:7px 14px;font-size:13px;cursor:pointer">🌌 Galaxia</button>
+        <button onclick="closeSettings();openFabrica()" style="background:var(--lb-navy2,#111827);color:var(--lb-text2,#94a3b8);border:1px solid var(--lb-border,#293247);border-radius:999px;padding:7px 14px;font-size:13px;cursor:pointer">🏭 Fábrica</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Chat body -->
   <div id="chat-body">
     <!-- Welcome -->
     <div id="welcome">
+      <!-- Aprobaciones EN LA COLUMNA (no un toast flotante): tarjeta canónica, donde miras. P0-4. -->
+      <div id="telar-approvals" style="display:none;margin-bottom:18px"></div>
       <!-- La tela de la mañana: lo importante de hoy + lo ya preparado (se llena al abrir) -->
       <div id="telar-panel" style="display:none;margin-bottom:18px"></div>
+      <!-- "¿Qué necesitas?": acciones comunes a un toque (robado de los kits buenos: utilidad+fricción 0) -->
+      <div id="acciones-grid" style="display:none"></div>
       <div class="welcome-header">
         <div class="welcome-avatar">OL</div>
         <div class="welcome-text">
@@ -1052,6 +1140,12 @@ function toggleSidebar() {
 
 // ── Skill switch ──────────────────────────────────────
 function switchSkill(key, el) {
+  // «Coding» está marcada como «pronto»: hoy es un clon de la Administrativa (mismo profile), así que
+  // NO la activamos como si fuera real (sería una feature fantasma). Avisamos con honestidad.
+  if (key === 'coding') {
+    if (typeof lbToast === 'function') lbToast('La skill «Coding» llega pronto. De momento trabajo con la Administrativa.');
+    return;
+  }
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   el.classList.add('active');
   activeSkill = key;
@@ -1067,6 +1161,8 @@ function switchSkill(key, el) {
 function clearChat() {
   msgsCont.innerHTML = '';
   welcome.style.display = '';
+  // El "+" solo tiene sentido si hay conversación: en la home se oculta (no un botón muerto).
+  const nb = document.getElementById('new-chat-btn'); if (nb) nb.style.display = 'none';
 }
 
 // ── Time ──────────────────────────────────────────────
@@ -1201,13 +1297,19 @@ function toggleSteps(btn) {
 }
 
 // ── Build steps HTML ──────────────────────────────────
+const _STEPS_INTERNAS = ['task_done', 'propose_improvement', 'save_screenshot_to_file'];
+function _stepsVisibles(steps) {
+  return (steps || []).filter(s => !_STEPS_INTERNAS.includes(s.tool_name));
+}
 function buildStepsHtml(steps) {
-  if (!steps || !steps.length) return '';
-  const pills = steps.map(s => {
+  const vis = _stepsVisibles(steps);
+  if (!vis.length) return '';
+  const pills = vis.map(s => {
     const icon = toolIcon(s.tool_name || '');
-    return `<div class="step-pill"><span class="sp-icon">${icon}</span>${esc(s.tool_name)}</div>`;
+    // En humano (frasePaso), nunca el nombre técnico de la tool.
+    return `<div class="step-pill"><span class="sp-icon">${icon}</span>${esc(frasePaso(s.tool_name))}</div>`;
   }).join('');
-  const count = steps.length;
+  const count = vis.length;
   const collapsed = count > 4 ? ' collapsed' : '';
   const toggleHtml = count > 4
     ? `<button class="steps-toggle" data-count="${count}" onclick="toggleSteps(this)">▸ ${count} pasos</button>`
@@ -1232,8 +1334,9 @@ function addMsg(role, text, steps, stepCount) {
     : fmt(text || '');
 
   const stepsHtml = (role === 'agent' || role === 'error') ? buildStepsHtml(steps) : '';
-  const stepsMeta = (stepCount && stepCount > 0)
-    ? `<span class="msg-steps-count">· ${stepCount} pasos</span>` : '';
+  const _visN = _stepsVisibles(steps).length;
+  const stepsMeta = _visN > 0
+    ? `<span class="msg-steps-count">· ${_visN} paso${_visN === 1 ? '' : 's'}</span>` : '';
   const copyBtn = (!isUser && role !== 'thinking')
     ? `<button class="msg-action-btn" onclick="copyMsg(this)" title="Copiar respuesta">⧉ copiar</button>` : '';
   const avaStyle = isUser ? '' : 'background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff';
@@ -1258,6 +1361,25 @@ function addMsg(role, text, steps, stepCount) {
 
 function removeThinking() {
   document.querySelector('.msg-thinking')?.remove();
+}
+
+// F-8: el "Procesando…" muestra el PASO REAL del agente en humano (no jerga, no punto muerto).
+const TOOL_FRASE = {
+  daily_brief: 'Preparando tu resumen del día', calendar_today: 'Mirando tu agenda',
+  calendar_create: 'Creando el evento', gmail_send: 'Redactando el correo',
+  gmail_search: 'Buscando en tu correo', contacts_find: 'Buscando el contacto',
+  read_invoice: 'Leyendo la factura', read_file: 'Leyendo el documento',
+  write_file: 'Guardando el documento', web_fetch: 'Consultando la web',
+  memory_search: 'Recordando lo que ya hiciste', ask_user: 'Preparando una pregunta',
+};
+function frasePaso(tool) {
+  if (!tool) return 'Trabajando';
+  if (tool.startsWith('desktop_') || tool.startsWith('browser_')) return 'Manejando tu ordenador';
+  return TOOL_FRASE[tool] || 'Trabajando';
+}
+function updateThinking(frase) {
+  const b = document.querySelector('.msg-thinking .msg-bubble');
+  if (b) b.innerHTML = `${esc(frase)} <div class="typing-dots"><span></span><span></span><span></span></div>`;
 }
 
 function addApproval(runId, reason, action) {
@@ -1348,6 +1470,8 @@ async function sendMessage() {
   if (!text || busy) return;
   msgInput.value = '';
   msgInput.style.height = 'auto';
+  // Ya hay conversación → el "+" (nueva conversación) pasa a tener función y se muestra.
+  const nb = document.getElementById('new-chat-btn'); if (nb) nb.style.display = '';
 
   addMsg('user', text);
   setBusy(true);
@@ -1400,6 +1524,9 @@ async function pollRun(runId) {
         setBusy(false);
         return;
       }
+      // En marcha: muestra el PASO real (no un "Procesando" muerto). F-8.
+      const steps = run.steps || [];
+      if (steps.length) updateThinking(frasePaso(steps[steps.length - 1].tool_name));
     } catch(e) { /* red inestable, seguir intentando */ }
   }
   removeThinking();
@@ -1407,11 +1534,18 @@ async function pollRun(runId) {
   setBusy(false);
 }
 
+function humanizarError(e) {
+  // Nunca enseñar jerga técnica (URLs, HTTP, MDN) al usuario. Voz cálida y accionable.
+  const s = String(e || '');
+  if (/1234|chat\/completions|Bad Request|\b4\d\d\b|\b5\d\d\b|ECONN|timeout|Timeout|Connection|httpx|traceback/i.test(s))
+    return 'No he podido completarlo ahora mismo: el modelo local estaba ocupado. Dame unos segundos y vuelve a intentarlo.';
+  return s.trim() || 'No he podido completar la tarea. Inténtalo de nuevo, por favor.';
+}
 function renderRun(run) {
   if (run.status === 'completed') {
     addMsg('agent', run.result || '(tarea completada)', run.steps || [], run.step_count);
   } else if (run.status === 'failed') {
-    addMsg('error', `Error del agente:\n${run.error || '(sin detalle)'}`, run.steps || [], run.step_count);
+    addMsg('error', humanizarError(run.error), run.steps || [], run.step_count);
   } else if (run.status === 'pending_approval') {
     const pa = run.pending_approval || {};
     addApproval(run.id, pa.reason || '', pa.proposed_action || '');
@@ -1503,6 +1637,23 @@ async function loadHomeContext() {
       procs.appendChild(_navItem(p.icon, p.label, () => useQuickAction(p.prompt, !!p.auto), p.label, PROC_COLORS[i % PROC_COLORS.length]));
     });
     setSecCount('cnt-procesos', (ctx.procesos_diarios || []).length, false);
+    // "¿Qué necesitas?": las mismas acciones, pero a la VISTA en la home (un toque, fricción 0).
+    const grid = document.getElementById('acciones-grid');
+    const procs2 = ctx.procesos_diarios || [];
+    if (grid && procs2.length) {
+      grid.innerHTML = '<div class="acc-grid-title">¿Qué necesitas?</div>';
+      const wrap = document.createElement('div'); wrap.className = 'acc-grid';
+      procs2.forEach((p, i) => {
+        const col = PROC_COLORS[i % PROC_COLORS.length];
+        const card = document.createElement('button'); card.className = 'acc-card'; card.title = p.label;
+        card.onclick = () => useQuickAction(p.prompt, !!p.auto);
+        const ic = document.createElement('span'); ic.className = 'acc-ic'; ic.textContent = p.icon || '•';
+        ic.style.background = `color-mix(in srgb, ${col} 18%, transparent)`; ic.style.color = col;
+        const lb = document.createElement('span'); lb.className = 'acc-lb'; lb.textContent = p.label;
+        card.appendChild(ic); card.appendChild(lb); wrap.appendChild(card);
+      });
+      grid.appendChild(wrap); grid.style.display = 'block';
+    }
     const conts = document.getElementById('contactos-list');
     const aviso = document.getElementById('contactos-aviso');
     conts.innerHTML = '';
@@ -1559,7 +1710,7 @@ async function connectGoogle() {
     window.open(data.authorization_url, '_blank', 'noopener');
     pollGoogleConnection();
   } catch (e) {
-    alert('No se pudo iniciar la conexión con Google: ' + e.message);
+    lbToast('No pude iniciar la conexión con Google. Vuelve a intentarlo.');
     refreshConnections();
   }
 }
@@ -1581,53 +1732,83 @@ async function disconnectGoogle() {
   refreshConnections();
 }
 
+// ── Ajustes (el ⚙️ con función real) ──────────────────
+function openSettings() {
+  const ov = document.getElementById('settings-overlay'); if (!ov) return;
+  ov.style.display = 'block';
+  // Rellena con el perfil actual
+  fetch(`${API}/home/context`).then(r => r.json()).then(d => {
+    const o = d.owner || {};
+    const n = document.getElementById('set-name'); if (n) n.value = o.name || '';
+    const c = document.getElementById('set-company'); if (c) c.value = o.company || '';
+  }).catch(() => {});
+  // Estado de Google (del global que mantiene refreshConnections)
+  const badge = document.getElementById('set-google-badge'), btn = document.getElementById('set-google-btn');
+  if (badge) { badge.textContent = googleConnected ? 'conectado' : 'desconectado'; badge.style.color = googleConnected ? 'var(--lb-green,#2ec27e)' : 'var(--lb-text3,#64748b)'; }
+  if (btn) btn.textContent = googleConnected ? 'Desconectar' : 'Conectar';
+}
+function closeSettings() { const ov = document.getElementById('settings-overlay'); if (ov) ov.style.display = 'none'; }
+async function saveOwner() {
+  const name = (document.getElementById('set-name').value || '').trim();
+  const company = (document.getElementById('set-company').value || '').trim();
+  try {
+    const r = await fetch(`${API}/home/owner`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, company }) });
+    if (!r.ok) throw new Error('save');
+    const d = await r.json(); const o = d.owner || {};
+    // Refleja el cambio EN VIVO: saludo, avatar, nombre, y el telar (que saluda con el nombre)
+    const wh = document.querySelector('#welcome .welcome-text h2'); if (wh && o.name) wh.textContent = 'Hola, ' + o.name;
+    const ua = document.getElementById('user-avatar'); if (ua && o.initial) ua.textContent = o.initial;
+    const unl = document.getElementById('user-name-label'); if (unl) unl.textContent = o.name || '';
+    if (window.ME) ME.name = o.name || ME.name;
+    const s = document.getElementById('set-saved'); if (s) { s.style.display = 'inline'; setTimeout(() => { s.style.display = 'none'; }, 1800); }
+    if (typeof cargarTelar === 'function') cargarTelar();
+  } catch (e) { lbToast('No pude guardar los ajustes. Inténtalo de nuevo.'); }
+}
+
 // ── Aprobar todo ──────────────────────────────────────
 let _approvalsDismissed = '';   // firma del conjunto de aprobaciones que el usuario cerró
 function dismissApprovals() {
-  const bar = document.getElementById('approveAllBar');
-  _approvalsDismissed = (bar && bar._sig) || '';  // recordar QUÉ se cerró
-  if (bar) bar.style.display = 'none';            // reaparece solo si cambian las pendientes
+  const box = document.getElementById('telar-approvals');
+  _approvalsDismissed = (box && box._sig) || '';  // recordar QUÉ se cerró
+  if (box) box.style.display = 'none';            // reaparece solo si cambian las pendientes
 }
 async function refreshApprovals() {
+  if (document.hidden) return;  // no machacar el server con la pestaña en 2º plano
   try {
     const r = await fetch(`${API}/agent/runs?status=pending_approval`, { signal: AbortSignal.timeout(8000) });
     if (!r.ok) return;
     const runs = await r.json();
-    const bar = document.getElementById('approveAllBar');
+    const box = document.getElementById('telar-approvals');
+    if (!box) return;
     const sig = runs.map(r => r.id).sort().join(',');
-    bar._sig = sig;
-    if (runs.length > 0 && sig === _approvalsDismissed) { bar.style.display = 'none'; return; }
-    if (runs.length > 0) {
-      document.getElementById('approveAllCount').textContent = runs.length;
-      const noun = document.getElementById('approveAllNoun');
-      if (noun) noun.textContent = runs.length === 1 ? 'acción pendiente de aprobar' : 'acciones pendientes de aprobar';
-      // Vistazo rápido: QUÉ hay que aprobar (la acción en humano, pa.reason). textContent → sin HTML.
-      const list = document.getElementById('approveAllList');
-      if (list) {
-        list.replaceChildren();
-        runs.slice(0, 4).forEach(run => {
-          const pa = run.pending_approval || {};
-          let label = String(pa.reason || run.task || 'Acción pendiente').trim();
-          if (label.length > 64) label = label.slice(0, 61) + '…';
-          const li = document.createElement('li');
-          li.style.cssText = 'display:flex;gap:6px;align-items:flex-start';
-          const dot = document.createElement('span');
-          dot.textContent = '•'; dot.style.color = 'var(--lb-cyan,#06b6d4)';
-          const txt = document.createElement('span'); txt.textContent = label;
-          li.append(dot, txt);
-          list.appendChild(li);
-        });
-        if (runs.length > 4) {
-          const more = document.createElement('li');
-          more.style.cssText = 'opacity:.7;font-style:italic';
-          more.textContent = `+ ${runs.length - 4} más`;
-          list.appendChild(more);
-        }
-      }
-      bar.style.display = 'flex';
-    } else {
-      bar.style.display = 'none';
-    }
+    box._sig = sig;
+    if (!runs.length || sig === _approvalsDismissed) { box.style.display = 'none'; return; }
+    // Tarjeta canónica de aprobación, EN LA COLUMNA (no un toast): qué + 🔒 + semáforo + 1 toque.
+    const items = runs.slice(0, 4).map(run => {
+      const pa = run.pending_approval || {};
+      let label = String(pa.reason || run.task || 'Acción pendiente').trim();
+      if (label.length > 90) label = label.slice(0, 87) + '…';
+      // Muestra el BORRADOR real (qué se va a enviar) → nunca apruebas a ciegas (tarjeta canónica §5.2).
+      const draft = String(pa.proposed_action || '').trim();
+      const draftHtml = draft
+        ? `<div style="margin:2px 0 9px 16px;padding:8px 11px;border-left:2px solid var(--lb-cyan,#06b6d4);background:var(--lb-navy2,#111827);border-radius:6px;font-size:12px;color:var(--lb-text2,#cbd5e1);white-space:pre-wrap;max-height:180px;overflow:auto">${esc(draft.slice(0, 700))}${draft.length > 700 ? '…' : ''}</div>`
+        : '';
+      return `<div style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--lb-text,#f1f5f9);margin:3px 0;font-weight:600"><span style="color:var(--lb-cyan,#06b6d4)">•</span><span>${esc(label)}</span></div>${draftHtml}`;
+    }).join('');
+    const more = runs.length > 4 ? `<div style="font-size:12px;opacity:.7;font-style:italic;margin-top:2px">+ ${runs.length - 4} más</div>` : '';
+    const noun = runs.length === 1 ? 'acción espera tu visto bueno' : 'acciones esperan tu visto bueno';
+    box.innerHTML = `
+      <div style="background:linear-gradient(135deg,rgba(16,185,129,.12),rgba(6,182,212,.08));border:1px solid rgba(16,185,129,.45);border-left:4px solid #10b981;border-radius:16px;padding:14px 16px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:17px">✅</span>
+          <span style="font-size:15px;font-weight:700">${runs.length} ${noun}</span>
+          <button onclick="dismissApprovals()" title="Cerrar (no cancela nada; reaparece si cambian)" style="margin-left:auto;background:none;border:none;color:var(--lb-text3,#475569);cursor:pointer;font-size:16px">✕</button>
+        </div>
+        ${items}${more}
+        <div style="font-size:11px;color:var(--lb-text3,#475569);margin:8px 0;display:flex;align-items:center;gap:6px">🔒 Nada saldrá de tu máquina hasta que apruebes.</div>
+        <button id="approveAllBtn" onclick="approveAll()" style="background:linear-gradient(135deg,var(--lb-purple,#8b5cf6),var(--lb-cyan,#06b6d4));color:#fff;border:none;border-radius:999px;padding:8px 18px;font-weight:700;cursor:pointer;font-size:13px">Aprobar todo</button>
+      </div>`;
+    box.style.display = 'block';
   } catch { /* noop */ }
 }
 
@@ -1644,7 +1825,7 @@ async function approveAll() {
   btn.disabled = false;
   setTimeout(refreshApprovals, 1000);
 }
-setInterval(refreshApprovals, 3000);
+setInterval(refreshApprovals, 6000);
 
 // ── Novedades del operador (lo que detecta el daemon) ──
 function _feedStyle(it) {
@@ -1670,6 +1851,7 @@ function setSecCount(id, n, alert) {
   el.style.color = alert ? '#ef4444' : 'var(--lb-text3,#888)';
 }
 async function loadFeed() {
+  if (document.hidden) return;  // no machacar el server con la pestaña en 2º plano
   try {
     const r = await fetch(`${API}/routines/feed?limit=20`, { signal: AbortSignal.timeout(8000) });
     if (!r.ok) return;
@@ -1706,6 +1888,7 @@ setInterval(loadFeed, 10000);
 
 // ── Cuentas a cobrar ──────────────────────────────────
 async function loadCuentas() {
+  if (document.hidden) return;  // no machacar el server con la pestaña en 2º plano
   try {
     const r = await fetch(`${API}/cuentas`, { signal: AbortSignal.timeout(8000) });
     if (!r.ok) return;
@@ -1730,6 +1913,11 @@ async function loadCuentas() {
   } catch { /* noop */ }
 }
 setInterval(loadCuentas, 15000);
+
+// Al volver a la pestaña, refresca YA (los intervalos no corren ocultos → no se ve viejo).
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) { refreshApprovals(); loadFeed(); loadCuentas(); }
+});
 
 // ═══════════════════════════════════════════════════════
 // GALAXIA — el negocio como sistema estelar (canvas determinista, edgeless)
@@ -1793,6 +1981,19 @@ function fabRenderPropuestas(d) {
     + `<div class="acts"><button class="fb-mini fb-ok" onclick="fabVerPropuesta('${p.id}')">👁 Ver y aprobar</button>`
     + `<button class="fb-mini fb-no" onclick="fabDescartar('${p.id}')">Descartar</button></div></div>`).join('');
 }
+// V-7: el usuario NO debe ver jerga de dev (códigos de lint B008/S112, rutas a.py:NN). Traduce los
+// hallazgos de CÓDIGO a lenguaje de negocio; deja intactos los del mercado/radar (GitHub, BOE…).
+// Solo cambia lo que se MUESTRA — el dato crudo se conserva para la acción de arreglar (backstage).
+function humanizarHallazgo(t) {
+  const s = String(t || '').trim();
+  // Mercado / radar / proceso: ya son de negocio.
+  if (/^(GitHub|Mercado|Nueva técnica|Normativa BOE)\b|github\.com|news\.ycombinator|falla de forma recurrente|Auto-evolucionar/i.test(s)) return s;
+  const esCodigo = /\bB\d{3}\b|\bS\d{3}\b|possible bug|riesgo de seguridad|argument defaults|zip\(\)|\b[\w/]+\.(py|js|css|html)\b|\[[^\]]*:\d+\]/i.test(s);
+  if (!esCodigo) return s;
+  if (/seguridad|security|\bS\d{3}\b/i.test(s)) return 'Refuerzo de seguridad recomendado en una parte interna.';
+  if (/líneas|lineas|complej|refactor|monolito|>\s*\d+\s*l/i.test(s)) return 'Código interno que conviene simplificar.';
+  return 'Mejora de fiabilidad pendiente en una parte interna.';
+}
 function fabRenderOportunidades(d) {
   const el = document.getElementById('fb-oportunidades'); const items = (d && d.items) || [];
   document.getElementById('fb-op-count').textContent = items.length;
@@ -1800,7 +2001,7 @@ function fabRenderOportunidades(d) {
   _fabOps = items.slice(0, 40).map(i => i.necesidad || i);
   el.innerHTML = _fabOps.map((n, idx) => {
     const url = (n.procedencia || []).find(x => String(x).startsWith('http')) || '';
-    return `<div class="fb-card"><div class="t">${esc(n.titulo || '')}<span class="fb-tag">${esc(n.fuente || '')}</span></div>`
+    return `<div class="fb-card"><div class="t">${esc(humanizarHallazgo(n.titulo || ''))}<span class="fb-tag">${esc(n.fuente || '')}</span></div>`
       + (url ? `<div class="meta"><a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a></div>` : '')
       + `<div class="acts"><button class="fb-mini" onclick="fabInvestigar(${idx})">🔎 Investigar</button></div></div>`;
   }).join('');
@@ -1810,9 +2011,17 @@ function fabRenderSalud(d) {
   document.getElementById('fb-salud-count').textContent = items.length;
   if (!items.length) { el.innerHTML = '<div class="fb-card meta">Sin señales (o no se pudo analizar).</div>'; _fabSalud = []; return; }
   _fabSalud = items.slice(0, 40);
-  el.innerHTML = _fabSalud.map((i, idx) => `<div class="fb-card"><div class="t">${esc(i.titulo || '')}</div>`
-    + `<div class="meta">${esc(i.ref || '')}</div>`
-    + `<div class="acts"><button class="fb-mini" onclick="fabArreglar(${idx})">🔧 Arreglar</button></div></div>`).join('');
+  // V-7: título humanizado (sin jerga ni rutas) y AGRUPADO por mensaje, para no mostrar 20 líneas
+  // idénticas. El arreglo sigue siendo por ítem (idx del primero del grupo).
+  const grupos = [];
+  _fabSalud.forEach((i, idx) => {
+    const msg = humanizarHallazgo(i.titulo || '');
+    const g = grupos.find(x => x.msg === msg);
+    if (g) g.count++; else grupos.push({ msg, count: 1, idx });
+  });
+  el.innerHTML = grupos.map(g => `<div class="fb-card"><div class="t">${esc(g.msg)}`
+    + `${g.count > 1 ? ` <span class="fb-tag">×${g.count}</span>` : ''}</div>`
+    + `<div class="acts"><button class="fb-mini" onclick="fabArreglar(${g.idx})">🔧 Arreglar</button></div></div>`).join('');
 }
 
 async function fabAprobar(id) {
@@ -2334,21 +2543,37 @@ function gxPaletteOpen() {
 }
 function gxPaletteClose() { document.getElementById('gx-palette').classList.remove('open'); }
 function gxPaletteFilter(q) {
-  q = (q||'').trim().toLowerCase();
-  const items = GXLayout
-    .filter(o => !q || (o.label||'').toLowerCase().includes(q) || (o.node.email||'').toLowerCase().includes(q))
+  const raw = (q||'').trim();
+  const ql = raw.toLowerCase();
+  const planets = GXLayout
+    .filter(o => !ql || (o.label||'').toLowerCase().includes(ql) || (o.node.email||'').toLowerCase().includes(ql))
     .slice(0, 30);
-  GXPalItems = items; GXPalSel = 0;
+  // Items = planetas + (si hay texto) una ACCIÓN real: pedírselo a Loombit (cumple "escribir una acción").
+  GXPalItems = planets.map(o => ({ planet: o }));
+  if (raw) GXPalItems.push({ action: true, text: raw });
+  GXPalSel = 0;
   const list = document.getElementById('gx-pal-list');
-  list.innerHTML = items.map((o,i) => {
+  list.innerHTML = GXPalItems.map((it,i) => {
+    if (it.action) {
+      return `<div class="gx-pal-item ${i===0?'active':''}" data-i="${i}" onclick="gxPaletteGo(${i})" onmouseenter="gxPalHover(${i})">
+        <span class="dot" style="background:var(--lb-purple,#8b5cf6)"></span><span>Pedir a Loombit: «${esc(it.text)}»</span><span class="sub">Enter</span></div>`;
+    }
+    const o = it.planet;
     const sub = o.kind==='cuenta' ? `${Number(o.node.importe).toLocaleString('es-ES')} € · ${o.node.estado}` : `${o.node.peso} envíos`;
     return `<div class="gx-pal-item ${i===0?'active':''}" data-i="${i}" onclick="gxPaletteGo(${i})" onmouseenter="gxPalHover(${i})">
       <span class="dot" style="background:${o.color}"></span><span>${esc(o.label||'')}</span><span class="sub">${esc(sub)}</span></div>`;
-  }).join('') || `<div class="gx-pal-item" style="color:var(--lb-text3)">Sin coincidencias</div>`;
+  }).join('') || `<div class="gx-pal-item" style="color:var(--lb-text3)">Escribe para buscar un contacto o pedir una acción…</div>`;
 }
 function gxPalHover(i){ GXPalSel=i; [...document.querySelectorAll('.gx-pal-item')].forEach((el,j)=>el.classList.toggle('active',j===i)); }
 function gxPaletteGo(i) {
-  const o = GXPalItems[i]; if (!o) return;
+  const it = GXPalItems[i]; if (!it) return;
+  if (it.action) {  // "escribir una acción" → la mandamos al chat/agente (con su gate)
+    gxPaletteClose(); closeGalaxia();
+    if (typeof msgInput !== 'undefined' && msgInput) msgInput.value = it.text;
+    if (typeof sendMessage === 'function') sendMessage();
+    return;
+  }
+  const o = it.planet;
   GXFocus = o.id; GXPing = o.id; GXPingT = Date.now();
   gxPaletteClose();
   gxShowDetail(o);
@@ -2459,7 +2684,7 @@ async function gxAct(source, targetNode) {
     const d = await r.json();
     const a = d.action || {};
     if (d.run_id) {
-      gxToast(`✅ Preparé: ${a.titulo}. Lo dejé arriba en “Aprobar todo” para que lo apruebes.`);
+      gxToast(`✅ Preparé: ${a.titulo}. Lo tienes listo en la tela para que lo apruebes.`);
       refreshApprovals();
     } else if (a.modo === 'navigate') {
       gxToast(a.titulo || 'Hecho');
@@ -2480,35 +2705,58 @@ function gxToast(text) {
 // ═══════════════════════════════════════════════════════
 const TELAR_COLOR = { agenda:'#3b82f6', cobro:'#ef4444', correo:'#06b6d4', plazo:'#f59e0b', fiscal:'#22c55e', aprobacion:'#8b5cf6', reunion:'#ec4899' };
 
+// P0-2 (auditoría UX): nunca dos saludos a la vez. Con telar tejido, fuera el intro de chat vacío.
+function setIntroVisible(v) {
+  const h = document.querySelector('#welcome .welcome-header');
+  const s = document.querySelector('#welcome .suggestions');
+  if (h) h.style.display = v ? '' : 'none';
+  if (s) s.style.display = v ? '' : 'none';
+}
+function hideTelar() {
+  const p = document.getElementById('telar-panel'); if (p) p.style.display = 'none';
+  setIntroVisible(true);   // si cierras la tela, te devuelvo el chat (nunca un vacío)
+}
+
 async function cargarTelar() {
   const panel = document.getElementById('telar-panel'); if (!panel) return;
   try {
     const r = await fetch(`${API}/telar`, { signal: AbortSignal.timeout(15000) });
     if (!r.ok) return;
     const t = await r.json();
-    if (!t.hilos || !t.hilos.length) { panel.style.display = 'none'; return; }
+    if (!t.hilos || !t.hilos.length) { panel.style.display = 'none'; setIntroVisible(true); return; }
     const filas = t.hilos.map((h, i) => {
       const col = TELAR_COLOR[h.tipo] || 'var(--lb-purple,#8b5cf6)';
-      const btn = h.accion && h.accion.label
-        ? `<button onclick="telarAccion(${i})" data-i="${i}" style="margin-left:auto;flex-shrink:0;background:linear-gradient(135deg,var(--lb-purple,#8b5cf6),var(--lb-cyan,#06b6d4));color:#fff;border:none;border-radius:999px;padding:5px 13px;font-size:12px;font-weight:600;cursor:pointer">${esc(h.accion.label)}</button>` : '';
+      // V-3: distingue LEER (navigate: Ver/Revisar → secundario sutil) de PREPARAR/EFECTO
+      // (agent_task: Gestionar/Preparar borrador… → primario degradado). Jerarquía a la vista.
+      const acc = h.accion || {};
+      const esEfecto = acc.modo === 'agent_task';
+      const btnStyle = esEfecto
+        ? 'background:linear-gradient(135deg,var(--lb-purple,#8b5cf6),var(--lb-cyan,#06b6d4));color:#fff;border:none;'
+        : 'background:transparent;color:var(--lb-text2,#94a3b8);border:1px solid var(--lb-border2,rgba(255,255,255,.18));';
+      const btn = acc.label
+        ? `<button onclick="telarAccion(${i})" data-i="${i}" style="margin-left:auto;flex-shrink:0;${btnStyle}border-radius:999px;padding:5px 13px;font-size:12px;font-weight:600;cursor:pointer">${esc(acc.label)}</button>` : '';
+      // El PORQUÉ (cognición, ya lo calcula el backend) en acento claro; el detalle, debajo, legible.
+      const por = h.porque
+        ? `<div style="font-size:11.5px;color:var(--lb-cyan,#22d3ee);line-height:1.3;margin-top:3px">${esc(h.porque)}</div>` : '';
       const det = h.detalle
-        ? `<div style="font-size:11px;color:var(--lb-text3,#64748b);line-height:1.3;margin-top:2px">${esc(h.detalle)}</div>` : '';
+        ? `<div style="font-size:11.5px;color:var(--lb-text2,#94a3b8);line-height:1.35;margin-top:2px">${esc(h.detalle)}</div>` : '';
       return `<div class="telar-hilo" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;background:var(--lb-navy2,#111827);border-left:3px solid ${col};margin:6px 0">
         <span style="font-size:16px;align-self:flex-start;margin-top:1px">${esc(h.icono||'•')}</span>
-        <div style="flex:1;min-width:0"><div style="font-size:13px;line-height:1.35">${esc(h.titulo||'')}</div>${det}</div>${btn}</div>`;
+        <div style="flex:1;min-width:0"><div style="font-size:13px;line-height:1.35;font-weight:600;font-family:var(--font-display);letter-spacing:-.01em">${esc(h.titulo||'')}</div>${por}${det}</div>${btn}</div>`;
     }).join('');
     panel.innerHTML = `
-      <div style="background:linear-gradient(135deg,rgba(139,92,246,.14),rgba(6,182,212,.10));border:1px solid var(--lb-border2,rgba(255,255,255,.12));border-radius:16px;padding:16px 18px">
+      <div style="background:repeating-linear-gradient(90deg,rgba(255,255,255,.022) 0 1px,transparent 1px 24px),linear-gradient(135deg,rgba(139,92,246,.15),rgba(6,182,212,.09));border:1px solid var(--lb-border2,rgba(255,255,255,.12));border-radius:16px;padding:16px 18px;box-shadow:0 14px 50px -12px rgba(124,58,237,.30),inset 0 1px 0 rgba(255,255,255,.05)">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
           <span style="font-size:18px">☀️</span>
-          <span style="font-size:16px;font-weight:700">${esc(t.saludo||'Hola')}${t.usuario ? ', '+esc(t.usuario) : ''}</span>
-          <button onclick="document.getElementById('telar-panel').style.display='none'" title="Ocultar" style="margin-left:auto;background:none;border:none;color:var(--lb-text3,#475569);cursor:pointer;font-size:16px">✕</button>
+          <span style="font-size:16px;font-weight:700;font-family:var(--font-display);letter-spacing:-.01em">${esc(t.saludo||'Hola')}${t.usuario ? ', '+esc(t.usuario) : ''}</span>
+          <button onclick="hideTelar()" title="Ocultar" style="margin-left:auto;background:none;border:none;color:var(--lb-text3,#475569);cursor:pointer;font-size:16px">✕</button>
         </div>
         <div style="font-size:13px;color:var(--lb-text2,#94a3b8);margin-bottom:10px">${esc(t.resumen||'')}</div>
         ${filas}
         <div style="font-size:11px;color:var(--lb-text3,#475569);margin-top:10px;display:flex;align-items:center;gap:6px">🔒 ${esc((t.meta&&t.meta.privado)||'Nada de esto ha salido de tu máquina.')}</div>
       </div>`;
     panel.style.display = 'block';
+    setIntroVisible(false);   // P0-2: con la tela tejida, no muestres también el intro vacío
     panel._hilos = t.hilos;   // guardamos para telarAccion
   } catch { /* el telar es complementario, nunca rompe la app */ }
 }
@@ -2518,16 +2766,29 @@ async function telarAccion(i) {
   const h = panel && panel._hilos && panel._hilos[i]; if (!h || !h.accion) return;
   const ac = h.accion;
   if (ac.modo === 'agent_task' && ac.task) {
-    const btn = panel.querySelector(`button[data-i="${i}"]`); if (btn) { btn.disabled = true; btn.textContent = 'Preparando…'; }
-    try {
-      await fetch(`${API}/agent/run`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ task: ac.task }), signal: AbortSignal.timeout(15000) });
-      if (btn) btn.textContent = '✓ Preparado';
-      addMsg('agent', `✅ ${ac.label}: lo he dejado en «Aprobar todo» (arriba a la derecha) para que lo apruebes.`);
-      setTimeout(refreshApprovals, 1200);
-    } catch (e) { if (btn) { btn.disabled = false; btn.textContent = ac.label; } }
+    // HONESTO: no cantes "preparado" al recibir 200. Ejecuta por el camino real del chat (spinner +
+    // pasos reales + resultado / pregunta / error de verdad). Nunca prometas algo que aún no pasó.
+    hideTelar();
+    msgInput.value = ac.task;
+    sendMessage();
+    return;
   } else if (ac.modo === 'navigate') {
-    if (h.tipo === 'agenda') openGalaxia();
-    else { const bar = document.getElementById('approveAllBar'); if (bar) bar.style.boxShadow = '0 0 0 3px var(--lb-purple,#8b5cf6)'; }
+    // 'Ver' → abre el destino REAL (reunión/agenda → Google Calendar; correo/notificación → Gmail).
+    if (h.enlace) {
+      window.open(h.enlace, '_blank', 'noopener');
+    } else if (h.tipo === 'aprobacion') {
+      // 'Revisar' → lleva a la tarjeta de aprobación (donde está el borrador).
+      const box = document.getElementById('telar-approvals');
+      if (box && box.style.display !== 'none') {
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        box.style.transition = 'box-shadow .25s'; box.style.boxShadow = '0 0 0 3px var(--lb-cyan,#06b6d4)';
+        setTimeout(() => { box.style.boxShadow = 'none'; }, 1400);
+      } else {
+        addMsg('agent', 'No hay nada pendiente de aprobar ahora mismo ✅');
+      }
+    } else if (h.tipo === 'agenda') {
+      openGalaxia();
+    }
   }
 }
 
@@ -2546,14 +2807,6 @@ async function telarAccion(i) {
   cargarTelar();
 })();
 </script>
-<div id="approveAllBar" style="display:none;position:fixed;top:64px;right:20px;z-index:9999;background:var(--lb-navy3,#1a2235);border:1px solid var(--lb-purple,#8b5cf6);border-radius:12px;padding:10px 14px;box-shadow:0 10px 30px rgba(0,0,0,.55);flex-direction:column;align-items:stretch;gap:8px;font-size:13px;color:var(--lb-text,#f1f5f9);max-width:340px">
-  <div style="display:flex;align-items:flex-start;gap:8px">
-    <span style="flex:1">⚠ <strong id="approveAllCount">0</strong> <span id="approveAllNoun">acciones pendientes de aprobar</span></span>
-    <button onclick="dismissApprovals()" title="Cerrar (no cancela nada; reaparece si cambian)" style="background:none;border:none;color:var(--lb-text3,#64748b);cursor:pointer;font-size:16px;line-height:1;padding:0 2px">✕</button>
-  </div>
-  <ul id="approveAllList" style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:12px;opacity:.92"></ul>
-  <button id="approveAllBtn" onclick="approveAll()" style="background:linear-gradient(135deg,var(--lb-purple,#8b5cf6),var(--lb-cyan,#06b6d4));color:#fff;border:none;border-radius:999px;padding:8px 18px;font-weight:700;cursor:pointer;font-size:13px">Aprobar todo</button>
-</div>
 <script>
 /* ── Entregables: dossier autónomo (HTML/Word) de un expediente. Additivo y autocontenido. ── */
 let LB_DEFAULT_ENTITY = null;
@@ -2570,22 +2823,33 @@ function lbEsc(s) {
   return String(s == null ? '' : s).replace(/[<&>"]/g,
     c => ({ '<': '&lt;', '&': '&amp;', '>': '&gt;', '"': '&quot;' }[c]));
 }
-async function abrirEntregables() {
-  let ent = await lbEntidad();
-  if (!ent) {
-    ent = (prompt('Entidad (entity_id) de la que ver entregables:', '') || '').trim();
-    if (!ent) return;
+// Aviso breve en la app (no un alert nativo): toast inferior con la voz de Loombit.
+function lbToast(text) {
+  let t = document.getElementById('lb-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'lb-toast';
+    t.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:10001;'
+      + 'background:var(--lb-navy3,#1a2235);color:var(--lb-text,#f1f5f9);border:1px solid var(--lb-border2,rgba(255,255,255,.15));'
+      + 'padding:11px 18px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.45);font-size:13.5px;'
+      + 'max-width:480px;opacity:0;transition:opacity .2s';
+    document.body.appendChild(t);
   }
-  let data;
+  t.textContent = text;
+  t.style.opacity = '1';
+  clearTimeout(lbToast._t);
+  lbToast._t = setTimeout(() => { t.style.opacity = '0'; }, 3200);
+}
+async function abrirEntregables() {
+  const ent = await lbEntidad();   // entidad por defecto (si la hay); NUNCA pedimos un "entity_id"
+  if (!ent) { lbRenderEntregables('', { expedientes: [] }); return; }
   try {
     const r = await fetch(`${API}/entregable/${encodeURIComponent(ent)}`);
     if (!r.ok) throw new Error('HTTP ' + r.status);
-    data = await r.json();
+    lbRenderEntregables(ent, await r.json());
   } catch (e) {
-    (window.gxToast || alert)('No pude listar entregables: ' + e.message);
-    return;
+    lbToast('No pude abrir tus entregables ahora mismo. Inténtalo en un momento.');
   }
-  lbRenderEntregables(ent, data);
 }
 function lbRenderEntregables(ent, data) {
   const prev = document.getElementById('lb-ent-modal');
@@ -2602,7 +2866,9 @@ function lbRenderEntregables(ent, data) {
       <td style="padding:8px 10px;white-space:nowrap;text-align:right">
         <a href="${base}" download style="margin-right:10px;text-decoration:none">⬇ HTML</a>
         <a href="${base}/docx" download style="text-decoration:none">⬇ Word</a></td></tr>`;
-  }).join('') : `<tr><td style="padding:12px;color:#8a93a3">No hay expedientes para «${lbEsc(ent)}».</td></tr>`;
+  }).join('') : `<tr><td style="padding:18px 16px;color:var(--lb-text2,#94a3b8);line-height:1.6">
+        Aún no tienes entregables. Los preparo solos cuando <b>cierro un expediente</b> por ti —
+        al conciliar un cobro o preparar tu 303— y aparecen aquí listos para descargar (HTML o Word).</td></tr>`;
   const ov = document.createElement('div');
   ov.id = 'lb-ent-modal';
   ov.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.55);'
@@ -2613,7 +2879,7 @@ function lbRenderEntregables(ent, data) {
     + 'max-width:640px;width:100%;max-height:80vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.45)';
   box.innerHTML = `<div style="padding:14px 18px;border-bottom:1px solid rgba(128,128,128,.25);
       display:flex;align-items:center;gap:10px">
-      <strong style="flex:1">📦 Entregables — ${lbEsc(ent)}</strong>
+      <strong style="flex:1">📦 Entregables${ent ? ' — ' + lbEsc(ent) : ''}</strong>
       <button onclick="document.getElementById('lb-ent-modal').remove()"
         style="background:none;border:none;font-size:18px;cursor:pointer;color:inherit">✕</button></div>
     <table style="width:100%;border-collapse:collapse;font-size:13px">${rows}</table>`;

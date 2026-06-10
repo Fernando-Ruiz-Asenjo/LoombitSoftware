@@ -407,4 +407,29 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   inflar. *Reversible:* sí; módulo + endpoint + bloque UI autocontenido; quitar la dep solo desactiva
   el .docx (501). Verificado: 15 tests de entregable verdes (incl. .docx real parseado).
 
+**D-51 — Reparación Canónica (RC): método blanco y obligatorio para arreglar/endurecer subsistemas.**
+- *Contexto:* las auditorías blandas ("se pinta = funciona") y las afirmaciones sin recibo
+  (autonomía del loop, Pilot "vivo del todo") rompieron la confianza de Fernando. Hacía falta un
+  proceso que lo impida por construcción, no por buena voluntad.
+- *Elegido:* `docs/REPARACION_CANONICA.md` (Skill C, blanco/reutilizable): el LLM PROPONE, el código
+  DISPONE; **arnés (golden test) ANTES de tocar**; clasificar determinista (100% en gate) vs LLM
+  (eval con umbral); verificar por **recibo**; 🟠→🟢 con test en `verify.py`; scorecard por familia;
+  **predicción ≠ hecho** (cobertura, nunca "100%"). Enlazado desde la brújula (CLAUDE.md + BRUJULA.md).
+- *Alternativas descartadas:* dejarlo como "buenas prácticas" sueltas (no se cumplen) → canon en la
+  brújula; método solo para el cerebro → blanco para todas las familias (instancia #1 = RC·Cerebro).
+- *Por qué:* convierte "debería funcionar" en "funciona, con recibo", y blinda contra regresiones.
+  *Reversible:* sí (proceso + docs). Artefactos: `ALGORITMO_CEREBRO.md`, `ALGORITMO_CEREBRO_EXISTENTE.md`.
+
+**D-52 — RC·Cerebro cerrado: gate de datos (ALG-2.1) SUBSUMIDO, no se construye ahora.**
+- *Contexto:* el plan del cerebro incluía un "gate de datos" (confirmar las cifras extraídas antes de
+  una acción consecuente). Tras implementar parsers deterministas (ALG-1.3/1.4), guard antifabricación
+  del 303, **relay fiel** (ALG-4.1) y **303 desde facturas registradas** (ALG-3.4), el riesgo que ese
+  gate cubría ya está cubierto, y el envío/pago real sigue pasando por el **gate de efecto** (sagrado).
+- *Decisión:* NO construir el gate de datos como paso extra de confirmación: añadiría fricción para
+  poco. El bloque CEREBRO queda cerrado en código (65 golden) + comportamiento del LLM (evals C1/C3/C4).
+- *Alternativas descartadas:* construir `pending_data` + tarjeta UI (fricción + redundante con el gate
+  de efecto y el relay fiel). *Reversible:* sí (si aparece un caso real que lo pida, se añade).
+- *Pendiente fuera del cerebro:* conciliación como tool (familia Manos), y más evals del LLM (p.ej. 303
+  mis-asignación) cuando se priorice. Ver `docs/REPARACION_CANONICA.md` (scorecard).
+
 *(se irán añadiendo entradas según avance el bloque)*

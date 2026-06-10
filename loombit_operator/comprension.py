@@ -20,6 +20,7 @@ import json
 import re
 import threading
 import time
+import unicodedata
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -49,7 +50,10 @@ _SYSTEM = (
     "2) NO inventes NADA. Cada asunto sale de correos/eventos concretos; cita el origen. Dato que no "
     "aparece → cadena vacía.\n"
     "3) Lo oficial/legal (Policía, DGT, AEAT, Seguridad Social, banco, juzgado) es SIEMPRE importante "
-    "(importancia 3) aunque no tenga fecha: tipo=notificacion, di qué pide y la acción.\n"
+    "(importancia 3) aunque no tenga fecha: tipo=notificacion, di qué pide y la acción. Y una DEUDA, "
+    "impago, cobro o requerimiento de pago —sobre todo si el usuario NO la reconoce— es posible FRAUDE "
+    "o error: importancia 3, estado=requiere_accion, NUNCA informativa; la acción es VERIFICARLA "
+    "(no pagar a ciegas).\n"
     "4) Solo cosas vigentes (de hoy en adelante o sin fecha). importancia: 3=urgente/legal, 2=normal, "
     "1=menor. Responde SOLO el array JSON, sin texto ni markdown."
 )
@@ -93,8 +97,68 @@ def _extraer_json(texto: str) -> Any:
     return json.loads(t)
 
 
+def _salvar_objetos(texto: str) -> list[dict]:
+    """Recupera los objetos JSON COMPLETOS de una respuesta aunque el array venga TRUNCADO (el 14B
+    corta a `max_tokens` y deja el último objeto a medias → `json.loads` reventaría y perderíamos
+    TODO, cayendo al caché viejo = no-determinismo). Aquí conservamos cada `{...}` balanceado que
+    parsee y descartamos solo la cola rota. Degrada con gracia en vez de fallar en seco."""
+    objetos: list[dict] = []
+    prof, ini, en_str, esc = 0, -1, False, False
+    for i, ch in enumerate(texto):
+        if en_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                en_str = False
+            continue
+        if ch == '"':
+            en_str = True
+        elif ch == "{":
+            if prof == 0:
+                ini = i
+            prof += 1
+        elif ch == "}" and prof > 0:
+            prof -= 1
+            if prof == 0 and ini != -1:
+                try:
+                    obj = json.loads(texto[ini : i + 1])
+                    if isinstance(obj, dict):
+                        objetos.append(obj)
+                except Exception:
+                    pass
+                ini = -1
+    return objetos
+
+
 _TIPOS = {"reunion", "notificacion", "plazo", "gestion"}
 _ESTADOS = {"confirmada", "pendiente", "requiere_accion", "informativa"}
+
+# Señales DETERMINISTAS (no dependen de que el LLM acierte el run): una deuda, impago, cobro o
+# requerimiento de pago —y sobre todo el que NO se reconoce— es posible FRAUDE o error grave.
+# Siempre importante y a verificar; NUNCA "informativa". Esto estabiliza el no-determinismo del LLM
+# en el caso de más riesgo (regla: cero fallos, acierta al 100 %).
+_DEUDA_RE = re.compile(
+    r"\b(deuda|deudas|impagad[oa]s?|impago|morosidad|recobros?|cobrador(?:es)?|"
+    r"reclamaci[oó]n de (?:pago|deuda|cantidad)|requerimiento de pago|requerimiento|"
+    r"cantidad adeudada|factura impagada|monitorio|embargo|apremio|"
+    r"no recono(?:zco|ce|cida|cido))\b"
+)
+# Informes automáticos / marketing: ruido sin acción real (el prompt ya pide ignorarlos; esto lo
+# hace determinista). Conservador: solo baja prioridad cuando NO hay fecha ni es algo oficial.
+_RUIDO_RE = re.compile(
+    r"(google business profile|informe de rendimiento|performance report|"
+    r"resumen mensual|newsletter|bolet[ií]n|no[\s\-]?reply|noreply)"
+)
+
+
+def _norm(s: str) -> str:
+    """Clave robusta para deduplicar: minúsculas, SIN acentos y solo alfanumérico. Así
+    'David Valentín' y 'David Valentin' (el LLM varía la tilde) cuentan como el mismo asunto."""
+    t = unicodedata.normalize("NFKD", str(s or "").lower())
+    t = "".join(c for c in t if not unicodedata.combining(c))
+    return re.sub(r"[^a-z0-9]+", " ", t).strip()
 
 
 def _normalizar(item: dict, hoy: date) -> dict | None:
@@ -121,21 +185,43 @@ def _normalizar(item: dict, hoy: date) -> dict | None:
         hora = f"{int(h):02d}:{m}"
     tipo = str(item.get("tipo", "")).strip().lower()
     estado = str(item.get("estado", "")).strip().lower()
+    resumen = str(item.get("resumen", "")).strip()
+    con = str(item.get("con", "")).strip()
+    accion = str(item.get("accion", "")).strip()
     try:
         imp = int(item.get("importancia", 2))
     except (ValueError, TypeError):
         imp = 2
+
+    # ── Guard DETERMINISTA (la verdad de alto riesgo no se deja al azar del LLM) ──────────────
+    _texto = " ".join((titulo, resumen, origen, accion, con)).lower()
+    if _DEUDA_RE.search(_texto):
+        imp = 3  # una deuda/cobro/requerimiento es SIEMPRE importante
+        if estado in ("", "informativa"):
+            estado = "requiere_accion"  # hay que verificarla; nunca "solo informativa"
+        if tipo not in _TIPOS:
+            tipo = "notificacion"
+        if not accion:
+            accion = (
+                "Verifica esta deuda o cobro: si no lo reconoces, NO pagues; responde pidiendo el "
+                "detalle, el contrato y el justificante, y guarda todo."
+            )
+    elif _RUIDO_RE.search(_texto) and not fecha:
+        # Informe automático/marketing sin fecha: no debe pedir acción ni colarse como urgente.
+        estado = "informativa"
+        imp = min(imp, 1)
+
     return {
         "tipo": tipo if tipo in _TIPOS else "gestion",
         "titulo": titulo or origen,
-        "con": str(item.get("con", "")).strip(),
-        "resumen": str(item.get("resumen", "")).strip(),
+        "con": con,
+        "resumen": resumen,
         "estado": estado if estado in _ESTADOS else "",
         "fecha": fecha,
         "hora": hora,
         "lugar": str(item.get("lugar", "")).strip(),
         "importancia": min(3, max(1, imp)),
-        "accion": str(item.get("accion", "")).strip(),
+        "accion": accion,
         "origen": origen,
         "dia_semana": _DIAS_ES[date.fromisoformat(fecha).weekday()] if fecha else "",
     }
@@ -229,14 +315,45 @@ def comprender(
         raw = cliente.chat(
             [{"role": "system", "content": _SYSTEM}, {"role": "user", "content": user}],
             temperature=0,
-            max_tokens=900,
+            max_tokens=2200,  # 900 truncaba la bandeja → JSON roto → caché viejo (no-determinismo)
         ).content
-        data = _extraer_json(raw)
+        try:
+            data = _extraer_json(raw)
+        except Exception:
+            data = None
         if not isinstance(data, list):
+            # Truncado o con texto alrededor: recupera los objetos completos en vez de perder TODO.
+            data = _salvar_objetos(raw)
+        if not data:
             return None
         out = [a for a in (_normalizar(it, hoy) for it in data if isinstance(it, dict)) if a]
         out.sort(key=lambda a: (-a["importancia"], a["fecha"] or "9999", a["hora"] or "99:99"))
-        return out
+        # DEDUP determinista: el LLM a veces emite un asunto por CADA correo del hilo → el telar
+        # mostraba la misma deuda/reunión 2-4 veces. Una entrada por asunto (regla del prompt),
+        # garantizada por código. Se conserva la de mayor importancia (ya viene ordenada).
+        # El LLM repite el MISMO asunto con título, 'con' y origen distintos cada vez. Dedup por
+        # claves FUERTES por naturaleza, no por texto (que varía):
+        vistos: set[tuple] = set()
+        unicos: list[dict] = []
+        for a in out:
+            blob = " ".join((a["titulo"], a["resumen"], a["origen"], a["con"])).lower()
+            if _DEUDA_RE.search(blob):
+                # Una deuda/cobro/fraude no reconocido = UN solo aviso (verifícalo). El LLM lo
+                # redacta de 3 formas distintas; al usuario le basta una tarjeta.
+                clave: tuple = ("deuda",)
+            elif a["fecha"] or a["hora"]:
+                # Mismo día + hora = el MISMO evento (no puedes estar en dos reuniones a la vez),
+                # aunque el LLM cambie el título o se deje el nombre.
+                clave = ("ev", a["fecha"], a["hora"])
+            else:
+                # Sin fecha: funde por ORIGEN (el correo citado) si es específico; si no, por título.
+                org = _norm(a["origen"])
+                clave = ("tx", a["tipo"], org if len(org) >= 6 else _norm(a["titulo"]))
+            if clave in vistos:
+                continue
+            vistos.add(clave)
+            unicos.append(a)
+        return unicos
     except Exception:
         return None  # conservar el último bueno
 
@@ -248,6 +365,14 @@ def refrescar(
     nuevo = comprender(correos, eventos, hoy, llm=llm, buscar=buscar)
     if nuevo is not None:
         _guardar(nuevo)
+        # La comprensión cambió → invalida el telar cacheado para que el usuario vea YA el resultado
+        # (deduplicado/actualizado) y no un snapshot viejo. Import perezoso (evita ciclos), best-effort.
+        try:
+            from . import telar_cache
+
+            telar_cache.invalidate()
+        except Exception:
+            pass
         return nuevo
     return comprension_cacheada()[0]
 

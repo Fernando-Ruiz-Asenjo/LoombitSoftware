@@ -28,6 +28,9 @@ class AppSettings(BaseSettings):
     llm_request_timeout_seconds: float = Field(default=30.0, gt=0)
     llm_temperature: float = Field(default=0.2, ge=0, le=2)
     llm_max_tokens: int = Field(default=512, gt=0)
+    # Contexto cargado del modelo en LM Studio (n_ctx). El agente recorta para no pasarse y evitar
+    # el 400 "n_keep >= n_ctx" (ALG-0.1). Debe coincidir con el modelo cargado (>=8192 recomendado).
+    llm_context_length: int = Field(default=8192, gt=0)
 
     # Rol instructor
     llm_instructor_provider: str = ""

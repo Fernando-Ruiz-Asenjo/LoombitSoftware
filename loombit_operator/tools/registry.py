@@ -24,6 +24,22 @@ from typing import Any, Callable
 # (requires_approval=True), no una tool aparte → una sola puerta, sin redundancia.
 CORE_TOOLS: set[str] = {"task_done", "ask_user", "propose_improvement"}
 
+# Reach admin SIEMPRE disponible: el agente NUNCA debe estar ciego a su correo, su agenda,
+# sus contactos, su memoria, la web ni a leer un documento. Son las manos del oficio. Antes
+# se ocultaban tras palabras clave frágiles → el vocabulario de medio oficio (p.ej. "vuelo",
+# "hotel", "viaje") no casaba con nada y el agente se quedaba solo con correo+calendario,
+# diciendo "no tengo capacidad para abrir webs" cuando SÍ tiene web_fetch. Esto es el piso.
+ADMIN_BASE: set[str] = {
+    "gmail_search",
+    "gmail_send",
+    "contacts_find",
+    "calendar_create",
+    "calendar_today",
+    "memory_search",
+    "web_fetch",
+    "read_invoice",
+}
+
 # Grupos que se activan cuando la petición casa con sus palabras clave.
 TOOL_GROUPS: list[tuple[tuple[str, ...], set[str]]] = [
     (
@@ -59,8 +75,14 @@ TOOL_GROUPS: list[tuple[tuple[str, ...], set[str]]] = [
             "convoca",
             "queda con",
             "videollamada",
+            "recuérdame",
+            "recuerdame",
+            "recordatorio",
+            "acuérdame",
+            "acuerdame",
+            "no se me olvide",
         ),
-        {"calendar_create", "contacts_find"},
+        {"calendar_create", "calendar_today", "calendar_semana", "contacts_find"},
     ),
     (
         ("busca correo", "buscar correo", "lee correo", "leer correo", "bandeja", "recibido"),
@@ -104,12 +126,29 @@ TOOL_GROUPS: list[tuple[tuple[str, ...], set[str]]] = [
             "en que centrar",
             "organiza mi día",
             "organiza mi dia",
+            "esta semana",
+            "semana",
+            "próximos días",
+            "proximos dias",
+            "qué reuniones",
+            "que reuniones",
+            "cierre de mes",
+            "cierre del mes",
+            "cierre mensual",
+            "fin de mes",
         ),
-        {"daily_brief", "calendar_today", "gmail_search"},
+        {"daily_brief", "calendar_today", "calendar_semana", "gmail_search"},
     ),
     (
         (
             "factura",
+            "factúrale",
+            "facturale",
+            "emite",
+            "emitir",
+            "emíteme",
+            "apunta",
+            "registra",
             "albaran",
             "albarán",
             "pdf",
@@ -121,11 +160,168 @@ TOOL_GROUPS: list[tuple[tuple[str, ...], set[str]]] = [
             "extracto",
             "proveedor",
         ),
-        {"read_invoice", "read_file", "list_directory"},
+        {
+            "registrar_factura",
+            "resumen_facturacion",
+            "resumen_financiero",
+            "read_invoice",
+            "read_file",
+            "list_directory",
+        },
     ),
     (
         ("fichero", "archivo", "carpeta", "guarda", "directorio", "lee el", "escribe el"),
         {"read_file", "write_file", "list_directory"},
+    ),
+    (
+        (
+            "cobr",  # cobro/cobrar/cobra (stem)
+            "reclam",  # reclama/reclamo/reclamar/reclámame (stem)
+            "moros",
+            "impag",
+            "deuda",
+            "vencid",  # vencida/vencido (stem)
+            "vencimiento",
+            "vence",
+            "pendiente de pago",
+            "demora",
+            "me deben",
+            "me debe",
+            "quién me debe",
+            "quien me debe",
+            "por cobrar",
+            "cobros pendientes",
+            "pendiente de cobro",
+            "sin cobrar",
+        ),
+        {"plan_cobro", "cobros_pendientes", "resumen_financiero", "gmail_search", "gmail_send"},
+    ),
+    (
+        (
+            "303",
+            "iva",
+            "trimestre",
+            "trimestral",
+            "modelo 303",
+            "liquidación",
+            "liquidacion",
+            "declaración",
+            "declaracion",
+            "hacienda",
+            "devengado",
+            "soportado",
+            "repercutido",
+        ),
+        {
+            "calcular_303",
+            "calcular_303_registradas",
+            "resumen_facturacion",
+            "resumen_financiero",
+            "read_invoice",
+        },
+    ),
+    (
+        # Visión GLOBAL de las finanzas ('¿cómo voy?', 'resumen financiero') sin keyword fiscal
+        # explícita → ofrece la tool que COMPONE todas las métricas (alineado con _RESUMEN_GLOBAL
+        # de agent/intencion.py; si alguna frase no casa, degrada a fallback, no rompe).
+        (
+            "resumen financiero",
+            "resumen económico",
+            "resumen economico",
+            "resumen de mis cuentas",
+            "resumen de mis finanzas",
+            "cómo va mi negocio",
+            "como va mi negocio",
+            "cómo van mis",
+            "como van mis",
+            "cómo voy de",
+            "como voy de",
+            "situación financiera",
+            "situacion financiera",
+            "situación económica",
+            "situacion economica",
+            "estado de mis finanzas",
+            "estado de mis cuentas",
+            "balance económico",
+            "balance economico",
+            "balance general",
+            "mis finanzas",
+            "mis números",
+            "mis numeros",
+        ),
+        {
+            "resumen_financiero",
+            "resumen_facturacion",
+            "cobros_pendientes",
+            "calcular_303_registradas",
+        },
+    ),
+    (
+        # D-4: COMPARATIVA periodo-vs-anterior (evolución/crecimiento) → ofrece la tool que compara.
+        (
+            "compar",
+            "crecimiento",
+            "crecid",
+            "crecí",
+            "creci",
+            "evolución",
+            "evolucion",
+            "tendencia",
+            "mes pasado",
+            "trimestre anterior",
+            "año pasado",
+            "ano pasado",
+            "voy mejor",
+            "más que el",
+            "mas que el",
+        ),
+        {"resumen_comparativo", "resumen_facturacion", "resumen_financiero"},
+    ),
+    (
+        (
+            "concilia",
+            "conciliac",
+            "conciliar",
+            "extracto bancario",
+            "extracto del banco",
+            "norma 43",
+            "cuadrar el banco",
+            "cuadrar los cobros",
+            "movimientos del banco",
+        ),
+        {"conciliar_banco"},
+    ),
+    (
+        (
+            "vuelo",
+            "vuelos",
+            "viaje",
+            "viajar",
+            "hotel",
+            "hoteles",
+            "alojamiento",
+            "reserva",
+            "reservar",
+            "billete",
+            "booking",
+            "escapada",
+            "crucero",
+            "ida y vuelta",
+            "alquiler de coche",
+        ),
+        # El motor de viajes es el PILOT: el agente OPERA un sitio real (no una API),
+        # busca y deja la reserva preparada hasta el pago (gate). Le damos sus manos.
+        {
+            "browser_navigate",
+            "browser_read_page",
+            "browser_find",
+            "browser_click",
+            "browser_type",
+            "browser_key",
+            "browser_scroll",
+            "browser_screenshot",
+            "web_fetch",
+        },
     ),
     (
         (
@@ -166,21 +362,21 @@ TOOL_GROUPS: list[tuple[tuple[str, ...], set[str]]] = [
     ),
 ]
 
-# Si la petición no casa con ningún grupo: set administrativo básico (API).
-_DEFAULT_GROUP: set[str] = {"contacts_find", "gmail_search", "gmail_send", "calendar_create"}
-
 
 def select_tool_names(task: str) -> set[str]:
-    """Núcleo + los grupos cuya palabra clave aparece en la petición."""
+    """Piso robusto (núcleo + reach admin) + los grupos especialistas cuya palabra clave aparece.
+
+    Antes: si la petición no casaba con ninguna keyword, el agente se quedaba solo con
+    correo+calendario y quedaba CIEGO a la web, la memoria y los documentos que sí tiene.
+    Ahora el reach admin (`ADMIN_BASE`) está SIEMPRE disponible; los grupos especialistas
+    (ficheros, escritorio/Pilot, etc.) se añaden encima por intención. ~11-15 tools, dentro
+    de lo que el 14B maneja sin confundirse, y sin manos atadas.
+    """
     t = (task or "").lower()
-    names = set(CORE_TOOLS)
-    matched = False
+    names = set(CORE_TOOLS) | set(ADMIN_BASE)
     for keywords, group in TOOL_GROUPS:
         if any(k in t for k in keywords):
             names |= group
-            matched = True
-    if not matched:
-        names |= _DEFAULT_GROUP
     return names
 
 
@@ -193,6 +389,9 @@ class ToolDefinition:
     requires_approval: bool = False
     safety_class: str = "passive"  # passive | assisted | safety_sensitive
     category: str = "base"  # base | file | web | shell | connector | computer
+    # ALG-4.1 (relay fiel): si True, su resultado es AUTORITATIVO (cálculo determinista) y debe
+    # mostrarse VERBATIM al usuario; el LLM no debe parafrasear sus cifras. Lo garantiza el bucle.
+    authoritative: bool = False
 
     def to_openai(self) -> dict[str, Any]:
         """Formato que espera /chat/completions con tools."""

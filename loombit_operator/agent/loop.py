@@ -23,12 +23,25 @@ from __future__ import annotations
 import json
 import logging
 import re
+from datetime import date
 from typing import Any
 
+from ..config import get_settings
 from ..llm import ChatResponse, LLMClient, ToolCall, tool_result_message
 from ..tools import tool_registry
 from ..tools.registry import ToolRegistry
 from .memory import get_memory
+from .contexto import ajustar_a_contexto
+from .descomposicion import MENU, clasificar_intencion, merece_clasificar, resolver
+from .guardas import registro_guardas
+from .intencion import (
+    es_lectura_agenda,
+    intencion_consecuente,
+    tiene_dato,
+    tools_excluir,
+    tools_foco,
+)
+from .parsers import parsear_fecha, parsear_importe_es
 from .prompts import build_system_prompt
 from .run import AgentRun, AgentStatus, AgentStep, AgentStore
 
@@ -69,6 +82,21 @@ _DELATA_BOT = re.compile(
 )
 
 
+def _texto_para_intencion(run: AgentRun) -> str:
+    """Texto sobre el que clasificar la intención (force-tool). Si el ÚLTIMO mensaje no tiene intención
+    propia y es CORTO (una respuesta de seguimiento: «Emitida.», «¿y en junio?»), hereda el último
+    mensaje del usuario del hilo —donde vive el dato/intención—. Así un seguimiento terso rutea bien y
+    el 14B no fabrica un «✅ hecho» sin llamar la tool. Si el task ya tiene intención clara, se respeta
+    (no se contamina con el historial)."""
+    task = run.task or ""
+    if len(task.split()) > 6 or intencion_consecuente(task) is not None:
+        return task
+    for m in reversed(run.messages or []):
+        if m.get("role") == "user" and (m.get("content") or "") != task:
+            return ((m.get("content") or "") + " " + task).strip()
+    return task
+
+
 class AgentLoop:
     """
     Motor síncrono de ejecución del agente.
@@ -99,17 +127,33 @@ class AgentLoop:
         return self._execute(agent_run)
 
     def create(
-        self, task: str, max_steps: int | None = None, profile: str = "administrativo"
+        self,
+        task: str,
+        max_steps: int | None = None,
+        profile: str = "administrativo",
+        history: list[dict] | None = None,
     ) -> AgentRun:
-        """Crea un AgentRun sin ejecutarlo — para lanzar en background."""
+        """Crea un AgentRun sin ejecutarlo — para lanzar en background.
+
+        `history` son los turnos previos de la conversación
+        (`[{"role": "user"|"assistant", "content": str}, ...]`). Se siembran ANTES de la
+        tarea actual para que el agente tenga MEMORIA del hilo: así un "sí" sabe a qué
+        responde, en vez de nacer de cero (la causa del fallo de amnesia del chat).
+        """
         run = self.store.create(task, max_steps=max_steps or self.max_steps)
         run.profile = profile
         # Pasar la tarea como hint para que la memoria incluya procedimientos relevantes
         memory_block = get_memory().to_context_block(task_hint=task)
-        run.messages = [
-            {"role": "system", "content": build_system_prompt(profile, memory_block)},
-            {"role": "user", "content": task},
+        messages: list[dict] = [
+            {"role": "system", "content": build_system_prompt(profile, memory_block)}
         ]
+        for turn in history or []:
+            role = turn.get("role")
+            content = turn.get("content")
+            if role in ("user", "assistant") and isinstance(content, str) and content.strip():
+                messages.append({"role": role, "content": content})
+        messages.append({"role": "user", "content": task})
+        run.messages = messages
         self.store.save_run(run)
         return run
 
@@ -245,8 +289,50 @@ class AgentLoop:
                 {"role": "user", "content": run.task},
             ]
 
+        # Guardas de DOMINIO pre-intent (D-2): el dominio (skill_d_fiscal) registra abstenciones
+        # honestas para lo que Loombit NO modela (retención IRPF, IBAN inválido, modelos AEAT). El
+        # núcleo BLANCO solo consulta el hook; no sabe de fiscalidad. Si una guarda aplica, corta
+        # ANTES del ReAct (evita que el 14B fabrique un «✅ hecho» con cifras erróneas).
+        _guarda_msg = registro_guardas.aplicar(run.task)
+        if _guarda_msg:
+            logger.info("guarda de dominio aplicó → abstención honesta run=%s", run.id)
+            run.mark_completed(_guarda_msg)
+            _log_conversation_event(run, "completed", run.result)
+            self.store.save_run(run)
+            return run
+
         try:
             tools_schema = self.registry.to_openai(profile=run.profile, task=run.task)
+            # P0 fiabilidad: en intenciones consecuentes (cobro/303/factura/buscar) el 14B a veces
+            # calcula/contesta a ojo (fabrica) o llama a la tool equivocada. En el PRIMER paso forzamos
+            # la tool Y la enfocamos a la correcta. Solo si la petición trae datos (si no, que pregunte).
+            # ROUTING (D-1): el regex es el FAST-PATH barato; si NO casa pero la petición tiene señal
+            # de dominio, un clasificador LLM cubre la cola larga (fin del whack-a-mole: no hay que
+            # añadir un regex por cada fraseo nuevo). En conversación, una respuesta corta hereda la
+            # intención del turno anterior (_texto_para_intencion) → «Emitida.» fuerza registrar_factura.
+            _texto_rt = _texto_para_intencion(run)
+            _intencion = intencion_consecuente(_texto_rt)
+            if _intencion is None and merece_clasificar(_texto_rt):
+                _cand = clasificar_intencion(_texto_rt, self.llm)
+                # cobro/303/factura SIN dato no se fuerzan (que pregunte, no que invente un importe).
+                if _cand and not (
+                    _cand in ("cobro", "303", "factura") and not tiene_dato(_texto_rt)
+                ):
+                    _intencion = _cand
+                    logger.info(
+                        "intención por clasificador LLM (regex no casó): %s run=%s", _cand, run.id
+                    )
+            # A1 (gate de ambigüedad INTERNO): si la petición cruza varias intenciones de LECTURA
+            # (cross-domain, p.ej. financiero + agenda), se descompone, se ejecuta cada métrica con su
+            # tool determinista y se compone UNA respuesta aquí — sin preguntar al usuario. Si no
+            # aplica (mono-intención), sigue el flujo single-intent de abajo (0 regresión).
+            if self._intentar_multi_intent(run):
+                return run
+            # Exclusiones para TODO el run: otras tools de dominio + (si es pregunta de agenda)
+            # calendar_create, para que una LECTURA no acabe creando un evento.
+            _excl_run = tools_excluir(_intencion)
+            if es_lectura_agenda(run.task):
+                _excl_run = _excl_run | {"calendar_create"}
             while True:
                 # Guard: cancelación externa (el usuario pulsó "Detener")
                 fresh = self.store.get(run.id)
@@ -269,10 +355,54 @@ class AgentLoop:
                     run.id,
                     len(run.messages),
                 )
+                # ALG-0.1: enfocar/excluir las tools ANTES de recortar por contexto. Si se recorta
+                # primero y se enfoca después, el recorte (que corta la lista ordenada por la cola)
+                # puede tirar justo la tool enfocada y task_done cuando la petición activa muchos
+                # grupos — la compuesta «facturado + me-deben» inflaba a ~20 tools y el recorte dejaba
+                # 10 SIN resumen_financiero → el force-tool quedaba sin efecto y el 14B se iba a
+                # list_directory. Reducir antes (excluir + enfocar) lo evita y deja más sitio al hilo.
+                _s = get_settings()
+                _tool_choice = "auto"
+                _tools_efectivas = tools_schema
+                if _excl_run:
+                    _tools_efectivas = [
+                        t for t in _tools_efectivas if t["function"]["name"] not in _excl_run
+                    ]
+                if _intencion and run.step_count == 0:
+                    # PRIMER paso: enfoca a la tool correcta y fuérzala (tool_choice required).
+                    _foco = tools_foco(_intencion)
+                    # La intención está clasificada de forma DETERMINISTA → las tools del foco DEBEN
+                    # ofrecerse aunque select_tool_names no las activara por keywords (p.ej. «cuánto he
+                    # gastado» no casa 'factura', así que resumen_facturacion no se ofrecía y el 14B se
+                    # escapaba a buscar en la bandeja). Las añadimos si faltan, antes de filtrar.
+                    _ya = {t["function"]["name"] for t in _tools_efectivas}
+                    for _n in _foco - _ya:
+                        try:
+                            _tools_efectivas = _tools_efectivas + [
+                                self.registry.get(_n).to_openai()
+                            ]
+                        except Exception:  # noqa: BLE001 — si la tool no existe, se ignora
+                            pass
+                    _filtradas = [t for t in _tools_efectivas if t["function"]["name"] in _foco]
+                    if _filtradas:
+                        _tools_efectivas = _filtradas
+                        _tool_choice = "required"
+                msgs_llm, tools_llm, _recortado = ajustar_a_contexto(
+                    run.messages,
+                    _tools_efectivas,
+                    n_ctx=_s.llm_context_length,
+                    max_tokens=_s.llm_max_tokens,
+                )
+                if _recortado:
+                    logger.info("ALG-0.1 recortó el contexto para que quepa run=%s", run.id)
+                # Allowlist: el modelo solo puede ejecutar las tools OFRECIDAS en este paso. El 14B a
+                # veces alucina un nombre de tool fuera del set (p.ej. registrar_factura cuando solo se
+                # le dio plan_cobro). Si lo hace, se rechaza, no se ejecuta. Seguridad + fiabilidad.
+                _ofrecidas = {t["function"]["name"] for t in tools_llm}
                 response: ChatResponse = self.llm.chat(
-                    messages=run.messages,
-                    tools=tools_schema,
-                    tool_choice="auto",
+                    messages=msgs_llm,
+                    tools=tools_llm,
+                    tool_choice=_tool_choice,
                 )
 
                 # Añadir respuesta del asistente al historial
@@ -287,6 +417,7 @@ class AgentLoop:
                     # Puede que devuelva el sentinel en texto plano
                     done_result = _extract_sentinel(content, _SENTINEL_DONE)
                     if done_result is not None:
+                        done_result = self._relay_fiel(run, done_result)
                         run.mark_completed(done_result)
                         _log_conversation_event(run, "completed", done_result)
                         _update_memory(run)
@@ -307,7 +438,7 @@ class AgentLoop:
                     # Respuesta de texto sin sentineles: seguimos (el LLM está razonando)
                     # Si finish_reason=stop y no hay sentineles, asumimos tarea completada
                     if response.finish_reason == "stop":
-                        run.mark_completed(content or "(sin resultado)")
+                        run.mark_completed(self._relay_fiel(run, content or "(sin resultado)"))
                         _update_memory(run)
                         self.store.save_run(run)
                         return run
@@ -325,7 +456,16 @@ class AgentLoop:
 
                 for idx, tc in enumerate(response.tool_calls):
                     step_num = run.step_count + 1
-                    result_text, needs_stop = self._execute_tool_call(tc, step_num, run)
+                    if (_intencion or _excl_run) and tc.tool_name not in _ofrecidas:
+                        # Con intención enfocada o exclusión activa, el 14B no puede invocar una tool
+                        # fuera del set ofrecido (alucinaba registrar_factura/calendar_create): se rechaza.
+                        result_text, needs_stop = (
+                            f"ERROR al ejecutar '{tc.tool_name}': no disponible en este paso; "
+                            "usa una de las herramientas ofrecidas.",
+                            False,
+                        )
+                    else:
+                        result_text, needs_stop = self._execute_tool_call(tc, step_num, run)
 
                     step = AgentStep(
                         step=step_num,
@@ -363,7 +503,7 @@ class AgentLoop:
                     [tr["content"] for tr in tool_results], _SENTINEL_DONE
                 )
                 if done_summary is not None:
-                    run.mark_completed(done_summary)
+                    run.mark_completed(self._relay_fiel(run, done_summary))
                     _update_memory(run)
                     self.store.save_run(run)
                     return run
@@ -423,11 +563,122 @@ class AgentLoop:
 
             overlay_manager.stop_session()
 
+    def _intentar_multi_intent(self, run: AgentRun) -> bool:
+        """A1: descompone una petición multi-intención de LECTURA, ejecuta cada métrica con su tool
+        determinista y COMPONE una sola respuesta. Devuelve True si la resolvió (run completado);
+        False si no aplica (→ sigue el flujo single-intent). Solo entran tools de lectura del MENU
+        (sin efecto externo) → auto-ejecutarlas es seguro, no necesita aprobación."""
+        subs = resolver(run.task, self.llm)
+        if len(subs) < 2:
+            return False
+        partes: list[str] = []
+        for sub in subs:
+            item = MENU.get(sub.intencion)
+            if not item:
+                continue
+            try:
+                td = self.registry.get(item.tool)
+                res = td.fn(**sub.args)
+            except Exception as exc:  # noqa: BLE001 — que una métrica falle no tumba las demás
+                logger.info("A1: fallo ejecutando %s (%s)", item.tool, exc)
+                continue
+            run.add_step(
+                AgentStep(
+                    step=run.step_count + 1,
+                    tool_name=item.tool,
+                    tool_call_id=f"a1_{sub.intencion}",
+                    arguments=sub.args,
+                    result=res,
+                    requires_approval=False,
+                )
+            )
+            if res and res.strip():
+                partes.append(res.strip())
+        if len(partes) < 2:
+            return False  # no se compusieron ≥2 métricas → mejor el single-intent
+        run.mark_completed("\n\n".join(partes))
+        _log_conversation_event(run, "completed", run.result)
+        _update_memory(run)
+        self.store.save_run(run)
+        return True
+
+    def _accion_fallida_sin_exito(self, run: AgentRun) -> bool:
+        """True si en el run se INTENTÓ alguna tool con EFECTO real (persistir/enviar/crear) y NINGUNA
+        de ellas tuvo éxito (todas erraron) → la acción del usuario NO ocurrió, así que no se puede
+        presentar un éxito. Solo cuentan las de efecto (no las de lectura: un 303-lectura «con éxito»
+        sobre entidad vacía no significa que se registrara la factura que pedía el usuario)."""
+        intentos = [s for s in run.steps if s.tool_name in _TOOLS_EFECTO]
+        return bool(intentos) and all(_paso_es_fallo(s) for s in intentos)
+
+    def _relay_fiel(self, run: AgentRun, result: str) -> str:
+        """ALG-4.1 (relay fiel): garantiza que la salida VERBATIM de CADA tool AUTORITATIVA
+        (cálculo determinista: cobro, 303, factura) está en el resultado, aunque el LLM la haya
+        parafraseado. Así las cifras que ve el usuario == las que calculó el código. Recoge TODAS
+        en orden (no solo la última): si se registran N facturas, el usuario ve las N, no una."""
+        # DoD (no mentir): si toda acción material falló pero el texto afirma éxito, lo corregimos
+        # por un mensaje honesto (no inventamos un «✅ hecho» que no ocurrió). Ver _afirma_exito.
+        if self._accion_fallida_sin_exito(run) and _afirma_exito(result):
+            return _con_aviso_regulado(getattr(run, "task", ""), _MENSAJE_FALLO_HONESTO)
+        autoritativos: list[str] = []
+        for s in run.steps:  # en ORDEN de ejecución
+            try:
+                td = self.registry.get(s.tool_name)
+            except Exception:
+                continue
+            if not getattr(td, "authoritative", False) or _is_error_result(s.result):
+                continue
+            verbatim = (s.result or "").strip()
+            if verbatim and verbatim not in (result or "") and verbatim not in autoritativos:
+                autoritativos.append(verbatim)
+        if autoritativos:
+            bloque = "\n\n".join(autoritativos)
+            result = bloque + ("\n\n" + result if result and result.strip() else "")
+        # Aviso determinista en preguntas fiscales reguladas (getattr: los tests pasan run sin .task).
+        return _con_aviso_regulado(getattr(run, "task", ""), result)
+
     def _execute_tool_call(self, tc: ToolCall, step_num: int, run: AgentRun) -> tuple[str, bool]:
         try:
             tool_def = self.registry.get(tc.tool_name)
         except KeyError:
             return f"ERROR: tool desconocida '{tc.tool_name}'", False
+
+        # (La retención IRPF se rehúsa ya en la guarda de dominio pre-intent —ver registro_guardas—,
+        # antes del ReAct, así que aquí no hace falta interceptarla por tool.)
+
+        # ALG anti-fabricación del 303: el 14B mete líneas inventadas; quita las que no estén en el
+        # mensaje del usuario (su base no aparece) ANTES de calcular. Determinista.
+        if tc.tool_name == "calcular_303":
+            tc.arguments, _q303 = _filtrar_lineas_303(tc.arguments, run.task)
+            if _q303:
+                logger.info("303: descartadas %d línea(s) inventada(s) run=%s", _q303, run.id)
+
+        # ALG fecha-fiel: el 14B yerra fechas relativas ('próximo lunes'); las recalcula el código.
+        if tc.tool_name == "calendar_create" and _corregir_fecha_calendario(tc.arguments, run.task):
+            logger.info("calendar_create: fecha relativa corregida run=%s", run.id)
+        if tc.tool_name == "plan_cobro" and _corregir_fecha_cobro(tc.arguments, run.task):
+            logger.info("plan_cobro: fecha de vencimiento relativa corregida run=%s", run.id)
+        if tc.tool_name in ("calcular_303", "calcular_303_registradas") and _corregir_periodo_303(
+            tc.arguments, run.task
+        ):
+            logger.info("303: periodo (trimestre) puesto al actual run=%s", run.id)
+        if tc.tool_name == "resumen_financiero" and _corregir_trimestre_relativo(
+            tc.arguments, run.task
+        ):
+            logger.info("resumen_financiero: trimestre relativo puesto al actual run=%s", run.id)
+        # D-4: la unidad de la comparativa (mes/trimestre/año) la fija el código desde el texto.
+        if tc.tool_name == "resumen_comparativo" and _corregir_unidad_comparativa(
+            tc.arguments, run.task
+        ):
+            logger.info("resumen_comparativo: unidad fijada desde el texto run=%s", run.id)
+        # D-3: el 14B a veces nombra los args base_imponible/tipo_iva; la tool espera base/tipo.
+        if tc.tool_name == "registrar_factura":
+            _normalizar_alias_factura(tc.arguments)
+        # D-3: importe-fiel — el 14B garbea la cifra al rellenar el arg (negativos, total-vs-base). Si
+        # el texto tiene UN importe claro, lo recalcula el código (la brújula: «cifras por código»).
+        if tc.tool_name in ("plan_cobro", "registrar_factura") and _corregir_importe(
+            tc.tool_name, tc.arguments, run.task
+        ):
+            logger.info("%s: importe corregido desde el texto run=%s", tc.tool_name, run.id)
 
         # Señal visible PERSISTENTE: si el agente usa una tool de pilotaje (escritorio/navegador),
         # abre la sesión de halo → el usuario VE a Loombit pilotando durante todo el run.
@@ -462,6 +713,13 @@ class AgentLoop:
                 "que el correo es automático. Fírmalo con el nombre del usuario.]",
                 False,
             )
+
+        # SEGURIDAD (inyección): si la petición intenta MANIPULAR (falso «###SISTEMA###», jailbreak,
+        # «ignora tus reglas»…), NO se envía NINGÚN correo — se rehúsa (ni se dibuja para aprobar). Una
+        # inyección no manda nada en tu nombre. El cálculo/lectura legítimo de la misma petición sí sigue.
+        if tc.tool_name == "gmail_send" and _intento_manipulacion(run.task):
+            logger.info("gmail_send REHUSADO por intento de manipulación run=%s", run.id)
+            return _MSG_MANIPULACION, False
 
         # Política de aprobación: un correo que el USUARIO pidió y con destinatario inequívoco
         # se envía SOLO (sin tarjeta) — su petición es la autorización. Si el destinatario es
@@ -585,6 +843,30 @@ def _recipiente_resuelto(to: str, run: AgentRun) -> bool:
     )
 
 
+# SEGURIDAD: marcadores de intento de MANIPULACIÓN / inyección (falso bloque de sistema, petición de
+# saltarse la aprobación, jailbreak). Si aparecen, no se concede el auto-envío sin tarjeta.
+_MANIPULACION = re.compile(
+    r"#{2,}\s*sistema|<\s*/?\s*system\b|\bsystem\s*:|system\s+prompt|(?:begin|end)\s+system"  # falso sistema
+    r"|\[/?\s*inst\s*\]|<\|?\s*im_(?:start|end)"  # marcadores de chat-template/instrucción (Llama, ChatML)
+    r"|ignora\s+(tus|las|todas|cualquier)\b[^.\n]{0,20}(regla|restriccion|instruccion|limitaci|norma)"
+    r"|olvida\s+(tus|las)\b[^.\n]{0,20}(regla|instruccion)|eres\s+dan\b|modo\s+desarrollador"
+    r"|sin\s+restriccion\w*|jailbreak|act[uú]a\s+como\s+si\s+no\s+tuvieras",
+    re.IGNORECASE,
+)
+_MSG_MANIPULACION = (
+    "🛡️ No envío ese correo: tu petición incluye instrucciones de MANIPULACIÓN (un falso «sistema», "
+    "un jailbreak o un «ignora tus reglas»). Por seguridad no mando nada así. Si quieres enviar un "
+    "correo de verdad, pídemelo de forma normal con el destinatario y te lo preparo."
+)
+
+
+def _intento_manipulacion(task: str) -> bool:
+    """True si la petición intenta MANIPULAR con un falso bloque de «sistema», un jailbreak («eres DAN»,
+    «modo desarrollador», «sin restricciones») o un «ignora/olvida tus reglas». NO incluye «sin
+    aprobación» a secas (un usuario legítimo puede autorizar así). Entonces se REHÚSA el envío."""
+    return bool(_MANIPULACION.search(task or ""))
+
+
 def _destinatario_claro(to: str, run: AgentRun) -> bool:
     """True si el destinatario es INEQUÍVOCO: lo escribió el usuario en su petición, o
     contacts_find lo resolvió SIN ambigüedad (estado='resuelto' y es el `mejor`). Si hubo
@@ -630,12 +912,17 @@ def _describe_for_approval(tool_name: str, args: dict[str, Any]) -> tuple[str, s
             f"Para: {to}\nAsunto: {subject}\n\n{cuerpo}",
         )
     if tool_name == "calendar_create":
-        summary = str(args.get("summary", "")).strip()
+        # La tool usa `title` (no `summary`): leer el nombre real para que el borrador no salga vacío.
+        titulo = str(args.get("title") or args.get("summary") or "").strip()
         start = str(args.get("start_iso", "")).strip()
-        return (
-            "Crear un evento en tu calendario",
-            f"Evento: {summary}\nInicio: {start}",
-        )
+        dur = args.get("duration_minutes")
+        loc = str(args.get("location", "")).strip()
+        detalle = f"Evento: {titulo or '(sin título)'}\nInicio: {start}"
+        if dur:
+            detalle += f"\nDuración: {dur} min"
+        if loc:
+            detalle += f"\nLugar: {loc}"
+        return ("Crear un evento en tu calendario", detalle)
     if tool_name == "run_shell":
         return ("Ejecutar un comando en tu equipo", str(args.get("command", "")))
     # Genérico para cualquier otra tool sensible.
@@ -706,6 +993,252 @@ def _log_conversation_event(run: "AgentRun", event_type: str, content: str) -> N
         pass
 
 
+def _numeros_del_texto(texto: str) -> set[str]:
+    """Números del mensaje, normalizados (sin separadores de miles) para comparar bases."""
+    out: set[str] = set()
+    for m in re.findall(r"\d[\d.,]*", texto or ""):
+        out.add(m.rstrip(".,").replace(".", "").replace(",", ""))
+    return out
+
+
+# Si el usuario escribió importes EN PALABRAS (mil, quinientos…), no podemos comparar bases por
+# dígitos sin convertirlos → el filtro se desactiva para no tirar líneas legítimas (falso positivo).
+_NUM_EN_PALABRAS = re.compile(
+    r"\b(mil|cien|ciento|doscient\w+|trescient\w+|cuatrocient\w+|quinient\w+|"
+    r"seiscient\w+|setecient\w+|ochocient\w+|novecient\w+)\b"
+)
+
+
+def _filtrar_lineas_303(args: dict, task: str) -> tuple[dict, int]:
+    """ALG anti-fabricación del 303: quita las líneas cuya BASE no aparece en el mensaje del usuario
+    (el 14B inventa líneas plausibles, p.ej. 'servicios 5000€'). Determinista. Devuelve (args, n_quitadas).
+    No filtra si el usuario dio las cifras en palabras (evita falsos positivos).
+    """
+    t = (task or "").lower()
+    nums = _numeros_del_texto(t)
+    if not nums or _NUM_EN_PALABRAS.search(t):
+        return args, 0
+    quitadas = 0
+    for campo in ("iva_repercutido", "iva_soportado"):
+        lineas = args.get(campo)
+        if not isinstance(lineas, list):
+            continue
+        nuevas = []
+        for ln in lineas:
+            try:
+                base = str(int(float(ln.get("base"))))
+            except (TypeError, ValueError):
+                nuevas.append(ln)
+                continue
+            if base in nums:
+                nuevas.append(ln)
+            else:
+                quitadas += 1
+        args[campo] = nuevas
+    return args, quitadas
+
+
+_REL_FECHA = re.compile(
+    r"\b(mañana|manana|pasado\s+mañana|pasado\s+manana|hoy|lunes|martes|mi[eé]rcoles|jueves|"
+    r"viernes|s[aá]bado|domingo|que\s+viene|pr[oó]xim\w+)\b"
+    r"|hace\s+\w+\s+(?:d[ií]as?|semanas?|mes(?:es)?)"
+)
+
+
+def _corregir_fecha_calendario(args: dict, task: str, hoy: date | None = None) -> bool:
+    """ALG fecha-fiel: el 14B se equivoca con fechas relativas ('próximo lunes'→sábado). Si el task
+    trae una fecha relativa, la recalcula con parsear_fecha (determinista) y corrige el `start_iso`
+    (mantiene la HORA del modelo). Devuelve True si corrigió. Solo actúa si hay marcador relativo.
+    """
+    t = (task or "").lower()
+    if not _REL_FECHA.search(t):
+        return False
+    fecha = parsear_fecha(t, hoy)
+    if fecha is None:
+        return False
+    iso = str(args.get("start_iso") or "")
+    m = re.match(r"(\d{4})-(\d{2})-(\d{2})([T ].*)?$", iso)
+    if not m:
+        return False
+    fecha_14b = f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
+    nueva = fecha.isoformat()
+    if fecha_14b == nueva:
+        return False
+    args["start_iso"] = nueva + (m.group(4) or "T09:00:00Z")
+    return True
+
+
+def _corregir_fecha_cobro(args: dict, task: str, hoy: date | None = None) -> bool:
+    """ALG fecha-fiel (cobro): corrige `fecha_vencimiento` si el task trae una fecha relativa
+    ('venció hace tres semanas'). El 14B la calcula mal (21→24 días) y eso cambia etapa e interés.
+    """
+    t = (task or "").lower()
+    if not _REL_FECHA.search(t):
+        return False
+    fecha = parsear_fecha(t, hoy)
+    if fecha is None:
+        return False
+    m = re.match(r"(\d{4}-\d{2}-\d{2})", str(args.get("fecha_vencimiento") or ""))
+    actual = m.group(1) if m else ""
+    nueva = fecha.isoformat()
+    if actual == nueva:
+        return False
+    args["fecha_vencimiento"] = nueva
+    return True
+
+
+_TRIMESTRE_USUARIO = re.compile(
+    r"\b[1-4]\s*[ºo]?\s*t\b|\bt[1-4]\b|(primer|segundo|tercer|cuarto)\s+trimestre", re.I
+)
+
+
+def _trimestre_actual(hoy: date | None = None) -> str:
+    h = hoy or date.today()
+    return f"{(h.month - 1) // 3 + 1}T {h.year}"
+
+
+def _corregir_periodo_303(args: dict, task: str, hoy: date | None = None) -> bool:
+    """Si el usuario NO especificó trimestre, usa el ACTUAL (desde la fecha), no la adivinanza del
+    14B ('Primer trimestre' en junio). Determinista. Devuelve True si cambió el periodo."""
+    if _TRIMESTRE_USUARIO.search(task or ""):
+        return False  # el usuario indicó el trimestre → respétalo
+    actual = _trimestre_actual(hoy)
+    if str(args.get("periodo") or "").strip() == actual:
+        return False
+    args["periodo"] = actual
+    return True
+
+
+_TRIMESTRE_RELATIVO = re.compile(
+    r"\b(este|el|nuestro)\s+trimestre\b|\btrimestre\s+actual\b|\beste\s+trim\b", re.IGNORECASE
+)
+
+
+def _corregir_trimestre_relativo(args: dict, task: str, hoy: date | None = None) -> bool:
+    """Corrige «este/el trimestre» al trimestre ACTUAL (el 14B a veces pasa un trimestre específico
+    equivocado, p.ej. 1T en junio). Solo toca referencias RELATIVAS de trimestre (no meses ni
+    trimestres explícitos), así no rompe «junio» ni «2T 2026». Devuelve True si cambió el periodo.
+    """
+    if not _TRIMESTRE_RELATIVO.search(task or ""):
+        return False
+    actual = _trimestre_actual(hoy)
+    if str(args.get("periodo") or "").strip() == actual:
+        return False
+    args["periodo"] = actual
+    return True
+
+
+# D-4: la UNIDAD de la comparativa (mes/trimestre/año) la fija el CÓDIGO desde el texto, no el 14B.
+_UNIDAD_TRIMESTRE = re.compile(r"\btrimestr", re.IGNORECASE)
+_UNIDAD_ANIO = re.compile(r"\ba[ñn]o\b|\banual\b|\bejercicio\b", re.IGNORECASE)
+
+
+def _corregir_unidad_comparativa(args: dict, task: str) -> bool:
+    """Pone args['unidad'] (mes/trimestre/anio) según el texto. Determinista. Devuelve True si cambió."""
+    if _UNIDAD_TRIMESTRE.search(task or ""):
+        u = "trimestre"
+    elif _UNIDAD_ANIO.search(task or ""):
+        u = "anio"
+    else:
+        u = "mes"
+    if str(args.get("unidad") or "") == u:
+        return False
+    args["unidad"] = u
+    return True
+
+
+# D-3: importe-fiel. El 14B garbea la cifra al rellenar el arg (negativos -200→-827; total-vs-base).
+# Si el texto trae UN importe claro, lo recalcula el código. «IVA incluido» → el importe es el TOTAL,
+# luego base = importe/(1+tipo). Conservador: si hay 0 o >1 importes (parsear_importe_es=None), no toca.
+_IVA_INCLUIDO = re.compile(r"iva\s+inclu|impuestos?\s+inclu|con\s+(el\s+)?iva\b", re.IGNORECASE)
+
+# El 14B a veces nombra los args como base_imponible/tipo_iva; registrar_factura espera base/tipo.
+# Mapeo de alias INEQUÍVOCOS (no «importe», que sería ambiguo total-vs-base).
+_ALIAS_FACTURA = {
+    "base_imponible": "base",
+    "baseimponible": "base",
+    "tipo_iva": "tipo",
+    "tipoiva": "tipo",
+}
+
+
+def _normalizar_alias_factura(args: dict) -> None:
+    """Renombra los alias inequívocos del 14B (base_imponible→base, tipo_iva→tipo) y descarta el alias,
+    para que la llamada no rompa y el corrector de importe vea `base`."""
+    for alias, real in _ALIAS_FACTURA.items():
+        if alias in args:
+            if real not in args or args.get(real) in (None, "", 0, "0"):
+                args[real] = args[alias]
+            del args[alias]
+
+
+def _corregir_importe(tool_name: str, args: dict, task: str) -> bool:
+    """Corrige plan_cobro.total / registrar_factura.base con el extractor determinista de importes.
+    Para registrar_factura recalcula además el IVA desde la base corregida (el 14B garbea el split).
+    Devuelve True si cambió el arg."""
+    imp = parsear_importe_es(task)
+    if imp is None:
+        return False
+    if tool_name == "plan_cobro":
+        try:
+            actual = float(args.get("total", 0) or 0)
+        except (ValueError, TypeError):
+            actual = 0.0
+        if abs(actual - imp) <= 0.01:
+            return False
+        args["total"] = imp
+        return True
+    # registrar_factura → la BASE. «IVA incluido» → el importe es el TOTAL → base = imp/(1+tipo);
+    # siempre se fuerza (el 14B no sabe partir base/IVA) y se recalcula el IVA desde la base.
+    iva_incluido = bool(_IVA_INCLUIDO.search(task or ""))
+    try:
+        tf = float(args.get("tipo")) if args.get("tipo") is not None else 0.21
+    except (ValueError, TypeError):
+        tf = 0.21
+    if tf > 1:
+        tf /= 100.0
+    objetivo = round(imp / (1.0 + tf), 2) if (iva_incluido and tf >= 0) else imp
+    try:
+        actual = float(args.get("base", 0) or 0)
+    except (ValueError, TypeError):
+        actual = 0.0
+    if not iva_incluido and abs(actual - objetivo) <= 0.01:
+        return False
+    args["base"] = objetivo
+    args.pop("iva", None)  # recomputar el IVA desde base×tipo (no usar el del 14B, que lo garbea)
+    return True
+
+
+# Preguntas de asesoramiento fiscal/legal REGULADO (¿qué IVA lleva mi actividad?, ¿estoy exento?,
+# ¿puedo deducir?). El 14B inventa tipos/exenciones aunque le digas que no → garantizamos por CÓDIGO
+# un aviso de "no es asesoramiento, confírmalo con tu gestor" (el modelo lo da de forma estocástica).
+_FISCAL_REGULADO = re.compile(
+    r"\btengo que (poner|ponerle|aplicar|cobrar|cargar|incluir)\w*[^.\n]{0,30}\biva\b"
+    r"|\bqu[eé] (tipo de )?iva\b[^.\n]{0,30}(lleva|tiene|aplic\w+|pong|corresponde|debo|facturo)"
+    r"|\b(estoy|est[aá]n?|estamos) exent|\bexenci[oó]n\b|\bexent[oa]s?\b"
+    r"|\b(puedo|podr[ií]a) (deducir|desgravar)\b|\b(es|son) deducibles?\b"
+    r"|\bme (deduzco|desgravo)\b|\bqu[eé] puedo (deducir|desgravar)\b",
+    re.I,
+)
+_AVISO_REGULADO = (
+    "⚠️ Esto es orientación general, NO asesoramiento fiscal: el tipo o la exención de IVA dependen de "
+    "tu actividad y tienen matices, así que NO te lo doy como dato seguro. Confírmalo con tu gestor o "
+    "en la AEAT antes de aplicarlo."
+)
+
+
+def _con_aviso_regulado(task: str, result: str) -> str:
+    """Antepone un aviso determinista si la petición es fiscal/legal regulada. Garantiza la cautela
+    que el 14B da de forma estocástica (y de-autoritativiza un tipo/exención que pueda haber inventado).
+    """
+    if not _FISCAL_REGULADO.search(task or ""):
+        return result
+    low = (result or "").lower()
+    if "no asesoramiento fiscal" in low or ("asesoramiento" in low and "gestor" in low):
+        return result  # ya lleva un aviso fuerte
+    return _AVISO_REGULADO + ("\n\n" + result if result and result.strip() else "")
+
+
 def _is_error_result(text: str) -> bool:
     """True si el texto es un resultado de error generado por el propio bucle al ejecutar una tool."""
     return bool(text) and text.startswith(_ERROR_PREFIXES)
@@ -717,6 +1250,45 @@ def _error_brief(text: str, limit: int = 160) -> str:
         return ""
     linea = text.strip().splitlines()[0]
     return linea if len(linea) <= limit else linea[:limit] + "…"
+
+
+# ── DoD (no mentir): no afirmar un éxito que no ocurrió ───────────────────────────────────────
+# El 14B, ante una capacidad que NO tiene (p.ej. una minuta con retención de IRPF, no modelada),
+# erraba registrar_factura y AUN ASÍ narraba «✅ Minuta preparada… 3450 €» (éxito + cifra inventada).
+# Si se INTENTARON tools materiales y TODAS fallaron, el resultado no puede presentar un éxito.
+_AFIRMA_EXITO_RX = re.compile(
+    r"✅|\b(preparad[oa]s?|registrad[oa]s?|emitid[oa]s?|enviad[oa]s?|mandad[oa]s?|cread[oa]s?"
+    r"|agendad[oa]s?|a[ñn]adid[oa]s?|completad[oa]s?|complet[eé]|generad[oa]s?|lista|listo|hecho)\b"
+)
+_NIEGA_EXITO_RX = re.compile(
+    r"\bno\s+(he\s+podido|pude|puedo|se\s+(ha|han|pudo|puede)|es\s+posible|consig\w*|logr\w*|tengo)\b"
+)
+_MENSAJE_FALLO_HONESTO = (
+    "No he podido completar esa acción: lo intenté pero la operación falló, así que no he "
+    "registrado, enviado ni creado nada. No te doy por hecho algo que no se hizo. Dime si falta "
+    "algún dato o si quieres que lo intente de otra forma."
+)
+# Tools con EFECTO real: su éxito = la acción que pidió el usuario OCURRIÓ (persistir/enviar/crear).
+_TOOLS_EFECTO = ("registrar_factura", "gmail_send", "calendar_create")
+
+# (D-2) Las guardas de DOMINIO fiscal —retención IRPF, IBAN inválido, modelos AEAT no modelados— se
+# movieron a `skill_d_fiscal/guardas_fiscales.py`. El núcleo BLANCO solo consulta `registro_guardas`
+# (ver el hook en `_execute`); ya no contiene lógica de IRPF ni de IBAN español.
+
+
+def _paso_es_fallo(step: object) -> bool:
+    """True si el resultado del paso es un ERROR (de bucle o devuelto por la propia tool). Más
+    liberal que `_is_error_result`: cualquier resultado que empiece por 'ERROR' cuenta como fallo.
+    """
+    r = (getattr(step, "result", "") or "").lstrip()
+    return _is_error_result(r) or r.upper().startswith("ERROR")
+
+
+def _afirma_exito(result: str) -> bool:
+    """True si el texto AFIRMA haber completado una acción (✅ / 'preparada'/'enviado'/…) y NO admite
+    a la vez que no pudo. Solo se usa cuando ya sabemos que toda acción material falló."""
+    t = (result or "").lower()
+    return bool(_AFIRMA_EXITO_RX.search(t)) and not _NIEGA_EXITO_RX.search(t)
 
 
 def _consecutive_tool_errors(run: "AgentRun", tool_name: str) -> int:

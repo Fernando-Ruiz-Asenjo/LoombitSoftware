@@ -137,6 +137,15 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass
 
+    # Calienta la TELA en 2º plano: el telar se sirve cacheado al instante (sin esperar a Google en
+    # cada request) y se refresca por detrás. Mata la pantalla en blanco al abrir (auditoría P0-3).
+    try:
+        from .telar_cache import warm as _warm_telar
+
+        _warm_telar()
+    except Exception:
+        pass
+
     # Fábrica de Skills (Skill X): carga las tools que un humano APROBÓ (gate sagrado). Opt-in,
     # off por defecto; cada tool se re-verifica con el gate de seguridad antes de registrarse.
     if settings.fabrica_autocargar_generadas:
@@ -168,6 +177,11 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Loombit Operator", version="0.1.0", lifespan=lifespan)
+
+# Seguridad local-first: rechaza Host/Origin no locales (anti DNS-rebinding + CSRF) ANTES de routers.
+from .seguridad_web import solo_local_middleware  # noqa: E402
+
+app.middleware("http")(solo_local_middleware)
 
 # Rutas API
 app.include_router(health.router)
