@@ -781,6 +781,8 @@ def test_calendar_semana_registrada_y_ruteada():
     # '¿qué reuniones tengo esta semana?' → debe ofrecer la tool de semana (antes solo había hoy)
     assert "calendar_semana" in select_tool_names("¿qué reuniones tengo esta semana?")
     assert "calendar_semana" in select_tool_names("enséñame mi agenda de los próximos días")
+    # 'cierre de mes' debe ofrecer daily_brief (que agrega cobros vencidos + aprobaciones)
+    assert "daily_brief" in select_tool_names("prepárame el cierre de mes")
 
 
 def test_es_lectura_agenda():
