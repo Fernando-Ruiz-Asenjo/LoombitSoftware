@@ -185,6 +185,20 @@ TOOL_GROUPS: list[tuple[tuple[str, ...], set[str]]] = [
     ),
     (
         (
+            "concilia",
+            "conciliac",
+            "conciliar",
+            "extracto bancario",
+            "extracto del banco",
+            "norma 43",
+            "cuadrar el banco",
+            "cuadrar los cobros",
+            "movimientos del banco",
+        ),
+        {"conciliar_banco"},
+    ),
+    (
+        (
             "vuelo",
             "vuelos",
             "viaje",
