@@ -29,7 +29,7 @@ _FACTURA = re.compile(
     r"\b(reg[ií]strame|ap[uú]ntame|fact[uú]rame|em[ií]teme)\b"
     # …o un verbo de registro (incluido coloquial: mete/anota/añade/introduce/carga) cerca del
     # sustantivo factura/venta/minuta o de «facturé/vendí». Acota a REGISTRAR, no a consultar.
-    r"|\b(reg[ií]stra\w*|ap[uú]nta\w*|emit\w+|an[oó]ta\w*|m[eé]te\w*|pon\w*|gu[aá]rda\w*|a[ñn][aá]de\w*|introd[uú]ce\w*|c[aá]rga\w*"
+    r"|\b(reg[ií]stra\w*|ap[uú]nta\w*|em[ií]t\w+|an[oó]ta\w*|m[eé]te\w*|pon\w*|gu[aá]rda\w*|a[ñn][aá]de\w*|introd[uú]ce\w*|c[aá]rga\w*"
     r"|fact[uú]r\w*)\b[^.\n]{0,30}\b(factur\w+|venta\w*|vend[ií]\w*|minuta\w*)\b"
 )
 _BUSCAR_CORREO = re.compile(
@@ -46,6 +46,7 @@ _RECORDATORIO = re.compile(r"\b(recu[eé]rdame\w*|recordatorio|acu[eé]rdame|no 
 # registrar. El 14B no la elegía de forma fiable → la forzamos. Pregunta nº1 de un autónomo.
 _FACTURACION = re.compile(
     r"\bcu[aá]nto\b[^\n]{0,25}\b(factur\w+|ingres\w+|gast\w+)\b"
+    r"|\bqué\b[^\n]{0,15}\b(gast[eé]|factur[eé]|ingres[eé]|vend[ií])\b"  # «qué gasté/facturé» (interrogativo)
     r"|\b(mi facturaci[oó]n|facturaci[oó]n de|total facturad\w+|benefici\w+|mis gastos"
     r"|mis ingres\w+|ingres\w+ de|mis ventas)\b"
 )

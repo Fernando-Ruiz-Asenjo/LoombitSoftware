@@ -1348,6 +1348,43 @@ chk(
 )
 chk("A7", "NEG modelo '¿qué es el IRPF?'", G.modelo_no_modelado("¿qué es el IRPF?"), None)
 
+# ═══ CAMPAÑA 5-cero · audit #8 (interanual/YoY, modelos 180/193/720, emítela, qué gasté) ═══
+chk(
+    "A8",
+    "comp 'evolución interanual'",
+    intencion_consecuente("enséñame la evolución interanual de mis ingresos"),
+    "comparativo",
+)
+chk("A8", "modelo 180", G.modelo_no_modelado("hazme el modelo 180"), "180")
+chk("A8", "modelo 193", G.modelo_no_modelado("prepárame el modelo 193"), "193")
+chk("A8", "modelo 720 extranjero", G.modelo_no_modelado("tengo que hacer el modelo 720"), "720")
+chk(
+    "A8",
+    "factura 'emítela' (acento í)",
+    intencion_consecuente("emítela: una factura de 800 a López al 21% el 5 de junio de 2026"),
+    "factura",
+)
+chk("A8", "facturacion 'qué gasté'", intencion_consecuente("¿qué gasté este mes?"), "facturacion")
+chk(
+    "A8",
+    "facturacion 'qué facturé'",
+    intencion_consecuente("¿qué facturé este trimestre?"),
+    "facturacion",
+)
+chk(
+    "A8",
+    "NEG 'qué factura vence' ≠ facturacion",
+    intencion_consecuente("¿qué factura vence mañana?") != "facturacion",
+    True,
+)
+chk(
+    "A8",
+    "NEG 'mete lo que le facturé' → factura",
+    intencion_consecuente("mete en el sistema lo que le facturé a x: 800 € al 21%"),
+    "factura",
+)
+chk("A8", "parser 'mil€' palabra → None", parsear_importe_es("cuesta mil€"), None)
+
 
 def main() -> int:
     fam_tot: dict[str, list[int]] = {}
