@@ -844,7 +844,7 @@ def test_intencion_cobros_pendientes_fuerza_la_tool():
     assert intencion_consecuente("enséñame mis cobros pendientes") == "cobros_pend"
     # NO confundir con reclamar UN cobro (plan_cobro) ni con facturación
     assert intencion_consecuente("reclama el cobro de 1500€ vencido el 1 de mayo") == "cobro"
-    assert tools_foco("cobros_pend") == {"cobros_pendientes", "task_done"}
+    assert tools_foco("cobros_pend") == {"cobros_pendientes"}
 
 
 def test_intencion_facturacion_fuerza_resumen():
@@ -856,7 +856,7 @@ def test_intencion_facturacion_fuerza_resumen():
     # NO confundir con registrar una factura ni con cobros
     assert intencion_consecuente("regístrame una factura de 1000€ al 21%") == "factura"
     assert intencion_consecuente("¿cuánto me han pagado?") != "facturacion"
-    assert tools_foco("facturacion") == {"resumen_facturacion", "task_done"}
+    assert tools_foco("facturacion") == {"resumen_facturacion"}  # SIN task_done: fuerza sumar
 
 
 def test_intencion_resumen_financiero_global_y_compuesta():
@@ -886,7 +886,7 @@ def test_intencion_resumen_financiero_global_y_compuesta():
     # anti-falso-positivo: '¿cómo voy a pagar esto?' NO es un resumen financiero
     assert intencion_consecuente("¿cómo voy a pagar esto?") != "resumen_financiero"
     # foco: una sola tool que COMPONE; excluye del run las demás dominio-tools
-    assert tools_foco("resumen_financiero") == {"resumen_financiero", "task_done"}
+    assert tools_foco("resumen_financiero") == {"resumen_financiero"}
     excl = tools_excluir("resumen_financiero")
     assert "resumen_financiero" not in excl
     assert "resumen_facturacion" in excl and "cobros_pendientes" in excl

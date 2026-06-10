@@ -134,13 +134,15 @@ def tools_foco(intencion: str | None) -> set[str]:
         # que el usuario lo aprueba; ningún efecto autónomo).
         return {"calendar_create"}
     if intencion == "facturacion":
-        # resumen_facturacion (lectura) + task_done: que SUME, no se escape a otra tool ni divague.
-        return {"resumen_facturacion", "task_done"}
+        # SOLO resumen_facturacion (SIN task_done): que SUME de verdad. Con task_done en el foco, el
+        # 14B se escapaba a él narrando «no encontré facturas en la bandeja» sin llamar la tool de
+        # datos (visto en la batería live con «gastado»/«beneficio»). Forzar la tool lo impide.
+        return {"resumen_facturacion"}
     if intencion == "cobros_pend":
-        return {"cobros_pendientes", "task_done"}
+        return {"cobros_pendientes"}
     if intencion == "resumen_financiero":
         # un solo tool que COMPONE todas las métricas (facturado+gastos+beneficio+303+me-deben).
-        return {"resumen_financiero", "task_done"}
+        return {"resumen_financiero"}
     return _TOOLS_POR_INTENCION.get(intencion, set()) | _SIEMPRE
 
 
@@ -169,6 +171,9 @@ def tools_excluir(intencion: str | None) -> set[str]:
 _LECTURA_AGENDA = re.compile(
     r"\b(qu[eé]|cu[aá]l\w*|tengo|hay|tienes)\b[^\n]{0,45}"
     r"\b(reuni\w+|cita\w*|agenda|evento\w*|calendario)\b"
+    # «¿tengo algo el viernes?», «¿hay algún hueco?» = LECTURA aunque no nombre la agenda: el 14B la
+    # tomaba por crear un evento «consulta de disponibilidad». Excluir calendar_create lo impide.
+    r"|\b(tengo|hay|tienes)\b[^\n]{0,20}\b(algo|alg[uú]n\w*|planes?|hueco|libre|ocupad\w*|disponib\w*)\b"
 )
 
 

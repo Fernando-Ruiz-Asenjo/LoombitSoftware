@@ -338,6 +338,18 @@ class AgentLoop:
                 if _intencion and run.step_count == 0:
                     # PRIMER paso: enfoca a la tool correcta y fuérzala (tool_choice required).
                     _foco = tools_foco(_intencion)
+                    # La intención está clasificada de forma DETERMINISTA → las tools del foco DEBEN
+                    # ofrecerse aunque select_tool_names no las activara por keywords (p.ej. «cuánto he
+                    # gastado» no casa 'factura', así que resumen_facturacion no se ofrecía y el 14B se
+                    # escapaba a buscar en la bandeja). Las añadimos si faltan, antes de filtrar.
+                    _ya = {t["function"]["name"] for t in _tools_efectivas}
+                    for _n in _foco - _ya:
+                        try:
+                            _tools_efectivas = _tools_efectivas + [
+                                self.registry.get(_n).to_openai()
+                            ]
+                        except Exception:  # noqa: BLE001 — si la tool no existe, se ignora
+                            pass
                     _filtradas = [t for t in _tools_efectivas if t["function"]["name"] in _foco]
                     if _filtradas:
                         _tools_efectivas = _filtradas
