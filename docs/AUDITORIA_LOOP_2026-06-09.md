@@ -85,6 +85,8 @@ destinatario sea claro — "lo proactivo SIEMPRE se confirma" (loop.py:580). NO 
 positivo retirado: una 1ª prueba mal montada (email solo en messages, no en task) chocó con el guard
 anti-destinatario-inventado y lo malinterpreté; re-test correcto → GATE.
 
+**Composición verificada (2026-06-10):** flujo compuesto 'cobro hace 3 semanas + correo de reclamación a López' → plan_cobro (force-tool) + 21 días (fecha-fiel) + interés BOE 11,68€ (relay-fiel) + contacts_find, sin auto-envío a tercero. Los arreglos recientes componen bien.
+
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |
 |---|---|---|---|
