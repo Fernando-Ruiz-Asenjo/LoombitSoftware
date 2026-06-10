@@ -16,7 +16,7 @@
   303 **inflado**. Verificados e2e (sentido + periodo + rectificativa + multi-tipo correctos).
 - **Agente/UX:** registrar una factura ya NO pide el email del cliente; el 303 elige el camino fiable;
   **«¿cuánto he facturado este mes?»** (la pregunta nº1 del autónomo) ya tiene respuesta determinista —
-  nueva tool `resumen_facturacion` (ahora resumen ECONÓMICO: ingresos + gastos + beneficio) + force-tool; antes el agente no sumaba nada;
+  nueva tool `resumen_facturacion` (resumen ECONÓMICO: ingresos + gastos + beneficio) + **`cobros_pendientes`** («¿cuánto me deben?», suma las emitidas no cobradas con cliente+importe) + force-tools; antes el agente no sumaba nada;
   **recordatorios** con force-tool («recuérdame X el viernes» crea el evento, no pide NIF); agenda de la
   SEMANA (`calendar_semana`); días de la semana correctos por código.
 - **Núcleo del cerebro:** force-tool enfocado + allowlist (no fabrica tools/cifras), relay-fiel multi-ítem,
@@ -170,6 +170,8 @@ anti-destinatario-inventado y lo malinterpreté; re-test correcto → GATE.
 **Robustez a typos (P2, 2026-06-10):** 'rekuerdame pagar el biernes' (typos) → el 14B entiende y crea el recordatorio sin pedir NIF (robustez del modelo > regex del force-tool), pero la FECHA sale mal (lunes 15 en vez del viernes 12): 'biernes' derrota el regex y parsear_fecha. Mitigado por el gate (usuario revisa/corrige el evento propuesto). No se persigue fuzzy-matching de fechas.
 
 **Nueva capacidad «cuánto he facturado» (2026-06-10):** la pregunta nº1 del autónomo no tenía respuesta (el agente caía a memory_search). Construido: rango_periodo (mes+trimestre) + tool resumen_facturacion (suma SOLO emitidas del periodo) + force-tool 'facturacion'. Verificado 3/3 (1000+2000 jun → 3000/3630, recibida y mayo excluidas). +3 golden. ⚠️ Slip honesto: encadené verify+commit y commiteé en ROJO un instante (test 303 vs facturacion); corregido y recommiteado verde.
+
+**Nueva capacidad «¿cuánto me deben?» (2026-06-10):** sin respuesta (memory_search contaminado). Tool cobros_pendientes (suma emitidas no cobradas via pendientes_de_cobro, cliente+importe) + force-tool 'cobros_pend'. Verificado e2e 3/3: 2 emitidas → te deben 3630, recibida excluida. +1 golden.
 
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |
