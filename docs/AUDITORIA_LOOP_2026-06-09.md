@@ -111,6 +111,8 @@ anti-destinatario-inventado y lo malinterpreté; re-test correcto → GATE.
 
 **3er arreglo 303 — rectificativas (2026-06-10):** una devolución (emitida en negativo) se registraba pero `inferir_tipo_iva` la rechazaba (base<=0) → se caía del 303 → devengado INFLADO. Arreglado (infiere por |valor|, conserva signo): emitida 1000@21 + devolución -200@21 → 168 (210-42), verificado e2e. +1 test. **El 303-fiable ya maneja bien sentido + periodo + rectificativas** (3 bugs serios cazados al probar a fondo el camino que la brújula marca). El etiquetado formal AEAT de rectificativas sigue siendo decisión #4.
 
+**303-fiable por el AGENTE (2026-06-10):** 'calcula mi 303 del 2T con las facturas registradas' → el 14B elige calcular_303_registradas (fiable) y da 210/42/168 a ingresar (correcto). Los 3 arreglos fiscales (sentido/periodo/rectificativa) aguantan e2e por el agente. Cobertura: query que menciona 'registradas'; la frase ambigua a secas no probada aún.
+
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |
 |---|---|---|---|
