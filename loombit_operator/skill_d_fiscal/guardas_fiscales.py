@@ -122,6 +122,13 @@ _MODELO_POR_NOMBRE = (
     ),
     (re.compile(r"impuesto\w*\s+(de|sobre)\s+(las?\s+)?sociedades", re.IGNORECASE), "200"),
     (re.compile(r"impuesto\w*\s+(de|sobre)\s+(el\s+)?patrimonio", re.IGNORECASE), "714"),
+    (
+        re.compile(
+            r"resumen\s+anual\s+d\w+\s+iva|declaraci\w+\s+anual\s+d\w+\s+iva", re.IGNORECASE
+        ),
+        "390",
+    ),
+    (re.compile(r"operaci\w+\s+con\s+tercero", re.IGNORECASE), "347"),
 )
 _MSG_MODELO_NO_MODELADO = (
     "Todavía no calculo el modelo {m} — hoy Loombit prepara el 303 (IVA) desde tus facturas. Ese "

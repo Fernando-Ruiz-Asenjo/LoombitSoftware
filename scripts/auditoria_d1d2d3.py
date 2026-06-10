@@ -981,6 +981,20 @@ chk(
     G.es_prediccion_financiera("llegaré tarde a la reunión"),
     False,
 )
+# Vuelta 2: 390/347 deterministas por nombre (eran flaky por free-form del 14B)
+chk(
+    "RDL2",
+    "modelo 390 (resumen anual IVA)",
+    G.modelo_no_modelado("hazme el resumen anual del IVA"),
+    "390",
+)
+chk(
+    "RDL2",
+    "modelo 347 (operaciones terceros)",
+    G.modelo_no_modelado("la declaración de operaciones con terceros"),
+    "347",
+)
+chk("RDL2", "NEG 'tercero' suelto", G.modelo_no_modelado("envía la factura a un tercero"), None)
 
 
 def main() -> int:
