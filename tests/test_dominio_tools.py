@@ -57,13 +57,23 @@ def test_303_desde_registradas_calcula_con_datos_reales():
     orig = dominio._ENTIDAD_DEFECTO
     dominio._ENTIDAD_DEFECTO = ent
     try:
-        dominio._registrar_factura(contraparte="Cliente A", base=1000, tipo=21, sentido="emitida")
-        dominio._registrar_factura(contraparte="Proveedor B", base=200, tipo=21, sentido="recibida")
+        # fecha dentro del 2T 2026: el 303 de un trimestre solo cuenta facturas de ESE trimestre
+        dominio._registrar_factura(
+            contraparte="Cliente A", base=1000, tipo=21, sentido="emitida", fecha="2026-05-15"
+        )
+        dominio._registrar_factura(
+            contraparte="Proveedor B", base=200, tipo=21, sentido="recibida", fecha="2026-05-20"
+        )
+        # una factura de OTRO trimestre (1T) NO debe colarse en el 2T
+        dominio._registrar_factura(
+            contraparte="Cliente Viejo", base=5000, tipo=21, sentido="emitida", fecha="2026-02-01"
+        )
         out = dominio._calcular_303_registradas("2T 2026")
-        assert "2 factura" in out  # cita las facturas usadas
+        assert "2 factura" in out  # solo las 2 del 2T (la del 1T queda fuera)
         assert "210" in out  # IVA devengado 1000@21
         assert "42" in out  # IVA deducible 200@21
         assert "168" in out  # resultado 210-42 a ingresar
+        assert "1050" not in out  # NO debe aparecer el IVA de la factura del 1T (5000@21)
     finally:
         dominio._ENTIDAD_DEFECTO = orig
         shutil.rmtree(base, ignore_errors=True)

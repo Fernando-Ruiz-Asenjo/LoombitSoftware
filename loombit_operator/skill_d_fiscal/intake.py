@@ -10,12 +10,43 @@ escaneadas queda **pendiente**. Ver `docs/PLATAFORMA_FISCAL_ANALISIS.md`.
 
 from __future__ import annotations
 
+import re
+from calendar import monthrange
+from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
 from ..docs_intel import InvoiceFields
 from ..expedientes import Expediente, ExpedienteStore
 from .modelo_303 import LineaIVA, Resultado303, procesar_303
+
+_TRIM_MESES = {1: (1, 3), 2: (4, 6), 3: (7, 9), 4: (10, 12)}
+_TRIM_PALABRA = {"primer": 1, "segundo": 2, "tercer": 3, "cuarto": 4}
+
+
+def rango_trimestre(periodo: str | None) -> tuple[date | None, date | None, str]:
+    """Convierte '2T 2026' / 'segundo trimestre 2026' / '2T' en (desde, hasta, etiqueta).
+
+    Devuelve (None, None, …) si no hay trimestre claro → el llamante NO filtra (y avisa). El 303 de
+    un trimestre SOLO puede incluir facturas de ese trimestre; sin esto se sumaba TODO el año.
+    """
+    s = (periodo or "").lower()
+    q: int | None = None
+    m = re.search(r"\b([1-4])\s*t\b", s)
+    if m:
+        q = int(m.group(1))
+    else:
+        for palabra, n in _TRIM_PALABRA.items():
+            if palabra in s:
+                q = n
+                break
+    if q is None:
+        return None, None, (periodo or "todas las facturas")
+    my = re.search(r"\b(20\d{2})\b", s)
+    anio = int(my.group(1)) if my else date.today().year
+    m0, m1 = _TRIM_MESES[q]
+    return date(anio, m0, 1), date(anio, m1, monthrange(anio, m1)[1]), f"{q}T {anio}"
+
 
 _TIPOS = [Decimal("0.21"), Decimal("0.10"), Decimal("0.04"), Decimal("0.00")]
 _CENT = Decimal("0.01")
@@ -76,12 +107,26 @@ def registrar_factura(
     return exp
 
 
-def recopilar_lineas(store: ExpedienteStore) -> tuple[list[LineaIVA], list[str]]:
-    """Reúne las líneas de IVA de todos los expedientes `factura_intake` registrados."""
+def recopilar_lineas(
+    store: ExpedienteStore, desde: date | None = None, hasta: date | None = None
+) -> tuple[list[LineaIVA], list[str]]:
+    """Reúne las líneas de IVA de los expedientes `factura_intake`. Si se da [desde, hasta], SOLO las
+    facturas cuya fecha cae en ese rango (el 303 de un trimestre no puede mezclar trimestres)."""
     lineas: list[LineaIVA] = []
     avisos: list[str] = []
+    filtrar = desde is not None and hasta is not None
+    fuera, sin_fecha = 0, 0
     for exp in store.list(kind="factura_intake"):
         fields = exp.data.get("fields", {})
+        if filtrar:
+            try:
+                f = date.fromisoformat(str(fields.get("fecha") or "")[:10])
+            except ValueError:
+                sin_fecha += 1
+                continue  # sin fecha legible no se puede ubicar en un trimestre → no se incluye
+            if not (desde <= f <= hasta):
+                fuera += 1
+                continue
         inv = InvoiceFields(
             numero=fields.get("numero"),
             base_imponible=fields.get("base_imponible"),
@@ -92,6 +137,12 @@ def recopilar_lineas(store: ExpedienteStore) -> tuple[list[LineaIVA], list[str]]
         avisos.extend(avs)
         if linea is not None:
             lineas.append(linea)
+    if fuera:
+        avisos.append(f"{fuera} factura(s) de otros periodos quedaron fuera de este trimestre.")
+    if sin_fecha:
+        avisos.append(
+            f"{sin_fecha} factura(s) sin fecha legible NO se incluyeron en el periodo; revísalas."
+        )
     return lineas, avisos
 
 
@@ -102,7 +153,8 @@ def liquidar_303_periodo(
 
     Las facturas ilegibles NO se inventan: se agregan sus avisos para que el humano las revise.
     """
-    lineas, avisos_intake = recopilar_lineas(store)
+    desde, hasta, _ = rango_trimestre(periodo)
+    lineas, avisos_intake = recopilar_lineas(store, desde, hasta)
     exp, res = procesar_303(store, lineas, periodo, actor=actor)
     if avisos_intake:
         res.avisos.extend(avisos_intake)

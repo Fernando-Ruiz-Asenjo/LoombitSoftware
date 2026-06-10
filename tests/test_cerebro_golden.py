@@ -772,6 +772,20 @@ def test_filtrar_lineas_303_no_toca_si_no_hay_cifras():
     assert quitadas == 0 and out["iva_repercutido"] == [{"base": 1000, "tipo": 0.21}]
 
 
+def test_rango_trimestre_acota_el_303():
+    from datetime import date
+
+    from loombit_operator.skill_d_fiscal.intake import rango_trimestre
+
+    assert rango_trimestre("2T 2026") == (date(2026, 4, 1), date(2026, 6, 30), "2T 2026")
+    assert rango_trimestre("1T 2026") == (date(2026, 1, 1), date(2026, 3, 31), "1T 2026")
+    assert rango_trimestre("primer trimestre 2026")[:2] == (date(2026, 1, 1), date(2026, 3, 31))
+    assert rango_trimestre("4T 2025") == (date(2025, 10, 1), date(2025, 12, 31), "4T 2025")
+    # sin trimestre claro → no filtra (None) para que el llamante avise, no sume mal en silencio
+    assert rango_trimestre("")[0] is None
+    assert rango_trimestre("mi iva")[0] is None
+
+
 def test_es_factura_emitida_reconoce_terminos_fiscales():
     from loombit_operator.tools.dominio import _es_factura_emitida
 

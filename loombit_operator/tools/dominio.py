@@ -17,6 +17,7 @@ from typing import Any
 from ..cobros import LATE_FEE_FIXED_EUR, dunning_plan
 from ..docs_intel import InvoiceFields
 from ..expedientes import ExpedienteStore
+from ..skill_d_fiscal.intake import rango_trimestre as _rango_trimestre
 from ..skill_d_fiscal.intake import recopilar_lineas as _recopilar_lineas
 from ..skill_d_fiscal.intake import registrar_factura as _intake_registrar
 from ..skill_d_fiscal.modelo_303 import LineaIVA, borrador_303_texto, calcular_303
@@ -243,16 +244,21 @@ def _calcular_303_registradas(periodo: str = "") -> str:
     Es el camino FIABLE: las cifras salen de facturas persistidas (registrar_factura), no de lo que
     el modelo extraiga de una oración. Cierra el riesgo de que el 14B invente/mis-asigne importes.
     """
+    desde, hasta, etiqueta = _rango_trimestre(periodo)
     try:
         store = ExpedienteStore(entity_id=_ENTIDAD_DEFECTO)
-        lineas, avisos = _recopilar_lineas(store)
+        lineas, avisos = _recopilar_lineas(store, desde, hasta)
     except Exception as exc:  # noqa: BLE001
         return f"ERROR al leer tus facturas registradas: {exc}"
     if not lineas:
-        return (
-            "No tienes facturas registradas todavía. Regístralas (las emitidas y las recibidas) y te "
+        ámbito = f"del {etiqueta}" if desde else "registradas"
+        msg = (
+            f"No tienes facturas {ámbito} todavía. Regístralas (las emitidas y las recibidas) y te "
             "calculo el 303 con datos REALES, no estimados."
         )
+        if avisos:  # p.ej. facturas excluidas por no tener fecha o ser de otro trimestre
+            msg += "\n\nOJO:\n" + "\n".join(f"  - {a}" for a in avisos)
+        return msg
     n_emit = sum(1 for ln in lineas if ln.sentido == "devengado")
     n_rec = sum(1 for ln in lineas if ln.sentido == "soportado")
     res = calcular_303(lineas)
@@ -260,7 +266,12 @@ def _calcular_303_registradas(periodo: str = "") -> str:
         f"303 calculado desde {len(lineas)} factura(s) registrada(s) "
         f"({n_emit} emitidas, {n_rec} recibidas) — datos reales, no estimados.\n\n"
     )
-    out = cab + borrador_303_texto(res, periodo or "periodo actual")
+    out = cab + borrador_303_texto(res, etiqueta)
+    if desde is None:
+        out += (
+            "\n\n⚠ No me diste un trimestre claro, así que incluí TODAS tus facturas. Dime el periodo "
+            "(p.ej. «2T 2026») para que lo acote al trimestre."
+        )
     if avisos:
         out += "\n\nAVISOS de las facturas:\n" + "\n".join(f"  - {a}" for a in avisos)
     return out
