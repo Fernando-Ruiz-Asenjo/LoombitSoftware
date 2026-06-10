@@ -128,7 +128,7 @@ anti-destinatario-inventado y lo malinterpreté; re-test correcto → GATE.
 
 **303 desambiguación (2026-06-10):** el 14B a veces elegía calcular_303 (parse-frase, no fiable) tras registrar. Descripción aclarada (calcular_303 SOLO si el usuario dicta cifras; con facturas registradas usa calcular_303_registradas). Verificado 3/3 usan el fiable (antes 1/2). Gate verde.
 
-**Recordatorios (PARCIAL, 2026-06-10):** 'recuérdame pagar al proveedor el viernes' se tomaba como registrar un pago (pedía NIF). Ruteo (recuérdame→calendario) + prompt mejoran el encuadre (ya lo llama 'recordatorio'), pero el 14B AÚN sobre-pide proveedor a veces (intención=None, no es el force-tool). HONESTO: parcial. Candidato a force-tool 'recordatorio' → forzar calendar_create sin ask_user (forzar un write merece diseño aparte).
+**Recordatorios → RESUELTO determinista (2026-06-10):** 'recuérdame pagar al proveedor el viernes' se tomaba como registrar un pago (pedía NIF). El prompt solo mejoró el encuadre; el 14B se escapaba a task_done para pedir NIF. SOLUCIÓN: nueva intención 'recordatorio' que FUERZA calendar_create (foco SOLO esa tool, sin ask_user ni task_done). calendar_create GATEA → el usuario aprueba. Verificado 3/3: crea 'Pago al proveedor' el 2026-06-12 (fecha-fiel), sin pedir NIF, gateado. 'apúntame 3 facturas' (sin 'que') sigue siendo factura. +1 golden, gate verde.
 
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |
