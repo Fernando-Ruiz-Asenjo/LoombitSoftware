@@ -16,7 +16,7 @@
   303 **inflado**. Verificados e2e (sentido + periodo + rectificativa + multi-tipo correctos).
 - **Agente/UX:** registrar una factura ya NO pide el email del cliente; el 303 elige el camino fiable;
   **«¿cuánto he facturado este mes?»** (la pregunta nº1 del autónomo) ya tiene respuesta determinista —
-  nueva tool `resumen_facturacion` + force-tool (suma las emitidas del mes/trimestre); antes el agente no sumaba nada;
+  nueva tool `resumen_facturacion` (ahora resumen ECONÓMICO: ingresos + gastos + beneficio) + force-tool; antes el agente no sumaba nada;
   **recordatorios** con force-tool («recuérdame X el viernes» crea el evento, no pide NIF); agenda de la
   SEMANA (`calendar_semana`); días de la semana correctos por código.
 - **Núcleo del cerebro:** force-tool enfocado + allowlist (no fabrica tools/cifras), relay-fiel multi-ítem,
