@@ -142,6 +142,8 @@ _MODELO_POR_NOMBRE = (
         "390",
     ),
     (re.compile(r"operaci\w+\s+con\s+tercero", re.IGNORECASE), "347"),
+    # 720 = declaración informativa de bienes y derechos en el extranjero.
+    (re.compile(r"bienes\b[^.\n]{0,25}\bextranjero\b", re.IGNORECASE), "720"),
     # «el 130 del IRPF» (130 = pago fraccionado IRPF) sin decir «modelo» ni «pago fraccionado».
     (re.compile(r"\b130\b[^.\n]{0,18}\birpf\b|\birpf\b[^.\n]{0,12}\b130\b", re.IGNORECASE), "130"),
 )
