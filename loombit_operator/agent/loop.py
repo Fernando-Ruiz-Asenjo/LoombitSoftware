@@ -516,6 +516,13 @@ class AgentLoop:
         except KeyError:
             return f"ERROR: tool desconocida '{tc.tool_name}'", False
 
+        # ALG anti-fabricación del 303: el 14B mete líneas inventadas; quita las que no estén en el
+        # mensaje del usuario (su base no aparece) ANTES de calcular. Determinista.
+        if tc.tool_name == "calcular_303":
+            tc.arguments, _q303 = _filtrar_lineas_303(tc.arguments, run.task)
+            if _q303:
+                logger.info("303: descartadas %d línea(s) inventada(s) run=%s", _q303, run.id)
+
         # Señal visible PERSISTENTE: si el agente usa una tool de pilotaje (escritorio/navegador),
         # abre la sesión de halo → el usuario VE a Loombit pilotando durante todo el run.
         if tool_def.category in ("pilot", "computer"):
@@ -796,6 +803,51 @@ def _log_conversation_event(run: "AgentRun", event_type: str, content: str) -> N
             f.write(event + "\n")
     except Exception:
         pass
+
+
+def _numeros_del_texto(texto: str) -> set[str]:
+    """Números del mensaje, normalizados (sin separadores de miles) para comparar bases."""
+    out: set[str] = set()
+    for m in re.findall(r"\d[\d.,]*", texto or ""):
+        out.add(m.rstrip(".,").replace(".", "").replace(",", ""))
+    return out
+
+
+# Si el usuario escribió importes EN PALABRAS (mil, quinientos…), no podemos comparar bases por
+# dígitos sin convertirlos → el filtro se desactiva para no tirar líneas legítimas (falso positivo).
+_NUM_EN_PALABRAS = re.compile(
+    r"\b(mil|cien|ciento|doscient\w+|trescient\w+|cuatrocient\w+|quinient\w+|"
+    r"seiscient\w+|setecient\w+|ochocient\w+|novecient\w+)\b"
+)
+
+
+def _filtrar_lineas_303(args: dict, task: str) -> tuple[dict, int]:
+    """ALG anti-fabricación del 303: quita las líneas cuya BASE no aparece en el mensaje del usuario
+    (el 14B inventa líneas plausibles, p.ej. 'servicios 5000€'). Determinista. Devuelve (args, n_quitadas).
+    No filtra si el usuario dio las cifras en palabras (evita falsos positivos).
+    """
+    t = (task or "").lower()
+    nums = _numeros_del_texto(t)
+    if not nums or _NUM_EN_PALABRAS.search(t):
+        return args, 0
+    quitadas = 0
+    for campo in ("iva_repercutido", "iva_soportado"):
+        lineas = args.get(campo)
+        if not isinstance(lineas, list):
+            continue
+        nuevas = []
+        for ln in lineas:
+            try:
+                base = str(int(float(ln.get("base"))))
+            except (TypeError, ValueError):
+                nuevas.append(ln)
+                continue
+            if base in nums:
+                nuevas.append(ln)
+            else:
+                quitadas += 1
+        args[campo] = nuevas
+    return args, quitadas
 
 
 def _is_error_result(text: str) -> bool:

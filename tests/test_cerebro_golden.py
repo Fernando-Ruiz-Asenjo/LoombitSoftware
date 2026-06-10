@@ -18,6 +18,7 @@ from loombit_operator.agent.loop import (
     _describe_for_approval,
     _destinatario_claro,
     _error_brief,
+    _filtrar_lineas_303,
     _is_error_result,
     _recipiente_resuelto,
 )
@@ -551,6 +552,29 @@ def test_tools_excluir_quita_las_otras_de_dominio():
     assert "registrar_factura" in excl and "calcular_303" in excl
     assert "plan_cobro" not in excl  # la propia no se excluye
     assert tools_excluir(None) == set()
+
+
+def test_filtrar_lineas_303_quita_inventadas():
+    # el usuario dio ventas 10000@21 y compras 2000@21; el 14B añadió "servicios 5000@10"
+    args = {
+        "iva_repercutido": [
+            {"base": 10000, "tipo": 0.21},
+            {"base": 5000, "tipo": 0.10},  # INVENTADA (5000 no está en el mensaje)
+        ],
+        "iva_soportado": [{"base": 2000, "tipo": 0.21}],
+    }
+    task = "Calcula el 303 con ventas de 10000 al 21% y compras de 2000 al 21%."
+    out, quitadas = _filtrar_lineas_303(args, task)
+    assert quitadas == 1
+    assert out["iva_repercutido"] == [{"base": 10000, "tipo": 0.21}]
+    assert out["iva_soportado"] == [{"base": 2000, "tipo": 0.21}]
+
+
+def test_filtrar_lineas_303_no_toca_si_no_hay_cifras():
+    # números en palabras → no filtra (evita falsos positivos)
+    args = {"iva_repercutido": [{"base": 1000, "tipo": 0.21}]}
+    out, quitadas = _filtrar_lineas_303(args, "calcula el 303 con ventas de mil al 21%")
+    assert quitadas == 0 and out["iva_repercutido"] == [{"base": 1000, "tipo": 0.21}]
 
 
 def test_es_lectura_agenda():
