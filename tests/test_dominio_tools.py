@@ -162,6 +162,18 @@ def test_resumen_financiero_registrado_y_enrutado():
     assert "resumen_financiero" in select_tool_names("dame un resumen financiero del trimestre")
 
 
+def test_registrar_factura_acepta_base_negativa_rectificativa():
+    # Rectificativa/devolución: base negativa → registra base/IVA/total negativos (reduce el 303).
+    # El cálculo es CORRECTO de forma determinista; lo que es flaky es la EXTRACCIÓN del importe
+    # negativo por el 14B (límite del modelo, no del sistema) → por eso se blinda aquí.
+    from loombit_operator.tools import dominio
+
+    out = dominio._registrar_factura(
+        contraparte="López", base=-200, tipo=21, sentido="emitida", fecha="2026-06-05"
+    )
+    assert "-200" in out and "-242" in out  # base -200, total -242 (IVA -42)
+
+
 def test_travel_task_alcanza_el_pilot():
     # El motor de viajes es el Pilot: la petición de vuelos debe darle manos de navegador.
     names = select_tool_names("búscame vuelos a Londres y un hotel para Marta")
