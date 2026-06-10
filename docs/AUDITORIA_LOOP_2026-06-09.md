@@ -134,3 +134,10 @@ Bugs REALES hallados presionando y REPARADOS (todos con golden + verificados en 
   casaba el adjetivo "registradas". Fix: exigir el COMANDO de crear (regístrame/emite una factura).
   Verificado e2e: registrar 5000@21 → "303 desde registradas" usa la tool fiable (1050 devengado).
   **Camino fiable del 303 (⭐PARA FERNANDO) VALIDADO e2e.**
+- **Iteración 2026-06-10 (b):** dogfooding sector **autónomo**, flujo COMPUESTO ("manda recordatorio
+  de pago a Juan por factura de 600€ vencida"): **PASÓ** — contacts_find→"ambiguo" (3 Juanes)→ el
+  agente PREGUNTÓ cuál (no inventó destinatario ni envió al equivocado). El endurecimiento aguanta en
+  compuesto. **P2 anotado:** una pregunta de desambiguación deja el run en `completed` (con la pregunta
+  en texto) en vez de `pending_question`; en chat funciona por historial → no se toca (riesgo>valor).
+  **Auditoría por código del 303-registradas:** SANO (campos consistentes persist↔read, "sin facturas"
+  honesto, ilegibles→avisos). Sin break que arreglar este turno.
