@@ -81,7 +81,17 @@ binario blanco) arrastraría el IRPF y el IBAN español. Mal.
 queda limpio; lo fiscal vuelve a su skill. **Dueño:** Claude. **Es el primer refactor que propongo hacer**
 (con verificación: el comportamiento no debe cambiar, solo el sitio del código).
 
-## D-3 · Los números los pone el 14B, no el código (ALTA)
+## D-3 · Los números los pone el 14B, no el código (ALTA) — ✅ HECHO (2026-06-10)
+
+> **RESUELTO.** Extractor determinista `parsers.parsear_importe_es` (es-ES: `1.234,56`/`-200`/`2500`,
+> excluye %, días, fechas y años) + corrector `loop._corregir_importe` que recalcula
+> `plan_cobro.total` / `registrar_factura.base` desde el texto (caso «IVA incluido» → base=imp/(1+tipo)
+> recalculando el IVA). Conservador: 0 o >1 importes → no corrige. El e2e destapó+arregló DOS bugs
+> encadenados: (a) routing — un REGISTRO con base+IVA mis-rutaba a `resumen_financiero` (exclusión
+> `_REGISTRO_FACTURA` en `intencion`); (b) args — el 14B usa `base_imponible`/`tipo_iva`
+> (`_normalizar_alias_factura`). Verificado EN VIVO 3/3: negativa (base **-200**+IVA -42 = -242, el caso
+> flaky del ciclo 3, RESUELTO), total-vs-base (base 2000), IVA incluido (base 1000+IVA 210=1210). +3
+> golden + gate verde.
 
 La brújula manda «las cifras las calcula CÓDIGO». Lo cumplimos en el CÁLCULO (cobro/303 deterministas),
 pero NO en la EXTRACCIÓN: `registrar_factura(base=…)`, `plan_cobro(total=…)` reciben el número de lo que

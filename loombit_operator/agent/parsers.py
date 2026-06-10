@@ -194,3 +194,31 @@ def validar_nif(nif: object) -> bool:
     if len(num) > 8:
         return False
     return _LETRAS_DNI[int(num) % 23] == letra
+
+
+# ── D-3: extractor DETERMINISTA de importes (la cifra NO la pone el LLM; brújula) ─────────────────
+_IMPORTE_ES = re.compile(r"-?\d{1,3}(?:\.\d{3})+(?:,\d+)?|-?\d+(?:,\d+)?")
+
+
+def parsear_importe_es(texto: object) -> float | None:
+    """Extrae el ÚNICO importe principal en € de un texto es-ES (1.234,56 / -200 / 2500), EXCLUYENDO
+    porcentajes, días, fechas (dd/mm/aaaa, «5 de junio») y años. Devuelve None si hay 0 o >1 importes
+    DISTINTOS (ambiguo → no se corrige: que lo decida el modelo). Determinista, conservador."""
+    t = str(texto or "")
+    # tachar lo que NO es un importe (su número no debe contarse)
+    t = re.sub(
+        r"-?\d[\d.,]*\s*(%|por\s*ciento)", " ", t, flags=re.IGNORECASE
+    )  # 21% / 21 por ciento
+    t = re.sub(r"\b\d+\s*d[ií]as?\b", " ", t, flags=re.IGNORECASE)  # 40 días
+    t = re.sub(r"\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b", " ", t)  # 01/04/2026
+    # «5 de junio de 2026» (incluido el año) → así un año NO se confunde con un importe (2000 €). NO
+    # se excluye el año suelto: «2000» es un importe, no un año, salvo en una fecha explícita.
+    t = re.sub(r"\b\d{1,2}\s+de\s+[a-záéíóúñ]+(?:\s+de\s+\d{4})?", " ", t, flags=re.IGNORECASE)
+    vals: list[float] = []
+    for n in _IMPORTE_ES.findall(t):
+        try:
+            vals.append(float(n.replace(".", "").replace(",", ".")))
+        except ValueError:
+            pass
+    distintos = {round(v, 2) for v in vals}
+    return distintos.pop() if len(distintos) == 1 else None

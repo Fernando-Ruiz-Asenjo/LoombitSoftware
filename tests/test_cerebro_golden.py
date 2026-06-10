@@ -636,6 +636,63 @@ def test_modelo_no_modelado_abstiene_menos_303():
     assert _modelo_no_modelado("¿cuánto he facturado este mes?") is None
 
 
+def test_parsear_importe_es_excluye_porcentaje_dias_fecha():
+    from loombit_operator.agent.parsers import parsear_importe_es
+
+    assert parsear_importe_es("reclama 1.234,56 € vencidos") == 1234.56
+    assert parsear_importe_es("factura de 2500 al 21%") == 2500.0  # el 21% NO cuenta
+    assert parsear_importe_es("-200 € de base, IVA 21%, fecha 5 de junio de 2026") == -200.0
+    assert parsear_importe_es("1500 € vencido hace 40 días al 10% de interés") == 1500.0
+    assert parsear_importe_es("1.000.000,50 €") == 1000000.5
+    assert parsear_importe_es("una de 1000 y otra de 2000") is None  # ambiguo → no corrige
+    assert parsear_importe_es("¿cuánto me deben?") is None  # sin importe
+
+
+def test_corregir_importe_base_total_y_iva_incluido():
+    from loombit_operator.agent.loop import _corregir_importe
+
+    # plan_cobro: total ← importe del texto
+    a = {"total": 1739.13, "fecha_vencimiento": "2026-05-01"}
+    assert _corregir_importe("plan_cobro", a, "reclama 2000 € vencidos el 1 de mayo")
+    assert a["total"] == 2000.0
+    # registrar_factura: base ← importe (arregla total-vs-base que el 14B garbea)
+    b = {"base": 1652.07, "tipo": 21}
+    assert _corregir_importe("registrar_factura", b, "factura de 2000 al 21%")
+    assert b["base"] == 2000.0
+    # «IVA incluido» → base = importe/(1+tipo)
+    c = {"base": 1210, "tipo": 21}
+    assert _corregir_importe("registrar_factura", c, "factura de 1210 € IVA incluido al 21%")
+    assert c["base"] == 1000.0
+    # negativo (rectificativa) — el caso que el 14B garbeaba (-200 → -827,96)
+    d = {"base": -827.96, "tipo": 21}
+    assert _corregir_importe("registrar_factura", d, "rectificativa con base imponible de -200 €")
+    assert d["base"] == -200.0
+    # si ya cuadra → no toca (False)
+    e = {"total": 2000.0, "fecha_vencimiento": "x"}
+    assert not _corregir_importe("plan_cobro", e, "reclama 2000 € vencidos")
+
+
+def test_registro_factura_no_es_resumen_y_alias_args():
+    from loombit_operator.agent.intencion import intencion_consecuente
+    from loombit_operator.agent.loop import _normalizar_alias_factura
+
+    # un REGISTRO con base+IVA NO es resumen_financiero (es una acción) → factura
+    assert (
+        intencion_consecuente(
+            "Registra una factura rectificativa a López con base imponible de -200 € e IVA al 21%"
+        )
+        == "factura"
+    )
+    assert intencion_consecuente("apúntame una factura de 2000 € al 21%") == "factura"
+    # una query COMPUESTA sí sigue siendo resumen_financiero (no la rompe la exclusión)
+    assert intencion_consecuente("¿cuánto he facturado y cuánto me deben?") == "resumen_financiero"
+    # alias de args del 14B: base_imponible→base, tipo_iva→tipo (y se descarta el alias)
+    a = {"contraparte": "X", "base_imponible": "-200", "tipo_iva": "21"}
+    _normalizar_alias_factura(a)
+    assert a.get("base") == "-200" and a.get("tipo") == "21"
+    assert "base_imponible" not in a and "tipo_iva" not in a
+
+
 def test_registro_guardas_aplica_dominio_fiscal():
     # D-2: las guardas de dominio fiscal viven en la skill y se aplican vía el hook blanco; el núcleo
     # no las contiene. Importar la skill las registra; el registro las aplica.

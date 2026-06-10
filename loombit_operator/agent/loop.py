@@ -41,7 +41,7 @@ from .intencion import (
     tools_excluir,
     tools_foco,
 )
-from .parsers import parsear_fecha
+from .parsers import parsear_fecha, parsear_importe_es
 from .prompts import build_system_prompt
 from .run import AgentRun, AgentStatus, AgentStep, AgentStore
 
@@ -665,6 +665,15 @@ class AgentLoop:
             tc.arguments, run.task
         ):
             logger.info("resumen_financiero: trimestre relativo puesto al actual run=%s", run.id)
+        # D-3: el 14B a veces nombra los args base_imponible/tipo_iva; la tool espera base/tipo.
+        if tc.tool_name == "registrar_factura":
+            _normalizar_alias_factura(tc.arguments)
+        # D-3: importe-fiel — el 14B garbea la cifra al rellenar el arg (negativos, total-vs-base). Si
+        # el texto tiene UN importe claro, lo recalcula el código (la brújula: «cifras por código»).
+        if tc.tool_name in ("plan_cobro", "registrar_factura") and _corregir_importe(
+            tc.tool_name, tc.arguments, run.task
+        ):
+            logger.info("%s: importe corregido desde el texto run=%s", tc.tool_name, run.id)
 
         # Señal visible PERSISTENTE: si el agente usa una tool de pilotaje (escritorio/navegador),
         # abre la sesión de halo → el usuario VE a Loombit pilotando durante todo el run.
@@ -1080,6 +1089,68 @@ def _corregir_trimestre_relativo(args: dict, task: str, hoy: date | None = None)
     if str(args.get("periodo") or "").strip() == actual:
         return False
     args["periodo"] = actual
+    return True
+
+
+# D-3: importe-fiel. El 14B garbea la cifra al rellenar el arg (negativos -200→-827; total-vs-base).
+# Si el texto trae UN importe claro, lo recalcula el código. «IVA incluido» → el importe es el TOTAL,
+# luego base = importe/(1+tipo). Conservador: si hay 0 o >1 importes (parsear_importe_es=None), no toca.
+_IVA_INCLUIDO = re.compile(r"iva\s+inclu|impuestos?\s+inclu|con\s+(el\s+)?iva\b", re.IGNORECASE)
+
+# El 14B a veces nombra los args como base_imponible/tipo_iva; registrar_factura espera base/tipo.
+# Mapeo de alias INEQUÍVOCOS (no «importe», que sería ambiguo total-vs-base).
+_ALIAS_FACTURA = {
+    "base_imponible": "base",
+    "baseimponible": "base",
+    "tipo_iva": "tipo",
+    "tipoiva": "tipo",
+}
+
+
+def _normalizar_alias_factura(args: dict) -> None:
+    """Renombra los alias inequívocos del 14B (base_imponible→base, tipo_iva→tipo) y descarta el alias,
+    para que la llamada no rompa y el corrector de importe vea `base`."""
+    for alias, real in _ALIAS_FACTURA.items():
+        if alias in args:
+            if real not in args or args.get(real) in (None, "", 0, "0"):
+                args[real] = args[alias]
+            del args[alias]
+
+
+def _corregir_importe(tool_name: str, args: dict, task: str) -> bool:
+    """Corrige plan_cobro.total / registrar_factura.base con el extractor determinista de importes.
+    Para registrar_factura recalcula además el IVA desde la base corregida (el 14B garbea el split).
+    Devuelve True si cambió el arg."""
+    imp = parsear_importe_es(task)
+    if imp is None:
+        return False
+    if tool_name == "plan_cobro":
+        try:
+            actual = float(args.get("total", 0) or 0)
+        except (ValueError, TypeError):
+            actual = 0.0
+        if abs(actual - imp) <= 0.01:
+            return False
+        args["total"] = imp
+        return True
+    # registrar_factura → la BASE. «IVA incluido» → el importe es el TOTAL → base = imp/(1+tipo);
+    # siempre se fuerza (el 14B no sabe partir base/IVA) y se recalcula el IVA desde la base.
+    iva_incluido = bool(_IVA_INCLUIDO.search(task or ""))
+    try:
+        tf = float(args.get("tipo")) if args.get("tipo") is not None else 0.21
+    except (ValueError, TypeError):
+        tf = 0.21
+    if tf > 1:
+        tf /= 100.0
+    objetivo = round(imp / (1.0 + tf), 2) if (iva_incluido and tf >= 0) else imp
+    try:
+        actual = float(args.get("base", 0) or 0)
+    except (ValueError, TypeError):
+        actual = 0.0
+    if not iva_incluido and abs(actual - objetivo) <= 0.01:
+        return False
+    args["base"] = objetivo
+    args.pop("iva", None)  # recomputar el IVA desde base×tipo (no usar el del 14B, que lo garbea)
     return True
 
 

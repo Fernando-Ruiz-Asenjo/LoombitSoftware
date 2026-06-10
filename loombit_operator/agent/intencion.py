@@ -68,9 +68,22 @@ _FAM_303 = re.compile(r"\b(303|iva|liquidaci[oó]n\w*)\b")
 _MULTI_ASK = re.compile(r"\b(y|e|tambi[eé]n|adem[aá]s)\b|junto\s+con|as[ií]\s+como")
 
 
+# Un REGISTRO de factura ('registra/apúntame/emite una factura …') es una ACCIÓN, no un resumen —
+# aunque mencione 'factura' e 'IVA' (que casarían como 2 familias). Verbo de registro pegado al
+# sustantivo. Sin esto, «registra una factura con base e IVA» mis-rutaba a resumen_financiero y la
+# tool registrar_factura no se ofrecía (destapado por el e2e de D-3).
+_REGISTRO_FACTURA = re.compile(
+    r"\b(reg[ií]str\w+|ap[uú]nt\w+|anot\w+|em[ií]t\w+)\b[^.\n]{0,20}"
+    r"\b(una |la |mi |esta |esa )?(factura|minuta|rectificativa)\w*",
+    re.IGNORECASE,
+)
+
+
 def _es_resumen_financiero(t: str) -> bool:
     """True si pide una visión GLOBAL ('resumen financiero', '¿cómo va mi negocio?') o COMPUESTA
     (≥2 familias de métrica financiera coordinadas) → se compone con la tool resumen_financiero."""
+    if _REGISTRO_FACTURA.search(t):  # un registro de factura no es un resumen (es una acción)
+        return False
     if _RESUMEN_GLOBAL.search(t):
         return True
     familias = sum(bool(rx.search(t)) for rx in (_FAM_FACT, _COBROS_PEND, _FAM_303))
