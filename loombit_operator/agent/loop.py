@@ -492,23 +492,25 @@ class AgentLoop:
             overlay_manager.stop_session()
 
     def _relay_fiel(self, run: AgentRun, result: str) -> str:
-        """ALG-4.1 (relay fiel): garantiza que la salida VERBATIM de la última tool AUTORITATIVA
+        """ALG-4.1 (relay fiel): garantiza que la salida VERBATIM de CADA tool AUTORITATIVA
         (cálculo determinista: cobro, 303, factura) está en el resultado, aunque el LLM la haya
-        parafraseado. Así las cifras que ve el usuario == las que calculó el código."""
-        for s in reversed(run.steps):
+        parafraseado. Así las cifras que ve el usuario == las que calculó el código. Recoge TODAS
+        en orden (no solo la última): si se registran N facturas, el usuario ve las N, no una."""
+        autoritativos: list[str] = []
+        for s in run.steps:  # en ORDEN de ejecución
             try:
                 td = self.registry.get(s.tool_name)
             except Exception:
                 continue
-            if not getattr(td, "authoritative", False):
+            if not getattr(td, "authoritative", False) or _is_error_result(s.result):
                 continue
-            if _is_error_result(s.result):
-                return result
             verbatim = (s.result or "").strip()
-            if verbatim and verbatim not in (result or ""):
-                return verbatim + ("\n\n" + result if result and result.strip() else "")
+            if verbatim and verbatim not in (result or "") and verbatim not in autoritativos:
+                autoritativos.append(verbatim)
+        if not autoritativos:
             return result
-        return result
+        bloque = "\n\n".join(autoritativos)
+        return bloque + ("\n\n" + result if result and result.strip() else "")
 
     def _execute_tool_call(self, tc: ToolCall, step_num: int, run: AgentRun) -> tuple[str, bool]:
         try:

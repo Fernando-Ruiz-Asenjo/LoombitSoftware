@@ -521,6 +521,30 @@ def test_relay_fiel_ignora_no_autoritativas_y_errores():
     assert loop._relay_fiel(run2, "narración") == "narración"  # un error no se relaya
 
 
+def test_relay_fiel_recoge_TODAS_las_autoritativas():
+    # N facturas registradas → el usuario ve las N (antes solo salía la última)
+    loop = AgentLoop(llm=SimpleNamespace())
+    run = SimpleNamespace(
+        steps=[
+            SimpleNamespace(tool_name="registrar_factura", result="✅ Factura A — base 200€"),
+            SimpleNamespace(tool_name="registrar_factura", result="✅ Factura B — base 350€"),
+            SimpleNamespace(tool_name="registrar_factura", result="✅ Factura C — base 500€"),
+        ]
+    )
+    out = loop._relay_fiel(run, "He registrado tus tres facturas.")
+    assert "base 200€" in out and "base 350€" in out and "base 500€" in out  # las TRES
+
+
+def test_relay_fiel_single_se_comporta_igual():
+    # un solo autoritativo: se antepone su verbatim (comportamiento de siempre, sin cambios)
+    loop = AgentLoop(llm=SimpleNamespace())
+    run = SimpleNamespace(
+        steps=[SimpleNamespace(tool_name="plan_cobro", result="Saldo pendiente: 1500 €")]
+    )
+    out = loop._relay_fiel(run, "Te preparo la reclamación.")
+    assert out.startswith("Saldo pendiente: 1500 €") and "Te preparo la reclamación." in out
+
+
 # ── P0 fiabilidad · intencion_consecuente: forzar la tool CORRECTA, solo con datos ──
 def test_intencion_consecuente_con_datos():
     assert (
