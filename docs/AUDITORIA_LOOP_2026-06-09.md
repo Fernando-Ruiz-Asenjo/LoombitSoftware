@@ -137,6 +137,8 @@ anti-destinatario-inventado y lo malinterpreté; re-test correcto → GATE.
 
 **Over-trigger recordatorio corregido (2026-06-10):** yo había metido 'apúntame que' en el intent recordatorio → 'apúntame que el cliente prefiere transferencia' (hecho sin fecha) forzaba un evento absurdo. Quitado (ambiguo). Verificado: la preferencia ya no crea evento; 'recuérdame pagar el viernes' sigue funcionando. Disciplina: probar los BORDES del propio fix.
 
+**Robustez a typos (P2, 2026-06-10):** 'rekuerdame pagar el biernes' (typos) → el 14B entiende y crea el recordatorio sin pedir NIF (robustez del modelo > regex del force-tool), pero la FECHA sale mal (lunes 15 en vez del viernes 12): 'biernes' derrota el regex y parsear_fecha. Mitigado por el gate (usuario revisa/corrige el evento propuesto). No se persigue fuzzy-matching de fechas.
+
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |
 |---|---|---|---|
