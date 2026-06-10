@@ -104,6 +104,7 @@ daba el fallback "me he liado").
 **6º pase 13/13 verde** tras el force-tool 'recordatorio' en intencion.py + ajustes de prompt (registrar≠enviar, 303 desambiguación): sin regresión; los force-tools de cobro/303/factura/búsqueda aguantan.
 **7º pase 14/14 verde**: añadido escenario `recordatorio_crea_no_pregunta` (crea evento, no registra pago, no pide NIF) → cobertura de comportamiento permanente del force-tool; resto sin regresión.
 **8º pase 14/14 verde** tras la feature facturacion (resumen_facturacion + intent en intencion.py): sin regresión. Añadido escenario `facturacion_usa_resumen` (15 escenarios) → cobertura del nuevo force-tool.
+**9º pase 15/15 verde** tras facturacion (economico) + cobros_pendientes: sin regresión; los intents nuevos no solapan a los existentes. Añadido `cobros_pendientes_usa_tool` (16 escenarios).
 
 **Dogfooding construcción (multi-ítem) — 2026-06-10:** "apúntame 3 facturas recibidas (200/350/500€ al
 21%)" → registró LAS 3 correctas, `sentido=soportado` (verificado en disco). Datos OK. **P2 recurrente
