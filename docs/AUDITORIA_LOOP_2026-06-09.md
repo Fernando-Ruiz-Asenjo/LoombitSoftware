@@ -109,6 +109,8 @@ anti-destinatario-inventado y lo malinterpreté; re-test correcto → GATE.
 
 **BUG SERIO 303 — periodo (2026-06-10):** `calcular_303_registradas`/`liquidar_303_periodo` IGNORABAN el trimestre y sumaban TODAS las facturas (todo el año en cualquier 'T') → declaración gravemente errónea. ARREGLADO: rango_trimestre + recopilar_lineas(desde,hasta) filtra por fecha; excluye otros trimestres y facturas sin fecha (con aviso). Verificado e2e (feb=210/jun=420 separados) + test de integración (1T no se cuela en 2T). +2 golden, gate verde, server al día. JUNTO con el bug 'repercutido↔recibida' (mismo turno): el 303-fiable ya da cifras correctas.
 
+**3er arreglo 303 — rectificativas (2026-06-10):** una devolución (emitida en negativo) se registraba pero `inferir_tipo_iva` la rechazaba (base<=0) → se caía del 303 → devengado INFLADO. Arreglado (infiere por |valor|, conserva signo): emitida 1000@21 + devolución -200@21 → 168 (210-42), verificado e2e. +1 test. **El 303-fiable ya maneja bien sentido + periodo + rectificativas** (3 bugs serios cazados al probar a fondo el camino que la brújula marca). El etiquetado formal AEAT de rectificativas sigue siendo decisión #4.
+
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |
 |---|---|---|---|
