@@ -32,6 +32,7 @@
 > 6. **[Operativa]** ~50 commits del loop en `feat/ux-top-ola1` (local, sin PR): subir a PR cuando quieras.
 > 7. **[Menor]** Borrar el evento de prueba del calendario (el gate bloquea borrarlo desde aquí).
 > 8. **[Producto/fiscal]** El telar recuerda los plazos de 130/111/115 pero el agente NO puede calcularlos aún (solo el 303 está construido; abstiene honesto, no inventa). Siguiente modelo natural a construir = 130 (IRPF pago fraccionado). ¿Lo abordamos tras cerrar el 303-fiable?
+> 9. **[Producto/fiscal]** Retención IRPF no modelada: `registrar_factura` no tiene campo de retención → un profesional (abogado/consultor) no puede facturar con su retención del 15% (estándar en su sector; va al 111/130). Lo flaggea al construir 130/111. Hallazgo asociado: el agente, ante una minuta con retención, NO registró la factura y narró «✅ Factura emitida» a la vez que «no se puede ejecutar» — sobre-afirma; revisar el task_done cuando no hubo acción real.
 
 - **Modelo de entidad:** el agente de chat registra facturas/cobros en UNA entidad por defecto
   («principal»). ¿Quieres modelo **multi-entidad (una por cliente)** o single? Afecta a cómo se
