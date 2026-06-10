@@ -16,6 +16,7 @@ from loombit_operator.agent.loop import (
     AgentLoop,
     _consecutive_tool_errors,
     _corregir_fecha_calendario,
+    _corregir_fecha_cobro,
     _describe_for_approval,
     _destinatario_claro,
     _error_brief,
@@ -29,6 +30,7 @@ from loombit_operator.agent.intencion import (
     tools_excluir,
     tools_foco,
 )
+from loombit_operator.agent.parsers import parsear_fecha
 from loombit_operator.agent.memory import AgentMemory, EntityProfile
 from loombit_operator.agent.reflexion import etiquetas_de_tarea
 from loombit_operator.agent.run import AgentRun, AgentStatus, AgentStep
@@ -679,6 +681,22 @@ def test_corregir_fecha_calendario_proximo_lunes():
     )
     assert cambio is True
     assert args["start_iso"] == "2026-06-15T10:00:00Z"  # lunes correcto, misma hora
+
+
+def test_parsear_fecha_hace_n_semanas_y_dias():
+    hoy = date(2026, 6, 10)
+    assert parsear_fecha("venció hace tres semanas", hoy) == date(2026, 5, 20)  # 21 días exactos
+    assert parsear_fecha("hace 10 días", hoy) == date(2026, 5, 31)
+    assert parsear_fecha("hace una semana", hoy) == date(2026, 6, 3)
+
+
+def test_corregir_fecha_cobro_vencimiento_relativo():
+    # el 14B puso 2026-05-17 (24 días); 'hace tres semanas' desde el 10/6 = 2026-05-20 (21)
+    args = {"total": 1000, "fecha_vencimiento": "2026-05-17"}
+    cambio = _corregir_fecha_cobro(
+        args, "reclama el cobro, venció hace tres semanas", date(2026, 6, 10)
+    )
+    assert cambio is True and args["fecha_vencimiento"] == "2026-05-20"
 
 
 def test_corregir_fecha_calendario_no_toca_si_ya_correcta_o_sin_relativa():

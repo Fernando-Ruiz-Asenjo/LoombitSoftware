@@ -41,6 +41,21 @@ _DIAS = {
     "domingo": 6,
 }
 
+# Números en palabras (para 'hace tres semanas' = 21 días). El 14B yerra estos cálculos; el código no.
+_PALABRA_NUM = {
+    "un": 1,
+    "una": 1,
+    "dos": 2,
+    "tres": 3,
+    "cuatro": 4,
+    "cinco": 5,
+    "seis": 6,
+    "siete": 7,
+    "ocho": 8,
+    "nueve": 9,
+    "diez": 10,
+}
+
 
 def parsear_importe(texto: object) -> float | None:
     """Extrae un importe respetando separadores es ('1.500,75') e en ('1,500.75'). None si no hay."""
@@ -109,6 +124,21 @@ def parsear_fecha(texto: object, hoy: date | None = None) -> date | None:
             return date(y, _MESES[m[2]], int(m[1]))
         except ValueError:
             return None
+    # 'hace N días/semanas' (vencimientos relativos al pasado): exacto, el 14B se equivoca.
+    m = re.search(
+        r"\bhace\s+(\d+|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)\s+"
+        r"(d[ií]as?|semanas?)\b",
+        s,
+    )
+    if m:
+        n = _PALABRA_NUM.get(m[1])
+        if n is None:
+            try:
+                n = int(m[1])
+            except ValueError:
+                n = None
+        if n is not None:
+            return hoy - timedelta(days=7 * n if m[2].startswith("sem") else n)
     if "pasado manana" in s or "pasado mañana" in s:
         return hoy + timedelta(days=2)
     if "manana" in s or "mañana" in s:

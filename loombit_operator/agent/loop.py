@@ -530,6 +530,8 @@ class AgentLoop:
         # ALG fecha-fiel: el 14B yerra fechas relativas ('próximo lunes'); las recalcula el código.
         if tc.tool_name == "calendar_create" and _corregir_fecha_calendario(tc.arguments, run.task):
             logger.info("calendar_create: fecha relativa corregida run=%s", run.id)
+        if tc.tool_name == "plan_cobro" and _corregir_fecha_cobro(tc.arguments, run.task):
+            logger.info("plan_cobro: fecha de vencimiento relativa corregida run=%s", run.id)
 
         # Señal visible PERSISTENTE: si el agente usa una tool de pilotaje (escritorio/navegador),
         # abre la sesión de halo → el usuario VE a Loombit pilotando durante todo el run.
@@ -861,6 +863,7 @@ def _filtrar_lineas_303(args: dict, task: str) -> tuple[dict, int]:
 _REL_FECHA = re.compile(
     r"\b(mañana|manana|pasado\s+mañana|pasado\s+manana|hoy|lunes|martes|mi[eé]rcoles|jueves|"
     r"viernes|s[aá]bado|domingo|que\s+viene|pr[oó]xim\w+)\b"
+    r"|hace\s+\w+\s+(?:d[ií]as?|semanas?)"
 )
 
 
@@ -884,6 +887,25 @@ def _corregir_fecha_calendario(args: dict, task: str, hoy: date | None = None) -
     if fecha_14b == nueva:
         return False
     args["start_iso"] = nueva + (m.group(4) or "T09:00:00Z")
+    return True
+
+
+def _corregir_fecha_cobro(args: dict, task: str, hoy: date | None = None) -> bool:
+    """ALG fecha-fiel (cobro): corrige `fecha_vencimiento` si el task trae una fecha relativa
+    ('venció hace tres semanas'). El 14B la calcula mal (21→24 días) y eso cambia etapa e interés.
+    """
+    t = (task or "").lower()
+    if not _REL_FECHA.search(t):
+        return False
+    fecha = parsear_fecha(t, hoy)
+    if fecha is None:
+        return False
+    m = re.match(r"(\d{4}-\d{2}-\d{2})", str(args.get("fecha_vencimiento") or ""))
+    actual = m.group(1) if m else ""
+    nueva = fecha.isoformat()
+    if actual == nueva:
+        return False
+    args["fecha_vencimiento"] = nueva
     return True
 
 
