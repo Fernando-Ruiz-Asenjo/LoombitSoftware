@@ -20,9 +20,11 @@
 ## ⭐ PARA FERNANDO (cosas que aparté durante el loop, sin parar a preguntar)
 
 > **ÍNDICE de decisiones pendientes (priorizado, detalle abajo y en el log):**
-> 1. **[P1 riesgo real]** Asesoramiento fiscal/legal regulado: el 14B inventa tipos/exenciones de IVA
->    y un prompt NO lo cierra. Decidir: ¿KB fiscal curada que CITE, o política "no doy específicos,
->    confírmalo con tu gestor"? (lo más importante de cerrar)
+> 1. **[P1 riesgo real, MITIGADO por código]** Asesoramiento fiscal regulado: el 14B inventa
+>    tipos/exenciones de IVA. **Ya hay aviso DETERMINISTA garantizado** ("no es asesoramiento,
+>    confírmalo con tu gestor/AEAT") antepuesto en estas preguntas (2026-06-10), que de-autoritativiza
+>    el dato. FALTA TU DECISIÓN para cerrarlo del todo: ¿KB fiscal curada que CITE, o política dura
+>    "no doy específicos"? (el aviso reduce el riesgo, no elimina el específico equivocado)
 > 2. **[Producto]** Modelo de entidad: ¿multi-entidad (una por cliente) o single «principal»?
 > 3. **[Producto/UX]** Responsive del shell (0 media queries hoy): ¿lo queremos y en qué fase del rediseño?
 > 4. **[Fiscal/AEAT]** Etiquetar rectificativas (tipo=rectificativa + ref. a la factura original).
