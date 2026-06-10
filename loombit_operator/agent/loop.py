@@ -80,6 +80,21 @@ _DELATA_BOT = re.compile(
 )
 
 
+def _texto_para_intencion(run: AgentRun) -> str:
+    """Texto sobre el que clasificar la intención (force-tool). Si el ÚLTIMO mensaje no tiene intención
+    propia y es CORTO (una respuesta de seguimiento: «Emitida.», «¿y en junio?»), hereda el último
+    mensaje del usuario del hilo —donde vive el dato/intención—. Así un seguimiento terso rutea bien y
+    el 14B no fabrica un «✅ hecho» sin llamar la tool. Si el task ya tiene intención clara, se respeta
+    (no se contamina con el historial)."""
+    task = run.task or ""
+    if len(task.split()) > 6 or intencion_consecuente(task) is not None:
+        return task
+    for m in reversed(run.messages or []):
+        if m.get("role") == "user" and (m.get("content") or "") != task:
+            return ((m.get("content") or "") + " " + task).strip()
+    return task
+
+
 class AgentLoop:
     """
     Motor síncrono de ejecución del agente.
@@ -296,7 +311,9 @@ class AgentLoop:
             # P0 fiabilidad: en intenciones consecuentes (cobro/303/factura/buscar) el 14B a veces
             # calcula/contesta a ojo (fabrica) o llama a la tool equivocada. En el PRIMER paso forzamos
             # la tool Y la enfocamos a la correcta. Solo si la petición trae datos (si no, que pregunte).
-            _intencion = intencion_consecuente(run.task)
+            # En conversación, una respuesta corta hereda la intención del turno anterior (ver
+            # _texto_para_intencion) → un «Emitida.» fuerza registrar_factura en vez de fabricar.
+            _intencion = intencion_consecuente(_texto_para_intencion(run))
             # A1 (gate de ambigüedad INTERNO): si la petición cruza varias intenciones de LECTURA
             # (cross-domain, p.ej. financiero + agenda), se descompone, se ejecuta cada métrica con su
             # tool determinista y se compone UNA respuesta aquí — sin preguntar al usuario. Si no

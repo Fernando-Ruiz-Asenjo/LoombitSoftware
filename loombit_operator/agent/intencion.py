@@ -146,6 +146,11 @@ def tools_foco(intencion: str | None) -> set[str]:
     if intencion == "resumen_financiero":
         # un solo tool que COMPONE todas las métricas (facturado+gastos+beneficio+303+me-deben).
         return {"resumen_financiero"}
+    if intencion == "factura":
+        # registrar_factura + ask_user (por si falta un dato), SIN task_done: que REGISTRE de verdad,
+        # no se escape a task_done narrando un «✅ registrada» confuso sin llamar la tool (visto en
+        # el seguimiento multivuelta «Emitida.»). ask_user queda por si de verdad falta la base.
+        return {"registrar_factura", "ask_user"}
     return _TOOLS_POR_INTENCION.get(intencion, set()) | _SIEMPRE
 
 

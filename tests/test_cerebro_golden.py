@@ -591,6 +591,35 @@ def test_es_registro_con_retencion_corta_solo_creacion():
     assert not _es_registro_con_retencion("emite una factura sin retención")
 
 
+def test_texto_para_intencion_hereda_en_seguimiento_corto():
+    from loombit_operator.agent.loop import _texto_para_intencion
+
+    # respuesta CORTA sin intención propia («Emitida.») → hereda el último user del hilo
+    run = SimpleNamespace(
+        task="Emitida.",
+        messages=[
+            {"role": "user", "content": "Quiero registrar una factura a López de 2000 al 21%."},
+            {"role": "assistant", "content": "¿Es emitida o recibida?"},
+            {"role": "user", "content": "Emitida."},
+        ],
+    )
+    txt = _texto_para_intencion(run)
+    assert "2000" in txt and "factura" in txt.lower()  # heredó el contexto → ruteará a registrar
+    # task con intención PROPIA → no se contamina con el historial
+    run2 = SimpleNamespace(
+        task="Calcula mi 303 del 2T 2026.",
+        messages=[
+            {"role": "user", "content": "Busca correos de David."},
+            {"role": "assistant", "content": "Encontré varios."},
+            {"role": "user", "content": "Calcula mi 303 del 2T 2026."},
+        ],
+    )
+    assert _texto_para_intencion(run2) == "Calcula mi 303 del 2T 2026."
+    # single-turn (sin historial previo) → devuelve el task tal cual
+    run3 = SimpleNamespace(task="Emitida.", messages=[{"role": "user", "content": "Emitida."}])
+    assert _texto_para_intencion(run3) == "Emitida."
+
+
 def test_relay_fiel_recoge_TODAS_las_autoritativas():
     # N facturas registradas → el usuario ve las N (antes solo salía la última)
     loop = AgentLoop(llm=SimpleNamespace())
