@@ -562,7 +562,9 @@ def test_relay_fiel_respeta_exito_real_no_sobre_corrige():
 
 
 def test_lleva_retencion_detecta_y_excluye_sin_retencion():
-    from loombit_operator.agent.loop import _lleva_retencion
+    from loombit_operator.skill_d_fiscal.guardas_fiscales import (
+        lleva_retencion as _lleva_retencion,
+    )
 
     # por el TEXTO de la petición
     assert _lleva_retencion("emite una minuta con retención de IRPF del 15%", {})
@@ -577,7 +579,9 @@ def test_lleva_retencion_detecta_y_excluye_sin_retencion():
 
 
 def test_es_registro_con_retencion_corta_solo_creacion():
-    from loombit_operator.agent.loop import _es_registro_con_retencion
+    from loombit_operator.skill_d_fiscal.guardas_fiscales import (
+        es_registro_con_retencion as _es_registro_con_retencion,
+    )
 
     # registrar/preparar una factura o minuta CON retención → corta (rehúsa honesto, no fabrica)
     assert _es_registro_con_retencion(
@@ -621,13 +625,27 @@ def test_texto_para_intencion_hereda_en_seguimiento_corto():
 
 
 def test_modelo_no_modelado_abstiene_menos_303():
-    from loombit_operator.agent.loop import _modelo_no_modelado
+    from loombit_operator.skill_d_fiscal.guardas_fiscales import (
+        modelo_no_modelado as _modelo_no_modelado,
+    )
 
     assert _modelo_no_modelado("Hazme el modelo 111 de retenciones") == "111"
     assert _modelo_no_modelado("Hazme el modelo 349 intracomunitario") == "349"
     assert _modelo_no_modelado("calcula el modelo 130 del trimestre") == "130"
     assert _modelo_no_modelado("calcula mi modelo 303 del 2T") is None  # el 303 SÍ se modela
     assert _modelo_no_modelado("¿cuánto he facturado este mes?") is None
+
+
+def test_registro_guardas_aplica_dominio_fiscal():
+    # D-2: las guardas de dominio fiscal viven en la skill y se aplican vía el hook blanco; el núcleo
+    # no las contiene. Importar la skill las registra; el registro las aplica.
+    import loombit_operator.skill_d_fiscal.guardas_fiscales  # noqa: F401  (registra las guardas)
+    from loombit_operator.agent.guardas import registro_guardas
+
+    assert registro_guardas.aplicar("emite una factura con retención del 15%")  # retención IRPF
+    assert registro_guardas.aplicar("guarda el IBAN ES12 1234 de mi cliente")  # IBAN inválido
+    assert registro_guardas.aplicar("hazme el modelo 111 de retenciones")  # modelo AEAT no modelado
+    assert registro_guardas.aplicar("¿cuánto me deben?") is None  # nada de dominio → None
 
 
 def test_relay_fiel_recoge_TODAS_las_autoritativas():

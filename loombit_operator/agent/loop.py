@@ -33,13 +33,14 @@ from ..tools.registry import ToolRegistry
 from .memory import get_memory
 from .contexto import ajustar_a_contexto
 from .descomposicion import MENU, resolver
+from .guardas import registro_guardas
 from .intencion import (
     es_lectura_agenda,
     intencion_consecuente,
     tools_excluir,
     tools_foco,
 )
-from .parsers import parsear_fecha, validar_iban
+from .parsers import parsear_fecha
 from .prompts import build_system_prompt
 from .run import AgentRun, AgentStatus, AgentStep, AgentStore
 
@@ -287,31 +288,14 @@ class AgentLoop:
                 {"role": "user", "content": run.task},
             ]
 
-        # Retención IRPF no modelada: si la petición es REGISTRAR/PREPARAR una factura/minuta CON
-        # retención, NO entramos al ReAct (el 14B fabrica un «preparada» con cifras erróneas —tratando
-        # la retención como IVA—, visto en la presión del arnés). Respuesta honesta y determinista
-        # ANTES de gastar el bucle. Hasta construir el 130 (#8/#9).
-        if _es_registro_con_retencion(run.task):
-            logger.info("registro con retención IRPF no modelada → rehúso honesto run=%s", run.id)
-            run.mark_completed(_MSG_RETENCION_NO_MODELADA)
-            _log_conversation_event(run, "completed", run.result)
-            self.store.save_run(run)
-            return run
-
-        # IBAN inválido a guardar: no fabricamos un «guardado» de un IBAN que no cuadra (checksum).
-        if _iban_invalido_a_guardar(run.task):
-            logger.info("IBAN inválido a guardar → rehúso honesto run=%s", run.id)
-            run.mark_completed(_MSG_IBAN_INVALIDO)
-            _log_conversation_event(run, "completed", run.result)
-            self.store.save_run(run)
-            return run
-
-        # Modelo AEAT no modelado (111/349/130…): abstención honesta ANTES del ReAct (no confundir con
-        # el 303 ni fabricar). El 303 sí se modela y NO entra aquí.
-        _mod_na = _modelo_no_modelado(run.task)
-        if _mod_na:
-            logger.info("modelo %s no modelado → abstención honesta run=%s", _mod_na, run.id)
-            run.mark_completed(_MSG_MODELO_NO_MODELADO.format(m=_mod_na))
+        # Guardas de DOMINIO pre-intent (D-2): el dominio (skill_d_fiscal) registra abstenciones
+        # honestas para lo que Loombit NO modela (retención IRPF, IBAN inválido, modelos AEAT). El
+        # núcleo BLANCO solo consulta el hook; no sabe de fiscalidad. Si una guarda aplica, corta
+        # ANTES del ReAct (evita que el 14B fabrique un «✅ hecho» con cifras erróneas).
+        _guarda_msg = registro_guardas.aplicar(run.task)
+        if _guarda_msg:
+            logger.info("guarda de dominio aplicó → abstención honesta run=%s", run.id)
+            run.mark_completed(_guarda_msg)
             _log_conversation_event(run, "completed", run.result)
             self.store.save_run(run)
             return run
@@ -644,11 +628,8 @@ class AgentLoop:
         except KeyError:
             return f"ERROR: tool desconocida '{tc.tool_name}'", False
 
-        # Retención IRPF no modelada: NO registramos en silencio una factura con retención (falsearía
-        # el 303 y el 111/130). Se rehúsa honesto ANTES de ejecutar — hasta construir el 130 (#8/#9).
-        if tc.tool_name == "registrar_factura" and _lleva_retencion(run.task, tc.arguments):
-            logger.info("registrar_factura: rehusada por retención IRPF no modelada run=%s", run.id)
-            return _MSG_RETENCION_NO_MODELADA, False
+        # (La retención IRPF se rehúsa ya en la guarda de dominio pre-intent —ver registro_guardas—,
+        # antes del ReAct, así que aquí no hace falta interceptarla por tool.)
 
         # ALG anti-fabricación del 303: el 14B mete líneas inventadas; quita las que no estén en el
         # mensaje del usuario (su base no aparece) ANTES de calcular. Determinista.
@@ -1150,98 +1131,9 @@ _MENSAJE_FALLO_HONESTO = (
 # Tools con EFECTO real: su éxito = la acción que pidió el usuario OCURRIÓ (persistir/enviar/crear).
 _TOOLS_EFECTO = ("registrar_factura", "gmail_send", "calendar_create")
 
-# Retención de IRPF: hoy registrar_factura NO la modela. Registrar una factura con retención SIN la
-# retención falsearía el 303 y el 111/130 → se rehúsa honesto (mejor «no lo hago» que hacerlo mal),
-# hasta construir el modelo 130 (decisión de Fernando #8/#9). Lo destapó la presión del arnés: el 14B
-# narraba «calculado el total con retención… preparando borrador» registrando una factura distorsionada.
-# «reten\w+» cubre retención/retenido/retenida/retener (antes solo «retención» → «IRPF retenido» no
-# casaba y la factura con retención no se rehusaba — destapado por la batería v2).
-_RETENCION_IRPF = re.compile(r"\breten\w+\b", re.IGNORECASE)
-_SIN_RETENCION = re.compile(
-    r"\b(sin|no\s+(lleva|tiene|hay|aplica))\b[^.\n]{0,18}reten", re.IGNORECASE
-)
-_MSG_RETENCION_NO_MODELADA = (
-    "⚠️ No he registrado la factura: lleva RETENCIÓN de IRPF y todavía no modelo la retención. "
-    "Registrarla sin la retención falsearía tu 303 y tu 111/130, así que prefiero NO hacerlo a "
-    "hacerlo mal. Apúntala con tu gestoría por ahora; cuando construyamos el modelo 130 la registro "
-    "con su retención. (No se ha guardado nada.)"
-)
-
-
-def _lleva_retencion(task: str, args: dict) -> bool:
-    """True si la factura a registrar lleva retención de IRPF (por el arg explícito o por el texto de
-    la petición). «sin retención» NO cuenta. Conservador: ante retención, mejor rehusar que falsear.
-    """
-    r = (args or {}).get("retencion", (args or {}).get("retención"))
-    if r not in (None, "", 0, "0", 0.0):
-        try:
-            return float(r) != 0
-        except (ValueError, TypeError):
-            return True
-    t = task or ""
-    if _SIN_RETENCION.search(t):
-        return False
-    return bool(_RETENCION_IRPF.search(t))
-
-
-_HACER_FACTURA = re.compile(r"\b(minuta\w*|factura\w*)\b", re.IGNORECASE)
-_VERBO_HACER = re.compile(
-    r"\b(haz\w*|hacer|hag\w+|prepar\w+|reg[ií]str\w+|em[ií]t\w+|fact[uú]r\w+|ap[uú]nt\w+"
-    r"|gener\w+|cre\w+)\b",
-    re.IGNORECASE,
-)
-
-
-def _es_registro_con_retencion(task: str) -> bool:
-    """True si la petición pide REGISTRAR/PREPARAR una factura o minuta CON retención de IRPF
-    (capacidad no modelada). Excluye «sin retención» y las preguntas que no piden crear nada. Cubre
-    TODOS los caminos por los que el 14B fabricaría (registrar_factura, mis-ruteo a calcular_303…),
-    porque corta ANTES del ReAct."""
-    t = task or ""
-    if _SIN_RETENCION.search(t) or not _RETENCION_IRPF.search(t):
-        return False
-    return bool(_HACER_FACTURA.search(t) and _VERBO_HACER.search(t))
-
-
-# IBAN inválido: no fabricamos un «✅ guardado» de un IBAN que no cuadra (longitud/checksum). El 14B
-# lo aceptaba a ciegas (destapado por la batería v2). Validamos con `validar_iban` (mod-97) y rehusamos.
-_IBAN_TOKEN = re.compile(r"\bES\s?\d[\d\s]{6,30}", re.IGNORECASE)
-_GUARDA_IBAN = re.compile(
-    r"\b(guarda\w*|gu[aá]rdame|apunta\w*|registra\w*|anota\w*|almacena\w*|gu[aá]rdalo)\b",
-    re.IGNORECASE,
-)
-_MSG_IBAN_INVALIDO = (
-    "⚠️ No he guardado ese IBAN: no es válido (no cuadra por longitud o dígito de control). Revísalo "
-    "y pásamelo completo (un IBAN español tiene 24 caracteres) y lo guardo."
-)
-
-
-def _iban_invalido_a_guardar(task: str) -> bool:
-    """True si la petición pide GUARDAR un IBAN y el IBAN del texto es INVÁLIDO (longitud/checksum)."""
-    t = task or ""
-    if "iban" not in t.lower() or not _GUARDA_IBAN.search(t):
-        return False
-    m = _IBAN_TOKEN.search(t)
-    return bool(m) and not validar_iban(m.group(0))
-
-
-# Modelos AEAT que Loombit NO calcula todavía (hoy solo el 303 de IVA). Pedir uno → abstención HONESTA
-# (no confundirlo con el 303 pidiendo ventas/compras, ni fabricar un resultado). Construirlos = decisión
-# de Fernando (#8/#9). El 303 NO entra aquí (sí se modela).
-_MODELO_NO_MODELADO = re.compile(
-    r"\bmodelo\s+(111|115|123|130|180|184|190|193|347|349|390)\b", re.IGNORECASE
-)
-_MSG_MODELO_NO_MODELADO = (
-    "Todavía no calculo el modelo {m} — hoy Loombit prepara el 303 (IVA) desde tus facturas. Ese "
-    "modelo lo lleva tu gestor; cuando lo construyamos, te lo preparo yo. Mientras, te ayudo con el "
-    "303, registrar facturas o tus cobros."
-)
-
-
-def _modelo_no_modelado(task: str) -> str | None:
-    """Devuelve el número del modelo AEAT pedido si NO está modelado (111/349/130…), o None."""
-    m = _MODELO_NO_MODELADO.search(task or "")
-    return m.group(1) if m else None
+# (D-2) Las guardas de DOMINIO fiscal —retención IRPF, IBAN inválido, modelos AEAT no modelados— se
+# movieron a `skill_d_fiscal/guardas_fiscales.py`. El núcleo BLANCO solo consulta `registro_guardas`
+# (ver el hook en `_execute`); ya no contiene lógica de IRPF ni de IBAN español.
 
 
 def _paso_es_fallo(step: object) -> bool:

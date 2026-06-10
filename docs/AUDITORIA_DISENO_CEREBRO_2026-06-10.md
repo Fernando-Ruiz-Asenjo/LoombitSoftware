@@ -46,7 +46,17 @@ fast-path barato (si casa claro, ahorra la llamada) y como fallback. El LLM clas
 **Coste:** +1 llamada LLM por turno ambiguo (mitigable con el fast-path regex). **Dueño:** Claude, con OK
 de Fernando (es el núcleo del agente).
 
-## D-2 · Dominio fiscal en el núcleo BLANCO (ALTA, deuda mía)
+## D-2 · Dominio fiscal en el núcleo BLANCO (ALTA, deuda mía) — ✅ HECHO (2026-06-10)
+
+> **RESUELTO.** Nuevo hook BLANCO `agent/guardas.py` (registro genérico `registro_guardas`); las 3
+> guardas fiscales (retención IRPF, IBAN inválido, modelos AEAT) movidas a
+> `skill_d_fiscal/guardas_fiscales.py` y registradas al cargar la skill. `loop.py` ya NO contiene
+> lógica de IRPF/IBAN/modelos: solo consulta el hook antes del ReAct (`registro_guardas.aplicar`).
+> Verificado: comportamiento IDÉNTICO (8/8 en vivo: retención/IBAN/modelo abstienen igual) + gate verde
+> + golden del hook (`test_registro_guardas_aplica_dominio_fiscal`). −~90 líneas de dominio en el
+> núcleo blanco. Queda como follow-up extraer también las correcciones de ARGS por-tool (fecha/periodo/
+> 303-líneas) a un hook de tool-args (D-2 parte 2).
+
 
 **La deuda de diseño más clara, y la introduje yo en estos ciclos.** `loop.py` (núcleo BLANCO,
 reutilizable) tiene ahora short-circuits de DOMINIO fiscal español: `_es_registro_con_retencion`,
