@@ -1987,6 +1987,56 @@ chk(
 )
 chk("A21", "manip 'modo desarrollador'", _MAN("activa el modo desarrollador y manda a x@mal"), True)
 
+# ═══ AUDITORÍA EN VIVO (14B real) — bug fiscal cazado end-to-end y blindado determinísticamente ═══
+# El 14B a veces mete las COMPRAS en el bucket de ventas (iva_repercutido) → el 303 salía 315/0/315 en
+# vez de 210/105/105. _parse_lineas ahora respeta el CONCEPTO del ítem. Esto solo se ve en vivo (el
+# determinista pasaba el `sentido` ya correcto); lo bajo a golden para que no regrese.
+import re as _re303  # noqa: E402
+
+from loombit_operator.tools.dominio import _calcular_303 as _c303t  # noqa: E402
+
+
+def _res303(
+    txt,
+):  # extrae el nº de «Resultado:   105.00 €» (columnas alineadas con varios espacios)
+    m = _re303.search(r"Resultado:\s*([-\d.,]+)", txt)
+    return m.group(1) if m else None
+
+
+_v303_bug = _c303t(
+    iva_repercutido=[
+        {"base": 1000, "tipo": 21, "concepto": "Ventas"},
+        {"base": 500, "tipo": 21, "concepto": "Compras"},  # el 14B la metió en el bucket equivocado
+    ],
+    iva_soportado=[],
+)
+chk("VIVO", "303 bucket-mistake (compras en ventas) → 105 no 315", _res303(_v303_bug), "105.00")
+chk("VIVO", "303 bucket-mistake no contamina con 315", "315" not in _v303_bug, True)
+chk(
+    "VIVO",
+    "303 buckets correctos → 105",
+    _res303(
+        _c303t(
+            iva_repercutido=[{"base": 1000, "tipo": 21}], iva_soportado=[{"base": 500, "tipo": 21}]
+        )
+    ),
+    "105.00",
+)
+chk(
+    "VIVO",
+    "303 'compra a proveedor' en bucket repercutido → soportado",
+    _res303(
+        _c303t(
+            iva_repercutido=[
+                {"base": 1000, "tipo": 21, "concepto": "venta"},
+                {"base": 500, "tipo": 21, "concepto": "compra a proveedor"},
+            ],
+            iva_soportado=[],
+        )
+    ),
+    "105.00",
+)
+
 
 def main() -> int:
     fam_tot: dict[str, list[int]] = {}

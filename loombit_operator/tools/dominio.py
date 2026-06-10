@@ -115,12 +115,25 @@ _TIPOS_IVA_VALIDOS = {0.0, 0.04, 0.05, 0.10, 0.21}
 def _parse_lineas(items: list[dict] | None, sentido: str, defecto: str) -> list[LineaIVA]:
     out: list[LineaIVA] = []
     for it in items or []:
+        concepto = str(it.get("concepto", defecto))
+        # El sentido lo MANDA el concepto del propio ítem cuando es inequívoco: el 14B a veces mete una
+        # «compra» en el bucket de ventas (iva_repercutido) → el 303 saldría inflado (devengado de más,
+        # deducible de menos). Si el concepto dice claramente compra/venta, se respeta ESO; si es
+        # ambiguo, vale el bucket. Frontera de determinismo: la cifra fiscal no puede depender de que el
+        # 14B acierte el bucket. (_SENT_*/_es_factura_emitida definidos más abajo, resueltos en runtime.)
+        cl = concepto.lower()
+        if any(k in cl for k in _SENT_RECIBIDA):
+            s = "soportado"
+        elif any(k in cl for k in _SENT_EMITIDA):
+            s = "devengado"
+        else:
+            s = sentido
         out.append(
             LineaIVA(
                 base=it["base"],
                 tipo=_norm_tipo(it.get("tipo", 0.21)),
-                sentido=sentido,
-                concepto=str(it.get("concepto", defecto)),
+                sentido=s,
+                concepto=concepto,
             )
         )
     return out
