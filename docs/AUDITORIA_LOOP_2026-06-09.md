@@ -21,6 +21,12 @@
 - **Modelo de entidad:** el agente de chat registra facturas/cobros en UNA entidad por defecto
   («principal»). ¿Quieres modelo **multi-entidad (una por cliente)** o single? Afecta a cómo se
   agrupan facturas/303/cobros. Por ahora: single «principal».
+- **⚠️ Asesoramiento fiscal/legal regulado (P1, NO resuelto por código):** el 14B da consejo fiscal
+  CONCRETO equivocado aunque le digas que no (dogfooding clínica: dijo que la fisioterapia lleva IVA,
+  cuando está EXENTA art.20 LIVA; antes confundía RETA con IVA). El guardrail de prompt lo MEJORÓ (quita
+  la conflación, recomienda gestor) pero el modelo SIGUE inventando tipos/exenciones. **Decisión:** ¿(a)
+  base de conocimiento fiscal curada que el agente CITE, o (b) política dura "Loombit no da tipos ni
+  exenciones de IVA; te lo confirma tu gestor" (rehúsa el específico)? Hoy: riesgo mitigado, no cerrado.
 - **303 fiable:** el cálculo del 303 desde una frase con el 14B NO es fiable (mis-asigna/inventa).
   Ahora que `registrar_factura` persiste, el camino bueno es **calcular el 303 desde las facturas
   registradas** (determinista). Propuesta para una próxima iteración. ¿OK?
