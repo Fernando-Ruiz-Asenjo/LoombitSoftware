@@ -561,6 +561,36 @@ def test_relay_fiel_respeta_exito_real_no_sobre_corrige():
     assert verbatim in out  # relay-fiel mantiene el resultado autoritativo real
 
 
+def test_lleva_retencion_detecta_y_excluye_sin_retencion():
+    from loombit_operator.agent.loop import _lleva_retencion
+
+    # por el TEXTO de la petición
+    assert _lleva_retencion("emite una minuta con retención de IRPF del 15%", {})
+    assert _lleva_retencion("factura de 3000 con retencion 15%", {})
+    # por el ARG explícito que pase el modelo
+    assert _lleva_retencion("registra una factura de 1000", {"retencion": 15})
+    assert _lleva_retencion("registra una factura", {"retención": 0.15})
+    # «sin retención» NO cuenta; una factura normal tampoco; retencion=0 tampoco
+    assert not _lleva_retencion("registra la factura de 1000 sin retención", {})
+    assert not _lleva_retencion("registra una factura de 1000 al 21% de IVA", {})
+    assert not _lleva_retencion("emite una factura a López de 5000", {"retencion": 0})
+
+
+def test_es_registro_con_retencion_corta_solo_creacion():
+    from loombit_operator.agent.loop import _es_registro_con_retencion
+
+    # registrar/preparar una factura o minuta CON retención → corta (rehúsa honesto, no fabrica)
+    assert _es_registro_con_retencion(
+        "Necesito hacer una minuta con retención de IRPF del 15%, prepárala"
+    )
+    assert _es_registro_con_retencion("emite una factura con retención del 15%")
+    assert _es_registro_con_retencion("regístrame la minuta con retención IRPF")
+    # NO corta: pregunta sin crear, factura normal, o «sin retención»
+    assert not _es_registro_con_retencion("¿qué retención de IRPF me corresponde?")
+    assert not _es_registro_con_retencion("registra una factura de 1000 al 21% de IVA")
+    assert not _es_registro_con_retencion("emite una factura sin retención")
+
+
 def test_relay_fiel_recoge_TODAS_las_autoritativas():
     # N facturas registradas → el usuario ve las N (antes solo salía la última)
     loop = AgentLoop(llm=SimpleNamespace())
