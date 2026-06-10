@@ -135,6 +135,8 @@ anti-destinatario-inventado y lo malinterpreté; re-test correcto → GATE.
 
 **Mitigación fiscal #1 verificada (2026-06-10):** 2/2 preguntas reguladas (IVA fisioterapia / exención formación) → el aviso determinista se antepone al INICIO ('⚠️ orientación general, NO asesoramiento... confírmalo con tu gestor/AEAT'). Garantizado por código (_con_aviso_regulado), no por el 14B. La decisión KB-curada vs rehúsa-específicos sigue siendo de Fernando (#1).
 
+**Over-trigger recordatorio corregido (2026-06-10):** yo había metido 'apúntame que' en el intent recordatorio → 'apúntame que el cliente prefiere transferencia' (hecho sin fecha) forzaba un evento absurdo. Quitado (ambiguo). Verificado: la preferencia ya no crea evento; 'recuérdame pagar el viernes' sigue funcionando. Disciplina: probar los BORDES del propio fix.
+
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |
 |---|---|---|---|
