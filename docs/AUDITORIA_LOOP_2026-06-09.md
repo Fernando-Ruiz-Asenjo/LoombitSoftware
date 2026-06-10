@@ -96,6 +96,8 @@ anti-destinatario-inventado y lo malinterpreté; re-test correcto → GATE.
 
 **Auditoría MEMORIA OPERATIVA (2026-06-10):** SÓLIDA por recibo — el agente APRENDE en cada run completado (`_update_memory` → contactos + historial + procedimiento), PERSISTE en disco y RECUERDA el procedimiento relevante en tareas parecidas (`to_context_block`), con contador de éxitos. El aprendizaje operativo (clave de la brújula) funciona e2e. Sin bug.
 
+**Antifraude albarán (2026-06-10):** factura 100€ vs albarán 120€ → cross_check {match:False, difference:-20, action:'bloquear_y_solicitar_rectificacion'}. Avisa del descuadre. Determinista, sólido por recibo. (El 400 de un curl previo era encoding mío con 'º/ñ', no bug del server.)
+
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |
 |---|---|---|---|
