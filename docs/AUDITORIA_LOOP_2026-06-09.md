@@ -29,6 +29,11 @@
 - **Pilot para viajes:** primitivas vivas; operar una web de viajes e2e está SIN verificar (es frágil
   con el 14B conduciendo capturas). Cuando lo abordemos, será un proyecto con su verificación dura.
 
+## Chequeo de regresión (arnés de presión) — 2026-06-10
+`scripts/presion_cerebro.py` → **13/13 VERDE** tras ~10 iteraciones de cambios (router stems, force-tool
+enfocado, telar dedup, conciliar_banco, IBAN checksum, CSRF/Origin). Nada regresó. La conciliación ya
+pide el N43 (no niega capacidad) y sigue pasando la abstención; el 303 anti-línea-inventada aguanta.
+
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |
 |---|---|---|---|
