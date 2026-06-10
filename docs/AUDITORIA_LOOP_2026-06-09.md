@@ -113,6 +113,8 @@ anti-destinatario-inventado y lo malinterpreté; re-test correcto → GATE.
 
 **303-fiable por el AGENTE (2026-06-10):** 'calcula mi 303 del 2T con las facturas registradas' → el 14B elige calcular_303_registradas (fiable) y da 210/42/168 a ingresar (correcto). Los 3 arreglos fiscales (sentido/periodo/rectificativa) aguantan e2e por el agente. Cobertura: query que menciona 'registradas'; la frase ambigua a secas no probada aún.
 
+**303 multi-tipo (2026-06-10):** emitida 1000@21 + 500@10 + recibida 200@21 → devengado 260 (suma 21%+10%), deducible 42, 218 a ingresar. Correcto. El 303-fiable maneja sentido + periodo + rectificativas + multi-tipo. Sin bug.
+
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |
 |---|---|---|---|
