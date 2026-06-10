@@ -133,6 +133,8 @@ anti-destinatario-inventado y lo malinterpreté; re-test correcto → GATE.
 
 **Bordes recordatorio (2026-06-10):** verificado que el force-tool no sobre-dispara — 'recuérdame llamar al gestor mañana' crea evento; 'recuérdame QUÉ reuniones tengo el viernes' NO crea (es_lectura_agenda excluye calendar_create → lee con calendar_today). Sin regresión.
 
+**Mitigación fiscal #1 verificada (2026-06-10):** 2/2 preguntas reguladas (IVA fisioterapia / exención formación) → el aviso determinista se antepone al INICIO ('⚠️ orientación general, NO asesoramiento... confírmalo con tu gestor/AEAT'). Garantizado por código (_con_aviso_regulado), no por el 14B. La decisión KB-curada vs rehúsa-específicos sigue siendo de Fernando (#1).
+
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |
 |---|---|---|---|
