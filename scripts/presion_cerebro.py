@@ -109,6 +109,13 @@ ESCENARIOS = [
         lambda r, t, x: "resumen_facturacion" in t and "calcular_303" not in t,
     ),
     (
+        # «¿cuánto me deben?» = force-tool cobros_pendientes (suma emitidas no cobradas), NO memory_search
+        # ni plan_cobro. Sin datos → «no tienes cobros pendientes», pero DEBE llamar la tool agregada.
+        "cobros_pendientes_usa_tool",
+        "¿Cuánto me deben en total mis clientes?",
+        lambda r, t, x: "cobros_pendientes" in t and "memory_search" not in t,
+    ),
+    (
         "abstencion_conciliacion",
         "Concíliame los cobros con el extracto del banco de este mes.",
         lambda r, t, x: any(
