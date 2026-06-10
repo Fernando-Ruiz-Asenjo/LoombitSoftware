@@ -15,6 +15,7 @@ from loombit_operator.agent.contexto import ajustar_a_contexto
 from loombit_operator.agent.loop import (
     AgentLoop,
     _consecutive_tool_errors,
+    _corregir_fecha_calendario,
     _describe_for_approval,
     _destinatario_claro,
     _error_brief,
@@ -668,6 +669,28 @@ def test_telar_no_se_cae_por_un_asunto_malformado():
     # el telar devolvió la tela (no lanzó) y tejió al menos el asunto válido
     assert isinstance(out.get("hilos"), list)
     assert any(h.get("tipo") == "reunion" for h in out["hilos"])
+
+
+def test_corregir_fecha_calendario_proximo_lunes():
+    # hoy miércoles 2026-06-10; el 14B puso sábado 13 → debe corregir a lunes 15 (mantiene la hora)
+    args = {"title": "Reunión", "start_iso": "2026-06-13T10:00:00Z"}
+    cambio = _corregir_fecha_calendario(
+        args, "agéndame el próximo lunes a las 10", date(2026, 6, 10)
+    )
+    assert cambio is True
+    assert args["start_iso"] == "2026-06-15T10:00:00Z"  # lunes correcto, misma hora
+
+
+def test_corregir_fecha_calendario_no_toca_si_ya_correcta_o_sin_relativa():
+    # 14B ya correcto ('mañana' = jueves 11 desde miércoles 10) → no cambia
+    a1 = {"start_iso": "2026-06-11T09:00:00Z"}
+    assert _corregir_fecha_calendario(a1, "agéndame mañana a las 9", date(2026, 6, 10)) is False
+    # sin marcador relativo (fecha explícita) → no toca
+    a2 = {"start_iso": "2026-06-20T12:00:00Z"}
+    assert (
+        _corregir_fecha_calendario(a2, "agéndame el 20 de junio a las 12", date(2026, 6, 10))
+        is False
+    )
 
 
 def test_filtrar_lineas_303_quita_inventadas():

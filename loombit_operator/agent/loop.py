@@ -23,6 +23,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+from datetime import date
 from typing import Any
 
 from ..config import get_settings
@@ -37,6 +38,7 @@ from .intencion import (
     tools_excluir,
     tools_foco,
 )
+from .parsers import parsear_fecha
 from .prompts import build_system_prompt
 from .run import AgentRun, AgentStatus, AgentStep, AgentStore
 
@@ -525,6 +527,10 @@ class AgentLoop:
             if _q303:
                 logger.info("303: descartadas %d línea(s) inventada(s) run=%s", _q303, run.id)
 
+        # ALG fecha-fiel: el 14B yerra fechas relativas ('próximo lunes'); las recalcula el código.
+        if tc.tool_name == "calendar_create" and _corregir_fecha_calendario(tc.arguments, run.task):
+            logger.info("calendar_create: fecha relativa corregida run=%s", run.id)
+
         # Señal visible PERSISTENTE: si el agente usa una tool de pilotaje (escritorio/navegador),
         # abre la sesión de halo → el usuario VE a Loombit pilotando durante todo el run.
         if tool_def.category in ("pilot", "computer"):
@@ -850,6 +856,35 @@ def _filtrar_lineas_303(args: dict, task: str) -> tuple[dict, int]:
                 quitadas += 1
         args[campo] = nuevas
     return args, quitadas
+
+
+_REL_FECHA = re.compile(
+    r"\b(mañana|manana|pasado\s+mañana|pasado\s+manana|hoy|lunes|martes|mi[eé]rcoles|jueves|"
+    r"viernes|s[aá]bado|domingo|que\s+viene|pr[oó]xim\w+)\b"
+)
+
+
+def _corregir_fecha_calendario(args: dict, task: str, hoy: date | None = None) -> bool:
+    """ALG fecha-fiel: el 14B se equivoca con fechas relativas ('próximo lunes'→sábado). Si el task
+    trae una fecha relativa, la recalcula con parsear_fecha (determinista) y corrige el `start_iso`
+    (mantiene la HORA del modelo). Devuelve True si corrigió. Solo actúa si hay marcador relativo.
+    """
+    t = (task or "").lower()
+    if not _REL_FECHA.search(t):
+        return False
+    fecha = parsear_fecha(t, hoy)
+    if fecha is None:
+        return False
+    iso = str(args.get("start_iso") or "")
+    m = re.match(r"(\d{4})-(\d{2})-(\d{2})([T ].*)?$", iso)
+    if not m:
+        return False
+    fecha_14b = f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
+    nueva = fecha.isoformat()
+    if fecha_14b == nueva:
+        return False
+    args["start_iso"] = nueva + (m.group(4) or "T09:00:00Z")
+    return True
 
 
 def _is_error_result(text: str) -> bool:
