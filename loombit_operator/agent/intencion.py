@@ -21,8 +21,12 @@ _F303 = re.compile(r"\b(303|iva|trimestral|repercutid\w+|soportad\w+|devengad\w+
 # OJO: debe casar el COMANDO de crear factura ("regístrame/emite una factura"), NO el adjetivo
 # "facturas registradas/emitidas" (eso es una consulta sobre lo YA registrado → intención 303).
 _FACTURA = re.compile(
-    r"\b(reg[ií]strame|ap[uú]ntame|fact[uú]rame|em[ií]teme"
-    r"|(reg[ií]stra|ap[uú]nta|emite|emitir|crea)\s+(una\s+|la\s+|mi\s+|esta\s+)?factura)\b"
+    # verbos de registro «pegados» (regístrame/apúntame/factúrame/emíteme)…
+    r"\b(reg[ií]strame|ap[uú]ntame|fact[uú]rame|em[ií]teme)\b"
+    # …o un verbo de registro (incluido coloquial: mete/anota/añade/introduce/carga) cerca del
+    # sustantivo factura/venta/minuta o de «facturé/vendí». Acota a REGISTRAR, no a consultar.
+    r"|\b(reg[ií]stra\w*|ap[uú]nta\w*|emit\w+|anota\w*|mete\w*|a[ñn]ade\w*|introduce|carga\w*"
+    r"|fact[uú]r\w*)\b[^.\n]{0,30}\b(factur\w+|venta\w*|vend[ií]\w*|minuta\w*)\b"
 )
 _BUSCAR_CORREO = re.compile(
     r"\b(busca\w*|b[uú]scame|encuentra|revisa|mira)\b[^\n]{0,25}\b"

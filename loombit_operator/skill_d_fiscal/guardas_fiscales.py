@@ -16,8 +16,9 @@ from ..agent.parsers import validar_iban
 
 # ── Retención de IRPF: registrar_factura NO la modela. Registrar una factura con retención SIN la
 # retención falsearía el 303 y el 111/130 → se rehúsa honesto, hasta construir el 130 (decisión #8/#9).
-# «reten\w+» cubre retención/retenido/retenida/retener. ───────────────────────────────────────────
-_RETENCION_IRPF = re.compile(r"\breten\w+\b", re.IGNORECASE)
+# «reten\w+» cubre retención/retenido/retenida/retener; «reti[eé]n\w+» la conjugación «retiene/retienen»
+# («el IRPF que me retienen» — antes se escapaba porque «retienen» no empieza por «reten»). ──────────
+_RETENCION_IRPF = re.compile(r"\breten\w+\b|\breti[eé]n\w+\b", re.IGNORECASE)
 _SIN_RETENCION = re.compile(
     r"\b(sin|no\s+(lleva|tiene|hay|aplica))\b[^.\n]{0,18}reten", re.IGNORECASE
 )
@@ -66,7 +67,7 @@ def es_registro_con_retencion(task: str) -> bool:
 # ── IBAN inválido: no fabricamos un «✅ guardado» de un IBAN que no cuadra (longitud/checksum mod-97).
 _IBAN_TOKEN = re.compile(r"\bES\s?\d[\d\s]{6,30}", re.IGNORECASE)
 _GUARDA_IBAN = re.compile(
-    r"\b(guarda\w*|gu[aá]rdame|apunta\w*|registra\w*|anota\w*|almacena\w*|gu[aá]rdalo)\b",
+    r"\b(guarda\w*|gu[aá]rda\w*|ap[uú]nta\w*|registra\w*|anota\w*|almacena\w*)\b",
     re.IGNORECASE,
 )
 _MSG_IBAN_INVALIDO = (
@@ -85,8 +86,18 @@ def iban_invalido_a_guardar(task: str) -> bool:
 
 
 # ── Modelos AEAT no modelados (hoy solo el 303 de IVA): abstención HONESTA. El 303 NO entra aquí. ──
+# Se pide «el modelo NNN», pero también «el/del NNN» a secas («prepárame el 130») o por su NOMBRE
+# («pago fraccionado»=130, «operaciones intracomunitarias»=349…) sin citar el número. El 303 nunca.
 _MODELO_NO_MODELADO = re.compile(
-    r"\bmodelo\s+(111|115|123|130|180|184|190|193|347|349|390)\b", re.IGNORECASE
+    r"\b(?:modelo|el|del)\s+(111|115|123|130|180|184|190|193|347|349|390)\b", re.IGNORECASE
+)
+_MODELO_POR_NOMBRE = (
+    (re.compile(r"pago\s+fraccionad\w+", re.IGNORECASE), "130"),
+    (re.compile(r"operaci\w+\s+intracomunitar\w+", re.IGNORECASE), "349"),
+    (
+        re.compile(r"retenci\w+\s+(a\s+)?(profesional\w+|trabajador\w+|cuenta)", re.IGNORECASE),
+        "111",
+    ),
 )
 _MSG_MODELO_NO_MODELADO = (
     "Todavía no calculo el modelo {m} — hoy Loombit prepara el 303 (IVA) desde tus facturas. Ese "
@@ -96,9 +107,15 @@ _MSG_MODELO_NO_MODELADO = (
 
 
 def modelo_no_modelado(task: str) -> str | None:
-    """Devuelve el número del modelo AEAT pedido si NO está modelado (111/349/130…), o None."""
+    """Devuelve el número del modelo AEAT pedido si NO está modelado (111/349/130…), o None. Reconoce
+    el número («modelo 130», «el 130») y el NOMBRE del modelo («pago fraccionado»)."""
     m = _MODELO_NO_MODELADO.search(task or "")
-    return m.group(1) if m else None
+    if m:
+        return m.group(1)
+    for rx, num in _MODELO_POR_NOMBRE:
+        if rx.search(task or ""):
+            return num
+    return None
 
 
 # ── Registro de las guardas (el bucle las consulta vía registro_guardas) ─────────────────────────
@@ -116,3 +133,19 @@ def _guarda_iban(task: str) -> str | None:
 def _guarda_modelo_aeat(task: str) -> str | None:
     m = modelo_no_modelado(task)
     return _MSG_MODELO_NO_MODELADO.format(m=m) if m else None
+
+
+# ── Conciliación bancaria: SIEMPRE necesita el extracto en Norma 43. En chat (sin fichero) la
+# respuesta determinista es pedir el N43 — así «concíliame los cobros con el banco» NUNCA se confunde
+# con «cuánto me deben» (el free-form del 14B a veces caía en cobros_pendientes). ──────────────────
+_CONCILIACION = re.compile(r"\bconc[ií]li\w+", re.IGNORECASE)
+_MSG_CONCILIACION = (
+    "Para conciliar tus cobros con el banco necesito el EXTRACTO bancario en formato Norma 43 (N43) "
+    "— lo exportas desde tu banca online. Pásamelo y cruzo cada apunte con tus facturas; lo que cuadre "
+    "lo marco como cobrado."
+)
+
+
+@registro_guardas.register
+def _guarda_conciliacion(task: str) -> str | None:
+    return _MSG_CONCILIACION if _CONCILIACION.search(task or "") else None

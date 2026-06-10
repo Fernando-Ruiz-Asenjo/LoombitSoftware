@@ -703,6 +703,37 @@ def test_registro_guardas_aplica_dominio_fiscal():
     assert registro_guardas.aplicar("guarda el IBAN ES12 1234 de mi cliente")  # IBAN inválido
     assert registro_guardas.aplicar("hazme el modelo 111 de retenciones")  # modelo AEAT no modelado
     assert registro_guardas.aplicar("¿cuánto me deben?") is None  # nada de dominio → None
+    # tests duros (regresión): acento «apúntame» (no «apunta») y modelo por NÚMERO/NOMBRE sin «modelo»
+    assert registro_guardas.aplicar("Apúntame el IBAN de pago: ES00 0000 0000 0000 0000 0000")
+    assert registro_guardas.aplicar("prepárame el 130 del pago fraccionado de este trimestre")
+    assert registro_guardas.aplicar("hazme el de operaciones intracomunitarias")  # 349 por nombre
+    # retención por CONJUGACIÓN «retienen» (no empieza por «reten») y conciliación → pide el N43
+    assert registro_guardas.aplicar("Hazme la minuta: 1000 € menos el 15% de IRPF que me retienen")
+    msg_conc = registro_guardas.aplicar("concíliame los cobros con el banco de este mes")
+    assert msg_conc and "n43" in msg_conc.lower()
+
+
+def test_modelo_por_numero_suelto_y_nombre():
+    from loombit_operator.skill_d_fiscal.guardas_fiscales import modelo_no_modelado as M
+
+    assert M("prepárame el 130 del pago fraccionado") == "130"  # «el NNN» sin «modelo»
+    assert M("hazme el de operaciones intracomunitarias") == "349"  # por nombre
+    assert M("el modelo 303 del 2T") is None  # el 303 SÍ se modela
+    assert M("prepárame el 303") is None  # «el 303» no abstiene
+
+
+def test_factura_coloquial_rutea_a_factura():
+    from loombit_operator.agent.intencion import intencion_consecuente as I
+
+    # registro coloquial («mete en el sistema lo que le facturé… más su IVA») → factura, NO 303
+    assert (
+        I(
+            "Mete en el sistema lo que le facturé a Endesa: 800 € más su IVA al 21%, 5 de junio de 2026"
+        )
+        == "factura"
+    )
+    assert I("anota la factura emitida a López de 350 € al 21%") == "factura"
+    assert I("¿cuánto le facturé a Endesa este mes?") == "facturacion"  # query → NO factura
 
 
 def test_relay_fiel_recoge_TODAS_las_autoritativas():
