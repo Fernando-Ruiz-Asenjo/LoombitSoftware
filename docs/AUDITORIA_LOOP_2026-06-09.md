@@ -105,6 +105,7 @@ daba el fallback "me he liado").
 **7º pase 14/14 verde**: añadido escenario `recordatorio_crea_no_pregunta` (crea evento, no registra pago, no pide NIF) → cobertura de comportamiento permanente del force-tool; resto sin regresión.
 **8º pase 14/14 verde** tras la feature facturacion (resumen_facturacion + intent en intencion.py): sin regresión. Añadido escenario `facturacion_usa_resumen` (15 escenarios) → cobertura del nuevo force-tool.
 **9º pase 15/15 verde** tras facturacion (economico) + cobros_pendientes: sin regresión; los intents nuevos no solapan a los existentes. Añadido `cobros_pendientes_usa_tool` (16 escenarios).
+**10º pase 17/17 verde (loop sesión 2, 2026-06-10)** tras `resumen_financiero` + el fix del NÚCLEO (enfocar/excluir antes de recortar contexto): SIN regresión en ningún force-tool (cobro/303/buscar/recordatorio/facturacion/cobros_pend intactos) pese a tocar el bucle. Añadido escenario `resumen_financiero_compuesta` (17 escenarios) → cobertura permanente de que la query compuesta usa el tool compositor.
 
 **Dogfooding construcción (multi-ítem) — 2026-06-10:** "apúntame 3 facturas recibidas (200/350/500€ al
 21%)" → registró LAS 3 correctas, `sentido=soportado` (verificado en disco). Datos OK. **P2 recurrente
@@ -174,7 +175,24 @@ anti-destinatario-inventado y lo malinterpreté; re-test correcto → GATE.
 
 **Nueva capacidad «¿cuánto me deben?» (2026-06-10):** sin respuesta (memory_search contaminado). Tool cobros_pendientes (suma emitidas no cobradas via pendientes_de_cobro, cliente+importe) + force-tool 'cobros_pend'. Verificado e2e 3/3: 2 emitidas → te deben 3630, recibida excluida. +1 golden.
 
-**P2 query financiera COMPUESTA (2026-06-10, pendiente próxima sesión):** «¿cuánto he facturado Y cuánto me deben?» → el force-tool enfoca a UNA intención (facturacion) y EXCLUYE las otras dominio-tools del run (cobros_pendientes, 303…) → la 2ª parte no se responde; en una prueba el 14B flaileó a list_directory. Las queries de una sola métrica van 3/3; las compuestas multi-métrica no. Opciones a evaluar: (a) permitir varias dominio-tools de LECTURA en un run; (b) un tool 'resumen_financiero' que junte facturado+gastos+me-deben+303. NO tocado aún.
+**~~P2 query financiera COMPUESTA~~ → CERRADO (2026-06-10, loop sesión 2):** «¿cuánto he facturado Y
+cuánto me deben?» ahora responde TODAS las métricas. Construido el tool **`resumen_financiero`**
+(opción b) que COMPONE en una sola respuesta determinista: facturado (ingresos) + gastos + beneficio +
+IVA del 303 del periodo + me-deben (cobros pendientes). Nueva intención `resumen_financiero` en
+`intencion.py` que dispara en queries GLOBALES («resumen financiero», «¿cómo va mi negocio?») o
+COMPUESTAS (≥2 familias de métrica coordinadas), con anti-falsos-positivos («¿cuánto IVA he facturado?»
+= 1 métrica, no dispara; «¿cómo voy a pagar esto?» tampoco). Ofrecida en los 3 grupos financieros +
+grupo global de `registry.py`. **BUG DEL NÚCLEO destapado y ARREGLADO en el camino:** el force-tool
+quedaba ANULADO cuando la petición activaba muchos grupos — la compuesta inflaba a ~20 tools y
+`ajustar_a_contexto` recortaba a 10 SIN `resumen_financiero` NI `task_done` (el enfoque corría DESPUÉS
+del recorte) → `_filtradas=[]` → el 14B se iba a `list_directory`. Fix: **enfocar/excluir ANTES de
+recortar** (`loop.py`), así el recorte nunca tira la tool enfocada. Verificado e2e EN VIVO (14B real,
+entidad aislada): «¿cuánto he facturado este trimestre y cuánto me deben?» → llama `resumen_financiero`
+(no list_directory) y compone 1.210 facturado / 242 gastos / 800 beneficio / 168 a ingresar (303) /
+1.210 te deben, con narración fiel de ambas partes. +golden (intent + composición + anti-FP) + escenario
+de arnés `resumen_financiero_compuesta`. Gate verde. Cobertura: query compuesta fact+deben y global
+verificadas; la fact+303 enruta por regex (golden) pero el e2e en vivo de esa variante NO se reprobó este
+turno (la cubre el mismo mecanismo).
 
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |

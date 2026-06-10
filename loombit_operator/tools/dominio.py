@@ -337,6 +337,73 @@ def _cobros_pendientes(**_: object) -> str:
     return "\n".join(lineas)
 
 
+def _resumen_financiero(periodo: str = "") -> str:
+    """Resumen FINANCIERO COMPLETO de un periodo, TODO en una respuesta determinista: lo FACTURADO
+    (ingresos), los GASTOS, el BENEFICIO, el IVA del 303 del periodo y cuánto te DEBEN (cobros
+    pendientes). Para preguntas globales ('¿cómo va mi negocio?') o COMPUESTAS ('¿cuánto facturé Y
+    cuánto me deben?'), que una sola tool no respondía entera (el force-tool enfocaba una métrica).
+    """
+    from ..skill_d_fiscal.conciliacion_cobros import pendientes_de_cobro
+
+    desde, hasta, etiqueta = _rango_periodo(periodo)
+    ámbito = etiqueta if desde else "total"
+    try:
+        store = ExpedienteStore(entity_id=_ENTIDAD_DEFECTO)
+        lineas, _ = _recopilar_lineas(store, desde, hasta)
+        pend = pendientes_de_cobro(store)
+    except Exception as exc:  # noqa: BLE001
+        return f"ERROR al leer tus facturas registradas: {exc}"
+
+    emit = [ln for ln in lineas if ln.sentido == "devengado"]
+    recib = [ln for ln in lineas if ln.sentido == "soportado"]
+    if not emit and not recib and not pend:
+        donde = f"en {etiqueta}" if desde else "registradas"
+        return (
+            f"No tienes facturas {donde} todavía. Regístralas (emitidas y recibidas) y te doy el "
+            "resumen financiero completo: facturado, gastos, beneficio, 303 y lo que te deben."
+        )
+    base_e = round(sum(float(ln.base) for ln in emit), 2)
+    iva_e = round(sum(float(ln.cuota) for ln in emit), 2)
+    base_g = round(sum(float(ln.base) for ln in recib), 2)
+    iva_g = round(sum(float(ln.cuota) for ln in recib), 2)
+    beneficio = round(base_e - base_g, 2)
+    deben_total = round(sum(float(p.importe) for p in pend), 2)
+
+    partes = [
+        f"Resumen financiero de {ámbito} (datos reales de tus facturas registradas):",
+        f"  Facturado (ingresos): {len(emit)} factura(s) → base {base_e:.2f} € + IVA {iva_e:.2f} € "
+        f"= {base_e + iva_e:.2f} €",
+        f"  Gastos (recibidas): {len(recib)} factura(s) → base {base_g:.2f} € + IVA {iva_g:.2f} € "
+        f"= {base_g + iva_g:.2f} €",
+        f"  Beneficio (ingresos − gastos, sin IVA): {beneficio:.2f} €",
+    ]
+    if emit or recib:
+        res = calcular_303(lineas)
+        if res.resultado > 0:
+            signo = "a ingresar"
+        elif res.resultado < 0:
+            signo = "a compensar/devolver"
+        else:
+            signo = "sin resultado"
+        partes.append(
+            f"  IVA del periodo (303): devengado {res.iva_devengado} € − deducible "
+            f"{res.iva_deducible} € = {abs(res.resultado)} € ({signo})"
+        )
+    if pend:
+        partes.append(
+            f"  Te deben (cobros pendientes, saldo actual): {deben_total:.2f} € en "
+            f"{len(pend)} factura(s)"
+        )
+    else:
+        partes.append("  Te deben (cobros pendientes): nada pendiente.")
+    if desde is None:
+        partes.append(
+            "\n⚠ No me diste un mes/trimestre claro, así que sumé TODO. Dime el periodo "
+            "(p.ej. «2T 2026» o «junio 2026») para acotarlo."
+        )
+    return "\n".join(partes)
+
+
 tool_registry.register(
     ToolDefinition(
         name="cobros_pendientes",
@@ -372,6 +439,32 @@ tool_registry.register(
             },
         },
         fn=_resumen_facturacion,
+        category="base",
+        authoritative=True,
+    )
+)
+
+
+tool_registry.register(
+    ToolDefinition(
+        name="resumen_financiero",
+        description=(
+            "Resumen FINANCIERO COMPLETO de un periodo en UNA respuesta: lo FACTURADO (ingresos), los "
+            "GASTOS, el BENEFICIO, el IVA del 303 del periodo y cuánto te DEBEN (cobros pendientes). "
+            "ÚSALA para preguntas GLOBALES ('¿cómo voy?', 'resumen financiero') o COMPUESTAS que pidan "
+            "VARIAS métricas a la vez ('¿cuánto he facturado y cuánto me deben?'). Una sola tool las "
+            "junta todas; no encadenes varias. Solo lectura."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "periodo": {
+                    "type": "string",
+                    "description": "Mes o trimestre, p.ej. 'junio 2026' o '2T 2026'. Opcional.",
+                },
+            },
+        },
+        fn=_resumen_financiero,
         category="base",
         authoritative=True,
     )

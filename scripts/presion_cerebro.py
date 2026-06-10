@@ -116,6 +116,14 @@ ESCENARIOS = [
         lambda r, t, x: "cobros_pendientes" in t and "memory_search" not in t,
     ),
     (
+        # COMPUESTA («¿cuánto he facturado Y cuánto me deben?») = force-tool resumen_financiero, UNA
+        # tool que junta TODAS las métricas. Antes el single-intent enfocaba resumen_facturacion y solo
+        # respondía la 1ª métrica. Sin datos en el arnés → «no tienes facturas», pero DEBE componer.
+        "resumen_financiero_compuesta",
+        "¿Cuánto he facturado este trimestre y cuánto me deben?",
+        lambda r, t, x: "resumen_financiero" in t and "resumen_facturacion" not in t,
+    ),
+    (
         "abstencion_conciliacion",
         "Concíliame los cobros con el extracto del banco de este mes.",
         lambda r, t, x: any(

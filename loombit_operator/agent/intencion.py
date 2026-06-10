@@ -44,6 +44,38 @@ _COBROS_PEND = re.compile(
     r"\b(me deben|me debe|qui[eé]n me debe|por cobrar|cobros pendientes|pendiente[s]? de cobro"
     r"|sin cobrar|facturas? impagad\w+)\b"
 )
+# «resumen financiero», «¿cómo voy?» o una pregunta COMPUESTA que cruza ≥2 familias de métrica
+# (facturado/gastos · me-deben · 303/IVA) → resumen_financiero: UNA tool determinista que las junta
+# TODAS. Sin esto, el force-tool enfoca a UNA intención y excluye las otras dominio-tools del run, así
+# que «¿cuánto facturé Y cuánto me deben?» solo respondía la 1ª métrica (P2 del loop anterior).
+_RESUMEN_GLOBAL = re.compile(
+    r"resumen\s+(financ\w*|econ[oó]m\w*|de\s+(mis\s+|las\s+)?(cuentas|finanzas|n[uú]meros))"
+    r"|c[oó]mo\s+va\w*\s+(mi|el)\s+negocio"
+    r"|c[oó]mo\s+va\w*\s+mis\s+(cuentas|finanzas|n[uú]meros)"
+    r"|c[oó]mo\s+voy\s+de\s+(dinero|cuentas|finanzas|n[uú]meros|pasta)"
+    r"|situaci[oó]n\s+(financ\w*|econ[oó]m\w*)"
+    r"|estado\s+de\s+(mis\s+)?(finanzas|cuentas)"
+    r"|balance\s+(econ[oó]m\w*|general|de\s+mis\s+(cuentas|finanzas))"
+    r"|mis\s+finanzas\b|mis\s+n[uú]meros\b"
+)
+_FAM_FACT = re.compile(r"\b(factur\w+|ingres\w+|gast\w+|benefici\w+)\b")
+_FAM_303 = re.compile(r"\b(303|iva|liquidaci[oó]n\w*)\b")
+# Coordinación de DOS métricas en la misma frase (evita que «¿cuánto IVA he facturado?» —una métrica
+# con 'iva' como objeto— dispare el resumen): conjunción «y/e», «también/además», o dos «cuánt…».
+_MULTI_ASK = re.compile(r"\b(y|e|tambi[eé]n|adem[aá]s)\b|junto\s+con|as[ií]\s+como")
+
+
+def _es_resumen_financiero(t: str) -> bool:
+    """True si pide una visión GLOBAL ('resumen financiero', '¿cómo va mi negocio?') o COMPUESTA
+    (≥2 familias de métrica financiera coordinadas) → se compone con la tool resumen_financiero."""
+    if _RESUMEN_GLOBAL.search(t):
+        return True
+    familias = sum(bool(rx.search(t)) for rx in (_FAM_FACT, _COBROS_PEND, _FAM_303))
+    if familias < 2:
+        return False
+    return bool(_MULTI_ASK.search(t)) or len(re.findall(r"cu[aá]nt", t)) >= 2
+
+
 # Hay un DATO numérico (cifra o número en palabras) → tiene sentido calcular; si no, hay que preguntar.
 _TIENE_DATO = re.compile(
     r"\d|\b(mil|cien|ciento|doscient\w+|trescient\w+|cuatrocient\w+|quinient\w+|"
@@ -59,6 +91,7 @@ _TOOLS_POR_INTENCION: dict[str, set[str]] = {
     "recordatorio": {"calendar_create"},
     "facturacion": {"resumen_facturacion"},
     "cobros_pend": {"cobros_pendientes"},
+    "resumen_financiero": {"resumen_financiero"},
 }
 _SIEMPRE = {"ask_user", "task_done"}
 
@@ -69,6 +102,10 @@ def intencion_consecuente(task: str) -> str | None:
     t = (task or "").lower()
     if _RECORDATORIO.search(t):  # antes que todo: «recuérdame pagar…» es recordatorio, no un pago
         return "recordatorio"
+    # Query GLOBAL o COMPUESTA (≥2 métricas) → resumen_financiero ANTES que las single-métrica, porque
+    # una compuesta también casa con facturacion/cobros_pend/303 (y antes solo respondía la 1ª).
+    if _es_resumen_financiero(t):
+        return "resumen_financiero"
     # «¿cuánto he facturado?» = resumen; pero «¿cuánto IVA con las 303 facturas?» es 303, no facturación.
     if _FACTURACION.search(t) and not _F303.search(t):
         return "facturacion"
@@ -101,6 +138,9 @@ def tools_foco(intencion: str | None) -> set[str]:
         return {"resumen_facturacion", "task_done"}
     if intencion == "cobros_pend":
         return {"cobros_pendientes", "task_done"}
+    if intencion == "resumen_financiero":
+        # un solo tool que COMPONE todas las métricas (facturado+gastos+beneficio+303+me-deben).
+        return {"resumen_financiero", "task_done"}
     return _TOOLS_POR_INTENCION.get(intencion, set()) | _SIEMPRE
 
 
@@ -113,6 +153,7 @@ _DOMINIO_TODAS = {
     "registrar_factura",
     "resumen_facturacion",
     "cobros_pendientes",
+    "resumen_financiero",
 }
 
 

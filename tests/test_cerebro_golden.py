@@ -795,6 +795,39 @@ def test_intencion_facturacion_fuerza_resumen():
     assert tools_foco("facturacion") == {"resumen_facturacion", "task_done"}
 
 
+def test_intencion_resumen_financiero_global_y_compuesta():
+    from loombit_operator.agent.intencion import (
+        intencion_consecuente,
+        tools_excluir,
+        tools_foco,
+    )
+
+    # COMPUESTA (≥2 métricas coordinadas) → resumen_financiero (antes solo respondía la 1ª)
+    assert intencion_consecuente("¿cuánto he facturado y cuánto me deben?") == "resumen_financiero"
+    assert (
+        intencion_consecuente("¿cuánto facturé y cuánto IVA debo pagar este trimestre?")
+        == "resumen_financiero"
+    )
+    # GLOBAL ('resumen financiero', 'cómo va mi negocio')
+    assert intencion_consecuente("dame un resumen financiero del trimestre") == "resumen_financiero"
+    assert intencion_consecuente("¿cómo va mi negocio este mes?") == "resumen_financiero"
+    # NO rompe las single-métrica: cada una sigue a SU tool específica
+    assert intencion_consecuente("¿cuánto he facturado este mes?") == "facturacion"
+    assert intencion_consecuente("¿cuánto me deben en total?") == "cobros_pend"
+    assert (
+        intencion_consecuente("con las facturas registradas, calcula mi 303 del trimestre") == "303"
+    )
+    # anti-falso-positivo: 'cuánto IVA he facturado' es UNA métrica (iva como objeto), no compuesta
+    assert intencion_consecuente("¿cuánto IVA he facturado?") != "resumen_financiero"
+    # anti-falso-positivo: '¿cómo voy a pagar esto?' NO es un resumen financiero
+    assert intencion_consecuente("¿cómo voy a pagar esto?") != "resumen_financiero"
+    # foco: una sola tool que COMPONE; excluye del run las demás dominio-tools
+    assert tools_foco("resumen_financiero") == {"resumen_financiero", "task_done"}
+    excl = tools_excluir("resumen_financiero")
+    assert "resumen_financiero" not in excl
+    assert "resumen_facturacion" in excl and "cobros_pendientes" in excl
+
+
 def test_rango_periodo_soporta_mes_y_trimestre():
     from datetime import date
 

@@ -304,27 +304,34 @@ class AgentLoop:
                     run.id,
                     len(run.messages),
                 )
-                # ALG-0.1: recortar para que prompt+tools quepan en el contexto (evita el 400).
+                # ALG-0.1: enfocar/excluir las tools ANTES de recortar por contexto. Si se recorta
+                # primero y se enfoca después, el recorte (que corta la lista ordenada por la cola)
+                # puede tirar justo la tool enfocada y task_done cuando la petición activa muchos
+                # grupos — la compuesta «facturado + me-deben» inflaba a ~20 tools y el recorte dejaba
+                # 10 SIN resumen_financiero → el force-tool quedaba sin efecto y el 14B se iba a
+                # list_directory. Reducir antes (excluir + enfocar) lo evita y deja más sitio al hilo.
                 _s = get_settings()
+                _tool_choice = "auto"
+                _tools_efectivas = tools_schema
+                if _excl_run:
+                    _tools_efectivas = [
+                        t for t in _tools_efectivas if t["function"]["name"] not in _excl_run
+                    ]
+                if _intencion and run.step_count == 0:
+                    # PRIMER paso: enfoca a la tool correcta y fuérzala (tool_choice required).
+                    _foco = tools_foco(_intencion)
+                    _filtradas = [t for t in _tools_efectivas if t["function"]["name"] in _foco]
+                    if _filtradas:
+                        _tools_efectivas = _filtradas
+                        _tool_choice = "required"
                 msgs_llm, tools_llm, _recortado = ajustar_a_contexto(
                     run.messages,
-                    tools_schema,
+                    _tools_efectivas,
                     n_ctx=_s.llm_context_length,
                     max_tokens=_s.llm_max_tokens,
                 )
                 if _recortado:
                     logger.info("ALG-0.1 recortó el contexto para que quepa run=%s", run.id)
-                _tool_choice = "auto"
-                if _excl_run:
-                    tools_llm = [t for t in tools_llm if t["function"]["name"] not in _excl_run]
-                if _intencion:
-                    # En el PRIMER paso: enfoca a la tool correcta y fuérzala.
-                    if run.step_count == 0:
-                        _foco = tools_foco(_intencion)
-                        _filtradas = [t for t in tools_llm if t["function"]["name"] in _foco]
-                        if _filtradas:
-                            tools_llm = _filtradas
-                            _tool_choice = "required"
                 # Allowlist: el modelo solo puede ejecutar las tools OFRECIDAS en este paso. El 14B a
                 # veces alucina un nombre de tool fuera del set (p.ej. registrar_factura cuando solo se
                 # le dio plan_cobro). Si lo hace, se rechaza, no se ejecuta. Seguridad + fiabilidad.

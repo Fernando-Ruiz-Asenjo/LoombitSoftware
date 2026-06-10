@@ -115,6 +115,53 @@ def test_resumen_facturacion_suma_solo_emitidas_del_periodo():
         shutil.rmtree(base, ignore_errors=True)
 
 
+def test_resumen_financiero_compone_todas_las_metricas():
+    import shutil
+
+    from loombit_operator.config import get_settings
+    from loombit_operator.tools import dominio
+
+    ent = "_test_resumen_fin"
+    base = get_settings().entities_dir / ent
+    shutil.rmtree(base, ignore_errors=True)
+    orig = dominio._ENTIDAD_DEFECTO
+    dominio._ENTIDAD_DEFECTO = ent
+    try:
+        # 2T 2026: una emitida (ingreso, y queda pendiente de cobro) y una recibida (gasto)
+        dominio._registrar_factura(
+            contraparte="Cliente A", base=1000, tipo=21, sentido="emitida", fecha="2026-05-15"
+        )
+        dominio._registrar_factura(
+            contraparte="Proveedor B", base=200, tipo=21, sentido="recibida", fecha="2026-05-20"
+        )
+        out = dominio._resumen_financiero("2T 2026")
+        assert "Resumen financiero" in out
+        # facturado / gastos / beneficio en UNA respuesta
+        assert "1000" in out  # base facturada (ingresos)
+        assert "200" in out  # base de gastos (la recibida)
+        assert "800" in out  # beneficio = 1000 − 200
+        # IVA del periodo (303): 210 devengado − 42 deducible = 168 a ingresar
+        assert "210" in out and "42" in out and "168" in out
+        assert "ingresar" in out.lower()
+        # me-deben: la emitida (total 1210) sigue sin cobrar
+        assert "Te deben" in out
+        assert "1210" in out
+    finally:
+        dominio._ENTIDAD_DEFECTO = orig
+        shutil.rmtree(base, ignore_errors=True)
+
+
+def test_resumen_financiero_registrado_y_enrutado():
+    from loombit_operator.tools import tool_registry
+    from loombit_operator.tools.registry import select_tool_names
+
+    names = {t.name for t in tool_registry.list()}
+    assert "resumen_financiero" in names
+    # query compuesta y query global → la tool se OFRECE (si no, el force-tool no la podría enfocar)
+    assert "resumen_financiero" in select_tool_names("¿cuánto he facturado y cuánto me deben?")
+    assert "resumen_financiero" in select_tool_names("dame un resumen financiero del trimestre")
+
+
 def test_travel_task_alcanza_el_pilot():
     # El motor de viajes es el Pilot: la petición de vuelos debe darle manos de navegador.
     names = select_tool_names("búscame vuelos a Londres y un hotel para Marta")

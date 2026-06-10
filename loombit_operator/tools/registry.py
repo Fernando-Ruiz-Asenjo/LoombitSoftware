@@ -163,6 +163,7 @@ TOOL_GROUPS: list[tuple[tuple[str, ...], set[str]]] = [
         {
             "registrar_factura",
             "resumen_facturacion",
+            "resumen_financiero",
             "read_invoice",
             "read_file",
             "list_directory",
@@ -193,7 +194,7 @@ TOOL_GROUPS: list[tuple[tuple[str, ...], set[str]]] = [
             "pendiente de cobro",
             "sin cobrar",
         ),
-        {"plan_cobro", "cobros_pendientes", "gmail_search", "gmail_send"},
+        {"plan_cobro", "cobros_pendientes", "resumen_financiero", "gmail_search", "gmail_send"},
     ),
     (
         (
@@ -211,7 +212,49 @@ TOOL_GROUPS: list[tuple[tuple[str, ...], set[str]]] = [
             "soportado",
             "repercutido",
         ),
-        {"calcular_303", "calcular_303_registradas", "resumen_facturacion", "read_invoice"},
+        {
+            "calcular_303",
+            "calcular_303_registradas",
+            "resumen_facturacion",
+            "resumen_financiero",
+            "read_invoice",
+        },
+    ),
+    (
+        # Visión GLOBAL de las finanzas ('¿cómo voy?', 'resumen financiero') sin keyword fiscal
+        # explícita → ofrece la tool que COMPONE todas las métricas (alineado con _RESUMEN_GLOBAL
+        # de agent/intencion.py; si alguna frase no casa, degrada a fallback, no rompe).
+        (
+            "resumen financiero",
+            "resumen económico",
+            "resumen economico",
+            "resumen de mis cuentas",
+            "resumen de mis finanzas",
+            "cómo va mi negocio",
+            "como va mi negocio",
+            "cómo van mis",
+            "como van mis",
+            "cómo voy de",
+            "como voy de",
+            "situación financiera",
+            "situacion financiera",
+            "situación económica",
+            "situacion economica",
+            "estado de mis finanzas",
+            "estado de mis cuentas",
+            "balance económico",
+            "balance economico",
+            "balance general",
+            "mis finanzas",
+            "mis números",
+            "mis numeros",
+        ),
+        {
+            "resumen_financiero",
+            "resumen_facturacion",
+            "cobros_pendientes",
+            "calcular_303_registradas",
+        },
     ),
     (
         (
