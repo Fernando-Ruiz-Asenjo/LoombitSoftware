@@ -500,11 +500,23 @@ class AgentLoop:
 
             overlay_manager.stop_session()
 
+    def _accion_fallida_sin_exito(self, run: AgentRun) -> bool:
+        """True si en el run se INTENTÓ alguna tool con EFECTO real (persistir/enviar/crear) y NINGUNA
+        de ellas tuvo éxito (todas erraron) → la acción del usuario NO ocurrió, así que no se puede
+        presentar un éxito. Solo cuentan las de efecto (no las de lectura: un 303-lectura «con éxito»
+        sobre entidad vacía no significa que se registrara la factura que pedía el usuario)."""
+        intentos = [s for s in run.steps if s.tool_name in _TOOLS_EFECTO]
+        return bool(intentos) and all(_paso_es_fallo(s) for s in intentos)
+
     def _relay_fiel(self, run: AgentRun, result: str) -> str:
         """ALG-4.1 (relay fiel): garantiza que la salida VERBATIM de CADA tool AUTORITATIVA
         (cálculo determinista: cobro, 303, factura) está en el resultado, aunque el LLM la haya
         parafraseado. Así las cifras que ve el usuario == las que calculó el código. Recoge TODAS
         en orden (no solo la última): si se registran N facturas, el usuario ve las N, no una."""
+        # DoD (no mentir): si toda acción material falló pero el texto afirma éxito, lo corregimos
+        # por un mensaje honesto (no inventamos un «✅ hecho» que no ocurrió). Ver _afirma_exito.
+        if self._accion_fallida_sin_exito(run) and _afirma_exito(result):
+            return _con_aviso_regulado(getattr(run, "task", ""), _MENSAJE_FALLO_HONESTO)
         autoritativos: list[str] = []
         for s in run.steps:  # en ORDEN de ejecución
             try:
@@ -984,6 +996,41 @@ def _error_brief(text: str, limit: int = 160) -> str:
         return ""
     linea = text.strip().splitlines()[0]
     return linea if len(linea) <= limit else linea[:limit] + "…"
+
+
+# ── DoD (no mentir): no afirmar un éxito que no ocurrió ───────────────────────────────────────
+# El 14B, ante una capacidad que NO tiene (p.ej. una minuta con retención de IRPF, no modelada),
+# erraba registrar_factura y AUN ASÍ narraba «✅ Minuta preparada… 3450 €» (éxito + cifra inventada).
+# Si se INTENTARON tools materiales y TODAS fallaron, el resultado no puede presentar un éxito.
+_AFIRMA_EXITO_RX = re.compile(
+    r"✅|\b(preparad[oa]s?|registrad[oa]s?|emitid[oa]s?|enviad[oa]s?|mandad[oa]s?|cread[oa]s?"
+    r"|agendad[oa]s?|a[ñn]adid[oa]s?|completad[oa]s?|complet[eé]|generad[oa]s?|lista|listo|hecho)\b"
+)
+_NIEGA_EXITO_RX = re.compile(
+    r"\bno\s+(he\s+podido|pude|puedo|se\s+(ha|han|pudo|puede)|es\s+posible|consig\w*|logr\w*|tengo)\b"
+)
+_MENSAJE_FALLO_HONESTO = (
+    "No he podido completar esa acción: lo intenté pero la operación falló, así que no he "
+    "registrado, enviado ni creado nada. No te doy por hecho algo que no se hizo. Dime si falta "
+    "algún dato o si quieres que lo intente de otra forma."
+)
+# Tools con EFECTO real: su éxito = la acción que pidió el usuario OCURRIÓ (persistir/enviar/crear).
+_TOOLS_EFECTO = ("registrar_factura", "gmail_send", "calendar_create")
+
+
+def _paso_es_fallo(step: object) -> bool:
+    """True si el resultado del paso es un ERROR (de bucle o devuelto por la propia tool). Más
+    liberal que `_is_error_result`: cualquier resultado que empiece por 'ERROR' cuenta como fallo.
+    """
+    r = (getattr(step, "result", "") or "").lstrip()
+    return _is_error_result(r) or r.upper().startswith("ERROR")
+
+
+def _afirma_exito(result: str) -> bool:
+    """True si el texto AFIRMA haber completado una acción (✅ / 'preparada'/'enviado'/…) y NO admite
+    a la vez que no pudo. Solo se usa cuando ya sabemos que toda acción material falló."""
+    t = (result or "").lower()
+    return bool(_AFIRMA_EXITO_RX.search(t)) and not _NIEGA_EXITO_RX.search(t)
 
 
 def _consecutive_tool_errors(run: "AgentRun", tool_name: str) -> int:

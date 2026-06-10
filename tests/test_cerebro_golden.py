@@ -527,6 +527,40 @@ def test_relay_fiel_ignora_no_autoritativas_y_errores():
     assert loop._relay_fiel(run2, "narración") == "narración"  # un error no se relaya
 
 
+# ── DoD (no mentir): no afirmar un éxito que no ocurrió ───────────────────────
+def test_relay_fiel_no_afirma_exito_si_toda_accion_material_fallo():
+    loop = AgentLoop(llm=SimpleNamespace())
+    run = SimpleNamespace(
+        steps=[
+            SimpleNamespace(
+                tool_name="registrar_factura",
+                result="ERROR al ejecutar 'registrar_factura': argumento inesperado 'retencion'",
+            ),
+            # un error DEVUELTO por la tool (no de bucle) también cuenta como fallo
+            SimpleNamespace(
+                tool_name="registrar_factura",
+                result="ERROR al registrar la factura: falta la base imponible",
+            ),
+            SimpleNamespace(tool_name="task_done", result="ok"),
+        ]
+    )
+    # el 14B narraba un éxito falso CON cifra inventada pese a que todo falló
+    falso = "✅ Minuta de honorarios preparada. Total con retención IRPF del 15%: 3450 €."
+    out = loop._relay_fiel(run, falso)
+    assert "3450" not in out  # no propaga la cifra inventada
+    assert "✅" not in out  # no presenta el éxito que no ocurrió
+    assert "no he podido" in out.lower()  # honesto: no lo da por hecho
+
+
+def test_relay_fiel_respeta_exito_real_no_sobre_corrige():
+    loop = AgentLoop(llm=SimpleNamespace())
+    verbatim = "✅ Factura F-1 registrada — emitida (a cliente). base 1000.00€ + IVA 210.00€."
+    run = SimpleNamespace(steps=[SimpleNamespace(tool_name="registrar_factura", result=verbatim)])
+    out = loop._relay_fiel(run, "Te he registrado la factura.")
+    assert "no he podido" not in out.lower()  # NO se dispara el guard: sí hubo acción con éxito
+    assert verbatim in out  # relay-fiel mantiene el resultado autoritativo real
+
+
 def test_relay_fiel_recoge_TODAS_las_autoritativas():
     # N facturas registradas → el usuario ve las N (antes solo salía la última)
     loop = AgentLoop(llm=SimpleNamespace())
