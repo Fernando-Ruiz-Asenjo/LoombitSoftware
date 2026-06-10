@@ -72,6 +72,8 @@ las demás se guardan en silencio → confuso ("¿registró todas?"). **ARREGLAD
 ahora recoge TODAS las tools autoritativas en orden (single-tool idéntico, fijado por golden); verificado
 en vivo: 3 facturas → las 3 visibles en el resultado. +2 golden, gate verde.
 
+**Verificación calendario semana (2026-06-10):** '¿tengo algo el viernes?' → usa calendar_semana, responde bien (viernes vacío, lista lo próximo) sin crear nada; los días del fix _fmt_evento ('Domingo 14','Lunes 15') fluyen correctos a la narración. OK.
+
 **Auditoría calidad de correo (2026-06-10):** SÓLIDA por recibo — asunto concreto, cuerpo natural y
 profesional, firmado como el usuario (nombre+empresa de la memoria), saludo/despedida, NO se delata
 como IA/bot. Feature de uso diario OK; sin bug.
