@@ -53,15 +53,18 @@ _CENT = Decimal("0.01")
 
 
 def inferir_tipo_iva(base: float | Decimal, iva: float | Decimal) -> Decimal | None:
-    """Devuelve el tipo estándar cuya cuota (base × tipo) cuadra con el IVA declarado al
-    céntimo; None si ninguno encaja (no se adivina). Robusto al tamaño de la base."""
+    """Devuelve el tipo estándar cuya cuota (|base| × tipo) cuadra con el |IVA| declarado al céntimo;
+    None si ninguno encaja (no se adivina). Robusto al tamaño de la base. Acepta importes NEGATIVOS
+    (rectificativas/abonos): el tipo se infiere por valor absoluto y el signo se conserva en la
+    LineaIVA, de modo que una devolución REDUCE el devengado del 303 (antes se caía → 303 inflado).
+    """
     base_d = Decimal(str(base))
     iva_d = Decimal(str(iva))
-    if base_d <= 0:
-        return None
+    if base_d == 0:
+        return None  # sin base no se puede inferir
     for tipo in _TIPOS:
-        cuota = (base_d * tipo).quantize(_CENT, rounding=ROUND_HALF_UP)
-        if abs(cuota - iva_d) <= _CENT:
+        cuota = (abs(base_d) * tipo).quantize(_CENT, rounding=ROUND_HALF_UP)
+        if abs(cuota - abs(iva_d)) <= _CENT:
             return tipo
     return None
 
