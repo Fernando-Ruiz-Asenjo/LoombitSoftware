@@ -779,8 +779,9 @@ def test_intencion_recordatorio_fuerza_calendario_sin_preguntar():
         intencion_consecuente("recuérdame pagar 1.200€ al proveedor el viernes") == "recordatorio"
     )
     assert intencion_consecuente("recuérdame llamar a Ana mañana") == "recordatorio"
-    assert intencion_consecuente("apúntame que tengo que renovar el seguro") == "recordatorio"
-    # 'apúntame [3 facturas]' SIN 'que' sigue siendo factura, no recordatorio
+    # 'apúntame que [hecho]' es AMBIGUO (nota/preferencia sin fecha) → NO se fuerza a calendario
+    assert intencion_consecuente("apúntame que el cliente prefiere transferencia") != "recordatorio"
+    # 'apúntame [3 facturas]' sigue siendo factura, no recordatorio
     assert intencion_consecuente("apúntame 3 facturas recibidas de 200€ al 21%") == "factura"
     # el foco de recordatorio es SOLO calendar_create (sin ask_user ni task_done): que lo CREE, no
     # pueda escaparse a preguntar el NIF. calendar_create gatea → el usuario lo aprueba.

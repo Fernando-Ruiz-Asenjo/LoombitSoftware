@@ -81,8 +81,6 @@ TOOL_GROUPS: list[tuple[tuple[str, ...], set[str]]] = [
             "acuérdame",
             "acuerdame",
             "no se me olvide",
-            "apúntame que",
-            "apuntame que",
         ),
         {"calendar_create", "calendar_today", "calendar_semana", "contacts_find"},
     ),

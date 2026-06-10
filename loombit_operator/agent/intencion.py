@@ -28,10 +28,10 @@ _BUSCAR_CORREO = re.compile(
 )
 # «recuérdame [hacer X] [cuándo]» = crear un EVENTO de recordatorio, NO registrar/ejecutar la acción.
 # El 14B lo confundía con registrar un pago/factura y pedía NIF; aquí forzamos calendar_create.
-# OJO: «apúntame QUE …» = recordatorio; «apúntame [3 facturas]» (sin «que») sigue siendo factura.
-_RECORDATORIO = re.compile(
-    r"\b(recu[eé]rdame\w*|recordatorio|acu[eé]rdame|no se me olvide|ap[uú]ntame que)\b"
-)
+# NO incluimos «apúntame que …»: es AMBIGUO («apúntame que el cliente prefiere transferencia» es un
+# HECHO/nota sin fecha, no un evento) → forzar calendar_create creaba un evento absurdo. Solo señales
+# inequívocas de recordatorio temporal.
+_RECORDATORIO = re.compile(r"\b(recu[eé]rdame\w*|recordatorio|acu[eé]rdame|no se me olvide)\b")
 # Hay un DATO numérico (cifra o número en palabras) → tiene sentido calcular; si no, hay que preguntar.
 _TIENE_DATO = re.compile(
     r"\d|\b(mil|cien|ciento|doscient\w+|trescient\w+|cuatrocient\w+|quinient\w+|"
