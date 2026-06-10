@@ -1311,6 +1311,43 @@ chk(
     "buscar",
 )
 
+# ═══ CAMPAÑA 5-cero · audit #7 (MAYÚSCULAS, espacios, 500€/EUR, NEG guardas, predicción pasado) — LIMPIA ═══
+chk(
+    "A7",
+    "routing MAYÚSCULAS",
+    intencion_consecuente("REGÍSTRAME UNA FACTURA DE 500 A LÓPEZ AL 21% EL 5 DE JUNIO DE 2026"),
+    "factura",
+)
+chk("A7", "routing espacios+???", intencion_consecuente("   ¿cuánto me deben???   "), "cobros_pend")
+chk("A7", "parser '500€' sin espacio", parsear_importe_es("paga 500€ ya"), 500.0)
+chk("A7", "parser 'EUR 500'", parsear_importe_es("transfiere EUR 500 al proveedor"), 500.0)
+chk(
+    "A7",
+    "NEG reten 'retiene la confianza'",
+    G.es_registro_con_retencion("el cliente me retiene la confianza"),
+    False,
+)
+chk(
+    "A7",
+    "NEG concili 'reunión con el banco'",
+    registro_guardas.aplicar("tengo una reunión con el banco mañana"),
+    None,
+)
+chk("A7", "modelo 390 anual", G.modelo_no_modelado("hazme el modelo 390 anual"), "390")
+chk(
+    "A7",
+    "pred NEG 'facturé' (pasado)",
+    G.es_prediccion_financiera("facturé 5000 el mes pasado"),
+    False,
+)
+chk(
+    "A7",
+    "pred 'facturaré' (futuro)",
+    G.es_prediccion_financiera("¿cuánto facturaré el mes que viene?"),
+    True,
+)
+chk("A7", "NEG modelo '¿qué es el IRPF?'", G.modelo_no_modelado("¿qué es el IRPF?"), None)
+
 
 def main() -> int:
     fam_tot: dict[str, list[int]] = {}
