@@ -33,7 +33,7 @@
 | # | Superficie | Estado | Notas |
 |---|---|---|---|
 | 1 | Chat / agente / cognición (memoria, tools, abstención) | 🟠 en curso | memoria ✅, router ✅, cobro/303 tools ✅, cobro e2e 🟢; **P0 contexto 4096→8192 ✅**; abstención honesta MEJORADA (prompt) 🟠 aún sobre-promete; durabilidad del contexto PENDIENTE |
-| 2 | Telar (cognición→tarjetas, dedup, dudup caché) | ⬜ | |
+| 2 | Telar (cognición→tarjetas, dedup, dudup caché) | 🟢 auditado (2026-06-10) | P1 DUP agenda↔reunión comprendida ARREGLADO (suprime evento de calendario ya cubierto) + robustez `_hilo_asunto` (no tumba el home por un asunto malformado). 4 golden. Falta: dedup también plazos/correos repetidos |
 | 3 | Aprobaciones «Preparado para ti» | 🟢 verificado clicando (Aprobar→evento real) | falta probar Descartar en vivo |
 | 4 | Home / shell `loombit-app.html` | ⬜ | |
 | 5 | Tools dominio: cobro ✅, 303 ✅, factura ✅ / conciliación | 🟠 | factura e2e 🟢 (persiste); conciliación PENDIENTE; falta "calcular 303 desde facturas registradas" (camino fiable) |
