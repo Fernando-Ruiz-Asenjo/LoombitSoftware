@@ -167,6 +167,31 @@ def _calcular_303(
     return echo + borrador_303_texto(res, periodo or "periodo indicado")
 
 
+# Sinónimos del sentido fiscal. 'repercutido'/'devengado' = IVA de SALIDA (emitida); 'soportado' =
+# IVA de ENTRADA (recibida). Antes solo se reconocía 'emit'/'vent' → 'repercutido' caía a recibida y
+# el 303 salía INVERTIDO (devengado↔deducible). La frontera de determinismo no puede fallar aquí.
+_SENT_EMITIDA = ("emit", "vent", "repercut", "deveng", "ingres", "cobr")
+_SENT_RECIBIDA = ("recib", "compr", "soport", "gast", "pago", "provee")
+
+
+def _es_factura_emitida(sentido: object, contraparte: object = "") -> bool:
+    """True si la factura es EMITIDA (ventas, IVA repercutido/devengado); False si RECIBIDA (compras,
+    soportado). Reconoce los términos fiscales estándar, no solo 'emitida'/'venta'. Si el sentido no
+    es claro, lo infiere de la contraparte (cliente→emitida, proveedor→recibida); por defecto emitida.
+    """
+    s = str(sentido or "").lower()
+    if any(k in s for k in _SENT_EMITIDA):
+        return True
+    if any(k in s for k in _SENT_RECIBIDA):
+        return False
+    c = str(contraparte or "").lower()
+    if "client" in c:
+        return True
+    if "provee" in c:
+        return False
+    return True  # por defecto, emitida (igual que el parámetro por defecto)
+
+
 def _registrar_factura(
     contraparte: str,
     base: float,
@@ -188,8 +213,7 @@ def _registrar_factura(
         t = _norm_tipo(tipo if tipo is not None else 0.21)
         iva_f = round(base_f * t, 2)
     total = round(base_f + iva_f, 2)
-    s = str(sentido).lower()
-    es_emitida = s.startswith("emit") or s.startswith("vent")
+    es_emitida = _es_factura_emitida(sentido, contraparte)
     sentido_303 = "devengado" if es_emitida else "soportado"
     inv = InvoiceFields(
         numero=numero or "s/n",

@@ -772,6 +772,23 @@ def test_filtrar_lineas_303_no_toca_si_no_hay_cifras():
     assert quitadas == 0 and out["iva_repercutido"] == [{"base": 1000, "tipo": 0.21}]
 
 
+def test_es_factura_emitida_reconoce_terminos_fiscales():
+    from loombit_operator.tools.dominio import _es_factura_emitida
+
+    # EMITIDA (IVA repercutido/devengado, ventas) — el bug era que 'repercutido' caía a recibida
+    assert _es_factura_emitida("repercutido") is True
+    assert _es_factura_emitida("devengado") is True
+    assert _es_factura_emitida("emitida") is True
+    assert _es_factura_emitida("venta") is True
+    # RECIBIDA (soportado, compras)
+    assert _es_factura_emitida("soportado") is False
+    assert _es_factura_emitida("recibida") is False
+    assert _es_factura_emitida("compra") is False
+    # sentido ambiguo → infiere de la contraparte (no invertir el 303 en silencio)
+    assert _es_factura_emitida("", "Cliente Acme SL") is True
+    assert _es_factura_emitida("xyz", "Proveedor Beta") is False
+
+
 def test_fmt_evento_con_fecha_pone_el_dia_correcto():
     from loombit_operator.tools.brief import _fmt_evento
 
