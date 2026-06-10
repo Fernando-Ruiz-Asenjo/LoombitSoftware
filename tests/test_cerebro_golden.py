@@ -17,7 +17,9 @@ from loombit_operator.agent.loop import (
     _consecutive_tool_errors,
     _corregir_fecha_calendario,
     _corregir_fecha_cobro,
+    _corregir_periodo_303,
     _describe_for_approval,
+    _trimestre_actual,
     _destinatario_claro,
     _error_brief,
     _filtrar_lineas_303,
@@ -681,6 +683,19 @@ def test_corregir_fecha_calendario_proximo_lunes():
     )
     assert cambio is True
     assert args["start_iso"] == "2026-06-15T10:00:00Z"  # lunes correcto, misma hora
+
+
+def test_trimestre_actual_y_correccion_303():
+    assert _trimestre_actual(date(2026, 6, 10)) == "2T 2026"  # junio = 2T
+    assert _trimestre_actual(date(2026, 1, 5)) == "1T 2026"
+    assert _trimestre_actual(date(2026, 11, 1)) == "4T 2026"
+    # sin trimestre en la petición → usa el actual (no la adivinanza del 14B)
+    a = {"periodo": "Primer trimestre"}
+    assert _corregir_periodo_303(a, "calcula el 303 con ventas de 1000 al 21%", date(2026, 6, 10))
+    assert a["periodo"] == "2T 2026"
+    # si el usuario LO indica → se respeta (no se toca)
+    b = {"periodo": "1T 2026"}
+    assert _corregir_periodo_303(b, "calcula el 303 del 1T 2026", date(2026, 6, 10)) is False
 
 
 def test_parsear_fecha_hace_n_semanas_y_dias():

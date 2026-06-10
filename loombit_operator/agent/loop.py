@@ -532,6 +532,10 @@ class AgentLoop:
             logger.info("calendar_create: fecha relativa corregida run=%s", run.id)
         if tc.tool_name == "plan_cobro" and _corregir_fecha_cobro(tc.arguments, run.task):
             logger.info("plan_cobro: fecha de vencimiento relativa corregida run=%s", run.id)
+        if tc.tool_name in ("calcular_303", "calcular_303_registradas") and _corregir_periodo_303(
+            tc.arguments, run.task
+        ):
+            logger.info("303: periodo (trimestre) puesto al actual run=%s", run.id)
 
         # Señal visible PERSISTENTE: si el agente usa una tool de pilotaje (escritorio/navegador),
         # abre la sesión de halo → el usuario VE a Loombit pilotando durante todo el run.
@@ -906,6 +910,28 @@ def _corregir_fecha_cobro(args: dict, task: str, hoy: date | None = None) -> boo
     if actual == nueva:
         return False
     args["fecha_vencimiento"] = nueva
+    return True
+
+
+_TRIMESTRE_USUARIO = re.compile(
+    r"\b[1-4]\s*[ºo]?\s*t\b|\bt[1-4]\b|(primer|segundo|tercer|cuarto)\s+trimestre", re.I
+)
+
+
+def _trimestre_actual(hoy: date | None = None) -> str:
+    h = hoy or date.today()
+    return f"{(h.month - 1) // 3 + 1}T {h.year}"
+
+
+def _corregir_periodo_303(args: dict, task: str, hoy: date | None = None) -> bool:
+    """Si el usuario NO especificó trimestre, usa el ACTUAL (desde la fecha), no la adivinanza del
+    14B ('Primer trimestre' en junio). Determinista. Devuelve True si cambió el periodo."""
+    if _TRIMESTRE_USUARIO.search(task or ""):
+        return False  # el usuario indicó el trimestre → respétalo
+    actual = _trimestre_actual(hoy)
+    if str(args.get("periodo") or "").strip() == actual:
+        return False
+    args["periodo"] = actual
     return True
 
 
