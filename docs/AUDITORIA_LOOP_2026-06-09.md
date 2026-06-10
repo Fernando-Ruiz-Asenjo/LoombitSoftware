@@ -174,6 +174,8 @@ anti-destinatario-inventado y lo malinterpreté; re-test correcto → GATE.
 
 **Nueva capacidad «¿cuánto me deben?» (2026-06-10):** sin respuesta (memory_search contaminado). Tool cobros_pendientes (suma emitidas no cobradas via pendientes_de_cobro, cliente+importe) + force-tool 'cobros_pend'. Verificado e2e 3/3: 2 emitidas → te deben 3630, recibida excluida. +1 golden.
 
+**P2 query financiera COMPUESTA (2026-06-10, pendiente próxima sesión):** «¿cuánto he facturado Y cuánto me deben?» → el force-tool enfoca a UNA intención (facturacion) y EXCLUYE las otras dominio-tools del run (cobros_pendientes, 303…) → la 2ª parte no se responde; en una prueba el 14B flaileó a list_directory. Las queries de una sola métrica van 3/3; las compuestas multi-métrica no. Opciones a evaluar: (a) permitir varias dominio-tools de LECTURA en un run; (b) un tool 'resumen_financiero' que junte facturado+gastos+me-deben+303. NO tocado aún.
+
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |
 |---|---|---|---|
