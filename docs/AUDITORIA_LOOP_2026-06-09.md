@@ -120,6 +120,8 @@ anti-destinatario-inventado y lo malinterpreté; re-test correcto → GATE.
 
 **Interés de demora preciso (2026-06-10):** 1000€ vencido 100 días al 8% → 21,92€ exacto (1000×0,08×100/365), compensación art.8 = 40€, escala a profesional en vía judicial. Cifra legal verificada al céntimo. Sin bug.
 
+**Entregable/dossier (2026-06-10):** export_dossier genera HTML + .recibo.json con sello de integridad VÁLIDO (sha256 del recibo == sha256 del HTML real, chain_ok=True, local sin red). Flagship Skill W OK. Sin bug.
+
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |
 |---|---|---|---|
