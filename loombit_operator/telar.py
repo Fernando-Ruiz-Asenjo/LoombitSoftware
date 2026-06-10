@@ -18,9 +18,12 @@ saludo (con fallback). Todas las fuentes son inyectables → testeable sin red n
 
 from __future__ import annotations
 
+import logging
 import re
 from datetime import date, datetime
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 # Palabras que, junto a una fecha, indican un PLAZO real (no una fecha cualquiera).
 _PALABRAS_PLAZO = (
@@ -85,6 +88,21 @@ _ESTADO_TXT = {
 }
 
 
+_URGENCIA_PALABRA = {"alta": 3, "urgente": 3, "media": 2, "normal": 2, "baja": 1, "low": 1}
+
+
+def _urgencia_de(a: dict) -> int:
+    """importancia → urgencia 1-3, ROBUSTA: acepta int, número en texto o palabra (alta/media/baja).
+    Nunca lanza: un asunto malformado no debe tumbar el telar (la pantalla de inicio)."""
+    v = a.get("importancia", 2)
+    if isinstance(v, str):
+        v = _URGENCIA_PALABRA.get(v.strip().lower(), v)
+    try:
+        return min(3, max(1, int(v)))
+    except (ValueError, TypeError):
+        return 2
+
+
 def _hilo_asunto(a: dict) -> dict:
     """Convierte un asunto COMPRENDIDO (de `comprension`) en un hilo del telar, con su contexto."""
     tipo = a.get("tipo", "gestion")
@@ -120,7 +138,7 @@ def _hilo_asunto(a: dict) -> dict:
         tipo,
         _ICONO_ASUNTO.get(tipo, "•"),
         titulo.replace("  ", " ").strip(),
-        urgencia=int(a.get("importancia", 2)),
+        urgencia=_urgencia_de(a),
         accion=accion,
         detalle=" · ".join(partes),
         porque=_porque_asunto(tipo, a.get("estado", "")),
@@ -410,9 +428,41 @@ def tejer_dia(
     if aprobaciones is None:
         aprobaciones = _fuente_aprobaciones()
 
-    # 📅 Agenda de hoy
+    # 🧠 COMPRENSIÓN de la bandeja (Skill D): se resuelve ANTES de la agenda para DEDUPLICAR — una
+    # reunión que el modelo ya entendió del correo (reconciliada, más rica) NO debe repetirse como
+    # evento de calendario crudo (el correo manda sobre el calendario).
+    if asuntos is None:
+        from .comprension import comprension_cacheada, refrescar_async
+
+        asuntos, _edad = comprension_cacheada()
+        if _edad > 600:  # vacío/caducado → refresca en 2º plano (no bloquea ni llama al LLM aquí)
+            refrescar_async(
+                (correos or []) + (inbox or []), proximos or [], hoy, buscar=_buscar_correos
+            )
+        if not asuntos and _edad == float("inf"):
+            # nunca computado aún: aviso honesto, NUNCA un dato sin verificar
+            hilos.append(
+                _hilo(
+                    "gestion",
+                    "🧠",
+                    "Verificando tus correos y tu agenda…",
+                    urgencia=1,
+                    accion={"modo": "navigate", "label": "…"},
+                    detalle="Comprendiendo tus conversaciones para no darte nada sin verificar.",
+                )
+            )
+    # Claves (fecha, hora) de las reuniones YA comprendidas → para no duplicarlas desde la agenda.
+    _claves_reunion = {
+        (a.get("fecha"), str(a.get("hora") or ""))
+        for a in (asuntos or [])
+        if a.get("tipo") == "reunion" and a.get("fecha")
+    }
+
+    # 📅 Agenda de hoy (omite lo que la comprensión ya cubre como reunión, para no duplicar)
     for ev in eventos[:6]:
         hora = str(ev.get("start", ""))[11:16]
+        if (str(ev.get("start", ""))[:10], hora) in _claves_reunion:
+            continue  # esa cita ya sale como reunión comprendida (más rica) → no duplicar
         titulo = f"{hora} · {ev.get('summary', '(evento)')}".strip(" ·")
         hilos.append(
             _hilo(
@@ -487,35 +537,13 @@ def tejer_dia(
             )
         )
 
-    # 🧠 COMPRENSIÓN de la bandeja (Skill D · Comprensión): no extrae datos sueltos — el modelo
-    # ENTIENDE los hilos (quién es quién, de qué va, en qué estado: confirmada / requiere acción) y de
-    # ahí salen las reuniones (reconciliadas: la palabra del correo manda sobre el calendario), las
-    # notificaciones oficiales (Policía/AEAT…) y los plazos. FIABLE: se calcula en SEGUNDO PLANO y se
-    # cachea; el telar lee el último resultado bueno y NUNCA muestra el calendario crudo (sin verificar).
-    if asuntos is None:
-        from .comprension import comprension_cacheada, refrescar_async
-
-        asuntos, _edad = comprension_cacheada()
-        if (
-            _edad > 600
-        ):  # vacío o caducado → refresca en 2º plano (no bloquea el telar ni llama al LLM aquí)
-            refrescar_async(
-                (correos or []) + (inbox or []), proximos or [], hoy, buscar=_buscar_correos
-            )
-        if not asuntos and _edad == float("inf"):
-            # nunca computado aún: aviso honesto, NUNCA un dato sin verificar
-            hilos.append(
-                _hilo(
-                    "gestion",
-                    "🧠",
-                    "Verificando tus correos y tu agenda…",
-                    urgencia=1,
-                    accion={"modo": "navigate", "label": "…"},
-                    detalle="Comprendiendo tus conversaciones para no darte nada sin verificar.",
-                )
-            )
+    # 🧠 COMPRENSIÓN de la bandeja → hilos (ya resuelta arriba, para poder deduplicar la agenda).
     for a in (asuntos or [])[:6]:
-        hilos.append(_hilo_asunto(a))
+        # Un asunto malformado NUNCA debe tumbar el telar (dejaría el home en blanco): se omite.
+        try:
+            hilos.append(_hilo_asunto(a))
+        except Exception:  # noqa: BLE001
+            logger.warning("telar: asunto malformado omitido: %r", a, exc_info=True)
 
     # ✅ Aprobaciones pendientes
     if aprobaciones:

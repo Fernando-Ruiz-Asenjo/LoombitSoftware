@@ -32,7 +32,13 @@ from loombit_operator.agent.memory import AgentMemory, EntityProfile
 from loombit_operator.agent.reflexion import etiquetas_de_tarea
 from loombit_operator.agent.run import AgentRun, AgentStatus, AgentStep
 from loombit_operator.comprension import _normalizar, _salvar_objetos
-from loombit_operator.telar import _hilo_asunto, _porque_asunto, _saludo
+from loombit_operator.telar import (
+    _hilo_asunto,
+    _porque_asunto,
+    _saludo,
+    _urgencia_de,
+    tejer_dia,
+)
 from loombit_operator.tool_labels import (
     capability_block,
     humanize_user_text,
@@ -561,6 +567,83 @@ def test_tools_excluir_quita_las_otras_de_dominio():
     assert "registrar_factura" in excl and "calcular_303" in excl
     assert "plan_cobro" not in excl  # la propia no se excluye
     assert tools_excluir(None) == set()
+
+
+def test_telar_urgencia_robusta_int_palabra_y_basura():
+    assert _urgencia_de({"importancia": 3}) == 3
+    assert _urgencia_de({"importancia": "alta"}) == 3
+    assert _urgencia_de({"importancia": "baja"}) == 1
+    assert _urgencia_de({"importancia": "2"}) == 2
+    assert _urgencia_de({"importancia": "loquesea"}) == 2  # basura → defecto 2, nunca lanza
+    assert _urgencia_de({}) == 2
+    assert _urgencia_de({"importancia": 99}) == 3  # clamp a 1-3
+
+
+def test_telar_dedup_agenda_vs_reunion_comprendida():
+    # misma cita en calendario Y comprendida del correo → UN solo hilo (la reunión, más rica)
+    eventos = [{"summary": "Reunión con David", "start": "2026-06-10T10:00:00Z"}]
+    asuntos = [
+        {
+            "tipo": "reunion",
+            "con": "David",
+            "fecha": "2026-06-10",
+            "hora": "10:00",
+            "importancia": 3,
+        }
+    ]
+    out = tejer_dia(
+        now=datetime(2026, 6, 10, 8, 0),
+        eventos=eventos,
+        proximos=[],
+        asuntos=asuntos,
+        correos=[],
+        inbox=[],
+        vencidas=[],
+        proximas=[],
+        aprobaciones=0,
+    )
+    tipos = [h.get("tipo") for h in out["hilos"]]
+    assert "reunion" in tipos  # la comprendida sí
+    assert "agenda" not in tipos  # la de calendario crudo se suprimió (no duplicar)
+
+
+def test_telar_agenda_se_mantiene_si_no_hay_reunion_que_la_cubra():
+    # un evento de calendario SIN reunión comprendida que lo cubra → sí sale como agenda
+    eventos = [{"summary": "Dentista", "start": "2026-06-10T17:00:00Z"}]
+    out = tejer_dia(
+        now=datetime(2026, 6, 10, 8, 0),
+        eventos=eventos,
+        proximos=[],
+        asuntos=[],
+        correos=[],
+        inbox=[],
+        vencidas=[],
+        proximas=[],
+        aprobaciones=0,
+    )
+    assert any(h.get("tipo") == "agenda" for h in out["hilos"])
+
+
+def test_telar_no_se_cae_por_un_asunto_malformado():
+    # un asunto con importancia="alta" (palabra) o un dict basura NO debe tumbar el home
+    asuntos = [
+        {"tipo": "reunion", "con": "David", "fecha": "2026-06-11", "importancia": "alta"},
+        {"basura": True, "importancia": object()},  # provocaría error → debe omitirse, no crashear
+    ]
+    out = tejer_dia(
+        now=datetime(2026, 6, 10, 8, 0),
+        eventos=[],
+        proximos=[],
+        asuntos=asuntos,
+        correos=[],
+        inbox=[],
+        vencidas=[],
+        proximas=[],
+        aprobaciones=0,
+    )
+    # el telar devolvió la tela (no lanzó) y tejió al menos el asunto válido
+    assert isinstance(out.get("hilos"), list)
+    assert any(h.get("tipo") == "reunion" for h in out["hilos"])
 
 
 def test_filtrar_lineas_303_quita_inventadas():
