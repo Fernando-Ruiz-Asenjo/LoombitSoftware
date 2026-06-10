@@ -48,6 +48,47 @@ def rango_trimestre(periodo: str | None) -> tuple[date | None, date | None, str]
     return date(anio, m0, 1), date(anio, m1, monthrange(anio, m1)[1]), f"{q}T {anio}"
 
 
+_MES_NOMBRE = [
+    "",
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre",
+]
+_MES_NUM = {n: i for i, n in enumerate(_MES_NOMBRE) if n}
+_MES_NUM["setiembre"] = 9
+
+
+def rango_periodo(
+    periodo: str | None, hoy: date | None = None
+) -> tuple[date | None, date | None, str]:
+    """Rango (desde, hasta, etiqueta) de un periodo: trimestre ('2T'), MES ('junio'/'este mes') o None
+    (todo). Generaliza `rango_trimestre` para soportar también meses — base de «cuánto he facturado».
+    """
+    hoy = hoy or date.today()
+    d, h, et = rango_trimestre(periodo)
+    if d is not None:
+        return d, h, et
+    s = (periodo or "").lower()
+    if "este mes" in s or "mes actual" in s or "del mes" in s or "este_mes" in s:
+        m, anio = hoy.month, hoy.year
+    else:
+        m = next((n for nombre, n in _MES_NUM.items() if nombre in s), None)
+        if m is None:
+            return None, None, (periodo or "todo")
+        my = re.search(r"\b(20\d{2})\b", s)
+        anio = int(my.group(1)) if my else hoy.year
+    return date(anio, m, 1), date(anio, m, monthrange(anio, m)[1]), f"{_MES_NOMBRE[m]} {anio}"
+
+
 _TIPOS = [Decimal("0.21"), Decimal("0.10"), Decimal("0.04"), Decimal("0.00")]
 _CENT = Decimal("0.01")
 

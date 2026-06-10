@@ -32,6 +32,12 @@ _BUSCAR_CORREO = re.compile(
 # HECHO/nota sin fecha, no un evento) → forzar calendar_create creaba un evento absurdo. Solo señales
 # inequívocas de recordatorio temporal.
 _RECORDATORIO = re.compile(r"\b(recu[eé]rdame\w*|recordatorio|acu[eé]rdame|no se me olvide)\b")
+# «¿cuánto he facturado/ingresado este mes?» = sumar las emitidas (resumen_facturacion), NO el 303 ni
+# registrar. El 14B no la elegía de forma fiable → la forzamos. Pregunta nº1 de un autónomo.
+_FACTURACION = re.compile(
+    r"\bcu[aá]nto\b[^\n]{0,25}\b(factur\w+|ingres\w+)\b"
+    r"|\b(mi facturaci[oó]n|facturaci[oó]n de|total facturad\w+)\b"
+)
 # Hay un DATO numérico (cifra o número en palabras) → tiene sentido calcular; si no, hay que preguntar.
 _TIENE_DATO = re.compile(
     r"\d|\b(mil|cien|ciento|doscient\w+|trescient\w+|cuatrocient\w+|quinient\w+|"
@@ -45,6 +51,7 @@ _TOOLS_POR_INTENCION: dict[str, set[str]] = {
     "factura": {"registrar_factura"},
     "buscar": {"gmail_search"},
     "recordatorio": {"calendar_create"},
+    "facturacion": {"resumen_facturacion"},
 }
 _SIEMPRE = {"ask_user", "task_done"}
 
@@ -55,6 +62,8 @@ def intencion_consecuente(task: str) -> str | None:
     t = (task or "").lower()
     if _RECORDATORIO.search(t):  # antes que todo: «recuérdame pagar…» es recordatorio, no un pago
         return "recordatorio"
+    if _FACTURACION.search(t):  # «¿cuánto he facturado?» = resumen, no registrar ni 303
+        return "facturacion"
     if _BUSCAR_CORREO.search(t):
         return "buscar"
     tiene_dato = bool(_TIENE_DATO.search(t))
@@ -77,12 +86,21 @@ def tools_foco(intencion: str | None) -> set[str]:
         # escaparse a «necesito el NIF» — lo crea con el texto y la fecha (calendar_create GATEA, así
         # que el usuario lo aprueba; ningún efecto autónomo).
         return {"calendar_create"}
+    if intencion == "facturacion":
+        # resumen_facturacion (lectura) + task_done: que SUME, no se escape a otra tool ni divague.
+        return {"resumen_facturacion", "task_done"}
     return _TOOLS_POR_INTENCION.get(intencion, set()) | _SIEMPRE
 
 
 # Todas las tools de DOMINIO (cálculo/registro): durante una intención, se excluyen las de OTRAS
 # intenciones para que el agente no divague (p.ej. en un cobro NO registre una factura fantasma).
-_DOMINIO_TODAS = {"plan_cobro", "calcular_303", "calcular_303_registradas", "registrar_factura"}
+_DOMINIO_TODAS = {
+    "plan_cobro",
+    "calcular_303",
+    "calcular_303_registradas",
+    "registrar_factura",
+    "resumen_facturacion",
+}
 
 
 def tools_excluir(intencion: str | None) -> set[str]:

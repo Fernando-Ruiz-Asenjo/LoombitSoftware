@@ -17,6 +17,7 @@ from typing import Any
 from ..cobros import LATE_FEE_FIXED_EUR, dunning_plan
 from ..docs_intel import InvoiceFields
 from ..expedientes import ExpedienteStore
+from ..skill_d_fiscal.intake import rango_periodo as _rango_periodo
 from ..skill_d_fiscal.intake import rango_trimestre as _rango_trimestre
 from ..skill_d_fiscal.intake import recopilar_lineas as _recopilar_lineas
 from ..skill_d_fiscal.intake import registrar_factura as _intake_registrar
@@ -275,6 +276,59 @@ def _calcular_303_registradas(periodo: str = "") -> str:
     if avisos:
         out += "\n\nAVISOS de las facturas:\n" + "\n".join(f"  - {a}" for a in avisos)
     return out
+
+
+def _resumen_facturacion(periodo: str = "") -> str:
+    """Cuánto has FACTURADO (emitidas) en un periodo, sumado desde las facturas registradas. Responde la
+    pregunta nº1 de un autónomo: '¿cuánto he facturado este mes?'. Determinista (no estima)."""
+    desde, hasta, etiqueta = _rango_periodo(periodo)
+    try:
+        store = ExpedienteStore(entity_id=_ENTIDAD_DEFECTO)
+        lineas, _ = _recopilar_lineas(store, desde, hasta)
+    except Exception as exc:  # noqa: BLE001
+        return f"ERROR al leer tus facturas registradas: {exc}"
+    emit = [ln for ln in lineas if ln.sentido == "devengado"]
+    if not emit:
+        ámbito = f"en {etiqueta}" if desde else "registradas"
+        return f"No tienes facturas emitidas {ámbito} todavía. Regístralas y te digo cuánto has facturado."
+    base = round(sum(float(ln.base) for ln in emit), 2)
+    iva = round(sum(float(ln.cuota) for ln in emit), 2)
+    total = round(base + iva, 2)
+    cuerpo = (
+        f"Has facturado (emitidas) en {etiqueta if desde else 'total'}: {len(emit)} factura(s).\n"
+        f"  Base imponible: {base:.2f} €\n"
+        f"  IVA repercutido: {iva:.2f} €\n"
+        f"  TOTAL facturado: {total:.2f} €\n"
+        "(Datos reales de tus facturas registradas, no una estimación.)"
+    )
+    if desde is None:
+        cuerpo += "\n\n⚠ No me diste un mes/trimestre claro, así que sumé TODAS tus emitidas. Dime el periodo (p.ej. «junio 2026») para acotar."
+    return cuerpo
+
+
+tool_registry.register(
+    ToolDefinition(
+        name="resumen_facturacion",
+        description=(
+            "Dice CUÁNTO has FACTURADO (tus facturas emitidas) en un periodo —mes ('junio', 'este "
+            "mes') o trimestre ('2T 2026')— sumando desde las facturas registradas. Úsala cuando el "
+            "usuario pregunte cuánto ha facturado/ingresado/emitido en un mes o trimestre. NO es el "
+            "303 (eso es el IVA a liquidar): esto es el total facturado. Solo lectura, datos reales."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "periodo": {
+                    "type": "string",
+                    "description": "Mes o trimestre, p.ej. 'junio 2026' o '2T 2026'.",
+                },
+            },
+        },
+        fn=_resumen_facturacion,
+        category="base",
+        authoritative=True,
+    )
+)
 
 
 tool_registry.register(

@@ -79,6 +79,41 @@ def test_303_desde_registradas_calcula_con_datos_reales():
         shutil.rmtree(base, ignore_errors=True)
 
 
+def test_resumen_facturacion_suma_solo_emitidas_del_periodo():
+    import shutil
+
+    from loombit_operator.config import get_settings
+    from loombit_operator.tools import dominio
+
+    ent = "_test_facturacion"
+    base = get_settings().entities_dir / ent
+    shutil.rmtree(base, ignore_errors=True)
+    orig = dominio._ENTIDAD_DEFECTO
+    dominio._ENTIDAD_DEFECTO = ent
+    try:
+        dominio._registrar_factura(
+            contraparte="A", base=1000, tipo=21, sentido="emitida", fecha="2026-06-05"
+        )
+        dominio._registrar_factura(
+            contraparte="B", base=2000, tipo=21, sentido="emitida", fecha="2026-06-08"
+        )
+        # una recibida (NO cuenta como facturado) y una emitida de OTRO mes (fuera del periodo)
+        dominio._registrar_factura(
+            contraparte="Prov", base=500, tipo=21, sentido="recibida", fecha="2026-06-09"
+        )
+        dominio._registrar_factura(
+            contraparte="C", base=9000, tipo=21, sentido="emitida", fecha="2026-05-30"
+        )
+        out = dominio._resumen_facturacion("junio 2026")
+        assert "2 factura" in out  # solo las 2 emitidas de junio
+        assert "3000" in out  # base 1000+2000 (recibida y mayo excluidas)
+        assert "3630" in out  # total con IVA
+        assert "9000" not in out  # la de mayo NO se cuela
+    finally:
+        dominio._ENTIDAD_DEFECTO = orig
+        shutil.rmtree(base, ignore_errors=True)
+
+
 def test_travel_task_alcanza_el_pilot():
     # El motor de viajes es el Pilot: la petición de vuelos debe darle manos de navegador.
     names = select_tool_names("búscame vuelos a Londres y un hotel para Marta")

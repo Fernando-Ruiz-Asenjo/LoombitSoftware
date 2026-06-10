@@ -160,7 +160,13 @@ TOOL_GROUPS: list[tuple[tuple[str, ...], set[str]]] = [
             "extracto",
             "proveedor",
         ),
-        {"registrar_factura", "read_invoice", "read_file", "list_directory"},
+        {
+            "registrar_factura",
+            "resumen_facturacion",
+            "read_invoice",
+            "read_file",
+            "list_directory",
+        },
     ),
     (
         ("fichero", "archivo", "carpeta", "guarda", "directorio", "lee el", "escribe el"),
@@ -197,7 +203,7 @@ TOOL_GROUPS: list[tuple[tuple[str, ...], set[str]]] = [
             "soportado",
             "repercutido",
         ),
-        {"calcular_303", "calcular_303_registradas", "read_invoice"},
+        {"calcular_303", "calcular_303_registradas", "resumen_facturacion", "read_invoice"},
     ),
     (
         (

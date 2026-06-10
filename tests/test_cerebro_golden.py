@@ -772,6 +772,30 @@ def test_filtrar_lineas_303_no_toca_si_no_hay_cifras():
     assert quitadas == 0 and out["iva_repercutido"] == [{"base": 1000, "tipo": 0.21}]
 
 
+def test_intencion_facturacion_fuerza_resumen():
+    from loombit_operator.agent.intencion import intencion_consecuente, tools_foco
+
+    assert intencion_consecuente("¿cuánto he facturado este mes?") == "facturacion"
+    assert intencion_consecuente("cuánto he ingresado en junio") == "facturacion"
+    assert intencion_consecuente("enséñame mi facturación de 2026") == "facturacion"
+    # NO confundir con registrar una factura ni con cobros
+    assert intencion_consecuente("regístrame una factura de 1000€ al 21%") == "factura"
+    assert intencion_consecuente("¿cuánto me han pagado?") != "facturacion"
+    assert tools_foco("facturacion") == {"resumen_facturacion", "task_done"}
+
+
+def test_rango_periodo_soporta_mes_y_trimestre():
+    from datetime import date
+
+    from loombit_operator.skill_d_fiscal.intake import rango_periodo
+
+    assert rango_periodo("junio 2026")[:2] == (date(2026, 6, 1), date(2026, 6, 30))
+    assert rango_periodo("este mes", date(2026, 6, 10))[:2] == (date(2026, 6, 1), date(2026, 6, 30))
+    assert rango_periodo("2T 2026")[:2] == (date(2026, 4, 1), date(2026, 6, 30))  # delega trimestre
+    assert rango_periodo("febrero 2025")[:2] == (date(2025, 2, 1), date(2025, 2, 28))
+    assert rango_periodo("")[0] is None  # sin periodo → no acota
+
+
 def test_intencion_recordatorio_fuerza_calendario_sin_preguntar():
     from loombit_operator.agent.intencion import intencion_consecuente, tools_foco
 
