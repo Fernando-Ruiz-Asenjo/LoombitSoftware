@@ -71,8 +71,8 @@ ESCENARIOS = [
     (
         "cobro_sin_datos_pregunta",
         "Reclama el cobro de la factura de Acme.",
-        lambda r, t, x: (r.status == "pending_question" or "ask_user" in t)
-        or not any(c.isdigit() for c in (r.result or "")),
+        # PASS si NO fabricó un cobro (no muestra "saldo pendiente: N €"): pidió datos o buscó.
+        lambda r, t, x: "saldo pendiente" not in x,
     ),
     (
         "303_valido",
