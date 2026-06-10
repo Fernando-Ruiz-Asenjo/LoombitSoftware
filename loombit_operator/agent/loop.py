@@ -714,6 +714,13 @@ class AgentLoop:
                 False,
             )
 
+        # SEGURIDAD (inyección): si la petición intenta MANIPULAR (falso «###SISTEMA###», jailbreak,
+        # «ignora tus reglas»…), NO se envía NINGÚN correo — se rehúsa (ni se dibuja para aprobar). Una
+        # inyección no manda nada en tu nombre. El cálculo/lectura legítimo de la misma petición sí sigue.
+        if tc.tool_name == "gmail_send" and _intento_manipulacion(run.task):
+            logger.info("gmail_send REHUSADO por intento de manipulación run=%s", run.id)
+            return _MSG_MANIPULACION, False
+
         # Política de aprobación: un correo que el USUARIO pidió y con destinatario inequívoco
         # se envía SOLO (sin tarjeta) — su petición es la autorización. Si el destinatario es
         # ambiguo, se confirma. Otros efectos externos (calendar_create, run_shell) siempre confirman.
@@ -834,6 +841,29 @@ def _recipiente_resuelto(to: str, run: AgentRun) -> bool:
     return any(
         s.tool_name == "contacts_find" and to_l in (s.result or "").lower() for s in run.steps
     )
+
+
+# SEGURIDAD: marcadores de intento de MANIPULACIÓN / inyección (falso bloque de sistema, petición de
+# saltarse la aprobación, jailbreak). Si aparecen, no se concede el auto-envío sin tarjeta.
+_MANIPULACION = re.compile(
+    r"#{2,}\s*sistema|<\s*/?\s*system\b|\bsystem\s*:"  # falso bloque de sistema
+    r"|ignora\s+(tus|las|todas|cualquier)\b[^.\n]{0,20}(regla|restriccion|instruccion|limitaci|norma)"
+    r"|olvida\s+(tus|las)\b[^.\n]{0,20}(regla|instruccion)|eres\s+dan\b|modo\s+desarrollador"
+    r"|sin\s+restriccion\w*|jailbreak|act[uú]a\s+como\s+si\s+no\s+tuvieras",
+    re.IGNORECASE,
+)
+_MSG_MANIPULACION = (
+    "🛡️ No envío ese correo: tu petición incluye instrucciones de MANIPULACIÓN (un falso «sistema», "
+    "un jailbreak o un «ignora tus reglas»). Por seguridad no mando nada así. Si quieres enviar un "
+    "correo de verdad, pídemelo de forma normal con el destinatario y te lo preparo."
+)
+
+
+def _intento_manipulacion(task: str) -> bool:
+    """True si la petición intenta MANIPULAR con un falso bloque de «sistema», un jailbreak («eres DAN»,
+    «modo desarrollador», «sin restricciones») o un «ignora/olvida tus reglas». NO incluye «sin
+    aprobación» a secas (un usuario legítimo puede autorizar así). Entonces se REHÚSA el envío."""
+    return bool(_MANIPULACION.search(task or ""))
 
 
 def _destinatario_claro(to: str, run: AgentRun) -> bool:
