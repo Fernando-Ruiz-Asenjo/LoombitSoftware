@@ -996,6 +996,77 @@ chk(
 )
 chk("RDL2", "NEG 'tercero' suelto", G.modelo_no_modelado("envía la factura a un tercero"), None)
 
+# ═══ Gap-hunt determinista (sin LM): ejercicio / «voy a ganar» / puntear ═══
+chk(
+    "RDL3",
+    "comparativa 'ejercicio anterior'",
+    intencion_consecuente("respecto al ejercicio anterior, ¿cómo voy?"),
+    "comparativo",
+)
+chk("RDL3", "pred 'voy a ganar'", G.es_prediccion_financiera("¿voy a ganar dinero este año?"), True)
+chk(
+    "RDL3",
+    "NEG 'voy a facturar' (acción)",
+    G.es_prediccion_financiera("voy a facturar a Acme 500 €"),
+    False,
+)
+chk(
+    "RDL3",
+    "NEG 'voy a cobrar' (acción)",
+    G.es_prediccion_financiera("voy a cobrar a López mañana"),
+    False,
+)
+chk(
+    "RDL3",
+    "concil 'puntéame el banco'",
+    bool(registro_guardas.aplicar("puntéame el banco con mis cobros")),
+    True,
+)
+chk("RDL3", "NEG 'puntea agenda'", registro_guardas.aplicar("puntea mi agenda"), None)
+
+# ═══ AUDITORÍA «TODAS LAS D» (provocar el fallo en D-1…D-5): 7 gaps frescos cazados+depurados ═══
+chk(
+    "TODAS",
+    "retención minuta verb-less",
+    G.es_registro_con_retencion("minuta de 1000 con 21% de IVA y 15% de IRPF"),
+    True,
+)
+chk(
+    "TODAS",
+    "NEG pregunta minuta IRPF",
+    G.es_registro_con_retencion("¿qué IRPF lleva una minuta de 1000?"),
+    False,
+)
+chk(
+    "TODAS",
+    "conciliación 'cruza'",
+    bool(registro_guardas.aplicar("cruza mis cobros con el banco")),
+    True,
+)
+chk("TODAS", "NEG 'cruza la calle'", registro_guardas.aplicar("cruza la calle"), None)
+chk(
+    "TODAS",
+    "predicción 'espero facturar'",
+    G.es_prediccion_financiera("espero facturar 50000 este año"),
+    True,
+)
+chk(
+    "TODAS",
+    "NEG 'espero que la factura'",
+    G.es_prediccion_financiera("espero que la factura esté lista"),
+    False,
+)
+chk(
+    "TODAS",
+    "modelo '130 del IRPF'",
+    G.modelo_no_modelado("hazme el 130 del IRPF trimestral"),
+    "130",
+)
+chk("TODAS", "parser '1k' → None", parsear_importe_es("reclama 1k vencida"), None)
+chk("TODAS", "parser '1,5k' → None", parsear_importe_es("factura de 1,5k"), None)
+chk("TODAS", "parser '100 kg' → 100 (no escala)", parsear_importe_es("paquete de 100 kg"), 100.0)
+chk("TODAS", "parser minus Unicode −200", parsear_importe_es("rectificativa de −200 €"), -200.0)
+
 
 def main() -> int:
     fam_tot: dict[str, list[int]] = {}

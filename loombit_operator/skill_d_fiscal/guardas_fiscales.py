@@ -60,15 +60,26 @@ _VERBO_HACER = re.compile(
 )
 
 
+# Marcadores de PREGUNTA (no es un encargo de crear) → no abstener. «¿qué IRPF lleva la minuta?».
+_PREGUNTA = re.compile(
+    r"^\s*¿|\bqu[eé]\b|\bcu[aá]l\w*\b|\bcu[aá]nto\w*\b|\bc[oó]mo\b", re.IGNORECASE
+)
+_TIENE_IMPORTE_RET = re.compile(r"[€$]|\d")
+
+
 def es_registro_con_retencion(task: str) -> bool:
     """True si la petición pide REGISTRAR/PREPARAR una factura o minuta CON retención de IRPF (no
-    modelada). Excluye «sin retención» y las preguntas que no piden crear nada. Corta ANTES del ReAct,
+    modelada). Excluye «sin retención» y las PREGUNTAS (no piden crear nada). Corta ANTES del ReAct,
     cubriendo TODOS los caminos por los que el 14B fabricaría (registrar_factura, mis-ruteo a 303…).
     """
     t = task or ""
-    if _SIN_RETENCION.search(t) or not _RETENCION_IRPF.search(t):
+    if _SIN_RETENCION.search(t) or not _RETENCION_IRPF.search(t) or not _HACER_FACTURA.search(t):
         return False
-    return bool(_HACER_FACTURA.search(t) and _VERBO_HACER.search(t))
+    if _VERBO_HACER.search(t):
+        return True
+    # Sin verbo explícito, pero «minuta/factura de 1000 con IRPF» es un encargo elíptico → abstiene si
+    # hay importe y NO es una pregunta («¿qué IRPF lleva una minuta?» no crea nada).
+    return bool(_TIENE_IMPORTE_RET.search(t)) and not _PREGUNTA.search(t)
 
 
 # ── IBAN inválido: no fabricamos un «✅ guardado» de un IBAN que no cuadra (longitud/checksum mod-97).
@@ -129,6 +140,8 @@ _MODELO_POR_NOMBRE = (
         "390",
     ),
     (re.compile(r"operaci\w+\s+con\s+tercero", re.IGNORECASE), "347"),
+    # «el 130 del IRPF» (130 = pago fraccionado IRPF) sin decir «modelo» ni «pago fraccionado».
+    (re.compile(r"\b130\b[^.\n]{0,18}\birpf\b|\birpf\b[^.\n]{0,12}\b130\b", re.IGNORECASE), "130"),
 )
 _MSG_MODELO_NO_MODELADO = (
     "Todavía no calculo el modelo {m} — hoy Loombit prepara el 303 (IVA) desde tus facturas. Ese "
@@ -170,7 +183,9 @@ def _guarda_modelo_aeat(task: str) -> str | None:
 # respuesta determinista es pedir el N43 — así «concíliame los cobros con el banco» NUNCA se confunde
 # con «cuánto me deben» (el free-form del 14B a veces caía en cobros_pendientes). ──────────────────
 _CONCILIACION = re.compile(
-    r"\bconc[ií]li\w+|\bcu[aá]dr\w+[^.\n]{0,25}\b(banco|extracto|norma\s*43|n43)", re.IGNORECASE
+    r"\bconc[ií]li\w+"
+    r"|\b(cu[aá]dr\w+|punt[eé]\w+|cruz\w+)[^.\n]{0,25}\b(banco|extracto|norma\s*43|n43)",
+    re.IGNORECASE,
 )
 _MSG_CONCILIACION = (
     "Para conciliar tus cobros con el banco necesito el EXTRACTO bancario en formato Norma 43 (N43) "
@@ -194,7 +209,9 @@ _PREDICCION_FINANCIERA = re.compile(
     r"|\b(predic\w+|proyec\w+|estima\w+|previsi\w+|forecast)\b[^.\n]{0,30}"
     r"\b(factur\w+|ingres\w+|ventas|benefici\w+|cobr\w+)"
     r"|\b(llegar[eé]|alcanzar[eé]|cumplir[eé]|lograr[eé])\b[^.\n]{0,40}"
-    r"(\d|€|euros?|facturaci\w+|ingres\w+|objetivo|meta)",  # «¿llegaré a los 50.000 €?»
+    r"(\d|€|euros?|facturaci\w+|ingres\w+|objetivo|meta)"  # «¿llegaré a los 50.000 €?»
+    r"|\b(voy|vas|vamos|va)\s+a\s+(ganar\w*|ingresar)\b"  # «¿voy a ganar dinero?» (resultado, no acción)
+    r"|\b(espero|prev[eé]\w*|aspiro)\s+(a\s+)?(factur|ingres|gan|vend|cobr)ar",  # «espero facturar 50.000»
     re.IGNORECASE,
 )
 _MSG_PREDICCION = (

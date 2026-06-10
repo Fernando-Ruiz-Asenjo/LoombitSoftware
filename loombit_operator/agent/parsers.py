@@ -204,14 +204,15 @@ def parsear_importe_es(texto: object) -> float | None:
     """Extrae el ÚNICO importe principal en € de un texto es-ES (1.234,56 / -200 / 2500), EXCLUYENDO
     porcentajes, días, fechas (dd/mm/aaaa, «5 de junio») y años. Devuelve None si hay 0 o >1 importes
     DISTINTOS (ambiguo → no se corrige: que lo decida el modelo). Determinista, conservador."""
-    t = str(texto or "")
+    # El MINUS Unicode (U+2212 «−», de copiar/pegar) → minus ASCII, para no perder el signo negativo.
+    t = str(texto or "").replace("−", "-")
     # «el 50% DE los 2000 €» → el importe es OPERANDO de un porcentaje (parcial), no extraíble como
     # único importe → None (que el modelo haga la cuenta). «21% de IVA» (sin número detrás) NO entra.
     if re.search(r"\d\s*%\s+de\s+(?:los\s+|las\s+|el\s+|la\s+)?\d", t, re.IGNORECASE):
         return None
-    # «3,5 millones» → la palabra de ESCALA tras el dígito NO la sabe escalar el parser de dígitos →
-    # None (no corromper devolviendo 3.5; que lo resuelva el modelo). «1000000 €» (en dígitos) sí entra.
-    if re.search(r"\d[\d.,]*\s*mill[oó]n(?:es)?\b", t, re.IGNORECASE):
+    # Palabra de ESCALA tras el dígito («3,5 millones», «1k», «100k») → el parser de dígitos no la sabe
+    # escalar → None (no corromper devolviendo 3.5/1; que lo resuelva el modelo). «1000000 €» sí entra.
+    if re.search(r"\d[\d.,]*\s*(?:mill[oó]n(?:es)?|k)\b", t, re.IGNORECASE):
         return None
     # tachar lo que NO es un importe (su número no debe contarse)
     t = re.sub(

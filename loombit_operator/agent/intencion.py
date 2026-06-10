@@ -87,9 +87,9 @@ _REGISTRO_FACTURA = re.compile(
 # evolución/tendencia). El autónomo piensa en evolución. NO incluye la PREDICCIÓN del futuro (sin datos).
 _COMPARATIVA = re.compile(
     r"\b(compar\w+|crec\w+|crecimiento|evoluci\w+|tendenci\w+|versus)\b|\bvs\b"
-    r"|\b(m[aá]s|menos|mejor|peor|igual)\b[^.\n]{0,45}\bque\b[^.\n]{0,25}\b(mes|trimestre|a[ñn]o|anterior|pasad\w+)"
-    r"|\brespecto\s+al?\b[^.\n]{0,25}\b(mes|trimestre|a[ñn]o)"
-    r"|\b(mes|trimestre|a[ñn]o)\s+(pasad\w+|anterior)\b",
+    r"|\b(m[aá]s|menos|mejor|peor|igual)\b[^.\n]{0,45}\bque\b[^.\n]{0,25}\b(mes|trimestre|a[ñn]o|ejercicio|anterior|pasad\w+)"
+    r"|\brespecto\s+al?\b[^.\n]{0,25}\b(mes|trimestre|a[ñn]o|ejercicio)"
+    r"|\b(mes|trimestre|a[ñn]o|ejercicio)\s+(pasad\w+|anterior)\b",
     re.IGNORECASE,
 )
 # Predicción del FUTURO: NO se computa (no hay datos) → excluye la comparativa (que es pasado/actual).
