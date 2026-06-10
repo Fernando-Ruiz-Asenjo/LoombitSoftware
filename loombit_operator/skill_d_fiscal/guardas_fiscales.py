@@ -119,7 +119,9 @@ _MODELO_POR_NOMBRE = (
     (re.compile(r"pago\s+fraccionad\w+", re.IGNORECASE), "130"),
     (re.compile(r"operaci\w+\s+intracomunitar\w+", re.IGNORECASE), "349"),
     (
-        re.compile(r"retenci\w+\s+(a\s+)?(profesional\w+|trabajador\w+|cuenta)", re.IGNORECASE),
+        re.compile(
+            r"retenci\w+\s+(?:(?:a|de)\s+)?(profesional\w+|trabajador\w+|cuenta)", re.IGNORECASE
+        ),
         "111",
     ),
     # Modelos por su NOMBRE coloquial (sin citar el número). Acotado a «impuesto … X»/«declaración de
