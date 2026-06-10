@@ -40,7 +40,7 @@
 | 6 | Galaxia | ⬜ | |
 | 7 | Fábrica | ⬜ | |
 | 8 | Ajustes | ⬜ | |
-| 9 | Entregables | ⬜ | |
+| 9 | Entregables (dossier offline + sello) | 🟢 auditado (2026-06-10) | Sello de integridad = `verify_chain` (cadena de hashes de eventos). Verificado por recibo: intacto→True, evento manipulado en BD→False. Ya cubierto por `test_tamper_is_detected`. **Nota honesta:** tamper-EVIDENTE, no infalsificable (sin HMAC/firma/timestamp externo); OK para local-first. ⭐PARA FERNANDO: si los dossiers se usan como PRUEBA legal ante terceros, añadir HMAC con secreto o sellado temporal |
 | 10 | Pilot (operar web real e2e) | 🟠 primitivas OK, e2e SIN verificar | |
 | 11 | Responsive / móvil | ⬜ | |
 | 12 | Seguridad / operativa / privacidad (datos≠órdenes, IBAN, Origin/CSRF) | 🟠 en curso | datos≠órdenes ✅ (allowlist+prompt); anti-fuga prompt ✅; IBAN checksum + low_confidence aflorado ✅; **Host/Origin local-first ✅ (anti DNS-rebinding + CSRF, `seguridad_web.py`, verificado en vivo: evil→403, local→200)** (2026-06-10). Pendiente: red-team aimafia, exfiltración avanzada, rate-limit |
