@@ -741,6 +741,21 @@ def test_factura_coloquial_rutea_a_factura():
     assert I("¿cuánto le facturé a Endesa este mes?") == "facturacion"  # query → NO factura
 
 
+def test_auditoria_fuerte_d1d2d3_en_el_gate():
+    # Mete en el gate los casos adversariales DETERMINISTAS de scripts/auditoria_d1d2d3.py (10 ciclos de
+    # presión): falsos positivos/negativos, agujeros de regex, sobre-corrección. Si un cambio futuro
+    # reintroduce un hallazgo, el gate se pone ROJO. Sin LM (el clasificador se prueba con un fake).
+    import os
+    import sys
+
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+    import auditoria_d1d2d3 as aud
+
+    hallazgos = [f"[{fam}] {label} · {det}" for fam, label, ok, det in aud.CASOS if not ok]
+    assert not hallazgos, "auditoría con hallazgos:\n" + "\n".join(hallazgos)
+    assert len(aud.CASOS) >= 125  # cobertura no debe encogerse sin querer
+
+
 def test_relay_fiel_recoge_TODAS_las_autoritativas():
     # N facturas registradas → el usuario ve las N (antes solo salía la última)
     loop = AgentLoop(llm=SimpleNamespace())

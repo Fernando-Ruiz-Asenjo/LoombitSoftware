@@ -22,7 +22,10 @@ _RETENCION_IRPF = re.compile(r"\breten\w+\b|\breti[eé]n\w+\b", re.IGNORECASE)
 _SIN_RETENCION = re.compile(
     r"\bsin\b[^.\n]{0,18}reten"  # «sin (…) retención»
     r"|\bno\s+(?:lleva|tiene|hay|aplica)\b[^.\n]{0,18}reten"  # «no lleva (…) retención»
-    r"|\bno\s+(?:me\s+|le\s+|nos\s+|te\s+)?reti?en\w+",  # «no me retienen / no retengas / no retener»
+    r"|\bno\s+(?:me\s+|le\s+|nos\s+|te\s+)?reti?en\w+"  # «no me retienen / no retengas / no retener»
+    r"|\bexent\w+[^.\n]{0,14}reten"  # «exenta de retención»
+    r"|\bning\w+[^.\n]{0,14}reten"  # «ninguna retención»
+    r"|\b0\s*%[^.\n]{0,14}reten",  # «0% de retención»
     re.IGNORECASE,
 )
 _MSG_RETENCION_NO_MODELADA = (
@@ -70,9 +73,12 @@ def es_registro_con_retencion(task: str) -> bool:
 # ── IBAN inválido: no fabricamos un «✅ guardado» de un IBAN que no cuadra (longitud/checksum mod-97).
 _IBAN_TOKEN = re.compile(r"\bES\s?\d[\d\s]{6,30}", re.IGNORECASE)
 _GUARDA_IBAN = re.compile(
-    r"\b(guarda\w*|gu[aá]rda\w*|ap[uú]nta\w*|registra\w*|anota\w*|almacena\w*)\b",
+    r"\b(guarda\w*|gu[aá]rda\w*|ap[uú]nta\w*|reg[ií]stra\w*|anota\w*|almacena\w*)\b",
     re.IGNORECASE,
 )
+_IBAN_O_CUENTA = re.compile(
+    r"\biban\b|\bcuenta\b", re.IGNORECASE
+)  # «iban» o «cuenta» (nº de cuenta)
 _MSG_IBAN_INVALIDO = (
     "⚠️ No he guardado ese IBAN: no es válido (no cuadra por longitud o dígito de control). Revísalo "
     "y pásamelo completo (un IBAN español tiene 24 caracteres) y lo guardo."
@@ -80,9 +86,10 @@ _MSG_IBAN_INVALIDO = (
 
 
 def iban_invalido_a_guardar(task: str) -> bool:
-    """True si la petición pide GUARDAR un IBAN y el IBAN del texto es INVÁLIDO (longitud/checksum)."""
+    """True si la petición pide GUARDAR un IBAN/cuenta y el IBAN español del texto es INVÁLIDO
+    (longitud/checksum). Acepta «cuenta» además de «iban» (el usuario no siempre dice «IBAN»)."""
     t = task or ""
-    if "iban" not in t.lower() or not _GUARDA_IBAN.search(t):
+    if not _IBAN_O_CUENTA.search(t) or not _GUARDA_IBAN.search(t):
         return False
     m = _IBAN_TOKEN.search(t)
     return bool(m) and not validar_iban(m.group(0))

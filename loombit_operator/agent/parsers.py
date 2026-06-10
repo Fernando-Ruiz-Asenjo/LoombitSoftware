@@ -205,6 +205,10 @@ def parsear_importe_es(texto: object) -> float | None:
     porcentajes, días, fechas (dd/mm/aaaa, «5 de junio») y años. Devuelve None si hay 0 o >1 importes
     DISTINTOS (ambiguo → no se corrige: que lo decida el modelo). Determinista, conservador."""
     t = str(texto or "")
+    # «el 50% DE los 2000 €» → el importe es OPERANDO de un porcentaje (parcial), no extraíble como
+    # único importe → None (que el modelo haga la cuenta). «21% de IVA» (sin número detrás) NO entra.
+    if re.search(r"\d\s*%\s+de\s+(?:los\s+|las\s+|el\s+|la\s+)?\d", t, re.IGNORECASE):
+        return None
     # tachar lo que NO es un importe (su número no debe contarse)
     t = re.sub(
         r"-?\d[\d.,]*\s*(%|por\s*ciento)", " ", t, flags=re.IGNORECASE
