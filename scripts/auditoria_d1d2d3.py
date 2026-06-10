@@ -1670,6 +1670,63 @@ chk(
     "recordatorio",
 )
 
+# ═══ CAMPAÑA 5-cero · audit #15 (barrido enclíticos+acento cobro/recordatorio/factura) — LIMPIA ═══
+chk(
+    "A15",
+    "cobro 'cóbrale' vencido",
+    intencion_consecuente("cóbrale 500 € a Acme que están vencidos"),
+    "cobro",
+)
+chk(
+    "A15",
+    "cobro 'reclámame'",
+    intencion_consecuente("reclámame los 1500 € a Acme vencidos"),
+    "cobro",
+)
+chk(
+    "A15",
+    "cobro 'reclámaselos'",
+    intencion_consecuente("reclámaselos: 800 € vencidos a López"),
+    "cobro",
+)
+chk(
+    "A15",
+    "factura 'factúranos'",
+    intencion_consecuente("factúranos 1000 a un socio al 21% el 1 de junio de 2026"),
+    "factura",
+)
+chk(
+    "A15",
+    "factura 'anótalo'",
+    intencion_consecuente("anótalo: una factura de 500 a López al 21% el 5 de junio de 2026"),
+    "factura",
+)
+chk(
+    "A15",
+    "recordatorio 'recuérdamelo'",
+    intencion_consecuente("recuérdamelo: pagar el 303 el día 20"),
+    "recordatorio",
+)
+chk(
+    "A15",
+    "NEG 'cobra protagonismo' ≠ cobro",
+    intencion_consecuente("el tema cobra protagonismo") != "cobro",
+    True,
+)
+chk(
+    "A15",
+    "NEG '¿cuándo me llega la factura?' ≠ factura",
+    intencion_consecuente("¿cuándo me llega la factura?") != "factura",
+    True,
+)
+chk("A15", "cobro 'reclama 1500'", intencion_consecuente("reclama 1500 € a Acme vencidos"), "cobro")
+chk(
+    "A15",
+    "factura 'regístrame'",
+    intencion_consecuente("regístrame una factura de 500 a López al 21% el 5 de junio de 2026"),
+    "factura",
+)
+
 
 def main() -> int:
     fam_tot: dict[str, list[int]] = {}
