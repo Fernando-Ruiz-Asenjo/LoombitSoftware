@@ -6,6 +6,30 @@
 > LOOP autónomo que encadena turnos. Este fichero es el cerebro del loop: backlog,
 > hallazgos por severidad (P0 rompe / P1 frena / P2 pulido) y estado, con RECIBO.
 
+## 📋 RESUMEN EJECUTIVO (para revisión rápida de Fernando)
+
+**🟢 ARREGLOS SERIOS de este loop (todos con recibo + test, gate verde, server al día):**
+- **3 BUGS FISCALES en el «303 desde facturas registradas»** (el camino que la brújula marca como el
+  fiable) — los tres habrían producido declaraciones erróneas: (a) `sentido='repercutido'/'devengado'`
+  se clasificaba como RECIBIDA → 303 **invertido** (devolver en vez de ingresar); (b) el `periodo` no
+  filtraba → **sumaba TODO el año** en cualquier trimestre; (c) rectificativas (negativas) se caían →
+  303 **inflado**. Verificados e2e (sentido + periodo + rectificativa + multi-tipo correctos).
+- **Agente/UX:** registrar una factura ya NO pide el email del cliente; el 303 elige el camino fiable;
+  **recordatorios** con force-tool («recuérdame X el viernes» crea el evento, no pide NIF); agenda de la
+  SEMANA (`calendar_semana`); días de la semana correctos por código.
+- **Núcleo del cerebro:** force-tool enfocado + allowlist (no fabrica tools/cifras), relay-fiel multi-ítem,
+  fecha-fiel (calendario/cobro/303-trimestre, «hace N días/semanas/meses»), aviso fiscal determinista.
+- **Seguridad:** CSRF/Origin local, IBAN por checksum, inyección por contenido de documento DEFENDIDA,
+  exfiltración masiva bloqueada, routines proactivas SIEMPRE pasan por el gate.
+
+**🟢 VERIFICADO sin bug:** memoria operativa (recuerda hechos entre runs), entregables (sello sha256),
+conciliación N43 e2e, interés de demora al céntimo, redacción de correo, telar, abstención honesta
+(viajes/130 no inventados). **6 chequeos de regresión 13/13 verde.** ~159 commits en `feat/ux-top-ola1`.
+
+**⚠️ ABIERTO — necesita tu decisión:** ver índice ⭐ PARA FERNANDO ↓ (fiscal KB-vs-rehúsa, modelo de
+entidad, responsive, etiquetado AEAT de rectificativas, HMAC entregables, subir a PR, evento de prueba,
+construir 130/retención IRPF). **P2 menores:** typo'd dates (mitigado por gate), narración del 14B.
+
 ## Reglas duras del loop (innegociable)
 - **Por RECIBO, no por render.** «Se pinta» ≠ «funciona». Cada hallazgo: evidencia (qué pasó al
   clicar, captura, dato, recibo). Verificar en el **Chrome real** de Fernando («Browser 1»).
