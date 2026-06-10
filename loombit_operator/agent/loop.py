@@ -31,7 +31,12 @@ from ..tools import tool_registry
 from ..tools.registry import ToolRegistry
 from .memory import get_memory
 from .contexto import ajustar_a_contexto
-from .intencion import intencion_consecuente, tools_excluir, tools_foco
+from .intencion import (
+    es_lectura_agenda,
+    intencion_consecuente,
+    tools_excluir,
+    tools_foco,
+)
 from .prompts import build_system_prompt
 from .run import AgentRun, AgentStatus, AgentStep, AgentStore
 
@@ -270,6 +275,11 @@ class AgentLoop:
             # calcula/contesta a ojo (fabrica) o llama a la tool equivocada. En el PRIMER paso forzamos
             # la tool Y la enfocamos a la correcta. Solo si la petición trae datos (si no, que pregunte).
             _intencion = intencion_consecuente(run.task)
+            # Exclusiones para TODO el run: otras tools de dominio + (si es pregunta de agenda)
+            # calendar_create, para que una LECTURA no acabe creando un evento.
+            _excl_run = tools_excluir(_intencion)
+            if es_lectura_agenda(run.task):
+                _excl_run = _excl_run | {"calendar_create"}
             while True:
                 # Guard: cancelación externa (el usuario pulsó "Detener")
                 fresh = self.store.get(run.id)
@@ -303,11 +313,9 @@ class AgentLoop:
                 if _recortado:
                     logger.info("ALG-0.1 recortó el contexto para que quepa run=%s", run.id)
                 _tool_choice = "auto"
+                if _excl_run:
+                    tools_llm = [t for t in tools_llm if t["function"]["name"] not in _excl_run]
                 if _intencion:
-                    # En TODO el run: quita las tools de dominio de OTRAS intenciones (no divagar).
-                    _excl = tools_excluir(_intencion)
-                    if _excl:
-                        tools_llm = [t for t in tools_llm if t["function"]["name"] not in _excl]
                     # En el PRIMER paso: enfoca a la tool correcta y fuérzala.
                     if run.step_count == 0:
                         _foco = tools_foco(_intencion)
@@ -376,9 +384,9 @@ class AgentLoop:
 
                 for idx, tc in enumerate(response.tool_calls):
                     step_num = run.step_count + 1
-                    if _intencion and tc.tool_name not in _ofrecidas:
-                        # En una intención ENFOCADA, el 14B no puede invocar una tool fuera del set
-                        # (alucinó registrar_factura cuando solo se le ofreció plan_cobro): se rechaza.
+                    if (_intencion or _excl_run) and tc.tool_name not in _ofrecidas:
+                        # Con intención enfocada o exclusión activa, el 14B no puede invocar una tool
+                        # fuera del set ofrecido (alucinaba registrar_factura/calendar_create): se rechaza.
                         result_text, needs_stop = (
                             f"ERROR al ejecutar '{tc.tool_name}': no disponible en este paso; "
                             "usa una de las herramientas ofrecidas.",

@@ -22,6 +22,7 @@ from loombit_operator.agent.loop import (
     _recipiente_resuelto,
 )
 from loombit_operator.agent.intencion import (
+    es_lectura_agenda,
     intencion_consecuente,
     tools_excluir,
     tools_foco,
@@ -550,3 +551,11 @@ def test_tools_excluir_quita_las_otras_de_dominio():
     assert "registrar_factura" in excl and "calcular_303" in excl
     assert "plan_cobro" not in excl  # la propia no se excluye
     assert tools_excluir(None) == set()
+
+
+def test_es_lectura_agenda():
+    # preguntas de agenda = lectura (no crear evento)
+    assert es_lectura_agenda("¿qué reuniones tengo esta semana?") is True
+    assert es_lectura_agenda("¿tengo alguna cita el jueves?") is True
+    assert es_lectura_agenda("agéndame una reunión con Marta el martes") is False  # crear, no leer
+    assert es_lectura_agenda("hola") is False

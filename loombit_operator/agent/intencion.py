@@ -73,3 +73,16 @@ def tools_excluir(intencion: str | None) -> set[str]:
     if not intencion:
         return set()
     return _DOMINIO_TODAS - _TOOLS_POR_INTENCION.get(intencion, set())
+
+
+# Pregunta sobre la agenda ("¿qué reuniones tengo?", "¿tengo algo el jueves?") = LECTURA. El 14B a
+# veces la confunde con CREAR un evento → excluimos calendar_create de forma determinista.
+_LECTURA_AGENDA = re.compile(
+    r"\b(qu[eé]|cu[aá]l\w*|tengo|hay|tienes)\b[^\n]{0,45}"
+    r"\b(reuni\w+|cita\w*|agenda|evento\w*|calendario)\b"
+)
+
+
+def es_lectura_agenda(task: str) -> bool:
+    """True si es una PREGUNTA sobre la agenda (lectura): no debe crear eventos."""
+    return bool(_LECTURA_AGENDA.search((task or "").lower()))
