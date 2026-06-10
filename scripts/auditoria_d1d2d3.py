@@ -1276,6 +1276,41 @@ chk(
 chk("A5", "NEG manip envío normal", _MAN("envía el informe a juan@empresa.com"), False)
 chk("A5", "NEG 'instálame' no es [INST]", _MAN("instálame el programa de contabilidad"), False)
 
+# ═══ CAMPAÑA 5-cero · audit #6 (fraseos frescos: guarda factura, reclámale, variantes) ═══
+chk(
+    "A6",
+    "factura 'guarda esta factura'",
+    intencion_consecuente("guarda esta factura: 500 a López al 21% el 5 de junio de 2026"),
+    "factura",
+)
+chk("A6", "NEG 'guarda el archivo'", intencion_consecuente("guarda el archivo en la carpeta"), None)
+chk(
+    "A6",
+    "cobro 'reclámale'",
+    intencion_consecuente("reclámale los 500 € a Acme que están vencidos"),
+    "cobro",
+)
+chk(
+    "A6",
+    "cobros_pend 'sin cobrar'",
+    intencion_consecuente("enséñame las facturas que tengo sin cobrar"),
+    "cobros_pend",
+)
+chk("A6", "modelo 347 con 'modelo'", G.modelo_no_modelado("hazme el modelo 347"), "347")
+chk("A6", "NEG modelo '347 número solo'", G.modelo_no_modelado("el 347 está pagado"), None)
+chk(
+    "A6",
+    "reten factura con IRPF",
+    G.es_registro_con_retencion("emite una factura a un cliente con IRPF del 7%"),
+    True,
+)
+chk(
+    "A6",
+    "buscar correo 'revisa mi correo'",
+    intencion_consecuente("revisa mi correo a ver si hay algo de Endesa"),
+    "buscar",
+)
+
 
 def main() -> int:
     fam_tot: dict[str, list[int]] = {}
