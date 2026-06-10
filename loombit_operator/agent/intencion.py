@@ -62,7 +62,8 @@ def intencion_consecuente(task: str) -> str | None:
     t = (task or "").lower()
     if _RECORDATORIO.search(t):  # antes que todo: «recuérdame pagar…» es recordatorio, no un pago
         return "recordatorio"
-    if _FACTURACION.search(t):  # «¿cuánto he facturado?» = resumen, no registrar ni 303
+    # «¿cuánto he facturado?» = resumen; pero «¿cuánto IVA con las 303 facturas?» es 303, no facturación.
+    if _FACTURACION.search(t) and not _F303.search(t):
         return "facturacion"
     if _BUSCAR_CORREO.search(t):
         return "buscar"
