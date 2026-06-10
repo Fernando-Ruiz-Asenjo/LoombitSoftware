@@ -178,6 +178,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Loombit Operator", version="0.1.0", lifespan=lifespan)
 
+# Seguridad local-first: rechaza Host/Origin no locales (anti DNS-rebinding + CSRF) ANTES de routers.
+from .seguridad_web import solo_local_middleware  # noqa: E402
+
+app.middleware("http")(solo_local_middleware)
+
 # Rutas API
 app.include_router(health.router)
 app.include_router(skill_blanca_oauth.router)
