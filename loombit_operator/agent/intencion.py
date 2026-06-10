@@ -38,6 +38,12 @@ _FACTURACION = re.compile(
     r"\bcu[aá]nto\b[^\n]{0,25}\b(factur\w+|ingres\w+|gast\w+)\b"
     r"|\b(mi facturaci[oó]n|facturaci[oó]n de|total facturad\w+|benefici\w+|mis gastos)\b"
 )
+# «¿cuánto me deben?»/«¿quién me debe?» = sumar los cobros pendientes (cobros_pendientes), NO plan_cobro
+# (una factura) ni el 303. El agente caía a memory_search y daba un número contaminado.
+_COBROS_PEND = re.compile(
+    r"\b(me deben|me debe|qui[eé]n me debe|por cobrar|cobros pendientes|pendiente[s]? de cobro"
+    r"|sin cobrar|facturas? impagad\w+)\b"
+)
 # Hay un DATO numérico (cifra o número en palabras) → tiene sentido calcular; si no, hay que preguntar.
 _TIENE_DATO = re.compile(
     r"\d|\b(mil|cien|ciento|doscient\w+|trescient\w+|cuatrocient\w+|quinient\w+|"
@@ -52,6 +58,7 @@ _TOOLS_POR_INTENCION: dict[str, set[str]] = {
     "buscar": {"gmail_search"},
     "recordatorio": {"calendar_create"},
     "facturacion": {"resumen_facturacion"},
+    "cobros_pend": {"cobros_pendientes"},
 }
 _SIEMPRE = {"ask_user", "task_done"}
 
@@ -65,6 +72,8 @@ def intencion_consecuente(task: str) -> str | None:
     # «¿cuánto he facturado?» = resumen; pero «¿cuánto IVA con las 303 facturas?» es 303, no facturación.
     if _FACTURACION.search(t) and not _F303.search(t):
         return "facturacion"
+    if _COBROS_PEND.search(t):  # «¿cuánto me deben?» = agregado de cobros pendientes
+        return "cobros_pend"
     if _BUSCAR_CORREO.search(t):
         return "buscar"
     tiene_dato = bool(_TIENE_DATO.search(t))
@@ -90,6 +99,8 @@ def tools_foco(intencion: str | None) -> set[str]:
     if intencion == "facturacion":
         # resumen_facturacion (lectura) + task_done: que SUME, no se escape a otra tool ni divague.
         return {"resumen_facturacion", "task_done"}
+    if intencion == "cobros_pend":
+        return {"cobros_pendientes", "task_done"}
     return _TOOLS_POR_INTENCION.get(intencion, set()) | _SIEMPRE
 
 
@@ -101,6 +112,7 @@ _DOMINIO_TODAS = {
     "calcular_303_registradas",
     "registrar_factura",
     "resumen_facturacion",
+    "cobros_pendientes",
 }
 
 

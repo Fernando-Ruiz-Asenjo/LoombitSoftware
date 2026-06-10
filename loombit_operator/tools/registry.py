@@ -184,8 +184,16 @@ TOOL_GROUPS: list[tuple[tuple[str, ...], set[str]]] = [
             "vence",
             "pendiente de pago",
             "demora",
+            "me deben",
+            "me debe",
+            "quién me debe",
+            "quien me debe",
+            "por cobrar",
+            "cobros pendientes",
+            "pendiente de cobro",
+            "sin cobrar",
         ),
-        {"plan_cobro", "gmail_search", "gmail_send"},
+        {"plan_cobro", "cobros_pendientes", "gmail_search", "gmail_send"},
     ),
     (
         (

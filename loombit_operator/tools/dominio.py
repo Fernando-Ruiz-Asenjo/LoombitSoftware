@@ -312,6 +312,47 @@ def _resumen_facturacion(periodo: str = "") -> str:
     return cuerpo
 
 
+def _cobros_pendientes(**_: object) -> str:
+    """Cuánto te DEBEN: suma las facturas emitidas aún NO cobradas (cobros pendientes). Responde
+    '¿cuánto me deben?'/'¿quién me debe?'. Determinista, desde las facturas registradas."""
+    from ..skill_d_fiscal.conciliacion_cobros import pendientes_de_cobro
+
+    try:
+        store = ExpedienteStore(entity_id=_ENTIDAD_DEFECTO)
+        pend = pendientes_de_cobro(store)
+    except Exception as exc:  # noqa: BLE001
+        return f"ERROR al leer tus cobros pendientes: {exc}"
+    if not pend:
+        return (
+            "No tienes cobros pendientes: todas tus facturas emitidas están cobradas (o no has "
+            "registrado ninguna emitida todavía)."
+        )
+    total = round(sum(float(p.importe) for p in pend), 2)
+    lineas = [f"Te deben {len(pend)} factura(s) — {total:.2f} € en total:"]
+    for p in pend[:12]:
+        cliente = p.contraparte or "(cliente sin nombre)"
+        ref = f" — factura {p.referencia}" if p.referencia else ""
+        lineas.append(f"  · {cliente}: {float(p.importe):.2f} €{ref}")
+    lineas.append("(Facturas emitidas registradas y aún no marcadas como cobradas.)")
+    return "\n".join(lineas)
+
+
+tool_registry.register(
+    ToolDefinition(
+        name="cobros_pendientes",
+        description=(
+            "Dice CUÁNTO te DEBEN y QUIÉN: suma tus facturas emitidas aún no cobradas (cobros "
+            "pendientes), con el cliente y el importe de cada una. Úsala cuando pregunten cuánto les "
+            "deben, quién les debe, qué tienen por cobrar o sus facturas pendientes de cobro. Solo lectura."
+        ),
+        parameters={"type": "object", "properties": {}},
+        fn=_cobros_pendientes,
+        category="base",
+        authoritative=True,
+    )
+)
+
+
 tool_registry.register(
     ToolDefinition(
         name="resumen_facturacion",

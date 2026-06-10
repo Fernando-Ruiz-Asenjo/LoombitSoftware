@@ -772,6 +772,17 @@ def test_filtrar_lineas_303_no_toca_si_no_hay_cifras():
     assert quitadas == 0 and out["iva_repercutido"] == [{"base": 1000, "tipo": 0.21}]
 
 
+def test_intencion_cobros_pendientes_fuerza_la_tool():
+    from loombit_operator.agent.intencion import intencion_consecuente, tools_foco
+
+    assert intencion_consecuente("¿cuánto me deben en total?") == "cobros_pend"
+    assert intencion_consecuente("¿quién me debe dinero?") == "cobros_pend"
+    assert intencion_consecuente("enséñame mis cobros pendientes") == "cobros_pend"
+    # NO confundir con reclamar UN cobro (plan_cobro) ni con facturación
+    assert intencion_consecuente("reclama el cobro de 1500€ vencido el 1 de mayo") == "cobro"
+    assert tools_foco("cobros_pend") == {"cobros_pendientes", "task_done"}
+
+
 def test_intencion_facturacion_fuerza_resumen():
     from loombit_operator.agent.intencion import intencion_consecuente, tools_foco
 
