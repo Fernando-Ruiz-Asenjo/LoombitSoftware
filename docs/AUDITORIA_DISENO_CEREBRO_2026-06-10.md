@@ -126,7 +126,17 @@ fotos sueltas. Hoy abstiene (honesto) o, peor, podría fabricar una comparación
 hay; + abstención dura en PREDICCIÓN del futuro. **Dueño:** producto (proponérselo a Fernando; es
 construible y de alto valor percibido).
 
-## D-5 · El telar no teje las finanzas (MEDIA, carencia de producto)
+## D-5 · El telar no teje las finanzas (MEDIA, carencia de producto) — ✅ HECHO (2026-06-10)
+
+> **RESUELTO.** El telar ya tejía cobros vencidos + calendario fiscal (303); le faltaba la SÍNTESIS
+> proactiva de la salud financiera. Nuevo hilo **PULSO FINANCIERO** (`_hilo_pulso` + fuente
+> `_fuente_pulso_financiero` en telar.py): la facturación del último mes CERRADO vs el anterior
+> (reusa los helpers DETERMINISTAS de D-4 — cruce de skills), con la variación en %. Si BAJÓ → 📉
+> urgencia 2 (atención); si subió → 📈 urgencia 1. Compara meses COMPLETOS (no parte un mes en curso,
+> que sería injusto). Best-effort: sin datos → None → no inventa un hilo. El autónomo VE su tendencia
+> sin pedirla. Golden (`_hilo_pulso` + tejido + fuente con entidad aislada) + 6 casos en la auditoría
+> (gate). Pendiente futuro (D-5 v2): moroso recurrente, facturas a punto de prescribir.
+
 
 Hay síntesis proactiva del día (telar: correos+calendario+plazos), pero NADA proactivo de la SALUD
 FINANCIERA: «tu beneficio cayó este trimestre», «3 facturas a punto de prescribir», «el 303 de este

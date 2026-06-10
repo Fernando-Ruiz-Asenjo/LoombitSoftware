@@ -379,6 +379,40 @@ def _hilo_cobro_vencida(cu: Any, hoy: date) -> dict:
     )
 
 
+def _hilo_pulso(p: dict) -> dict:
+    """Hilo de PULSO FINANCIERO (D-5): facturación del último mes cerrado y su variación vs el anterior.
+    Si bajó → urgencia 2 (atención); si subió → urgencia 1 (buenas noticias). Cifras deterministas.
+    """
+    fact, fact_prev = float(p.get("fact", 0)), float(p.get("fact_prev", 0))
+    delta = round(fact - fact_prev, 2)
+    if fact_prev:
+        pct = round(delta / abs(fact_prev) * 100, 1)
+        comp = f"{'+' if delta >= 0 else ''}{pct:.1f}% vs {p.get('et2')}"
+    else:
+        comp = f"no había facturación en {p.get('et2')}"
+    bajo = delta < 0
+    return _hilo(
+        "finanzas",
+        "📉" if bajo else "📈",
+        f"Facturación de {p.get('et1')}: {fact:.0f} € ({comp})",
+        urgencia=2 if bajo else 1,
+        accion={
+            "modo": "agent_task",
+            "label": "Ver comparativa",
+            "task": "Compara mi facturación de este mes con la del mes pasado.",
+        },
+        porque=(
+            "Tu facturación bajó respecto al mes anterior — conviene mirarlo."
+            if bajo
+            else "Vas por encima del mes anterior."
+        ),
+        detalle=(
+            f"Beneficio {p.get('et1')}: {float(p.get('ben', 0)):.0f} € "
+            f"(vs {float(p.get('ben_prev', 0)):.0f} € en {p.get('et2')})."
+        ),
+    )
+
+
 def _hilo(tipo: str, icono: str, titulo: str, urgencia: int, accion: dict, **extra: Any) -> dict:
     return {
         "tipo": tipo,
@@ -402,6 +436,7 @@ def tejer_dia(
     vencidas: list | None = None,
     proximas: list | None = None,
     aprobaciones: int | None = None,
+    pulso: dict | None = None,
 ) -> dict[str, Any]:
     """Teje la tela del día. Todas las fuentes son inyectables (None = se obtienen de verdad).
 
@@ -497,6 +532,14 @@ def tejer_dia(
                 porque="Vence pronto; un aviso a tiempo evita el retraso.",
             )
         )
+
+    # 💹 Pulso financiero (D-5) — la EVOLUCIÓN del último mes CERRADO vs el anterior (sin partir un mes
+    # en curso, que sería injusto). El autónomo VE su tendencia sin pedirla. Determinista; None = no hay
+    # datos → no inventa nada.
+    if pulso is None:
+        pulso = _fuente_pulso_financiero(settings, hoy)
+    if pulso:
+        hilos.append(_hilo_pulso(pulso))
 
     # 🧾 Calendario fiscal del autónomo — siempre sabe tu próximo impuesto (el moat español)
     for ob in _obligaciones_fiscales(hoy):
@@ -719,6 +762,38 @@ def _fuente_cobros(settings: Any) -> tuple[list, list]:
         return cc.vencidas(), cc.proximas(7)
     except Exception:
         return [], []
+
+
+def _fuente_pulso_financiero(settings: Any, hoy: date) -> dict | None:
+    """Pulso financiero del último mes CERRADO vs el anterior (facturación + beneficio), o None si no
+    hay datos. Reusa los helpers DETERMINISTAS de D-4 (dominio). Best-effort: cualquier fallo → None.
+    """
+    try:
+        from .expedientes import ExpedienteStore
+        from .tools.dominio import _ENTIDAD_DEFECTO, _metricas_periodo, _rango_mes_d4
+
+        a, m = hoy.year, hoy.month
+        m1y, m1 = (
+            (a, m - 1) if m > 1 else (a - 1, 12)
+        )  # último mes COMPLETO (el actual está en curso)
+        m2y, m2 = (m1y, m1 - 1) if m1 > 1 else (m1y - 1, 12)  # el anterior a ese
+        store = ExpedienteStore(entity_id=_ENTIDAD_DEFECTO)
+        d1, h1, et1 = _rango_mes_d4(m1y, m1)
+        d2, h2, et2 = _rango_mes_d4(m2y, m2)
+        cur = _metricas_periodo(store, d1, h1)
+        prev = _metricas_periodo(store, d2, h2)
+        if cur["vacio"] and prev["vacio"]:
+            return None  # nada que mostrar → no se inventa un hilo
+        return {
+            "et1": et1,
+            "et2": et2,
+            "fact": cur["base_e"],
+            "fact_prev": prev["base_e"],
+            "ben": cur["beneficio"],
+            "ben_prev": prev["beneficio"],
+        }
+    except Exception:
+        return None
 
 
 def _fuente_aprobaciones() -> int:

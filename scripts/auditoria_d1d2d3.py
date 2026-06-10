@@ -563,6 +563,60 @@ chk(
 chk("D4", "variación +50%", _Dm._variacion(1500, 1000), ("+500.00 €", "+50.0%"))
 chk("D4", "variación anterior=0", "no había" in _Dm._variacion(500, 0)[1], True)
 
+# ══════════════════ D-5 · PULSO FINANCIERO EN EL TELAR (síntesis proactiva) ══════════════════
+from loombit_operator.telar import _hilo_pulso, tejer_dia  # noqa: E402
+
+_pb = {
+    "et1": "mayo 2026",
+    "et2": "abril 2026",
+    "fact": 800,
+    "fact_prev": 1000,
+    "ben": 500,
+    "ben_prev": 700,
+}
+_ps = {
+    "et1": "mayo 2026",
+    "et2": "abril 2026",
+    "fact": 1500,
+    "fact_prev": 1000,
+    "ben": 900,
+    "ben_prev": 500,
+}
+_pn = {
+    "et1": "mayo 2026",
+    "et2": "abril 2026",
+    "fact": 500,
+    "fact_prev": 0,
+    "ben": 500,
+    "ben_prev": 0,
+}
+chk("D5", "baja → 📉 urg2", (_hilo_pulso(_pb)["icono"], _hilo_pulso(_pb)["urgencia"]), ("📉", 2))
+chk("D5", "sube → 📈 urg1", (_hilo_pulso(_ps)["icono"], _hilo_pulso(_ps)["urgencia"]), ("📈", 1))
+chk("D5", "baja muestra -20%", "-20.0%" in _hilo_pulso(_pb)["titulo"], True)
+chk("D5", "prev=0 no inventa %", "no había" in _hilo_pulso(_pn)["titulo"], True)
+_vac = dict(
+    eventos=[],
+    proximos=[],
+    correos=[],
+    inbox=[],
+    asuntos=[],
+    vencidas=[],
+    proximas=[],
+    aprobaciones=0,
+)
+chk(
+    "D5",
+    "tejido con pulso → hilo finanzas",
+    any(h["tipo"] == "finanzas" for h in tejer_dia(pulso=_pb, **_vac)["hilos"]),
+    True,
+)
+chk(
+    "D5",
+    "tejido sin pulso → NO inventa",
+    any(h["tipo"] == "finanzas" for h in tejer_dia(pulso=None, **_vac)["hilos"]),
+    False,
+)
+
 
 def main() -> int:
     fam_tot: dict[str, list[int]] = {}

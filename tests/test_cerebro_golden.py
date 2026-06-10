@@ -790,6 +790,104 @@ def test_d4_corregir_unidad_comparativa():
     )
 
 
+def test_d5_hilo_pulso_financiero():
+    from loombit_operator.telar import _hilo_pulso, tejer_dia
+
+    baja = _hilo_pulso(
+        {
+            "et1": "mayo 2026",
+            "et2": "abril 2026",
+            "fact": 800,
+            "fact_prev": 1000,
+            "ben": 500,
+            "ben_prev": 700,
+        }
+    )
+    assert baja["icono"] == "📉" and baja["urgencia"] == 2 and "-20.0%" in baja["titulo"]
+    sube = _hilo_pulso(
+        {
+            "et1": "mayo 2026",
+            "et2": "abril 2026",
+            "fact": 1500,
+            "fact_prev": 1000,
+            "ben": 900,
+            "ben_prev": 500,
+        }
+    )
+    assert sube["icono"] == "📈" and sube["urgencia"] == 1 and "+50.0%" in sube["titulo"]
+    nuevo = _hilo_pulso(
+        {
+            "et1": "mayo 2026",
+            "et2": "abril 2026",
+            "fact": 500,
+            "fact_prev": 0,
+            "ben": 500,
+            "ben_prev": 0,
+        }
+    )
+    assert "no había" in nuevo["titulo"]  # sin base previa → NO inventa un %
+    base = dict(
+        eventos=[],
+        proximos=[],
+        correos=[],
+        inbox=[],
+        asuntos=[],
+        vencidas=[],
+        proximas=[],
+        aprobaciones=0,
+    )
+    t = tejer_dia(
+        pulso={
+            "et1": "mayo 2026",
+            "et2": "abril 2026",
+            "fact": 800,
+            "fact_prev": 1000,
+            "ben": 500,
+            "ben_prev": 700,
+        },
+        **base,
+    )
+    assert any(h["tipo"] == "finanzas" for h in t["hilos"])  # con pulso → hilo
+    assert not any(
+        h["tipo"] == "finanzas" for h in tejer_dia(pulso=None, **base)["hilos"]
+    )  # None → nada
+
+
+def test_d5_fuente_pulso_aislada():
+    import shutil
+    from datetime import date
+
+    from loombit_operator.config import get_settings
+    from loombit_operator.telar import _fuente_pulso_financiero
+    from loombit_operator.tools import dominio as Dm
+
+    hoy = date.today()
+    a, m = hoy.year, hoy.month
+    m1y, m1 = (a, m - 1) if m > 1 else (a - 1, 12)  # último mes completo
+    ent, vacio = "_test_pulso", "_test_pulso_vacio"
+    edir = get_settings().entities_dir
+    for e in (ent, vacio):
+        shutil.rmtree(edir / e, ignore_errors=True)
+    orig = Dm._ENTIDAD_DEFECTO
+    try:
+        Dm._ENTIDAD_DEFECTO = ent
+        Dm._registrar_factura(
+            contraparte="A",
+            base=900,
+            tipo=21,
+            sentido="emitida",
+            fecha=date(m1y, m1, 1).isoformat(),
+        )
+        p = _fuente_pulso_financiero(None, hoy)
+        assert p is not None and p["fact"] == 900.0 and p["et1"]
+        Dm._ENTIDAD_DEFECTO = vacio  # entidad sin facturas → None (no inventa)
+        assert _fuente_pulso_financiero(None, hoy) is None
+    finally:
+        Dm._ENTIDAD_DEFECTO = orig
+        for e in (ent, vacio):
+            shutil.rmtree(edir / e, ignore_errors=True)
+
+
 def test_auditoria_fuerte_d1d2d3_en_el_gate():
     # Mete en el gate los casos adversariales DETERMINISTAS de scripts/auditoria_d1d2d3.py (10 ciclos de
     # presión): falsos positivos/negativos, agujeros de regex, sobre-corrección. Si un cambio futuro
