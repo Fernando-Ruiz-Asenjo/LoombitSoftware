@@ -126,6 +126,8 @@ anti-destinatario-inventado y lo malinterpreté; re-test correcto → GATE.
 
 **P2 registrar≠enviar (2026-06-10):** al pedir registrar una factura con datos completos, el agente pedía el email del cliente (confundía anotar-para-303 con enviar) — fricción + bloqueo. Cura: línea de prompt (registrar_factura es anotar en libros, no enviar; no pidas el email salvo que te pidan enviarla). Verificado 2/2: registra sin pedir email y encadena el 303. Gate verde.
 
+**303 desambiguación (2026-06-10):** el 14B a veces elegía calcular_303 (parse-frase, no fiable) tras registrar. Descripción aclarada (calcular_303 SOLO si el usuario dicta cifras; con facturas registradas usa calcular_303_registradas). Verificado 3/3 usan el fiable (antes 1/2). Gate verde.
+
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |
 |---|---|---|---|
