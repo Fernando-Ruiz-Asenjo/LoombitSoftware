@@ -122,6 +122,8 @@ anti-destinatario-inventado y lo malinterpreté; re-test correcto → GATE.
 
 **Entregable/dossier (2026-06-10):** export_dossier genera HTML + .recibo.json con sello de integridad VÁLIDO (sha256 del recibo == sha256 del HTML real, chain_ok=True, local sin red). Flagship Skill W OK. Sin bug.
 
+**Extracción de factura (docs_intel, 2026-06-10):** correcta en formato multi-línea realista (base 1000 / IVA 210 / total 1210 / nº / NIF / fecha, cruce base+IVA==total OK, flaggea proveedor dudoso). ⚠️ Falso positivo retirado: una 1ª prueba con TODO en una línea daba valores iguales y los malinterpreté; el extractor trabaja línea a línea (real). El caso degenerado de una línea rompe base+IVA==total → lo caza el cross_check (defensa en profundidad). Sin bug.
+
 ## Backlog de superficies (orden por valor) — estado
 | # | Superficie | Estado | Notas |
 |---|---|---|---|
