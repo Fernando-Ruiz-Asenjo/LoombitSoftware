@@ -129,3 +129,8 @@ Bugs REALES hallados presionando y REPARADOS (todos con golden + verificados en 
 - **Code vs fine-tuning:** decidido CÓDIGO (determinista/garantía/swap-model); fine-tuning fuera de
   alcance (brújula) y solo bajaría la prob., no garantiza. Residual honesto: el 14B aún puede
   parafrasear/inventar en casos raros; mitigado por guards + camino fiable (303 desde registradas).
+- **P1 dogfooding gestoría (2026-06-10, ARREGLADO):** "con las facturas REGISTRADAS calcula mi 303"
+  → el agente registraba facturas fantasma en vez de usar `calcular_303_registradas`. Causa: `_FACTURA`
+  casaba el adjetivo "registradas". Fix: exigir el COMANDO de crear (regístrame/emite una factura).
+  Verificado e2e: registrar 5000@21 → "303 desde registradas" usa la tool fiable (1050 devengado).
+  **Camino fiable del 303 (⭐PARA FERNANDO) VALIDADO e2e.**
