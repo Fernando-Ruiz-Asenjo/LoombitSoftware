@@ -17,7 +17,11 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-TARGETS = ["loombit_operator", "tests", "evals"]
+# El gate local debe revisar EXACTAMENTE lo mismo que CI (.github/workflows/ci.yml hace
+# `black --check .` y `ruff check .`), o algo pasa local y revienta en CI (le pasó a scripts/
+# live_gob1_receipt.py en el PR #14). "." = todo el repo. §GOB-2: el gate canónico no puede ser
+# más débil que CI.
+TARGETS = ["."]
 
 CHECKS = [
     ("black (formato)", [sys.executable, "-m", "black", "--check", *TARGETS]),
