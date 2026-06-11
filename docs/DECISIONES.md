@@ -457,4 +457,29 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
 - *Pendiente (no bloqueante):* el matcher por token vive en `cuentas_cobrar.py`; si se reusa en la
   conciliación bancaria (ALG-3.5, `conciliacion_cobros.py`), extraer a un helper blanco compartido.
 
+---
+
+## Gobierno / BRÚJULA
+
+**D-54 — Adopción de la BRÚJULA v2 (constitución + gobierno fundidos) + estado volátil fuera de la constitución.**
+- *Contexto:* la v1 enunciaba normas sin mecanismo que las hiciera cumplir ("teatro de verde" posible); los
+  tres informes de mejora (Tier 1/2/3) concluyeron que **una norma cargada en el contexto no se cumple sola**
+  y nombraron el techo (no hay Tier 4 de ingeniería). Síntesis en `BRUJULA_Y_GOBIERNO_V2_FUSION.md`.
+- *Elegido:* **sustituir `docs/BRUJULA.md` por la v2** (Parte I Constitución · II Gobierno · III Meta-gobierno
+  · IV tabla norma→mecanismo→auditoría · V orden de adopción P0→P4), encabezada por la **Ley Fundacional —
+  Separación de Autoridades** ("el LLM nunca está en el camino de control de confianza para nada
+  consecuente", unifica 5 normas en 1). Sincronizada la cabecera de `CLAUDE.md`. **§META-4 aplicado:** sacado
+  el estado volátil/contradictorio de `CLAUDE.md` ("Fase 1" vs "Fase 1 CERRADA"; "84 tests" vs ~560;
+  conectores) a punteros → `docs/ESTADO_Y_ROADMAP.md` (fuente única del estado fechado).
+- *Alternativas descartadas:* (a) dejar la v1 y solo añadir docs de gobierno aparte → sigue sin mecanismo,
+  no resuelve nada; (b) adoptar **e** implementar el gobierno en el mismo PR → viola "una rama por cambio" y
+  hace el diff irrevisable. La implementación va por su orden de dependencia (P0 primero, §SEG).
+- *Honestidad:* esto adopta el **texto**; los mecanismos siguen siendo "hueco hoy" (0% construido). No es
+  🟢 nada de gobierno por adoptar la brújula. Las fechas de Verifactu (§EST-2) sí van verificadas contra AEAT
+  (RD-ley 15/2025; IS 1-ene-2027, autónomos 1-jul-2027).
+- *Reversible:* sí — `git revert` del PR restaura la v1 (la v1 queda en el historial). El estado movido a
+  `ESTADO_Y_ROADMAP.md` ya existía allí; no se pierde nada.
+- *Siguiente (D-55, rama aparte):* P0 §SEG-2 — arnés golden de inyección "datos≠órdenes", por Reparación
+  Canónica (rojo antes de tocar).
+
 *(se irán añadiendo entradas según avance el bloque)*
