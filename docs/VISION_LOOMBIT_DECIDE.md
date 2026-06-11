@@ -133,6 +133,9 @@ que toques nada. Prueba el lazo entero —percepción → decisión → UI gener
 gate— en vertical, sobre código que ya existe. DoD: recibo en vivo + golden de la spec (vocabulario cerrado,
 nunca HTML del LLM).
 
+> **Plan de implementación** (hitos LD-0…LD-5, DoD por hito, orden y dependencias): **`PLAN_LOOMBIT_DECIDE.md`**
+> (D-59). Reflejado en el roadmap (`ESTADO_Y_ROADMAP.md`). Esta rebanada es **LD-2**.
+
 ---
 
 ## 7. Riesgos (honestos)

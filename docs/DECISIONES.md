@@ -582,4 +582,24 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   cierre fuerte (sensor) queda declarado como deuda, no fingido.
 - *Reversible:* sí (docs; `git revert`).
 
+**D-59 — Plan de implementación de «Loombit Decide» metido en el roadmap.**
+- *Contexto:* la dirección D-57 era visión sin secuenciar. Fernando: "hay que planearlo para meterlo en el
+  roadmap".
+- *Elegido:* doc nuevo `docs/PLAN_LOOMBIT_DECIDE.md` con **6 hitos LD-0…LD-5** (objetivo · construye sobre
+  código real verificado · entregable · DoD 🟢 · dependencias · esfuerzo · riesgo) + **orden recomendado** +
+  cómo se refleja en cada fase. Integrado en `ESTADO_Y_ROADMAP.md` (sección compacta + tabla + Fases 3/4).
+  Enlazado desde la visión §6.
+- *Secuenciado honesto:* **LD-0 (motor de decisiones + cola) y LD-1 (UI generativa gobernada: vocabulario
+  cerrado + validador + renderer)** se construyen YA sobre `policy/authority_plane.py` + `PENDING_APPROVAL` +
+  `telar.py` + `static/` (no dependen de datos). **LD-2 (rebanada: `decision_card` de un cobro) DEPENDE del
+  INTAKE de facturas (F-5, 🔴)** para datos reales. LD-3 (autonomía graduada) / LD-4 (correo autónomo) / LD-5
+  (generalizar el vocabulario) detrás.
+- *Alternativas descartadas:* (a) meter el plan dentro de la visión (la habría hinchado >300 líneas, mezcla
+  qué-y-cómo); (b) reordenar el camino crítico para anteponer la UI generativa (rompería el desbloqueo de
+  datos: sin intake no hay cobro real que decidir). El plan **se apila**, no reordena el crítico.
+- *Honestidad:* 0% construido; es secuenciado. Ningún LD es 🟢 sin recibo en vivo + golden + cero regresión.
+  Las piezas de código citadas como base se **verificaron existentes** (telar/authority_plane/comprension/
+  routines/scheduler/intake/cobros) — aplicando D-58 (no afirmar sin comprobar).
+- *Reversible:* sí (docs; `git revert`).
+
 *(se irán añadiendo entradas según avance el bloque)*
