@@ -11,6 +11,7 @@ from datetime import date
 from decimal import Decimal
 
 from loombit_operator.conciliacion import (
+    tokens_contraparte,
     ConfianzaTier,
     Movimiento,
     Pendiente,
@@ -384,3 +385,148 @@ def test_alias_resolver_desambigua_lo_que_de_otro_modo_se_abstiene():
     c = conciliar([mov], facturas, alias_resolver=resolver)[0]
     assert c.tier is ConfianzaTier.MEDIA
     assert c.pendiente.id == "f2"
+
+
+# ── Regresión de la auditoría adversarial 2026-06-11 ─────────────────────────
+# golden-source: supuesto S-01 del banco (un cobro no se aplica dos veces; el caso
+# dudoso se ESCALA, no se concilia) — docs/BANCO_SUPUESTOS_LOOMBIT.md.
+
+
+def _abono(imp: str, ref: str) -> Movimiento:
+    return Movimiento(
+        fecha_operacion=date(2026, 6, 1),
+        fecha_valor=date(2026, 6, 1),
+        importe=Decimal(imp),
+        concepto_comun="",
+        concepto_propio="",
+        num_documento="",
+        referencia1=ref,
+        referencia2="",
+        conceptos=[],
+    )
+
+
+def test_segundo_abono_identico_no_concilia_dos_veces_la_misma_factura():
+    """T10: dos abonos de 500€ contra UNA pendiente de 500€ → la 2ª se abstiene
+    señalando posible pago duplicado (antes ambas conciliaban la misma factura)."""
+    pend = [Pendiente(id="p1", importe=Decimal("500.00"), contraparte="Cliente X")]
+    res = conciliar(
+        [_abono("500.00", "TRANSFERENCIA CLIENTE X"), _abono("500.00", "TRANSFERENCIA CLIENTE X")],
+        pend,
+    )
+    conciliadas = [c for c in res if c.pendiente is not None]
+    assert len(conciliadas) == 1
+    assert res[1].tier == ConfianzaTier.ABSTENCION
+    assert "duplicado" in res[1].razon.lower()
+
+
+# ── Goldens que matan a los supervivientes de la mutación (2026-06-11) ────────
+# Nota: los mutantes de conciliacion.py:131/143/159 ('*'→'/' sobre _signo=±1) son
+# EQUIVALENTES (x/±1 ≡ x*±1): inmortales por matemática, no huecos de la suite.
+# golden-source: Cuaderno 43 AEB (posiciones y cuadre del registro 33) y enunciado
+# S-01/S-03 del banco de supuestos (abstención ante ambigüedad).
+
+
+def test_registro_33_huerfano_no_revienta():
+    """Mata :156 — un 33 sin cabecera 11 previa se ignora sin excepción."""
+    assert parse_norma43(_REG_33) == []
+
+
+_REG_22_ABONO2 = _line(
+    [
+        (0, "22"),
+        (2, "0418"),
+        (6, "240125"),
+        (12, "240125"),
+        (18, "06"),
+        (20, "003"),
+        (23, "2"),
+        (24, "00000000025000"),
+        (38, "0000000003"),
+        (48, "REC-0099"),
+        (60, "CLIENTE GAMMA SL"),
+    ]
+)
+_REG_33_ASIM = _line(
+    [
+        (0, "33"),
+        (2, "0418"),
+        (6, "00001"),
+        (11, "00000000025050"),
+        (25, "00002"),
+        (30, "00000000075000"),
+        (44, "2"),
+        (45, "00000000149950"),
+    ]
+)
+
+
+def test_cuadre_con_apuntes_asimetricos():
+    """Mata :175/:176 — 1 cargo + 2 abonos: el conteo debe/haber distingue el signo
+    (un fixture simétrico 1+1 dejaba vivir a los mutantes de frontera)."""
+    texto = "\n".join([_REG_11, _REG_22_CARGO, _REG_22_ABONO, _REG_22_ABONO2, _REG_33_ASIM])
+    c = parse_norma43(texto)[0]
+    assert c.cuadra is True
+    assert c.avisos == []
+
+
+def test_descuadre_solo_en_cargos_tambien_avisa():
+    """Mata :182 — basta que UNA de las dos sumas (cargos) no cuadre para avisar."""
+    reg33 = _line(
+        [
+            (0, "33"),
+            (2, "0418"),
+            (6, "00001"),
+            (11, "00000000099999"),
+            (25, "00001"),
+            (30, "00000000050000"),
+            (44, "2"),
+            (45, "00000000124950"),
+        ]
+    )
+    c = parse_norma43("\n".join([_REG_11, _REG_22_CARGO, _REG_22_ABONO, reg33]))[0]
+    assert any("cargos" in a.lower() or "no cuadra" in a.lower() for a in c.avisos)
+
+
+def test_tokens_excluyen_cortos_y_forma_juridica():
+    """Mata :251 — ni tokens de <3 letras ni forma jurídica (SLU) cuentan."""
+    assert tokens_contraparte("XY CAIXABANK SLU") == ["CAIXABANK"]
+
+
+def test_segundo_abono_concilia_la_pendiente_LIBRE_no_se_abstiene():
+    """Mata :342 — con A ya usada y B libre, el 2º abono debe conciliar B (ALTA),
+    no abstenerse como falso duplicado."""
+    pend = [
+        Pendiente(id="A", importe=Decimal("500.00"), referencia="FRA-2026-A"),
+        Pendiente(id="B", importe=Decimal("500.00"), referencia="FRA-2026-B"),
+    ]
+    res = conciliar(
+        [
+            _abono("500.00", "TRANSFERENCIA FRA-2026-A"),
+            _abono("500.00", "TRANSFERENCIA FRA-2026-B"),
+        ],
+        pend,
+    )
+    assert res[0].pendiente is not None and res[0].pendiente.id == "A"
+    assert res[1].pendiente is not None and res[1].pendiente.id == "B"
+    assert res[1].tier == ConfianzaTier.ALTA
+
+
+def test_pago_mayor_o_sin_ref_en_concepto_no_es_parcial():
+    """Mata los dos and de :416 — parcial exige ref EN el concepto E importe MENOR."""
+    pend = [Pendiente(id="p1", importe=Decimal("500.00"), referencia="F-9")]
+    mayor = conciliar([_abono("600.00", "TRANSFERENCIA F-9")], pend)[0]
+    assert mayor.tier == ConfianzaTier.ABSTENCION  # importe > pendiente: no es parcial
+    sin_ref = conciliar([_abono("100.00", "TRANSFERENCIA SIN PISTAS")], pend)[0]
+    assert sin_ref.tier == ConfianzaTier.ABSTENCION  # ref no está en el concepto
+
+
+def test_agrupado_sin_referencias_narra_los_ids():
+    """Mata :430 — en el pago agrupado, sin referencia se narra el id de cada pendiente."""
+    pend = [
+        Pendiente(id="p1", importe=Decimal("100.00"), contraparte="Cliente Gamma"),
+        Pendiente(id="p2", importe=Decimal("200.00"), contraparte="Cliente Gamma"),
+    ]
+    res = conciliar([_abono("300.00", "TRANSF CLIENTE GAMMA")], pend)[0]
+    assert res.tier == ConfianzaTier.BAJA
+    assert "p1" in res.razon and "p2" in res.razon

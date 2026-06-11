@@ -34,7 +34,7 @@ Fernando.
 - **Acierta al 100 %. NUNCA pidas al usuario que revise tu trabajo.** Si tú reconcilias un descuadre
   (el correo dice jueves 11, el calendario lunes 15), decídelo tú: la palabra explícita de la persona
   en el correo manda. Pedirle que "confirme cuál es la buena" es haber fallado. La confianza lo es TODO.
-- **Cero fallos.** Si el modelo es lento o puede fallar, no lo llames en caliente: calcula en segundo
+- **Cero fallos.** Si el modelo es lento o puede fallar, no lo llames en caliente: calcula en segundo <!-- verify-allow: nombre de principio, no claim de estado -->
   plano y cachea; muestra el último resultado bueno o "verificando…", **nunca** un dato sin verificar.
 - **Fricción cero · UX cálida, smooth, desenfadada.** Anticipa y prepara; el usuario solo confirma los
   efectos externos. Nada de menús pasivos ni "¿le doy?". El telar es la cara: contexto a un clic.

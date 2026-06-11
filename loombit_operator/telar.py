@@ -601,7 +601,18 @@ def tejer_dia(
             )
         )
 
-    hilos.sort(key=lambda h: -h["urgencia"])
+    # Orden DETERMINISTA por importancia·recency·relevance (Generative Agents): la 'relevance' la
+    # aportan los HÁBITOS del usuario, así el telar anticipa lo que sueles atender. Degrada con
+    # elegancia al orden por importancia si aún no hay hábitos. Nunca rompe el telar.
+    from .priorizador import ordenar as _ordenar_hilos
+
+    try:
+        from .habitos import get_habits
+
+        _hab: Any = get_habits()
+    except Exception:
+        _hab = None
+    hilos = _ordenar_hilos(hilos, habitos=_hab)
 
     return {
         "saludo": _saludo(ahora),

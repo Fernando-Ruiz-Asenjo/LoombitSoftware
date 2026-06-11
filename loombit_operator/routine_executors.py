@@ -198,6 +198,25 @@ _NO_RESPUESTA_BLOB = re.compile(
 )
 
 
+def filtrar_silenciados(respuestas: list[dict], habitos: object) -> tuple[list[dict], list[str]]:
+    """Aparta las candidatas a respuesta cuyo remitente el usuario SUELE IGNORAR (hábito). No deja
+    de percibirlas (siguen leídas/dedupeadas); solo evita prepararle un borrador que va a rechazar.
+    Devuelve (a_preparar, silenciados). Tolerante: si no hay hábito, no filtra nada."""
+    a_preparar: list[dict] = []
+    silenciados: list[str] = []
+    for r in respuestas:
+        dest = _email_de(r.get("from", "")) or ""
+        try:
+            ignorar = bool(dest) and habitos.silenciar("respuesta", dest.lower())
+        except Exception:
+            ignorar = False
+        if ignorar:
+            silenciados.append(dest)
+        else:
+            a_preparar.append(r)
+    return a_preparar, silenciados
+
+
 def _necesita_respuesta(subject: str, snippet: str = "") -> bool:
     """¿Este correo PIDE una respuesta? Excluye acuses/confirmaciones y automáticos."""
     s = subject or ""
@@ -283,6 +302,10 @@ def reply_watch_executor(routine: Routine, now: datetime) -> str:
             por_email.setdefault(em, c)
     contactos = list(por_email.values())
     respuestas = _buscar_respuestas(token, contactos)
+    # Menos ruido (hábitos): no preparar borrador a quien sueles ignorar. Lo aprendido manda.
+    from .habitos import get_habits
+
+    respuestas, _silenciados = filtrar_silenciados(respuestas, get_habits())
     if not respuestas:
         return "Sin respuestas nuevas de tus contactos."
 
@@ -430,6 +453,20 @@ def aprendizaje_executor(routine: Routine, now: datetime) -> str:
     return consolidar().get("resumen", "Aprendizaje: sin resultado.")
 
 
+def agente_executor(routine: Routine, now: datetime) -> str:
+    """Ejecuta la tarea de una skill ENSEÑADA (S2) vía el agent loop, en modo PROACTIVO: prepara
+    el trabajo y se queda en pending_approval (nunca auto-envía; lo proactivo siempre se confirma).
+    Reutiliza el bucle del agente, igual que la vigilancia de respuestas."""
+    from .routers.agent import _get_loop
+
+    loop = _get_loop()
+    run = loop.create(task=routine.objective, profile="administrativo")
+    run.proactive = True
+    loop.store.save_run(run)
+    loop.execute_run(run.id)
+    return f"Preparé «{routine.name}». Pendiente de tu aprobación si implica un envío."
+
+
 def default_executor(routine: Routine, now: datetime) -> str:
     """Despacha al executor según el tipo de routine (un solo punto de entrada para el scheduler)."""
     if routine.output_kind == "mejora":
@@ -440,6 +477,8 @@ def default_executor(routine: Routine, now: datetime) -> str:
         return fabrica_skills_executor(routine, now)
     if routine.output_kind == "aprendizaje":
         return aprendizaje_executor(routine, now)
+    if routine.output_kind == "agente":
+        return agente_executor(routine, now)
     return brief_executor(routine, now)
 
 

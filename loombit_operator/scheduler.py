@@ -131,22 +131,52 @@ class SchedulerDaemon:
         self._thread: threading.Thread | None = None
         self.last_error: str | None = None
         self.tick_count = 0
+        # Latido (S1, "Loombit está trabajando…"): instantes ISO-UTC y nº de recibos del último tick.
+        self.started_at: str | None = None
+        self.last_tick_at: str | None = None
+        self.last_fired_count = 0
+
+    @property
+    def running(self) -> bool:
+        return self._thread is not None and self._thread.is_alive()
 
     def start(self) -> None:
         if self._thread and self._thread.is_alive():
             return
         self._stop.clear()
+        self.started_at = datetime.now(UTC).isoformat()
         self._thread = threading.Thread(target=self._loop, name="routines-scheduler", daemon=True)
         self._thread.start()
 
     def stop(self) -> None:
         self._stop.set()
 
+    def _do_tick(self) -> int:
+        """Un tick + actualiza el latido. Devuelve el nº de recibos. Aislado del hilo para
+        que el latido sea testeable sin esperar al bucle."""
+        receipts = self.scheduler.tick()
+        self.tick_count += 1
+        self.last_fired_count = len(receipts)
+        self.last_tick_at = datetime.now(UTC).isoformat()
+        return len(receipts)
+
     def _loop(self) -> None:
         while not self._stop.is_set():
             try:
-                self.scheduler.tick()
-                self.tick_count += 1
+                self._do_tick()
             except Exception as exc:  # noqa: BLE001 — nunca tumbar el hilo del daemon
                 self.last_error = str(exc)
             self._stop.wait(self.interval)
+
+    def status(self) -> dict[str, object]:
+        """Latido legible para la UI: si el daemon corre, desde cuándo, cuántos ticks,
+        el último instante y el último error (None si sano)."""
+        return {
+            "running": self.running,
+            "interval_seconds": self.interval,
+            "started_at": self.started_at,
+            "last_tick_at": self.last_tick_at,
+            "tick_count": self.tick_count,
+            "last_fired_count": self.last_fired_count,
+            "last_error": self.last_error,
+        }

@@ -1,0 +1,7 @@
+# La jaula de verificación solo se toca con revisión humana (Ley 1.3).
+/scripts/loombit_verify/            @Fernando-Ruiz-Asenjo
+/.github/workflows/loombit-verify.yml @Fernando-Ruiz-Asenjo
+/.github/CODEOWNERS                 @Fernando-Ruiz-Asenjo
+/.claude/settings.json              @Fernando-Ruiz-Asenjo
+/docs/BRUJULA_ALGORITMO.md          @Fernando-Ruiz-Asenjo
+/tests/test_loombit_verify.py       @Fernando-Ruiz-Asenjo

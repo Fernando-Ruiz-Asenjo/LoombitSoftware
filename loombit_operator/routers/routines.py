@@ -14,13 +14,19 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel
 
 from ..routine_executors import brief_executor, ensure_default_routines
 from ..routines import RoutineNotFoundError, RoutineStore
 from ..scheduler import RoutineScheduler
 
 router = APIRouter(prefix="/routines", tags=["routines"])
+
+
+class AprenderBody(BaseModel):
+    texto: str
+
 
 _EMPTY_WATCH = "Sin respuestas nuevas"
 
@@ -69,6 +75,58 @@ def feed(limit: int = 30) -> dict:
 
     items = build_feed(get_settings().routine_receipt_dir, limit)
     return {"count": len(items), "items": items}
+
+
+@router.get("/status")
+def status(request: Request) -> dict:
+    """Estado del agente proactivo para la UI ('Loombit está trabajando…'): latido del daemon
+    + inventario de routines + recuento de novedades detectadas. Honesto: si el daemon está
+    apagado (opt-in), dice 'en reposo', no finge actividad."""
+    from ..config import get_settings
+
+    daemon = getattr(request.app.state, "daemon", None)
+    daemon_status = (
+        daemon.status()
+        if daemon is not None
+        else {"running": False, "reason": "daemon apagado (opt-in en config)"}
+    )
+    routines = [
+        {
+            "name": r.name,
+            "cron": r.schedule.expr,
+            "tz": r.schedule.tz,
+            "enabled": r.enabled,
+            "safety": r.safety.value,
+            "output_kind": r.output_kind,
+            "last_fired": r.last_fired,
+        }
+        for r in _store().list()
+    ]
+    novedades = len(build_feed(get_settings().routine_receipt_dir, limit=30))
+    trabajando = bool(daemon_status.get("running"))
+    return {
+        "trabajando": trabajando,
+        "mensaje": (
+            "Loombit está trabajando en segundo plano…"
+            if trabajando
+            else "Loombit en reposo (daemon apagado)."
+        ),
+        "daemon": daemon_status,
+        "routines": routines,
+        "novedades": novedades,
+    }
+
+
+@router.post("/aprender")
+def aprender(body: AprenderBody) -> dict:
+    """'Enséñale' (S2): de una orden en lenguaje natural a una skill/routine auto-disparada.
+    El horario lo dispone el código (determinista); el efecto externo se queda en aprobación."""
+    from ..aprender_skill import crear_skill_desde_texto
+
+    try:
+        return crear_skill_desde_texto(body.texto, _store())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get("")

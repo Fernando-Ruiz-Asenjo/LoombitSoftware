@@ -88,6 +88,7 @@ from .routers import (  # noqa: E402
     fabrica,
     fiscal,
     galaxia,
+    habitos,
     health,
     home,
     mcp,
@@ -169,6 +170,8 @@ async def lifespan(app: FastAPI):
             build_default_scheduler(), settings.routines_daemon_interval_seconds
         )
         daemon.start()
+    # Latido visible (S1): el endpoint /routines/status lee de aquí. None = daemon apagado (opt-in).
+    app.state.daemon = daemon
     try:
         yield
     finally:
@@ -196,6 +199,7 @@ app.include_router(fiscal.router)
 app.include_router(conciliacion.router)
 app.include_router(cuentas.router)
 app.include_router(galaxia.router)
+app.include_router(habitos.router)
 app.include_router(home.router)
 app.include_router(credentials.router)
 app.include_router(mcp.router)

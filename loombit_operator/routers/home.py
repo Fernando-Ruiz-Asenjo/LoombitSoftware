@@ -119,10 +119,15 @@ def home_context() -> dict:
         aviso = "Re-autoriza Google (Conectar Google) para que analice tu correo y sepa a quién escribes más."
     # BLANCO: el dueño (nombre/empresa) viene de la memoria del usuario, no hardcodeado.
     owner: dict = {}
+    needs_onboarding = False
     try:
         from ..agent.memory import get_memory
+        from ..onboarding import intentar_onboarding_google
 
-        o = get_memory().owner
+        mem = get_memory()
+        # Zero-friction: si aún no hay nombre y Google está conectado, lo derivamos del perfil.
+        needs_onboarding = bool(intentar_onboarding_google(get_settings(), mem)["needs_onboarding"])
+        o = mem.owner
         nombre = (o.get("name") or "").strip()
         owner = {
             "name": nombre,
@@ -137,6 +142,7 @@ def home_context() -> dict:
         "fuente_contactos": fuente,
         "aviso": aviso,
         "owner": owner,
+        "needs_onboarding": needs_onboarding,
     }
 
 

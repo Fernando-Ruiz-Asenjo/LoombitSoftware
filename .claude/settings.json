@@ -1,0 +1,25 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '--- ALGORITMO DE GOBIERNO (recordatorio anti-decaimiento) ---'; sed -n '1,30p' docs/BRUJULA_ALGORITMO.md 2>/dev/null"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python scripts/loombit_verify/hook_guard.py"
+          }
+        ]
+      }
+    ]
+  }
+}

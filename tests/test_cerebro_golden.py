@@ -4,6 +4,9 @@ funcionar al 100%. Cada test blinda un comportamiento real (ver docs/ALGORITMO_C
 Si un cambio los rompe, el gate (scripts/verify.py) se pone ROJO. Son 100% CI (sin LM Studio).
 """
 
+# golden-source: spec interna docs/ALGORITMO_CEREBRO_EXISTENTE.md (comportamientos deterministas del cerebro definidos por enunciado, no por la salida del código).
+
+
 from datetime import date, datetime
 from types import SimpleNamespace
 

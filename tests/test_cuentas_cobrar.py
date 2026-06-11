@@ -2,6 +2,8 @@
 Store de cuentas a cobrar (Fase 2): pendientes, vencidas y próximas (con `today` fijo).
 """
 
+# golden-source: enunciado docs/BANCO_SUPUESTOS_LOOMBIT.md (S-03: clasificación por-vencer / vencida con `today` fijo).
+
 import pytest
 
 from loombit_operator.cuentas_cobrar import (

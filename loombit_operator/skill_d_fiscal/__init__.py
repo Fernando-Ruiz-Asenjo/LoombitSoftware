@@ -16,6 +16,7 @@ from .intake import (
     liquidar_303_periodo,
     recopilar_lineas,
     registrar_factura,
+    registrar_factura_desde_texto,
 )
 from .modelo_303 import (
     LineaIVA,
@@ -42,4 +43,5 @@ __all__ = [
     "procesar_303",
     "recopilar_lineas",
     "registrar_factura",
+    "registrar_factura_desde_texto",
 ]
