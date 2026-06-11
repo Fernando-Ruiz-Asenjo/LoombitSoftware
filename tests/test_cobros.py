@@ -4,6 +4,8 @@ S-01 (no reclamar si está cobrada), S-02 (interés no inventado, judicial→hum
 S-03 (cobro parcial → reclamar solo el saldo).
 """
 
+import pytest
+
 from loombit_operator.cobros import (
     LATE_FEE_FIXED_EUR,
     days_overdue,
@@ -89,3 +91,41 @@ def test_dunning_not_due_yet_waits():
     plan = dunning_plan(total=500.0, due_date="2026-12-01", today="2026-06-07")
     assert plan["action"] == "esperar"
     assert plan["stage"] == "por_vencer"
+
+
+# ── Regresión de la auditoría adversarial 2026-06-11 ─────────────────────────
+# golden-source: Ley 3/2004 (art. 7: tipo legal publicado en BOE, nunca de memoria;
+# art. 8: compensación) y supuesto S-02 del banco (un tipo no verificado se etiqueta).
+
+
+def test_cobrado_negativo_se_rechaza():
+    """T4: un 'cobrado' negativo (extracción garbeada del LLM) NUNCA infla la reclamación."""
+    with pytest.raises(ValueError):
+        dunning_plan(total=1000.0, due_date="2026-05-01", today="2026-06-11", paid=-200.0)
+
+
+def test_total_no_positivo_es_revisar_no_cobrada():
+    """T6: una rectificativa (total negativo) no se etiqueta como 'factura cobrada'."""
+    plan = dunning_plan(total=-242.0, due_date="2026-05-01", today="2026-06-11")
+    assert plan["action"] == "revisar"
+    assert plan["reason"] == "importe_no_positivo"
+
+
+def test_tipo_manual_queda_etiquetado_como_no_boe():
+    """T13: un tipo aportado por el llamante se marca SIEMPRE como no contrastado con BOE."""
+    plan = dunning_plan(
+        total=1000.0, due_date="2026-04-01", today="2026-06-11", annual_rate_pct=25.0
+    )
+    assert plan["interest"]["tipo_manual"] is True
+    assert "BOE" in plan["interest"]["fuente"]
+
+
+def test_interes_cero_si_no_vencida_o_principal_no_positivo():
+    """Mata los mutantes supervivientes de cobros.py:79-80 (rama de interés cero).
+    Sin días vencidos (o sin principal) el interés es 0 y NO se exige verificar tipo."""
+    r = late_interest(1000.0, 0)
+    assert r["amount"] == 0.0
+    assert r["rate_required"] is False
+    r2 = late_interest(-5.0, 30)
+    assert r2["amount"] == 0.0
+    assert r2["rate_required"] is False

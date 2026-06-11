@@ -6,6 +6,9 @@ Tabla oficial del tipo legal de interés de demora (Ley 3/2004). Verifica que:
 Las cifras provienen del BOE (cada entrada cita su resolución); verificado el 2026-06-08.
 """
 
+# golden-source: BOE — resoluciones del Tesoro citadas por entrada en la tabla (p.ej. BOE-A-2025-27201) y Ley 3/2004, art. 7 (tipo = BCE + 8 puntos).
+
+
 from loombit_operator import tipos_demora as td
 
 
