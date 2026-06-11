@@ -556,4 +556,23 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   código la valida y la rinde; las cifras del payload las pone código de dominio. El gate de efecto intacto.
 - *Reversible:* sí (paquete nuevo + un router montado + 1 línea de config; `git revert`).
 
+
+**D-61 — «Loombit Decide» LD-2: rebanada vertical del cobro (decisión → cola → gate).**
+- *Contexto:* cerrar el lazo técnico sobre LD-0/LD-1 (D-60) sin esperar al INTAKE: con cuentas sembradas
+  se prueba percepción → decisión → UI gobernada → efecto con gate.
+- *Elegido:* `loombit_operator/decisions_cobros.py` (Skill D) compone una `Decision` por cuenta vencida con
+  su plan legal (Ley 3/2004, cifras por `cobros.dunning_plan`, NO del LLM), su porqué, su detalle (saldo +
+  40 € art. 8 + interés con tipo BOE o «a verificar») y la acción preparada. Router: `POST
+  /decisions/sembrar-cobros` (idempotente por `cuenta_id`) y `resolve` cableado — si la opción es **APROBAR**
+  y hay `agent_task`, se lanza al agente (`AgentLoop.create` + ejecución en background) y el **gate
+  `PENDING_APPROVAL` retiene el envío**. El envío real NUNCA sale del router.
+- *Ley Fundacional:* dos autoridades distintas — la decisión («¿persigo este cobro?») y el gate de efecto
+  («¿envío este texto exacto?»). El LLM solo prepara el borrador; ni calcula cifras ni dispara el efecto.
+- *Recibo (🟡):* 13 goldens — compositor (vencida→decisión con plan, no-vencida→None, vía judicial→riesgo
+  alto, spec válida) (6) + router (sembrar idempotente, APROBAR lanza la acción, posponer no) (7). Gate
+  VERDE: black + ruff (`.`) + **799 pytest**, cero regresión. Honesto: 🟡 — el `resolve→agente→gate` se
+  verifica por seam (sin LLM); falta el recibo EN VIVO (servidor + 14B + navegador) y cablear el renderer a
+  una página de la Tela. Dos toques (decisión + gate) podrían colapsarse a uno → decisión de UX/autoridad de
+  Fernando, no se hace aquí.
+- *Reversible:* sí (un módulo nuevo + 1 endpoint + cableado en `resolve`; `git revert`).
 *(se irán añadiendo entradas según avance el bloque)*
