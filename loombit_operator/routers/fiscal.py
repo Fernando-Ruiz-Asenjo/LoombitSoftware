@@ -35,6 +35,12 @@ class FacturaIn(BaseModel):
     vencimiento: str | None = None  # ISO; si falta y es emitida → plazo estándar (30 días)
 
 
+class FacturaDocIn(BaseModel):
+    sentido: str  # "devengado" (emitida) | "soportado" (recibida)
+    text: str = ""  # texto de la factura (cuerpo de correo o ya extraído)
+    path: str = ""  # o la ruta a un PDF local (se extrae aquí)
+
+
 class Liquidar303In(BaseModel):
     periodo: str
 
@@ -109,6 +115,43 @@ def add_factura(entity_id: str, body: FacturaIn) -> dict:
         CuentasCobrarStore().add(cuenta)
 
     return _summary(exp)
+
+
+@router.post("/{entity_id}/facturas/desde-documento")
+def add_factura_desde_documento(entity_id: str, body: FacturaDocIn) -> dict:
+    """Intake real: de una factura (texto de correo o PDF en `path`) AL registro para el 303.
+    Extrae los campos con el extractor determinista y registra el expediente. No inventa: si no es
+    legible, registra y avisa. Si es emitida y tiene total, alimenta cuentas a cobrar."""
+    from ..skill_d_fiscal import registrar_factura_desde_texto
+
+    store = _store(entity_id)
+    texto = body.text
+    if not texto and body.path:
+        from ..docs_intel import extract_text_from_pdf
+
+        info = extract_text_from_pdf(body.path)
+        if info.get("error"):
+            raise HTTPException(status_code=400, detail=info["error"])
+        texto = info.get("text", "")
+    if not texto:
+        raise HTTPException(status_code=400, detail="Indica `text` o `path` de la factura.")
+
+    exp, inv, avisos = registrar_factura_desde_texto(store, texto, body.sentido)
+
+    # Factura EMITIDA con total → alimenta cuentas a cobrar (igual que el alta manual).
+    from ..cuentas_cobrar import CuentasCobrarStore, cuenta_desde_factura
+
+    cuenta = cuenta_desde_factura(
+        proveedor=inv.proveedor,
+        total=inv.total,
+        sentido=body.sentido,
+        numero=inv.numero or "",
+        vencimiento=inv.vencimiento,
+    )
+    if cuenta:
+        CuentasCobrarStore().add(cuenta)
+
+    return {**_summary(exp), "campos": inv.to_dict(), "avisos": avisos}
 
 
 @router.post("/{entity_id}/303")

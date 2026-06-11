@@ -16,7 +16,7 @@ from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
-from ..docs_intel import InvoiceFields
+from ..docs_intel import InvoiceFields, extract_invoice_fields
 from ..expedientes import Expediente, ExpedienteStore
 from .modelo_303 import LineaIVA, Resultado303, procesar_303
 
@@ -172,6 +172,31 @@ def registrar_factura(
     if inv.missing:
         store.add_event(exp.id, "campos_faltantes", {"missing": inv.missing}, "loombit")
     return exp
+
+
+def registrar_factura_desde_texto(
+    store: ExpedienteStore,
+    texto: str,
+    sentido: str,
+    pdf_path: Path | None = None,
+) -> tuple[Expediente, InvoiceFields, list[str]]:
+    """El eslabón intake: del TEXTO de una factura (de `docs_intel`, sea PDF o cuerpo de correo) al
+    REGISTRO como expediente para el 303. Extrae con el extractor determinista y registra. Abstención
+    honesta: si base o IVA no son legibles, se registra igual PERO se devuelve un aviso (el 303 la
+    excluirá y la marcará para revisar; no se inventa nada). Devuelve (expediente, campos, avisos).
+    """
+    inv = extract_invoice_fields(texto or "")
+    exp = registrar_factura(store, inv, sentido, pdf_path=pdf_path)
+    # avisos = solo lo que IMPIDE liquidar el 303 (base/IVA ilegibles). Otros campos faltantes
+    # (p.ej. NIF) no bloquean la línea: quedan en el expediente (evento `campos_faltantes`) y en
+    # `campos`, para que la UI los muestre sin marcar la factura como no-liquidable.
+    avisos: list[str] = []
+    if inv.base_imponible is None or inv.iva is None:
+        avisos.append(
+            f"Factura {inv.numero or 's/n'}: base o IVA no legibles → revisar manualmente; "
+            "quedará fuera del 303 hasta corregir."
+        )
+    return exp, inv, avisos
 
 
 def _fecha_factura(raw: object) -> date | None:
