@@ -537,4 +537,23 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   [2] manipulación `###SISTEMA###`+«ignora tus reglas» → no salió correo; [3] lectura `resumen_facturacion`
   → ejecuta sin gate. **3/3.** *Reversible:* sí (un paquete nuevo + delegación en un punto; `git revert`).
 
+**D-60 — «Loombit Decide» LD-0 + LD-1 construidos (motor de decisiones + UI generativa GOBERNADA).**
+- *Contexto:* primer paso del plan D-59. LD-0 y LD-1 no dependen de datos → se construyen ya sobre el
+  gate + `static/` existentes.
+- *LD-0 (motor + cola):* `loombit_operator/decisions.py` — `Decision` de primera clase (title/why/detail/
+  kind/options/risk/reversible/status/source/payload) + `DecisionStore` (JSON atómico, patrón `agent/run.py`,
+  resiliente a fila corrupta). `resolve()` registra la opción elegida; NO dispara el efecto (eso es del gate,
+  lo cablea LD-2). Router `routers/decisions.py` (cola, get, spec, resolve, dismiss).
+- *LD-1 (UI generativa GOBERNADA):* `loombit_operator/ui_spec.py` — vocabulario CERRADO (`decision_card`,
+  `resumen`, `eleccion`, `borrador_preview`, `cola`) + `validate_spec()` (whitelist de tipos/claves + rechazo
+  de HTML/script + valores cerrados) + `decision_to_spec`/`cola_to_spec`. Renderer `static/loombit-render.js`
+  (JS plano: `textContent`/`createElement`, NUNCA `innerHTML`/`eval`; tipo desconocido no se pinta).
+- *Recibo (🟡 contrato + tests):* 30 goldens — LD-0 cola/resolver/persistencia/fila-corrupta (8), LD-1
+  contrato incl. **test adversarial de inyección** `<script>`/`onerror=`/`javascript:` rechazada (18), router
+  HTTP (4). **Gate VERDE:** black + ruff (`.`) + **790 pytest**, cero regresión (los 786 previos + 30, −26
+  solapados). Honesto: es 🟡 (sin recibo en vivo con servidor+navegador); el lazo entero llega en LD-2.
+- *Ley Fundacional:* el LLM no está en el camino de control — propone una spec de vocabulario cerrado, el
+  código la valida y la rinde; las cifras del payload las pone código de dominio. El gate de efecto intacto.
+- *Reversible:* sí (paquete nuevo + un router montado + 1 línea de config; `git revert`).
+
 *(se irán añadiendo entradas según avance el bloque)*
