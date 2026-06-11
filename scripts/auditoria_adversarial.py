@@ -210,14 +210,15 @@ caso(
     f"stage={p['stage']} action={p['action']} (esperado: vence_hoy, sin interés ni 40€)",
 )
 
-# ── T12 · '4T' pedido en enero → ¿de qué año? ──
-d, h, et = rango_trimestre("4T")
+# ── T12 · '4T' pedido en enero → debe ser el año ANTERIOR (último trimestre cerrado) ──
+_, _, et_ene = rango_trimestre("4T", date(2026, 1, 15))
+_, _, et_ago = rango_trimestre("2T", date(2026, 8, 1))
 caso(
     "T12",
-    "'4T' sin año (pedido p.ej. en enero)",
-    "A-VERIFICAR",
-    f"resuelve a {et} (año en curso {date.today().year}). En enero, '4T' casi siempre "
-    f"significa el año ANTERIOR → riesgo de 303 del trimestre equivocado.",
+    "'4T' sin año pedido en enero → trimestre cerrado (año anterior)",
+    "AGUANTA" if (et_ene == "4T 2025" and et_ago == "2T 2026") else "CAZADO",
+    f"'4T'@15/01/2026 → {et_ene} (esperado 4T 2025) · '2T'@01/08/2026 → {et_ago} "
+    f"(esperado 2T 2026). Criterio: el 303 solo se liquida con el trimestre terminado.",
 )
 
 # ── T13 · el 14B puede INYECTAR un tipo de interés inventado vía tool ──

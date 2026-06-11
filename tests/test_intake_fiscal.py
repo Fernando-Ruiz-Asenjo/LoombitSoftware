@@ -168,6 +168,31 @@ def test_inferir_tipo_por_tolerancia_al_centimo():
     assert inferir_tipo_iva(Decimal("100"), Decimal("21.01")) == Decimal("0.21")
 
 
+# golden-source: calendario de presentación del modelo 303 (AEAT — la
+# autoliquidación de un trimestre se presenta una vez TERMINADO ese trimestre;
+# el 4T se presenta entre el 1 y el 30 de enero del año SIGUIENTE). Enunciado:
+# un trimestre pedido SIN año se refiere al último que ya ha concluido, no al
+# del año en curso si ese aún no ha terminado (evita liquidar el 303 del
+# trimestre equivocado — T12 de la auditoría adversarial 2026-06-11).
+def test_rango_trimestre_sin_anio_usa_el_ultimo_trimestre_terminado():
+    # En enero de 2026, '4T' = 4T 2025 (4T 2026 ni siquiera ha empezado a liquidarse).
+    assert rango_trimestre("4T", date(2026, 1, 15)) == (
+        date(2025, 10, 1),
+        date(2025, 12, 31),
+        "4T 2025",
+    )
+    # Un trimestre del año en curso YA terminado sí usa el año en curso.
+    assert rango_trimestre("2T", date(2026, 8, 1)) == (
+        date(2026, 4, 1),
+        date(2026, 6, 30),
+        "2T 2026",
+    )
+    # Un trimestre del año en curso AÚN no terminado → el del año anterior.
+    assert rango_trimestre("2T", date(2026, 5, 15))[2] == "2T 2025"
+    # Con año EXPLÍCITO se respeta siempre, ignorando 'hoy'.
+    assert rango_trimestre("4T 2026", date(2026, 1, 15))[2] == "4T 2026"
+
+
 def test_linea_sin_numero_usa_sn_y_base_none_se_abstiene():
     """Mata :126 y :127 — sin nº → 's/n' en el aviso; base None con IVA presente → abstención."""
     linea, avisos = linea_desde_factura(

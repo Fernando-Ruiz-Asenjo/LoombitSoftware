@@ -24,12 +24,19 @@ _TRIM_MESES = {1: (1, 3), 2: (4, 6), 3: (7, 9), 4: (10, 12)}
 _TRIM_PALABRA = {"primer": 1, "segundo": 2, "tercer": 3, "cuarto": 4}
 
 
-def rango_trimestre(periodo: str | None) -> tuple[date | None, date | None, str]:
+def rango_trimestre(
+    periodo: str | None, hoy: date | None = None
+) -> tuple[date | None, date | None, str]:
     """Convierte '2T 2026' / 'segundo trimestre 2026' / '2T' en (desde, hasta, etiqueta).
 
     Devuelve (None, None, …) si no hay trimestre claro → el llamante NO filtra (y avisa). El 303 de
     un trimestre SOLO puede incluir facturas de ese trimestre; sin esto se sumaba TODO el año.
+
+    Sin año explícito, un trimestre se refiere al ÚLTIMO ya TERMINADO a día `hoy` (no al del año
+    en curso si aún no ha concluido): el modelo 303 de un trimestre solo se liquida una vez cerrado
+    —el 4T se presenta en enero del año siguiente—, así que en enero '4T' significa el año anterior.
     """
+    hoy = hoy or date.today()
     s = (periodo or "").lower()
     q: int | None = None
     m = re.search(r"\b([1-4])\s*t\b", s)
@@ -42,9 +49,14 @@ def rango_trimestre(periodo: str | None) -> tuple[date | None, date | None, str]
                 break
     if q is None:
         return None, None, (periodo or "todas las facturas")
-    my = re.search(r"\b(20\d{2})\b", s)
-    anio = int(my.group(1)) if my else date.today().year
     m0, m1 = _TRIM_MESES[q]
+    my = re.search(r"\b(20\d{2})\b", s)
+    if my:
+        anio = int(my.group(1))
+    else:
+        anio = hoy.year
+        if date(anio, m1, monthrange(anio, m1)[1]) > hoy:  # ese trimestre aún no ha terminado
+            anio -= 1
     return date(anio, m0, 1), date(anio, m1, monthrange(anio, m1)[1]), f"{q}T {anio}"
 
 
@@ -74,7 +86,7 @@ def rango_periodo(
     (todo). Generaliza `rango_trimestre` para soportar también meses — base de «cuánto he facturado».
     """
     hoy = hoy or date.today()
-    d, h, et = rango_trimestre(periodo)
+    d, h, et = rango_trimestre(periodo, hoy)
     if d is not None:
         return d, h, et
     s = (periodo or "").lower()
