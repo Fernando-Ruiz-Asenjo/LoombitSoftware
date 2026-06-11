@@ -104,6 +104,22 @@ def dunning_plan(
     Plan de cobro de una factura. Devuelve qué hacer, el saldo a reclamar, la etapa
     y los importes legales — respetando los gates (parcial, ya cobrada, judicial).
     """
+    # Entradas hostiles (p.ej. extracción garbeada del LLM): NUNCA reclamar de más.
+    if paid < 0:
+        raise ValueError(f"cobrado negativo no válido: {paid!r} (¿extracción errónea?)")
+    if total <= 0:
+        # Una rectificativa/abono o un total ilegible NO es una "factura cobrada".
+        return {
+            "action": "revisar",
+            "reason": "importe_no_positivo",
+            "outstanding": 0.0,
+            "overdue_days": days_overdue(due_date, today),
+            "stage": "revisar",
+            "note": (
+                f"Total no positivo ({total}): no es una factura reclamable "
+                "(¿rectificativa/abono o dato mal extraído?). Revisar antes de actuar."
+            ),
+        }
     outstanding = round(total - paid, 2)
     overdue = days_overdue(due_date, today)
 
@@ -139,6 +155,13 @@ def dunning_plan(
     plan["fixed_compensation_eur"] = LATE_FEE_FIXED_EUR
     if annual_rate_pct is not None:
         plan["interest"] = late_interest(outstanding, overdue, annual_rate_pct)
+        # Un tipo aportado por el llamante NO es el tipo legal publicado: se etiqueta
+        # SIEMPRE para que el borrador no pueda citar como "legal" un tipo de memoria (S-02).
+        plan["interest"]["fuente"] = (
+            f"tipo {annual_rate_pct}% aportado por el llamante (pacto/manual); "
+            "NO contrastado con el tipo legal del BOE."
+        )
+        plan["interest"]["tipo_manual"] = True
     else:
         plan["interest"] = tipos_demora.interes_demora_legal(outstanding, due_date, today)
 

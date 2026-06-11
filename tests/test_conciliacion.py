@@ -384,3 +384,36 @@ def test_alias_resolver_desambigua_lo_que_de_otro_modo_se_abstiene():
     c = conciliar([mov], facturas, alias_resolver=resolver)[0]
     assert c.tier is ConfianzaTier.MEDIA
     assert c.pendiente.id == "f2"
+
+
+# ── Regresión de la auditoría adversarial 2026-06-11 ─────────────────────────
+# golden-source: supuesto S-01 del banco (un cobro no se aplica dos veces; el caso
+# dudoso se ESCALA, no se concilia) — docs/BANCO_SUPUESTOS_LOOMBIT.md.
+
+
+def _abono(imp: str, ref: str) -> Movimiento:
+    return Movimiento(
+        fecha_operacion=date(2026, 6, 1),
+        fecha_valor=date(2026, 6, 1),
+        importe=Decimal(imp),
+        concepto_comun="",
+        concepto_propio="",
+        num_documento="",
+        referencia1=ref,
+        referencia2="",
+        conceptos=[],
+    )
+
+
+def test_segundo_abono_identico_no_concilia_dos_veces_la_misma_factura():
+    """T10: dos abonos de 500€ contra UNA pendiente de 500€ → la 2ª se abstiene
+    señalando posible pago duplicado (antes ambas conciliaban la misma factura)."""
+    pend = [Pendiente(id="p1", importe=Decimal("500.00"), contraparte="Cliente X")]
+    res = conciliar(
+        [_abono("500.00", "TRANSFERENCIA CLIENTE X"), _abono("500.00", "TRANSFERENCIA CLIENTE X")],
+        pend,
+    )
+    conciliadas = [c for c in res if c.pendiente is not None]
+    assert len(conciliadas) == 1
+    assert res[1].tier == ConfianzaTier.ABSTENCION
+    assert "duplicado" in res[1].razon.lower()
