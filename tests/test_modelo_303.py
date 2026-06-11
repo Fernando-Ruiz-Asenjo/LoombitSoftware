@@ -1,5 +1,8 @@
 """Tests del Skill D Fiscal — cálculo determinista del 303 + integración con Expediente."""
 
+# golden-source: Ley 37/1992 del IVA, arts. 90-91 (tipos 21/10/4) — las cuotas esperadas son base × tipo legal, calculadas de la ley, no del código.
+
+
 from decimal import Decimal
 
 from loombit_operator.expedientes import ExpedienteStatus, ExpedienteStore

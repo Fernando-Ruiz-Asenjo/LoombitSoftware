@@ -1,0 +1,99 @@
+name: Loombit Verify
+
+# Aplica el ALGORITMO DE GOBIERNO (docs/BRUJULA_ALGORITMO.md) como gate duro.
+# Corre en servidores de GitHub, fuera del control del agente en el momento de
+# afirmar. Con branch protection (status check "verify" requerido), el PR no
+# funde en rojo. CODEOWNERS exige revisión humana para tocar esta jaula.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: python -m pip install -r requirements.txt
+
+      # --- META-GATE: vigilar que nadie apagó los gates (se vigila a sí mismo) ---
+      - name: Meta-gate (gates activos)
+        run: python scripts/loombit_verify/check_gates_active.py
+
+      # --- Self-test: que los propios verificadores no sean huecos ---
+      - name: Self-test del verificador
+        run: python tests/test_loombit_verify.py
+
+      # --- Anti-tautología: los goldens del CAMINO CRÍTICO citan fuente externa ---
+      # Alcance: tests del camino crítico (cobros/intake/303/conciliación/demora).
+      # Ampliar fichero a fichero al añadir golden-source al resto de la suite.
+      - name: Gate fuente-golden (camino crítico)
+        run: >
+          python scripts/loombit_verify/check_golden_source.py
+          tests/test_cobros.py tests/test_intake_fiscal.py tests/test_conciliacion.py
+          tests/test_tipos_demora.py tests/test_modelo_303.py tests/test_cuentas_cobrar.py
+          tests/test_cerebro_golden.py tests/test_loombit_verify.py
+
+      # --- Anti teatro-de-verde: sin éxito absoluto en los ficheros de estado ---
+      # (docs/ de primer nivel; investigacion/ es prosa de research, fuera de alcance)
+      - name: Gate lenguaje (ficheros de estado)
+        run: python scripts/loombit_verify/check_language.py docs/*.md README.md AGENTS.md CLAUDE.md
+
+      # --- CONTROLES NEGATIVOS (caso-trampa): los gates deben CAZAR la mentira ---
+      - name: Trampa 1 — golden tautológico debe ser RECHAZADO
+        run: |
+          if python scripts/loombit_verify/check_golden_source.py demo_verify/; then
+            echo "ERROR: el golden tautologico del demo deberia fallar el gate"; exit 1
+          else
+            echo "OK: el gate caza el golden sin fuente del demo"
+          fi
+
+      - name: Trampa 2 — test hueco debe dar mutation_score ROJO
+        run: |
+          if python scripts/loombit_verify/mutation.py demo_verify/iva.py \
+               --test-cmd "python demo_verify/test_iva_hollow.py" --threshold 0.8; then
+            echo "ERROR: el test hueco del demo deberia suspender la mutacion"; exit 1
+          else
+            echo "OK: la mutacion destapa el test hueco del demo"
+          fi
+
+      - name: Trampa 3 — anti-bucle debe dar HALT (exit 3) sin progreso
+        run: |
+          rm -f /tmp/ledger_ci.json
+          python scripts/loombit_verify/anti_loop.py --ledger /tmp/ledger_ci.json --objetivo demo --metrica 5 --fix-hash a1
+          python scripts/loombit_verify/anti_loop.py --ledger /tmp/ledger_ci.json --objetivo demo --metrica 5 --fix-hash a2 || true
+          if python scripts/loombit_verify/anti_loop.py --ledger /tmp/ledger_ci.json --objetivo demo --metrica 5 --fix-hash a3; then
+            echo "ERROR: 3 intentos sin progreso deberian dar HALT"; exit 1
+          else
+            echo "OK: anti-bucle fuerza HALT sin progreso"
+          fi
+
+      # --- MUTACIÓN REAL del camino crítico: el arnés debe tener dientes ---
+      - name: Mutación · cobros.py (motor de cobros, Ley 3/2004)
+        run: >
+          python scripts/loombit_verify/mutation.py loombit_operator/cobros.py
+          --test-cmd "python -m pytest tests/test_cobros.py --no-cov -q -x -p no:cacheprovider"
+          --threshold 0.8 --timeout 120
+
+      - name: Mutación · intake.py (intake fiscal → 303)
+        run: >
+          python scripts/loombit_verify/mutation.py loombit_operator/skill_d_fiscal/intake.py
+          --test-cmd "python -m pytest tests/test_intake_fiscal.py --no-cov -q -x -p no:cacheprovider"
+          --threshold 0.8 --timeout 120
+
+      # --- Suite + auditoría adversarial completas (regresión global) ---
+      - name: Suite completa
+        run: python -m pytest --no-cov -q
+
+      - name: Auditoría adversarial (camino crítico bajo ataque)
+        run: python scripts/auditoria_adversarial.py

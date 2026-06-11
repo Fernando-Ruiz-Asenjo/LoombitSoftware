@@ -22,7 +22,7 @@ Hazlo igual o mejor que Google/los grandes; que sean más grandes NO es excusa.
   derivan reuniones, notificaciones, plazos — con su contexto. No pesques un dato suelto.
 - **Acierta al 100 %. NUNCA pidas al usuario que revise tu trabajo.** Si le pides que confirme o
   compruebe lo que tú deberías saber, has fallado. La confianza lo es TODO.
-- **Cero fallos · fricción cero · UX cálida.** Anticipa y prepara; el usuario solo confirma efectos
+- **Cero fallos · fricción cero · UX cálida.** Anticipa y prepara; el usuario solo confirma efectos <!-- verify-allow: nombre de principio, no claim de estado -->
   externos. Nada de menús pasivos ni "¿le doy?".
 - **No mentir (DoD).** 🟢 = servicio real + recibo. Las cifras las calcula CÓDIGO determinista; el LLM
   comprende/narra. Si es parcial, di "parcial", con la lista de lo que falta.
