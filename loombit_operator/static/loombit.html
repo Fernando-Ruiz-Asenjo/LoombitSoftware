@@ -33,6 +33,8 @@
   .chip b{color:var(--text);font-variant-numeric:tabular-nums}
   .chip.local{color:var(--cian);border-color:#29e0d840}
   .dot{width:8px;height:8px;border-radius:50%;background:var(--cian);animation:latido 1.8s infinite}
+  .dot.work{background:var(--verde)}
+  .dot.idle{background:var(--faint);animation:none}
   .gbtn{cursor:pointer;font:inherit}.gbtn:hover{border-color:#ffffff33;color:var(--text)}
   .gdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--faint)}
   .gdot.ok{background:var(--verde);box-shadow:0 0 0 3px #36d39933}
@@ -119,7 +121,7 @@
     <div class="chips">
       <span class="chip local">🔒 local</span>
       <span class="chip">⏱ <b id="ahorro">14</b> min</span>
-      <span class="chip"><span class="dot"></span> 1 nuevo</span>
+      <span class="chip" id="estado-chip" title="Estado del agente proactivo"><span class="dot idle"></span> …</span>
       <button class="chip gbtn" id="g-chip" type="button" onclick="gToggle()"><span class="gdot"></span> Google</button>
     </div>
   </header>
@@ -267,6 +269,23 @@
     }catch(e){ toast("No pude iniciar la conexión con Google."); }
   }
   gStatus();
+  // ── Estado del agente proactivo: "Loombit está trabajando…" (latido de /routines/status) ──
+  async function estadoLoombit(){
+    const c=document.getElementById("estado-chip");if(!c)return;
+    try{
+      const r=await fetch("/routines/status",{signal:AbortSignal.timeout(4000)});
+      const s=await r.json();
+      const nov=(s.novedades>0)?` · <b>${s.novedades}</b> nuevo${s.novedades>1?'s':''}`:'';
+      if(s.trabajando){
+        c.innerHTML='<span class="dot work"></span> Loombit trabajando…'+nov;
+        c.title="El agente proactivo está activo en segundo plano (local, opt-in).";
+      }else{
+        c.innerHTML='<span class="dot idle"></span> en reposo'+nov;
+        c.title="El agente proactivo está apagado (opt-in en configuración).";
+      }
+    }catch(e){ c.innerHTML='<span class="dot idle"></span> —'; }
+  }
+  estadoLoombit(); setInterval(estadoLoombit, 30000);
 
   function toggle(l0){const h=l0.parentElement;if(h.querySelector(".l2"))h.classList.toggle("open");}
   // Ejecuta DE VERDAD la acción del hilo (no finge): agent_task → /agent/run; navigate/muestra → marcar visto.
