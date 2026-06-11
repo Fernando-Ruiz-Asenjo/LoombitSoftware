@@ -9,25 +9,25 @@
 # (se solicita su review) pero no bloquea. Honesto: mecanismo presente; enforcement = un ajuste suyo.
 
 # La puerta de calidad y sus piezas deterministas
-/scripts/verify.py                      @FernandoAsenjo777
-/scripts/mutation_test.py               @FernandoAsenjo777
-/scripts/auditoria_d1d2d3.py            @FernandoAsenjo777
-/scripts/auditoria_cobro.py             @FernandoAsenjo777
-/scripts/fuzz_invariantes.py            @FernandoAsenjo777
-/scripts/live_smoke.py                  @FernandoAsenjo777
+/scripts/verify.py                      @construiaapp
+/scripts/mutation_test.py               @construiaapp
+/scripts/auditoria_d1d2d3.py            @construiaapp
+/scripts/auditoria_cobro.py             @construiaapp
+/scripts/fuzz_invariantes.py            @construiaapp
+/scripts/live_smoke.py                  @construiaapp
 
 # Los candados del gobierno (anti-debilitamiento, cumplimiento de brújula, cobertura, conducta)
-/tests/test_gate_integridad.py          @FernandoAsenjo777
-/tests/test_brujula_cumplimiento.py     @FernandoAsenjo777
-/tests/test_gobierno_cobertura.py       @FernandoAsenjo777
-/tests/test_conducta.py                 @FernandoAsenjo777
-/loombit_operator/conducta.py           @FernandoAsenjo777
+/tests/test_gate_integridad.py          @construiaapp
+/tests/test_brujula_cumplimiento.py     @construiaapp
+/tests/test_gobierno_cobertura.py       @construiaapp
+/tests/test_conducta.py                 @construiaapp
+/loombit_operator/conducta.py           @construiaapp
 
 # CI / auto-merge y los umbrales del gate
-/.github/                               @FernandoAsenjo777
-/pyproject.toml                         @FernandoAsenjo777
+/.github/                               @construiaapp
+/pyproject.toml                         @construiaapp
 
 # La constitución y su cabecera
-/docs/BRUJULA.md                        @FernandoAsenjo777
-/docs/PROTOCOLO_VERIFICACION_CANONICO.md @FernandoAsenjo777
-/CLAUDE.md                              @FernandoAsenjo777
+/docs/BRUJULA.md                        @construiaapp
+/docs/PROTOCOLO_VERIFICACION_CANONICO.md @construiaapp
+/CLAUDE.md                              @construiaapp
