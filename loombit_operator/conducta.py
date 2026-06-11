@@ -119,7 +119,7 @@ def validate_recibo(recibo: Any) -> tuple[bool, list[str]]:
         a, d = recibo.get("antes_score"), recibo.get("despues_score")
         if not (_num(a) and _num(d)):
             errores.append("antes_score y despues_score deben ser números")
-        elif d <= a:
+        elif isinstance(d, (int, float)) and isinstance(a, (int, float)) and d <= a:
             errores.append(f"despues_score ({d}) <= antes_score ({a}): NO es una mejora")
         n = recibo.get("n_casos")
         if not (isinstance(n, int) and n >= N_CASOS_MIN):

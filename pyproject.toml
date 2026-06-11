@@ -19,7 +19,26 @@ extend-exclude = ["*.ipynb"]
 addopts = "-q --cov=loombit_operator --cov-report=term-missing"
 testpaths = ["tests"]
 
+[tool.coverage.run]
+# ADAPTADORES INTESTABLES sin hardware/credenciales/red reales — EXCLUIDOS de la cuenta y DECLARADOS
+# aquí a la vista (D-74). No se simulan con mocks (eso sería cobertura que miente). El 100% se mide
+# sobre la LÓGICA; estos adaptadores se verifican EN VIVO (recibo manual), no por unit test.
+omit = [
+    "loombit_operator/launcher.py",                    # arranque de escritorio + bandeja del SO
+    "loombit_operator/pilot/*",                        # control real de ratón/teclado/pantalla (hardware)
+    "loombit_operator/tools/pilot.py",                 # tools de control de escritorio
+    "loombit_operator/tools/computer.py",              # control de escritorio
+    "loombit_operator/routers/computer.py",            # router de control de escritorio
+    "loombit_operator/routers/pilot.py",               # router de control de escritorio
+    "loombit_operator/llm.py",                         # llamadas reales al LLM local (LM Studio)
+    "loombit_operator/skill_blanca_gmail.py",          # envío real por la API de Gmail (red)
+    "loombit_operator/skill_blanca_calendar.py",       # creación real en Calendar (red)
+    "loombit_operator/skill_blanca_oauth.py",          # OAuth: navegador + keyring del SO
+    "loombit_operator/routers/skill_blanca_oauth.py",  # router OAuth
+    "loombit_operator/docs_intel_vision.py",           # modelo de visión local (VL)
+]
+
 [tool.coverage.report]
 # Suelo de cobertura (§GOB-2b, D-67): el verde EXIGE no bajar de aquí. Ratchet: solo sube.
-# Inicial conservador (cobertura real ~71%); se calibra/sube con el primer CI y a medida que crece.
-fail_under = 68
+# Meta: 100% sobre la LÓGICA (adaptadores excluidos arriba, D-74). Se sube por rondas; hoy 76 (real 77,6%).
+fail_under = 76

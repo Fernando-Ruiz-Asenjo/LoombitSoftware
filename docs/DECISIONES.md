@@ -833,4 +833,39 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   no se finge. Quedan honestamente HUMANO §CONC y §META-5 (criterio puro) y PENDIENTE §14B.
 - *Recibo:* gate `--strict --live` VERDE — 773 tests, conducta 17/17, 20/20 contabilizadas. Lo confirma GitHub.
 - *Reversible:* sí (dos tipos de recibo + un candado + manifiesto; `git revert`).
+
+**D-73 — Endurecer el gate al máximo, sin puerta de atrás (mutación ampliada + mypy + cobertura).**
+- *Contexto:* Fernando — endurecer los tests al máximo, sin puerta de atrás. Mi auditoría honesta destapó:
+  cobertura ~71% (un tercio sin test), mutación solo sobre 4 ficheros, y mi `-k` elegía qué test juzgaba
+  cada mutante (puerta de atrás), 0 type-checking.
+- *Elegido:* (1) **Mutación ampliada 8→14**: añade mutantes para TODO lo construido hoy (decisions, ui_spec,
+  conducta, autonomy, decisions_cobros) → prueba que MIS tests tienen dientes. Cada mutante se juzga con el
+  **fichero de test ENTERO** (no un `-k` que yo elija) — cerrada esa puerta de atrás. **La mutación cazó un
+  hueco real**: el golden de inyección comprobaba «rechazado» pero no «por la inyección»; al juzgar con el
+  fichero entero se caza. (2) **mypy** en el gate sobre los 5 módulos nuevos tipados (encontró y arreglé un
+  bug real de comparación con None en `conducta.py`). (3) **Suelo de cobertura 68→70** (ratchet). (4)
+  Integridad: el candado protege mypy y los mutantes nuevos (no se pueden quitar).
+- *Honestidad (residuo, declarado):* mypy solo en 5 módulos — el repo entero arrastra el patrón `.list()` que
+  tapa al builtin (`AgentStore` incl.) → type-check repo-wide es un refactor aparte. Cobertura 70% → ~30% aún
+  sin test (mucho son adaptadores de hardware/OAuth legítimamente difíciles; algunos módulos de lógica
+  deberían cubrirse). La mutación es CURADA (yo escribo los mutantes) aunque ya juzgada sin cherry-pick y
+  cubriendo lo nuevo; una herramienta de mutación sistemática es el siguiente nivel.
+- *Recibo:* gate `--strict --live` VERDE — mypy 5/5, cobertura 70,82%≥70, **mutación 14 cazadas/0 sobreviven**,
+  773 tests, live 12/12. Lo confirma GitHub CI.
+- *Reversible:* sí; `git revert`.
+
+**D-74 — Camino al 100% honesto: adaptadores excluidos+declarados; cobertura de la LÓGICA 70→76 (ronda 1).**
+- *Contexto:* Fernando exige cobertura 100% antes de echar la llave. Honestidad: forzar 100% con mocks de
+  hardware/OAuth sería cobertura que MIENTE. Decisión suya (AskUserQuestion): **100% honesto = excluir y
+  declarar** los adaptadores intestables, y cubrir la lógica de verdad.
+- *Elegido:* `[tool.coverage.run] omit` en pyproject con la **lista VISIBLE de adaptadores** (launcher,
+  pilot/*, tools de escritorio, llm, gmail/calendar send, oauth, docs_intel_vision) — cada uno con su motivo.
+  No se simulan con mocks; se verifican EN VIVO (recibo manual). Excluyéndolos, la lógica pasa de 70,8% →
+  **77,6%** (sin un solo mock falso). Suelo 70→76 (ratchet); MIN_COV_FAIL_UNDER 68→72.
+- *Honestidad — el camino que queda:* faltan ~2.100 líneas de LÓGICA por cubrir hasta el 100%, incluido
+  `agent/loop.py` (703 líneas, el bucle ReAct) y `memory.py` (426). Parte de eso exige **mockear el LLM**
+  para probar la lógica alrededor — test más blando que la verificación real, pero legítimo (no es hardware).
+  Es un grind de **varias rondas**, no de una.
+- *Recibo:* gate `--strict --live` VERDE — cobertura lógica 77,76%≥76, mypy 5/5, mutación 14/0, live 12/12.
+- *Reversible:* sí (config de cobertura; `git revert`).
 *(se irán añadiendo entradas según avance el bloque)*
