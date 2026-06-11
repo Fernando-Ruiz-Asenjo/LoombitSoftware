@@ -761,4 +761,26 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
 - *Recibo:* gate `--strict --live` VERDE — 759 tests, 20/20 normas contabilizadas, candados ok, cobertura
   70,86%≥68%, mutación 8/0, live 12/12. Lo confirma GitHub CI.
 - *Reversible:* sí (un test-manifiesto; `git revert`).
+
+**D-70 — RECIBOS DE CONDUCTA: las normas conductuales se vuelven contabilizables con evidencia cuantificable.**
+- *Contexto:* Fernando — las normas de conducta (marcadas HUMANO en D-69) deben pasarse «con propuestas a
+  esas conductas que sí se contabilizarán, con algún método». Ejemplo suyo: mejorar un prompt debe dejar
+  registro de CÓMO, con elementos cuantificables y útiles, para evitar proponer cosas de bajo valor.
+- *Análisis:* la máquina no puede JUZGAR la conducta, pero sí puede EXIGIR un recibo con números y un suelo
+  de valor, y rechazar lo vago/de bajo valor. Eso transforma HUMANO → contabilizable (sin fingir que la
+  máquina opina).
+- *Elegido:* `loombit_operator/conducta.py` (mismo patrón que el validador de UI): vocabulario CERRADO de
+  recibos — `mejora_prompt` (exige antes/después + eval + n_casos; rechaza si NO mejora o es anecdótico),
+  `innovacion` (QUÉ/POR QUÉ/fase/CÓMO-se-prueba + valor>=suelo; rechaza bajo valor o sin mecanismo
+  verificable), `mejora_generica` (antes/después medibles), `veredicto` (mecaniza D-58: veredicto fuerte
+  exige lectura íntegra). Log `docs/RECIBOS_CONDUCTA.jsonl` (dogfood: el primer recibo es este sistema).
+  Gate: `tests/test_conducta.py` (9 goldens + valida los recibos commiteados). Integrado en el manifiesto
+  (`tests/test_gobierno_cobertura.py`): nuevo estado **RECIBO**; INNOVACIÓN y Ley 0 pasan de HUMANO→RECIBO.
+  Norma canónica en `CLAUDE.md`.
+- *Honestidad:* esto NO juzga si una idea es brillante — exige que sea MEDIBLE y supere un suelo (filtra el
+  ruido). El juicio fino sigue siendo de Fernando; lo que se elimina es «confía en mi palabra» y el bajo valor
+  sin números. Quedan HUMANO las que no admiten métrica (NORTE, §CONC, §EST, §META-2/5).
+- *Recibo:* gate `--strict --live` VERDE — 768 tests, conducta 9/9, 20/20 normas contabilizadas, cobertura
+  70,80%≥68%, mutación 8/0, live 12/12. Lo confirma GitHub CI.
+- *Reversible:* sí (un módulo + un test + un log + manifiesto; `git revert`).
 *(se irán añadiendo entradas según avance el bloque)*

@@ -24,14 +24,19 @@ ROOT = Path(__file__).resolve().parent.parent
 BRUJULA = (ROOT / "docs" / "BRUJULA.md").read_text(encoding="utf-8")
 
 AUTOMATICO, PARCIAL, HUMANO, PENDIENTE = "AUTOMÁTICO", "PARCIAL", "HUMANO", "PENDIENTE"
+# RECIBO: norma de conducta vuelta contabilizable — no se juzga la conducta, se EXIGE un recibo
+# cuantificable que el gate valida (D-70, `loombit_operator/conducta.py`). Transforma HUMANO en checkable.
+RECIBO = "RECIBO"
 
 # Manifiesto: TODA norma de la brújula (Partes I-III) → (estado, arnés/evidencia o motivo).
 # La clave es el nombre de la sección `###` tal cual aparece en BRUJULA.md (antes del «—»).
 MANIFIESTO: dict[str, tuple[str, str]] = {
     # ── Parte I · Constitución ────────────────────────────────────────────────
     "Ley 0": (
-        HUMANO,
-        "«Mejora lo que se te pide»: conducta/juicio del agente — no mecanizable; la juzga Fernando.",
+        RECIBO,
+        "«Mejora lo que se te pide» → recibo de conducta CUANTIFICABLE (`loombit_operator/conducta.py`: "
+        "mejora_prompt / mejora_generica con antes/después medibles), validado en `tests/test_conducta.py`. "
+        "El juicio fino lo da Fernando, pero el bajo valor sin números ya NO cuenta.",
     ),
     "Ley FUNDACIONAL": (
         PARCIAL,
@@ -53,9 +58,10 @@ MANIFIESTO: dict[str, tuple[str, str]] = {
         "`tests/test_brujula_cumplimiento.py`. «Rama por cambio / verifica en vivo» = proceso/humano.",
     ),
     "INNOVACIÓN": (
-        HUMANO,
-        "«Propón una mejora por sesión, sé creativo, veredicto con recibo de lectura (D-58)»: conducta — "
-        "no mecanizable.",
+        RECIBO,
+        "→ recibo de conducta (`conducta.py`): tipo `innovacion` exige QUÉ/POR QUÉ/fase/CÓMO-se-prueba + "
+        "`valor` >= suelo (rechaza bajo valor); tipo `veredicto` mecaniza D-58 (veredicto fuerte exige "
+        "lectura íntegra). Validado en `tests/test_conducta.py` + recibos en `docs/RECIBOS_CONDUCTA.jsonl`.",
     ),
     # ── Parte II · Gobierno ───────────────────────────────────────────────────
     "§GOB-1": (
@@ -129,6 +135,8 @@ _ARNESES = [
     "tests/test_seg_inyeccion.py",
     "tests/test_gate_integridad.py",
     "tests/test_brujula_cumplimiento.py",
+    "loombit_operator/conducta.py",
+    "tests/test_conducta.py",
     "scripts/verify.py",
     "scripts/mutation_test.py",
     "scripts/auditoria_cobro.py",
@@ -175,7 +183,7 @@ def test_lo_marcado_automatico_o_parcial_tiene_arnes_real():
 
 def test_los_estados_son_validos():
     """Cada norma tiene un estado del vocabulario cerrado y una evidencia/motivo no vacío."""
-    validos = {AUTOMATICO, PARCIAL, HUMANO, PENDIENTE}
+    validos = {AUTOMATICO, PARCIAL, HUMANO, PENDIENTE, RECIBO}
     for norma, (estado, evidencia) in MANIFIESTO.items():
         assert estado in validos, f"{norma}: estado inválido «{estado}»"
         assert (

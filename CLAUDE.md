@@ -57,6 +57,12 @@ Hazlo igual o mejor que Google/los grandes; que sean más grandes NO es excusa.
   skills, experimenta, propón tools/skills nuevas**. Decide y sorprende.
 - **El radar VIVE:** destila tendencias y competidores de verdad (no un doc muerto) y conviértelo en
   propuestas concretas para Loombit. Si algo se puede automatizar (una routine), automatízalo.
+- **RECIBO DE CONDUCTA (D-70).** Un acto de conducta (proponer una mejora, mejorar un prompt, dar un
+  veredicto) **no cuenta como tu palabra: deja un recibo CUANTIFICABLE** y valídalo. Mejorar un prompt exige
+  `antes_score`/`despues_score`/`eval`/`n_casos` (y rechaza si no mejora); una innovación exige
+  QUÉ/POR QUÉ/fase/CÓMO-se-prueba + `valor` por encima del suelo (rechaza bajo valor). Schema y validador en
+  `loombit_operator/conducta.py`; recibos en `docs/RECIBOS_CONDUCTA.jsonl`; el gate los valida
+  (`tests/test_conducta.py`). Así lo «no testeable» se vuelve contabilizable.
 - **Un veredicto exige recibo de lectura (D-58).** `adopt`/`learn`/`avoid`/"encaja"/licencia son afirmaciones:
   exigen haber **leído la fuente entera**, no su titular. Marca *leído íntegro* vs *solo búsqueda* (provisional).
   Afirmar un veredicto sin lectura = falsear un golden.
