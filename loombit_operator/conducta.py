@@ -54,6 +54,16 @@ _TIPOS: dict[str, dict[str, set[str]]] = {
         "required": {"tipo", "fuente", "leido_integro", "veredicto"},
         "optional": {"fecha", "nota"},
     },
+    # NORTE / §EST: el foso y la estrategia dejan de ser "va bien" y pasan a un NÚMERO medido.
+    "metrica_traccion": {
+        "required": {"tipo", "metrica", "valor", "periodo"},
+        "optional": {"cohorte", "fecha", "ref", "nota"},
+    },
+    # §META-2: retirar una norma no se hace en silencio — deja escrito qué, cuánto costaba y por qué.
+    "retirada": {
+        "required": {"tipo", "norma", "coste", "beneficio", "justificacion", "destino"},
+        "optional": {"fecha", "ref"},
+    },
 }
 TIPOS = frozenset(_TIPOS)
 _VEREDICTOS = frozenset({"adopt", "learn", "avoid"})
@@ -136,6 +146,19 @@ def validate_recibo(recibo: Any) -> tuple[bool, list[str]]:
             errores.append(f"veredicto fuerte «{ver}» exige leido_integro=True (D-58)")
         if not _texto_ok(recibo.get("fuente")):
             errores.append("«fuente» vacía o trivial")
+    elif tipo == "metrica_traccion":
+        if not _num(recibo.get("valor")):
+            errores.append("«valor» debe ser un NÚMERO medido (no «va bien»)")
+        if not _texto_ok(recibo.get("metrica")):
+            errores.append("«metrica» (qué se mide y en qué unidad) vacía o trivial")
+        if not _texto_ok(recibo.get("periodo")):
+            errores.append("«periodo» (cuándo/sobre qué se midió) vacío o trivial")
+    elif tipo == "retirada":
+        for campo in ("norma", "coste", "beneficio", "justificacion", "destino"):
+            if not _texto_ok(recibo.get(campo)):
+                errores.append(
+                    f"«{campo}» vacío o trivial (retirar una norma exige justificación a la vista)"
+                )
 
     return (not errores, errores)
 

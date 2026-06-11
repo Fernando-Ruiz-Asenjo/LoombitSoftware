@@ -18,10 +18,38 @@ Así "se lo decimos a GitHub": GitHub no juzga conducta, pero **garantiza que na
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 BRUJULA = (ROOT / "docs" / "BRUJULA.md").read_text(encoding="utf-8")
+RECIBOS = ROOT / "docs" / "RECIBOS_CONDUCTA.jsonl"
+
+# Baseline FIJO de las normas (§META-2): si una desaparece de la brújula, exige un recibo de RETIRADA.
+_NORMAS_BASELINE = frozenset(
+    {
+        "Ley 0",
+        "Ley FUNDACIONAL",
+        "NORTE",
+        "PRODUCTO",
+        "INGENIERÍA",
+        "INNOVACIÓN",
+        "§GOB-1",
+        "§GOB-2",
+        "§GOB-3",
+        "§GOB-4",
+        "§SEG",
+        "§DATOS",
+        "§CONC",
+        "§14B",
+        "§EST",
+        "§META-1",
+        "§META-2",
+        "§META-3",
+        "§META-4",
+        "§META-5",
+    }
+)
 
 AUTOMATICO, PARCIAL, HUMANO, PENDIENTE = "AUTOMÁTICO", "PARCIAL", "HUMANO", "PENDIENTE"
 # RECIBO: norma de conducta vuelta contabilizable — no se juzga la conducta, se EXIGE un recibo
@@ -44,8 +72,10 @@ MANIFIESTO: dict[str, tuple[str, str]] = {
         "LLM no esté en NINGÚN camino de confianza) es de diseño/conducta → humano.",
     ),
     "NORTE": (
-        HUMANO,
-        "Foso/north-star = métrica de retención en Fase 4, no un unit test (§EST-1).",
+        RECIBO,
+        "El foso deja de ser «va bien» → recibo `metrica_traccion` (`conducta.py`): retención / coste de "
+        "cambio con NÚMERO + periodo, validado en `tests/test_conducta.py`. Sin datos hasta Fase 4; el "
+        "juicio «¿es buena la visión?» sigue siendo de Fernando.",
     ),
     "PRODUCTO": (
         PARCIAL,
@@ -102,8 +132,9 @@ MANIFIESTO: dict[str, tuple[str, str]] = {
         "Gobierno dimensionado al 14B (parser POST-LLM de cifras, goldens de presión): sin construir.",
     ),
     "§EST": (
-        HUMANO,
-        "Estrategia/tracción: coste de cambio, DAU/churn/NPS en Fase 4 — métricas de negocio, no unit tests.",
+        RECIBO,
+        "Tracción (DAU/churn/NPS/CAC-LTV) → recibo `metrica_traccion` con NÚMERO. «Que funcione ≠ que "
+        "importe»: la cifra se registra, no se afirma. El juicio estratégico sigue siendo de Fernando.",
     ),
     # ── Parte III · Meta-gobierno ─────────────────────────────────────────────
     "§META-1": (
@@ -112,8 +143,10 @@ MANIFIESTO: dict[str, tuple[str, str]] = {
         "(cazan punto ciego y deuda de tamaño). El sensor completo (`verify_brujula.py` + DEUDA_NORMATIVA): pendiente.",
     ),
     "§META-2": (
-        HUMANO,
-        "Retirada honorable de una norma: decisión de proceso (PR de Fernando) — no mecanizable.",
+        RECIBO,
+        "Retirar una norma → recibo `retirada` (qué/coste/beneficio/justificación/destino). Y si una norma "
+        "DESAPARECE de la brújula sin su recibo de retirada → el gate se pone ROJO "
+        "(`test_norma_retirada_exige_recibo`). Retirar a oscuras ya no se puede.",
     ),
     "§META-3": (
         PARCIAL,
@@ -182,6 +215,28 @@ def test_lo_marcado_automatico_o_parcial_tiene_arnes_real():
     assert (
         not faltan
     ), "Se afirma un check cuyo arnés NO existe (enforcement de mentira):\n  " + "\n  ".join(faltan)
+
+
+def test_norma_retirada_exige_recibo():
+    """§META-2: si una norma del baseline DESAPARECE de la brújula, debe haber un recibo de `retirada`
+    que la nombre. Retirar una norma a oscuras (sin justificación a la vista) pone el gate en ROJO.
+    """
+    actuales = _secciones_norma()
+    retiradas_declaradas = set()
+    if RECIBOS.exists():
+        for ln in RECIBOS.read_text(encoding="utf-8").splitlines():
+            if not ln.strip():
+                continue
+            r = json.loads(ln)
+            if r.get("tipo") == "retirada":
+                retiradas_declaradas.add(str(r.get("norma", "")))
+    desaparecidas = {n for n in _NORMAS_BASELINE if n not in actuales}
+    sin_recibo = [n for n in desaparecidas if not any(n in d for d in retiradas_declaradas)]
+    assert not sin_recibo, (
+        "NORMAS retiradas de la brújula SIN recibo de retirada (§META-2):\n  "
+        + "\n  ".join(sorted(sin_recibo))
+        + "\n  → añade un recibo {tipo: retirada, norma, coste, beneficio, justificacion, destino}."
+    )
 
 
 def test_los_estados_son_validos():

@@ -130,6 +130,59 @@ def test_veredicto_fuerte_exige_lectura_integra():
     assert ok2
 
 
+def test_metrica_traccion_con_numero_pasa():
+    ok, errores = validate_recibo(
+        {
+            "tipo": "metrica_traccion",
+            "metrica": "retención a 30 días (%)",
+            "valor": 41.5,
+            "periodo": "2026-Q3 · cohorte junio",
+        }
+    )
+    assert ok, errores
+
+
+def test_metrica_traccion_sin_numero_se_rechaza():
+    ok, errores = validate_recibo(
+        {
+            "tipo": "metrica_traccion",
+            "metrica": "retención",
+            "valor": "va bien",  # no es un número
+            "periodo": "este trimestre",
+        }
+    )
+    assert not ok
+    assert any("NÚMERO" in e for e in errores)
+
+
+def test_retirada_justificada_pasa():
+    ok, errores = validate_recibo(
+        {
+            "tipo": "retirada",
+            "norma": "§XXX (alguna norma de ejemplo)",
+            "coste": "obligaba a tocar 4 ficheros por cambio trivial",
+            "beneficio": "casi nulo; nunca cazó un fallo real",
+            "justificacion": "coste > beneficio durante 3 meses sin poder endurecerse",
+            "destino": "a Skill X; el radar la vigila por si vuelve a hacer falta",
+        }
+    )
+    assert ok, errores
+
+
+def test_retirada_sin_justificacion_se_rechaza():
+    ok, _ = validate_recibo(
+        {
+            "tipo": "retirada",
+            "norma": "§XXX",
+            "coste": "x",
+            "beneficio": "x",
+            "justificacion": "x",
+            "destino": "x",
+        }
+    )
+    assert not ok  # campos triviales: una retirada a oscuras no cuenta
+
+
 def test_tipo_desconocido_se_rechaza():
     assert not validate_recibo({"tipo": "lo_que_sea"})[0]
     try:
