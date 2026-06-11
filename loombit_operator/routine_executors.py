@@ -430,6 +430,46 @@ def aprendizaje_executor(routine: Routine, now: datetime) -> str:
     return consolidar().get("resumen", "Aprendizaje: sin resultado.")
 
 
+def decisiones_cobro_routine() -> Routine:
+    """LD-3 «Loombit Decide»: en background, mira los cobros vencidos y ENCOLA una decisión por cada
+    uno (el humano decide desde la cola). PASSIVE: solo encola decisiones LOCALES — ningún efecto
+    externo (el envío sigue exigiendo al humano + el gate). Enabled, opt-in vía daemon."""
+    return Routine(
+        name="Decisiones de cobro",
+        schedule=CronSchedule("0 8 * * 1-5", tz="Europe/Madrid"),
+        objective=(
+            "Revisa los cobros vencidos y prepara una decisión por cada uno en la cola, para que solo "
+            "tengas que decidir; nada se envía sin tu aprobación."
+        ),
+        safety=SkillSafetyClass.PASSIVE,
+        output_kind="decisiones",
+        enabled=True,
+    )
+
+
+def decisiones_cobro_executor(routine: Routine, now: datetime) -> str:
+    """Genera y encola decisiones de cobro al nivel de autonomía configurado. NUNCA actúa sola
+    (§14B): solo sube decisiones a la cola; el efecto externo sigue siendo del humano + el gate."""
+    from .autonomy import generar_decisiones_cobro, parse_level
+    from .config import get_settings
+    from .cuentas_cobrar import CuentasCobrarStore
+    from .decisions import DecisionStore
+
+    level = parse_level(get_settings().decide_autonomy_level)
+    try:
+        vencidas = CuentasCobrarStore().vencidas()
+    except Exception:
+        vencidas = []
+    r = generar_decisiones_cobro(DecisionStore(), vencidas, today=now.date(), level=level)
+    if r["nivel"] == "observa":
+        return (
+            f"Observadas {r['observadas']} decisión(es) de cobro (no encoladas: nivel «observa»)."
+        )
+    if r["encoladas"]:
+        return f"Encoladas {r['encoladas']} decisión(es) de cobro (de {r['observadas']} vista(s))."
+    return f"Sin decisiones nuevas de cobro (vistas {r['observadas']}; ya estaban en la cola)."
+
+
 def default_executor(routine: Routine, now: datetime) -> str:
     """Despacha al executor según el tipo de routine (un solo punto de entrada para el scheduler)."""
     if routine.output_kind == "mejora":
@@ -440,6 +480,8 @@ def default_executor(routine: Routine, now: datetime) -> str:
         return fabrica_skills_executor(routine, now)
     if routine.output_kind == "aprendizaje":
         return aprendizaje_executor(routine, now)
+    if routine.output_kind == "decisiones":
+        return decisiones_cobro_executor(routine, now)
     return brief_executor(routine, now)
 
 
@@ -456,6 +498,8 @@ def ensure_default_routines(store: RoutineStore) -> RoutineStore:
         store.add(fabrica_skills_routine())
     if "Aprendizaje" not in nombres:
         store.add(aprendizaje_routine())
+    if "Decisiones de cobro" not in nombres:
+        store.add(decisiones_cobro_routine())
     return store
 
 

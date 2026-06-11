@@ -602,4 +602,66 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   routines/scheduler/intake/cobros) — aplicando D-58 (no afirmar sin comprobar).
 - *Reversible:* sí (docs; `git revert`).
 
+**D-60 — «Loombit Decide» LD-0 + LD-1 construidos (motor de decisiones + UI generativa GOBERNADA).**
+- *Contexto:* primer paso del plan D-59. LD-0 y LD-1 no dependen de datos → se construyen ya sobre el
+  gate + `static/` existentes.
+- *LD-0 (motor + cola):* `loombit_operator/decisions.py` — `Decision` de primera clase (title/why/detail/
+  kind/options/risk/reversible/status/source/payload) + `DecisionStore` (JSON atómico, patrón `agent/run.py`,
+  resiliente a fila corrupta). `resolve()` registra la opción elegida; NO dispara el efecto (eso es del gate,
+  lo cablea LD-2). Router `routers/decisions.py` (cola, get, spec, resolve, dismiss).
+- *LD-1 (UI generativa GOBERNADA):* `loombit_operator/ui_spec.py` — vocabulario CERRADO (`decision_card`,
+  `resumen`, `eleccion`, `borrador_preview`, `cola`) + `validate_spec()` (whitelist de tipos/claves + rechazo
+  de HTML/script + valores cerrados) + `decision_to_spec`/`cola_to_spec`. Renderer `static/loombit-render.js`
+  (JS plano: `textContent`/`createElement`, NUNCA `innerHTML`/`eval`; tipo desconocido no se pinta).
+- *Recibo (🟡 contrato + tests):* 30 goldens — LD-0 cola/resolver/persistencia/fila-corrupta (8), LD-1
+  contrato incl. **test adversarial de inyección** `<script>`/`onerror=`/`javascript:` rechazada (18), router
+  HTTP (4). **Gate VERDE:** black + ruff (`.`) + **790 pytest**, cero regresión (los 786 previos + 30, −26
+  solapados). Honesto: es 🟡 (sin recibo en vivo con servidor+navegador); el lazo entero llega en LD-2.
+- *Ley Fundacional:* el LLM no está en el camino de control — propone una spec de vocabulario cerrado, el
+  código la valida y la rinde; las cifras del payload las pone código de dominio. El gate de efecto intacto.
+- *Reversible:* sí (paquete nuevo + un router montado + 1 línea de config; `git revert`).
+
+
+**D-61 — «Loombit Decide» LD-2: rebanada vertical del cobro (decisión → cola → gate).**
+- *Contexto:* cerrar el lazo técnico sobre LD-0/LD-1 (D-60) sin esperar al INTAKE: con cuentas sembradas
+  se prueba percepción → decisión → UI gobernada → efecto con gate.
+- *Elegido:* `loombit_operator/decisions_cobros.py` (Skill D) compone una `Decision` por cuenta vencida con
+  su plan legal (Ley 3/2004, cifras por `cobros.dunning_plan`, NO del LLM), su porqué, su detalle (saldo +
+  40 € art. 8 + interés con tipo BOE o «a verificar») y la acción preparada. Router: `POST
+  /decisions/sembrar-cobros` (idempotente por `cuenta_id`) y `resolve` cableado — si la opción es **APROBAR**
+  y hay `agent_task`, se lanza al agente (`AgentLoop.create` + ejecución en background) y el **gate
+  `PENDING_APPROVAL` retiene el envío**. El envío real NUNCA sale del router.
+- *Ley Fundacional:* dos autoridades distintas — la decisión («¿persigo este cobro?») y el gate de efecto
+  («¿envío este texto exacto?»). El LLM solo prepara el borrador; ni calcula cifras ni dispara el efecto.
+- *Recibo (🟡):* 13 goldens — compositor (vencida→decisión con plan, no-vencida→None, vía judicial→riesgo
+  alto, spec válida) (6) + router (sembrar idempotente, APROBAR lanza la acción, posponer no) (7). Gate
+  VERDE: black + ruff (`.`) + **799 pytest**, cero regresión. Honesto: 🟡 — el `resolve→agente→gate` se
+  verifica por seam (sin LLM); falta el recibo EN VIVO (servidor + 14B + navegador) y cablear el renderer a
+  una página de la Tela. Dos toques (decisión + gate) podrían colapsarse a uno → decisión de UX/autoridad de
+  Fernando, no se hace aquí.
+- *Reversible:* sí (un módulo nuevo + 1 endpoint + cableado en `resolve`; `git revert`).
+
+**D-62 — «Loombit Decide»: la decisión y el gate de efecto quedan SEPARADOS (decide Fernando).**
+- *Contexto:* en LD-2 hay dos toques — la tarjeta de decisión («¿persigo este cobro?») y el gate de envío
+  («¿envío este texto exacto?»). Se preguntó si colapsarlos a uno.
+- *Elegido por Fernando:* **separados.** Son dos autoridades distintas; mantenerlas separadas es lo más
+  seguro y ya es el comportamiento construido en LD-2 → **sin cambio de código**.
+- *Reversible:* trivial (es una decisión de UX; unirlos sería un cambio aditivo futuro si cambia el criterio).
+
+**D-63 — «Loombit Decide» LD-3: autonomía graduada (y capada con honestidad, §14B).**
+- *Contexto:* el operador pasa de reactivo a trabajar en background y encolar decisiones — pero la
+  autonomía se gradúa y se mide, no se promete (el 14B local la limita).
+- *Elegido:* `loombit_operator/autonomy.py` — niveles `observa` (cuenta, no molesta) / `propone` (encola;
+  DEFAULT) / `actua_con_gate` (encola; el acto pasa por el gate = LD-2) / `actua_solo` (**NO implementado**).
+  `generar_decisiones_cobro` compone y encola (idempotente por `cuenta_id`) según el nivel. Routine
+  «Decisiones de cobro» (PASSIVE, 08:00 L-V, opt-in vía daemon) + executor en `routine_executors.py` +
+  setting `decide_autonomy_level`.
+- *Cap honesto (§14B):* el generador **solo encola decisiones**; `auto_actuado` es SIEMPRE 0 — nunca dispara
+  un efecto externo ni auto-resuelve. `actua_solo` se trata como `propone` y se declara no construido, no se
+  finge. El acto consecuente sigue exigiendo al humano (la cola) + el gate (el envío).
+- *Recibo (🟡):* 6 goldens — `observa` no encola · `propone`/`actua_con_gate` encolan · idempotente ·
+  `actua_solo` NO auto-actúa (auto_actuado==0) · parse tolerante · executor real encola en background. Gate
+  VERDE: black + ruff (`.`) + **805 pytest**, cero regresión. Honesto: 🟡 — sin recibo EN VIVO con el daemon
+  corriendo + datos reales.
+- *Reversible:* sí (un módulo + un executor + una routine seedeada + 1 setting; `git revert`).
 *(se irán añadiendo entradas según avance el bloque)*

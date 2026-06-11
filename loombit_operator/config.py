@@ -49,6 +49,11 @@ class AppSettings(BaseSettings):
     # ── Almacenamiento local ──────────────────────────────────────────────────
     lm_job_store_path: Path = Path("runtime/local/lm_jobs.json")
     agent_run_store_path: Path = Path("runtime/local/agent_runs.json")
+    # «Loombit Decide» (LD-0): la cola de decisiones que sube al humano.
+    decision_store_path: Path = Path("runtime/local/decisions.json")
+    # «Loombit Decide» (LD-3): nivel de autonomía del generador en background.
+    # observa | propone (default) | actua_con_gate | actua_solo (no implementado, §14B).
+    decide_autonomy_level: str = "propone"
     skill_manifest_dir: Path = Path("skills")
 
     # ── Fábrica de Skills (Skill X) — auto-autoría gobernada ───────────────────

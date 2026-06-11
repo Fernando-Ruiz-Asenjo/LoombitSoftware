@@ -42,10 +42,10 @@ corpus con residuo declarado. El **gobierno completo NO está al 100%** (eso ser
 
 | Hito | Qué | Construye sobre (código real) | Depende de | Fase | Estado |
 |---|---|---|---|---|---|
-| **LD-0** | `Decision` de 1ª clase + **cola** | `policy/authority_plane.py` + `PENDING_APPROVAL` + `telar.py` | — (ya construible) | 3/4 | ⬜ |
-| **LD-1** | **UI generativa GOBERNADA**: vocabulario cerrado + validador + renderer JS | `static/` (Tela/galaxia) | LD-0 | 4 | ⬜ |
-| **LD-2** | Rebanada vertical: `decision_card` de **un cobro** | `cobros.py` + `comprension.py` + LD-0/LD-1 | **INTAKE F-5** (datos reales) | 3↔4 | ⬜ |
-| **LD-3** | Agente reactivo→autónomo, **niveles graduados** | `routers/routines.py` + `scheduler.py` | LD-0 | 5 | ⬜ |
+| **LD-0** | `Decision` de 1ª clase + **cola** | `policy/authority_plane.py` + `PENDING_APPROVAL` + `telar.py` | — (ya construible) | 3/4 | 🟡 (D-60, PR #17) |
+| **LD-1** | **UI generativa GOBERNADA**: vocabulario cerrado + validador + renderer JS | `static/` (Tela/galaxia) | LD-0 | 4 | 🟡 (D-60, PR #17) — falta cablear el renderer a la Tela |
+| **LD-2** | Rebanada vertical: `decision_card` de **un cobro** | `cobros.py` + `comprension.py` + LD-0/LD-1 | **INTAKE F-5** (datos reales) | 3↔4 | 🟡 (D-61, PR #17) — backend con recibo EN VIVO; falta 14B+navegador |
+| **LD-3** | Agente reactivo→autónomo, **niveles graduados** | `routers/routines.py` + `scheduler.py` | LD-0 | 5 | 🟡 (D-63, PR #17) — `actua_solo` no construido (§14B) |
 | **LD-4** | Correo: contexto→**triaje autónomo** (el usuario no toca el correo) | `gmail_search` + §SEG-2 + LD-0/1 | LD-0/1 | 2/6 | ⬜ |
 | **LD-5** | Generalizar el vocabulario (303, conciliación, agenda…) | skills D + LD-1 | LD-1 maduro | 4+ | ⬜ |
 
