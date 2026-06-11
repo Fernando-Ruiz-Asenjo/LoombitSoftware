@@ -30,6 +30,7 @@ from ..config import get_settings
 from ..llm import ChatResponse, LLMClient, ToolCall, tool_result_message
 from ..tools import tool_registry
 from ..tools.registry import ToolRegistry
+from ..policy.authority_plane import AUTHORITY_PLANE, Accion
 from .memory import get_memory
 from .contexto import ajustar_a_contexto
 from .descomposicion import MENU, clasificar_intencion, merece_clasificar, resolver
@@ -699,52 +700,29 @@ class AgentLoop:
 
             overlay_manager.start_session()
 
-        # Guarda 12-factor (F2): el destinatario es un IDENTIFICADOR, no se confía al modelo.
-        # Solo se permite enviar a un email que el usuario escribió o que se resolvió con
-        # contacts_find en este run. Inventarlo se bloquea ANTES de la tarjeta de aprobación.
-        if tc.tool_name == "gmail_send" and not _recipiente_resuelto(
-            str(tc.arguments.get("to", "")), run
-        ):
-            logger.info("gmail_send a destinatario no resuelto run=%s", run.id)
-            return (
-                f"[SISTEMA: No envíes a «{tc.arguments.get('to', '')}»: no es un email que el "
-                "usuario te haya dado ni uno resuelto con contacts_find. NO inventes destinatarios. "
-                "Llama a contacts_find con el nombre y usa el email del contacto correcto; si hay "
-                "varios, elige el más probable o pregunta; si no aparece, pregunta al usuario.]",
-                False,
-            )
-
-        # Guarda F4: el correo no puede delatarse como IA/bot. Se corrige ANTES de la aprobación.
-        if tc.tool_name == "gmail_send" and _DELATA_BOT.search(
-            f"{tc.arguments.get('subject', '')} {tc.arguments.get('body', '')}"
-        ):
-            logger.info("gmail_send se delata como bot — corrigiendo run=%s", run.id)
-            return (
-                "[SISTEMA: El correo se presenta como IA/agente/automático. Reescríbelo COMO el "
-                "usuario (primera persona), sin mencionar que eres un asistente, agente o bot ni "
-                "que el correo es automático. Fírmalo con el nombre del usuario.]",
-                False,
-            )
-
-        # SEGURIDAD (inyección): si la petición intenta MANIPULAR (falso «###SISTEMA###», jailbreak,
-        # «ignora tus reglas»…), NO se envía NINGÚN correo — se rehúsa (ni se dibuja para aprobar). Una
-        # inyección no manda nada en tu nombre. El cálculo/lectura legítimo de la misma petición sí sigue.
-        if tc.tool_name == "gmail_send" and _intento_manipulacion(run.task):
-            logger.info("gmail_send REHUSADO por intento de manipulación run=%s", run.id)
-            return _MSG_MANIPULACION, False
-
-        # Política de aprobación: un correo que el USUARIO pidió y con destinatario inequívoco
-        # se envía SOLO (sin tarjeta) — su petición es la autorización. Si el destinatario es
-        # ambiguo, se confirma. Otros efectos externos (calendar_create, run_shell) siempre confirman.
-        auto_envio_correo = (
-            tc.tool_name == "gmail_send"
-            and not getattr(run, "proactive", False)  # lo proactivo SIEMPRE se confirma
-            and _destinatario_claro(str(tc.arguments.get("to", "")), run)
+        # §GOB-1 — Capability Policy Plane: TODA la autoridad consecuente (gate de efecto, resolución
+        # de destinatario, no-delatarse-bot, rehúsa ante manipulación) se decide en una superficie
+        # ÚNICA. El LLM propuso la tool-call; el plano —código determinista— DISPONE. Ley Fundacional.
+        decision = AUTHORITY_PLANE.autorizar(
+            tool_name=tc.tool_name,
+            arguments=tc.arguments,
+            run=run,
+            requires_approval=tool_def.requires_approval,
         )
-        if tool_def.requires_approval and not auto_envio_correo:
+        if decision.accion in (Accion.CORREGIR, Accion.REHUSAR):
+            logger.info(
+                "§GOB-1 %s tool=%s run=%s (%s)",
+                decision.accion.value,
+                tc.tool_name,
+                run.id,
+                decision.motivo,
+            )
+            return decision.mensaje, False
+        if decision.accion is Accion.APROBAR:
             reason, proposed = _describe_for_approval(tc.tool_name, tc.arguments)
             payload = json.dumps({"reason": reason, "proposed_action": proposed})
             return f"{_SENTINEL_APPROVAL}{payload}", True
+        # Accion.EJECUTAR → adelante (cae al logger + tool_def.execute de abajo).
 
         logger.info("Ejecutando tool '%s' step=%d run=%s", tc.tool_name, step_num, run.id)
         try:
