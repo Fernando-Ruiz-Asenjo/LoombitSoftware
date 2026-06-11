@@ -264,15 +264,18 @@ def intencion_consecuente(task: str) -> str | None:
     # «¿cuánto voy a facturar el mes que viene?» = PREDICCIÓN (futuro) → no se fuerza (abstención honesta).
     if _FACTURACION.search(t) and not _F303.search(t) and not _PREDICCION.search(t):
         return "facturacion"
-    if _COBROS_PEND.search(t):  # «¿cuánto me deben?» = agregado de cobros pendientes
-        return "cobros_pend"
-    if _BUSCAR_CORREO.search(t):
-        return "buscar"
-    tiene_dato = bool(_TIENE_DATO.search(t))
     # Un IMPORTE de verdad (€, «800», «1.500») ≠ un dígito cualquiera (una FECHA, un nº de factura):
     # parsear_importe_es excluye fechas/%/días y exige un único importe. Sin esto, «… que venció el 15
     # de mayo» mandaba el cobro-por-cliente a plan_cobro (que pide el total) por el «15» de la fecha.
     tiene_importe = parsear_importe_es(task) is not None
+    # «¿cuánto me deben?» = agregado de cobros pendientes. PERO una reclamación IMPERATIVA con importe
+    # concreto («reclama los 2000 € que me debe Acme») NO es la consulta agregada: ahí el «me debe»
+    # DESCRIBE el importe, no pregunta cuánto → debe ir a plan_cobro (cobro), no a cobros_pendientes.
+    if _COBROS_PEND.search(t) and not (_RECLAMO_VERBO.search(t) and tiene_importe):
+        return "cobros_pend"
+    if _BUSCAR_CORREO.search(t):
+        return "buscar"
+    tiene_dato = bool(_TIENE_DATO.search(t))
     # La reclamación ya no procede (ya cobrada / negada / futura) → no se fuerza ninguna ruta de cobro;
     # que lo gestione el LLM (p.ej. marcar la factura cobrada), no una reclamación contra quien pagó.
     reclamo_inhibido = bool(_RECLAMO_INHIBIDO.search(t))

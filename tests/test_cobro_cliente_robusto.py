@@ -89,6 +89,23 @@ def test_routing_razon_social_con_articulo_si_es_contraparte():
     assert intencion_consecuente("reclama la deuda de La Caixa") == "cobro_cliente"
 
 
+def test_routing_reclamacion_imperativa_con_importe_va_a_plan_cobro():
+    # OBSERVACIÓN 🟠: «reclama los 2000 € que me debe Acme» es una reclamación de UNA factura con
+    # importe → plan_cobro (cobro), no la consulta agregada «¿cuánto me deben?» (cobros_pend).
+    assert (
+        intencion_consecuente("Reclama los 2000 € que me debe Acme, vencidos hace un mes.")
+        == "cobro"
+    )
+    assert (
+        intencion_consecuente("cóbrale a Beta los 1500 € que me debe, vencidos el 1 de mayo")
+        == "cobro"
+    )
+    # pero la consulta agregada (sin reclamar un importe concreto) SIGUE siendo cobros_pend
+    assert intencion_consecuente("¿cuánto me deben en total?") == "cobros_pend"
+    assert intencion_consecuente("¿quién me debe dinero?") == "cobros_pend"
+    assert intencion_consecuente("reclama lo que me deben los clientes") == "cobros_pend"
+
+
 def test_routing_digito_no_importe_no_roba_el_caso_estrella():
     # BUG: una FECHA o un nº de factura (un dígito que NO es importe) desviaba a plan_cobro (que pide
     # el total). Con cliente nombrado y sin importe real → debe ser cobro_cliente.
