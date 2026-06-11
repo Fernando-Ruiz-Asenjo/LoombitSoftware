@@ -37,12 +37,26 @@ entiende, narra y propone — y por construcción **no puede causar daño** porq
 *toda* la superficie consecuente y que sea *pequeña*.
 
 ### NORTE — qué es y para quién
-Loombit = el **operador administrativo privado** del autónomo/PYME español. Teje contexto, memoria y acción;
-comprende la bandeja y la agenda y gestiona el día. **Foso (innegociable): LOCAL** (los datos no salen de la
-máquina) · **español** · **administrativo profundo** (fiscal, cobros, plazos, trámites). Igual o mejor que
-Google; que sean más grandes no es excusa.
+
+**VISIÓN (el norte largo, no el techo).** Loombit = el **compañero de trabajo necesario para cualquier
+actividad —laboral o no— de una persona ante un ordenador, tablet o teléfono.** Teje contexto, memoria y
+acción; comprende lo que la persona tiene entre manos y se lo resuelve o se lo prepara. El **núcleo es blanco
+y reutilizable**: el mismo runtime sirve cualquier dominio y cualquier dispositivo según las **skills** y el
+hardware instalados (la arquitectura ya lo permite — ver `CLAUDE.md` "Qué es Loombit").
+
+**FOSO (innegociable, vale para cualquier actividad).** **LOCAL** (los datos no salen de la máquina) ·
+**comprensión profunda del trabajo real** (cognición, no extracción) · **adaptativo** (genera lo que la
+persona necesita ver en cada momento). Igual o mejor que los grandes; que sean más grandes no es excusa.
+
+**CUÑA ACTIVA (la estrategia para llegar, NO el límite).** Se ejecuta **por cuñas**, cerrando una al 100 %
+antes de abrir la siguiente — así se alcanza la visión sin dispersión (*"camino crítico sin dispersión"*). La
+cuña 1 es el **operador administrativo del autónomo/PYME español** (fiscal, cobros, plazos, trámites; foso
+añadido: **español**). Es la cabeza de playa, no el techo. La cuña en curso vive en `ESTADO_Y_ROADMAP.md`
+(§META-4).
+
 **Mecanismo:** el foso es una **afirmación hasta que se mide**. North-star = **coste de cambio** (§EST-1).
-No es un adjetivo del README: es un número de retención en Fase 4.
+No es un adjetivo del README: es un número de retención en Fase 4. **Disciplina anti-dispersión:** abrir una
+cuña nueva exige cerrar la anterior al 100 % (criterio de cierre en el roadmap).
 
 ### PRODUCTO — cómo entiende y trata al usuario
 - **Cognición, no extracción.** Comprende los hilos (quién es quién, de qué va, en qué estado). De ahí

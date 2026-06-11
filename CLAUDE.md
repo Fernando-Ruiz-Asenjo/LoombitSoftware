@@ -21,9 +21,13 @@ consecuente (€, fechas, IBAN, impuestos, qué tool corre y con qué parámetro
 **código determinista verificable + el gate humano**; el LLM entiende, narra y propone, y por construcción
 no puede causar daño. Todo lo demás cuelga de aquí.
 
-**NORTE (qué es y para quién).** Loombit = el operador administrativo **privado** del autónomo/PYME
-español. **Foso: LOCAL (los datos no salen de la máquina) · español · administrativo profundo.**
-Hazlo igual o mejor que Google/los grandes; que sean más grandes NO es excusa.
+**NORTE (qué es y para quién).** **VISIÓN (norte largo, no el techo):** Loombit = el **compañero de trabajo
+necesario para cualquier actividad —laboral o no— de una persona ante un ordenador, tablet o teléfono.**
+Núcleo **blanco y reutilizable**: el mismo runtime sirve cualquier dominio/dispositivo según las skills.
+**Foso (vale para todo): LOCAL** (los datos no salen de la máquina) · **comprensión profunda del trabajo** ·
+**adaptativo.** **CUÑA ACTIVA (estrategia, no límite):** se ejecuta por cuñas, cerrando una al 100 % antes de
+abrir la siguiente (anti-dispersión); la cuña 1 = operador administrativo del autónomo/PYME **español**.
+Hazlo igual o mejor que los grandes; que sean más grandes NO es excusa.
 
 **PRODUCTO (cómo entiende y trata al usuario).**
 - **Cognición, no extracción.** Comprende los hilos: quién es quién, de qué va, en qué estado. De ahí
