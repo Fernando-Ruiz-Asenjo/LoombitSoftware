@@ -432,4 +432,29 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
 - *Pendiente fuera del cerebro:* conciliación como tool (familia Manos), y más evals del LLM (p.ej. 303
   mis-asignación) cuando se priorice. Ver `docs/REPARACION_CANONICA.md` (scorecard).
 
+**D-53 — RC·Cobros: endurecido `cuentas_cobrar.py` (4 bugs reales del camino crítico cuña 1).**
+- *Contexto:* auditoría del store de cuentas a cobrar (la capa de datos de la cuña 1, marcada 🟠
+  "cerebro listo"). 4 bugs detectados sin arreglar, todos con potencial de error fiscal/monetario o
+  caída del listado. Método RC (D-51): **arnés golden ANTES de tocar** (7 tests escritos desde el
+  dominio, verificados en ROJO contra el código actual antes de arreglar — no tautológicos).
+- *Bugs (cada uno con su golden):*
+  1. **Conciliación por subcadena:** `referencia in concepto` casaba `"F-7"` con `"Factura F-70"`
+     (otra factura) → conciliaba la cuenta equivocada. Arreglado con match por **token delimitado**
+     (`_ref_casa`, frontera no-alfanumérica). Honra ALG-3.5 (conciliar fiable, nunca a ciegas).
+  2. **Importe negativo:** un importe < 0 (cuenta por cobrar imposible: te deben, no debes) se
+     almacenaba en silencio. Arreglado con invariante en `__post_init__` (ALG-1.4: rechaza lo
+     imposible en origen) + `cuenta_desde_factura` filtra `total <= 0`.
+  3. **Fecha ilegible revienta `vencidas()`:** **una** fila con vencimiento no parseable lanzaba
+     `ValueError` y tumbaba `vencidas()`/`proximas()` → caída de `/cuentas`, galaxia, telar y la
+     routine. Arreglado con `_dias_vencido` resiliente (omite la fila, no la pierde: sigue en
+     `pendientes()`) + `_load` per-fila (una fila corrupta ya no tumba el store entero).
+  4. **Cliente substring:** `cliente in c.cliente` casaba `"Ana"` con `"Anabel SL"`. Arreglado con
+     match por **conjunto de tokens** (`_cliente_casa`: subconjunto, sin acentos), que mantiene
+     `"Beta" ↔ "Beta SL"` pero descarta el falso positivo.
+- *Recibo:* `tests/test_cuentas_cobrar.py` 14 verde (6 previos + 8 nuevos); 73 tests de consumidores
+  (router/galaxia/conciliación/fiscal/telar/routines) sin regresión; black + ruff limpios; suite
+  completa `pytest` exit=0. *Reversible:* sí (un fichero de dominio + tests).
+- *Pendiente (no bloqueante):* el matcher por token vive en `cuentas_cobrar.py`; si se reusa en la
+  conciliación bancaria (ALG-3.5, `conciliacion_cobros.py`), extraer a un helper blanco compartido.
+
 *(se irán añadiendo entradas según avance el bloque)*

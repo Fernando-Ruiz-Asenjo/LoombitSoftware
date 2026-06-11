@@ -11,6 +11,8 @@ Persiste en `runtime/local/cuentas_cobrar.json`. Determinista; el LLM no intervi
 from __future__ import annotations
 
 import json
+import re
+import unicodedata
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
@@ -18,6 +20,41 @@ from uuid import uuid4
 
 from .cobros import days_overdue
 from .config import AppSettings, get_settings
+
+
+def _norm(text: str) -> str:
+    """minúsculas + sin acentos + espacios colapsados. Para casar nombres y tokens."""
+    s = unicodedata.normalize("NFKD", str(text or ""))
+    s = "".join(ch for ch in s if not unicodedata.combining(ch))
+    return " ".join(s.lower().split())
+
+
+def _ref_casa(referencia: str, concepto: str) -> bool:
+    """La referencia casa como TOKEN delimitado dentro del concepto, no como subcadena.
+    'F-7' NO casa con 'Factura F-70' (el siguiente carácter es alfanumérico)."""
+    ref = _norm(referencia)
+    if not ref:
+        return False
+    patron = r"(?<![0-9a-z])" + re.escape(ref) + r"(?![0-9a-z])"
+    return re.search(patron, _norm(concepto)) is not None
+
+
+def _cliente_casa(consulta: str, almacenado: str) -> bool:
+    """Casa el nombre del cliente por CONJUNTO de tokens, no por subcadena.
+    'Ana' NO casa 'Anabel SL'; 'Beta' SÍ casa 'Beta SL' (subconjunto de tokens)."""
+    q = set(_norm(consulta).split())
+    a = set(_norm(almacenado).split())
+    if not q or not a:
+        return False
+    return q <= a or a <= q
+
+
+def _dias_vencido(vencimiento: str, today: str | date | None) -> int | None:
+    """Días vencidos, o None si la fecha es ilegible (NO revienta el listado entero)."""
+    try:
+        return days_overdue(vencimiento, today)
+    except (ValueError, TypeError):
+        return None
 
 
 @dataclass
@@ -28,6 +65,16 @@ class CuentaCobrar:
     concepto: str = ""
     estado: str = "pendiente"  # pendiente | cobrada
     id: str = field(default_factory=lambda: uuid4().hex[:8])
+
+    def __post_init__(self) -> None:
+        # Invariante: una cuenta a cobrar tiene importe numérico y NO negativo
+        # (te deben dinero, no al revés). ALG-1.4: rechaza lo imposible en origen.
+        try:
+            self.importe = float(self.importe)
+        except (TypeError, ValueError):
+            raise ValueError(f"importe no numérico: {self.importe!r}") from None
+        if self.importe < 0:
+            raise ValueError(f"importe negativo no permitido: {self.importe}")
 
     def to_dict(self) -> dict:
         return {
@@ -61,11 +108,17 @@ class CuentasCobrarStore:
         self._load()
 
     def _load(self) -> None:
+        self._items = {}
         try:
             data = json.loads(self.path.read_text(encoding="utf-8"))
-            self._items = {c["id"]: CuentaCobrar.from_dict(c) for c in data}
         except Exception:
-            self._items = {}
+            return
+        for raw in data:
+            try:
+                cuenta = CuentaCobrar.from_dict(raw)
+            except Exception:
+                continue  # fila corrupta (importe negativo, etc.): se omite, no tumba el store
+            self._items[cuenta.id] = cuenta
 
     def _save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -86,14 +139,24 @@ class CuentasCobrarStore:
         return [c for c in self.list() if c.estado == "pendiente"]
 
     def vencidas(self, today: str | date | None = None) -> list[CuentaCobrar]:
-        """Pendientes cuyo vencimiento ya pasó (días vencidos > 0)."""
-        return [c for c in self.pendientes() if days_overdue(c.vencimiento, today) > 0]
-
-    def proximas(self, dias: int = 7, today: str | date | None = None) -> list[CuentaCobrar]:
-        """Pendientes que vencen dentro de los próximos `dias` (aún no vencidas)."""
+        """Pendientes cuyo vencimiento ya pasó (días vencidos > 0). Una fecha ilegible
+        no se clasifica como vencida ni revienta el listado (sigue visible en pendientes)."""
         out = []
         for c in self.pendientes():
-            faltan = -days_overdue(c.vencimiento, today)  # >0 = aún no vence
+            dias = _dias_vencido(c.vencimiento, today)
+            if dias is not None and dias > 0:
+                out.append(c)
+        return out
+
+    def proximas(self, dias: int = 7, today: str | date | None = None) -> list[CuentaCobrar]:
+        """Pendientes que vencen dentro de los próximos `dias` (aún no vencidas).
+        Una fecha ilegible se omite sin reventar."""
+        out = []
+        for c in self.pendientes():
+            vencido = _dias_vencido(c.vencimiento, today)
+            if vencido is None:
+                continue
+            faltan = -vencido  # >0 = aún no vence
             if 0 <= faltan <= dias:
                 out.append(c)
         return out
@@ -117,16 +180,14 @@ class CuentasCobrarStore:
         """Marca cobrada la cuenta pendiente que case con un cobro conciliado. Empareja por
         referencia (en el concepto) o, si no, por cliente + importe. Devuelve el id o None."""
         pend = self.pendientes()
-        ref = (referencia or "").strip().lower()
-        if ref:
+        if (referencia or "").strip():
             for c in pend:
-                if ref in c.concepto.lower():
+                if _ref_casa(referencia, c.concepto):
                     self.marcar_cobrada(c.id)
                     return c.id
-        cl = (cliente or "").strip().lower()
-        if cl and importe is not None:
+        if (cliente or "").strip() and importe is not None:
             for c in pend:
-                if cl in c.cliente.lower() and abs(c.importe - float(importe)) <= tol:
+                if _cliente_casa(cliente, c.cliente) and abs(c.importe - float(importe)) <= tol:
                     self.marcar_cobrada(c.id)
                     return c.id
         return None
@@ -144,7 +205,7 @@ def cuenta_desde_factura(
     """Crea una cuenta a cobrar SOLO si la factura es EMITIDA (sentido='devengado'=venta) y
     tiene importe. Una factura recibida (compra) no se cobra. Si no hay vencimiento, plazo estándar.
     """
-    if sentido != "devengado" or not total:
+    if sentido != "devengado" or not total or float(total) <= 0:
         return None
     venc = vencimiento or (date.today() + timedelta(days=plazo_dias)).isoformat()
     return CuentaCobrar(
