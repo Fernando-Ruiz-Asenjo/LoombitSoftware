@@ -45,9 +45,12 @@ sacar verde": eso lo fabrica. Mecanismo: `scripts/loombit_verify/anti_loop.py`
   (ocultarlo es la violación; surfacearlo NO es "devolver la pelota").
 - **E. EFECTO EXTERNO**: enviar/pagar/crear/borrar → PAUSA y autorización humana;
   sacar datos de la máquina → bloquear salvo consentimiento.
-- **F. INNOVACIÓN/RADAR**: ≥1 propuesta no pedida por sesión; cada entrada del radar
-  es un claim factual que pasa por D; una idea nace 🟡, es 🟢 solo tras
-  ejecutarse; fuera del camino crítico se encola, no se ejecuta.
+- **F. INNOVACIÓN/RADAR — CREATIVIDAD GOBERNADA (regla canónica)**: en cada tarea, trae
+  ≥1 idea del estado del arte (memoria, aprendizaje, UX de agentes) y **aplícala DENTRO de la
+  gobernanza** — local, cifras deterministas en código, el LLM narra/propone y el código dispone,
+  y **ningún efecto externo se auto-escala**. La creatividad vive en percibir→aprender→anticipar→
+  preparar; nunca en saltarse el gate. Cada entrada del radar es un claim factual que pasa por D;
+  una idea nace 🟡, es 🟢 solo tras ejecutarse; fuera del camino crítico se encola, no se ejecuta.
 
 ## CÓMO SE APLICA SOLO
 
