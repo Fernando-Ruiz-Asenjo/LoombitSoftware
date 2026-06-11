@@ -198,6 +198,25 @@ _NO_RESPUESTA_BLOB = re.compile(
 )
 
 
+def filtrar_silenciados(respuestas: list[dict], habitos: object) -> tuple[list[dict], list[str]]:
+    """Aparta las candidatas a respuesta cuyo remitente el usuario SUELE IGNORAR (hábito). No deja
+    de percibirlas (siguen leídas/dedupeadas); solo evita prepararle un borrador que va a rechazar.
+    Devuelve (a_preparar, silenciados). Tolerante: si no hay hábito, no filtra nada."""
+    a_preparar: list[dict] = []
+    silenciados: list[str] = []
+    for r in respuestas:
+        dest = _email_de(r.get("from", "")) or ""
+        try:
+            ignorar = bool(dest) and habitos.silenciar("respuesta", dest.lower())
+        except Exception:
+            ignorar = False
+        if ignorar:
+            silenciados.append(dest)
+        else:
+            a_preparar.append(r)
+    return a_preparar, silenciados
+
+
 def _necesita_respuesta(subject: str, snippet: str = "") -> bool:
     """¿Este correo PIDE una respuesta? Excluye acuses/confirmaciones y automáticos."""
     s = subject or ""
@@ -283,6 +302,10 @@ def reply_watch_executor(routine: Routine, now: datetime) -> str:
             por_email.setdefault(em, c)
     contactos = list(por_email.values())
     respuestas = _buscar_respuestas(token, contactos)
+    # Menos ruido (hábitos): no preparar borrador a quien sueles ignorar. Lo aprendido manda.
+    from .habitos import get_habits
+
+    respuestas, _silenciados = filtrar_silenciados(respuestas, get_habits())
     if not respuestas:
         return "Sin respuestas nuevas de tus contactos."
 
