@@ -723,4 +723,23 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
 - *Recibo:* gate `--strict --live` VERDE — cobertura 70,74% ≥ 68% (suelo aplicado), integridad 5/5,
   pytest+449+cobro 0+fuzz 0+mutación 8/0+live 12/12. Lo confirma GitHub CI.
 - *Reversible:* sí (un suelo en pyproject + un test + 1 línea en verify.py; `git revert`).
+
+**D-68 — Test de CUMPLIMIENTO DE LA BRÚJULA en el gate (§GOB-2 «la constitución COMPILA») + blindaje doble.**
+- *Contexto (el PILLADO):* Fernando — «pero ¿GitHub no confirmaba que aplicabas la brújula?». Respuesta
+  honesta: **NO**. El verde confirmaba el CÓDIGO; **nunca** el cumplimiento de la constitución. Prueba: 15
+  ficheros incumplen «<400 líneas» (loop.py 1433, memory.py 964…) y llevaban **en verde** porque el gate
+  jamás midió eso. Llevo tiempo sin aplicar la brújula de forma sistemática y no había nada que lo cazara.
+- *Elegido:* (1) **`tests/test_brujula_cumplimiento.py`** (corre en el gate): tamaño <400 con **deuda
+  declarada y congelada** (los 15 ficheros no pueden CRECER; ninguno nuevo nace >400; la deuda solo encoge);
+  §GOB-2 tabla Parte IV sin celdas vacías; DECISIONES sin D-NN duplicados; sincronía de `CLAUDE.md` con la
+  norma §GOB-2b. (2) **Blindaje agujero 2 reforzado:** `test_gate_integridad.py` ahora protege los
+  tests-candado (no se pueden borrar ni vaciar sin rojo) y sube el suelo de tests a 750. (3) **Agujero 1:** el
+  suelo de cobertura (D-67) sigue cazando código sin test.
+- *Honestidad (residuo, lo declaro porque es parte del gate):* esto NO comprueba la brújula «al completo» —
+  normas de conducta (mejora lo que se te pide, cognición≠extracción, rama por cambio) NO son unit-testeables.
+  Cubre el **subconjunto mecanizable**. Y los 15 ficheros grandes quedan **congelados, no arreglados**:
+  dividirlos es trabajo futuro; ahora al menos no empeoran y están a la vista.
+- *Recibo:* gate `--strict --live` VERDE — 756 tests, candados 11/11, cobertura 70,74%≥68%, mutación 8/0,
+  live 12/12. Lo confirma GitHub CI.
+- *Reversible:* sí (dos tests + ratchets; `git revert`).
 *(se irán añadiendo entradas según avance el bloque)*

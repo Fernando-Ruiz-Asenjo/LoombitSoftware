@@ -21,9 +21,15 @@ CI = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
 PYPROJECT = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
 
 # Suelos (RATCHET: solo se suben con un cambio deliberado y revisable; bajarlos pone este test en rojo).
-MIN_TESTS = 740  # funciones `def test_` en tests/ (hoy ~745)
+MIN_TESTS = 750  # funciones `def test_` en tests/ (hoy ~755)
 MIN_FUZZ_ITERS = 2000  # las auditorías de fuzz no pueden quedar en un puñado de casos
 MIN_COV_FAIL_UNDER = 65  # el suelo de cobertura no puede desaparecer ni desplomarse
+
+# Tests que NO pueden desaparecer (borrarlos = quitar un candado): nombre → marcadores que deben seguir ahí.
+_CANDADOS_OBLIGATORIOS = {
+    "tests/test_brujula_cumplimiento.py": ["_DEUDA_TAMANO", "test_tabla_brujula_sin_celdas_vacias"],
+    "tests/test_gate_integridad.py": ["_CANDADOS_OBLIGATORIOS"],
+}
 
 
 def test_el_gate_corre_todos_los_checks():
@@ -58,6 +64,17 @@ def test_no_se_bajan_los_iters_de_fuzz():
     """Las auditorías de fuzz mantienen un nº mínimo de casos (no se vacían a escondidas)."""
     for n in re.findall(r'"--iters",\s*"(\d+)"', VERIFY):
         assert int(n) >= MIN_FUZZ_ITERS, f"--iters {n} < suelo {MIN_FUZZ_ITERS} (fuzz debilitado)"
+
+
+def test_los_candados_siguen_existiendo():
+    """Los tests-candado (cumplimiento de brújula, integridad del gate) no pueden borrarse ni vaciarse:
+    quitarlos = quitar una defensa, y eso debe ponerse ROJO aquí (blindaje del agujero 2)."""
+    for rel, marcadores in _CANDADOS_OBLIGATORIOS.items():
+        p = ROOT / rel
+        assert p.exists(), f"falta el candado {rel} (¿se ha borrado una defensa del gate?)"
+        txt = p.read_text(encoding="utf-8")
+        for m in marcadores:
+            assert m in txt, f"el candado {rel} ya no contiene «{m}» (¿se ha vaciado?)"
 
 
 def test_existe_suelo_de_cobertura():
