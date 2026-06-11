@@ -50,30 +50,52 @@ vocabulario propio más pequeño y específico de "decisiones".
 
 ## 3. Investigación (web + GitHub) — con veredicto
 
+> **Recibo de lectura (§INNOVACIÓN — un veredicto exige haber LEÍDO la fuente, no su titular). 2026-06-11:**
+> - **LEÍDO ÍNTEGRO** (la lectura cambió el veredicto en ≥2 casos): Adaptive Cards overview (learn.microsoft.com)
+>   + repo `microsoft/AdaptiveCards` · Vercel AI SDK RSC docs · repo `humanlayer/humanlayer` · LangChain
+>   middleware docs · repo `ag-ui-protocol/ag-ui`. (6 fuentes.)
+> - **SOLO BÚSQUEDA, sin lectura íntegra** (veredicto provisional, marcado): `aladin2907/overhuman` ·
+>   `narrowin/awesome-generative-ui` · `json-render` · Shortwave / Fyxer / Alfred_.
+
 ### UI generativa / adaptativa
-- **Vercel AI SDK "Generative UI"** (streamUI/RSC): production-ready pero React/Next. → **EVITAR** (stack).
-- **Microsoft Adaptive Cards**: JSON declarativo, renderers multiplataforma (incl. JS), MIT. → **ADOPTAR/BASE**.
-- **`json-render` (Vercel)** y la lista **`narrowin/awesome-generative-ui`**: patrón JSON→UI. → **APRENDER**.
-- **`aladin2907/overhuman`**: el LLM genera HTML único por respuesta. → **EVITAR** (viola la Ley Fundacional);
-  útil solo como prueba de hasta dónde llega la idea.
-- **`CopilotKit` + AG-UI Protocol**: "frontend stack for agents & generative UI" (React). → **APRENDER** la
-  idea de un *protocolo agente→UI*; implementarlo nosotros en JSON plano.
+- **Microsoft Adaptive Cards** *(leído)*: JSON **"purely declarative — no code is needed or allowed"**;
+  payloads **safe** ("you don't have to open up your UI framework to raw markup and scripting", "reduce risk
+  of custom code injection"). Renderer JS = npm **`adaptivecards`**. **MIT verificado** (código fuente + paquetes
+  npm; los binarios UWP/.NET/móvil sí llevan EULA aparte de Microsoft, pero el camino JS que usaríamos es MIT).
+  → **ADOPTAR/BASE.** *La lectura lo refuerza:* sus principios ("no code allowed", "safe payloads") **son la
+  Ley Fundacional aplicada a la pantalla** — no solo "encaja", la encarna.
+- **Vercel AI SDK "Generative UI" (RSC)** *(leído)*: la propia doc dice ***"AI SDK RSC is currently
+  experimental. We recommend using AI SDK UI for production"*** y empuja a migrar fuera de RSC. React/Next.
+  → **EVITAR** (stack + experimental hasta en su propio ecosistema). *Corrección:* el doc lo llamaba
+  "production-ready"; **no lo es** ni para Vercel.
+- **`json-render` / `narrowin/awesome-generative-ui`** *(solo búsqueda)*: patrón JSON→UI. → **APRENDER**
+  *(provisional, sin lectura íntegra)*.
+- **`aladin2907/overhuman`** *(solo búsqueda)*: el LLM generaría HTML único por respuesta. → **EVITAR**
+  *(provisional)* — si se confirma, viola la Ley Fundacional; útil solo como prueba de hasta dónde llega la idea.
+- **AG-UI Protocol (`ag-ui-protocol/ag-ui`)** *(leído)*: **protocolo abierto MIT, framework-agnóstico**, event-based
+  (~16 tipos de evento, transporte SSE/WebSocket/webhook); CopilotKit es **solo un cliente de referencia (React)**,
+  no el protocolo. → **APRENDER / CANDIDATO A BASE del vocabulario evento agente→UI** (en JSON plano). *Corrección:*
+  el doc lo ataba a "CopilotKit (React)"; el protocolo en sí **no depende de React** y es reutilizable.
 
 ### Agentes de correo autónomos
-- **Shortwave / Fyxer**: asisten (triaje, borradores) pero **el humano veta el envío**. **Alfred_** cierra el
-  lazo (triaje + borrador + extracción de tareas + Daily Brief). → **APRENDER** el patrón
-  *triaje → borrador → digest*. **Nuestro foso**: local/privado + decisión-como-UI + admin profundo
-  (fiscal/cobros), no solo correo.
+- **Shortwave / Fyxer / Alfred_** *(solo búsqueda)*: asisten (triaje, borradores); algunos cierran más lazo
+  (digest, extracción de tareas), pero el envío lo veta el humano. → **APRENDER** el patrón
+  *triaje → borrador → digest* *(provisional, sin lectura íntegra de cada producto)*. **Nuestro foso**:
+  local/privado + decisión-como-UI + admin profundo (fiscal/cobros), no solo correo.
 
 ### Human-in-the-loop / cola de decisiones
-- **LangChain `HumanInTheLoopMiddleware`** (aprobar/editar/rechazar tool calls antes de ejecutar): es
-  **exactamente** nuestro `PENDING_APPROVAL` + `AuthorityPlane`. → **VALIDA** lo que ya tenemos.
-- **`humanlayer/humanlayer`** (Python, `@require_approval`, cola async vía Slack/email/dashboard,
-  permisiva): → **APRENDER** la cola async + niveles de autonomía + undo. Reutilizable como referencia
-  (Python, encaja con nuestro backend).
+- **LangChain `HumanInTheLoopMiddleware`** *(leído)*: **verificado** que **interrumpe antes de ejecutar** las
+  tools marcadas (`interrupt_on={"tool": True}`, "before tool execution"). Es el mismo principio que nuestro
+  `PENDING_APPROVAL` + `AuthorityPlane`. → **VALIDA** el patrón. *Corrección honesta:* el trío exacto
+  "aprobar/editar/rechazar" **no lo confirma la página que leí** — confirmado solo el gate-antes-de-tool por nombre.
+- **`humanlayer/humanlayer`** *(leído)*: ⚠️ **corrección importante** — el repo hoy encabeza **CodeLayer**, un IDE
+  open-source de agentes de código (**TypeScript ~59% + Go ~33%**), no el SDK Python que el borrador describía. El
+  **SDK Python** (`pip humanlayer` 0.7.9, `@hl.require_approval()`, cola async vía Slack/email/dashboard, Apache-2.0)
+  **sigue existiendo pero está siendo *superseded* por CodeLayer**. → **APRENDER** el patrón (require_approval + cola
+  async + niveles de autonomía) como **referencia conceptual**, **no** como dependencia viva en crecimiento.
 
-**Licencias:** preferir permisivas (MIT/Apache); Adaptive Cards (MIT) y HumanLayer (Apache-2.0) son seguras
-para producto propietario. Evitar copyleft fuerte (AGPL/GPL) en lo que se incruste.
+**Licencias (verificadas):** Adaptive Cards **MIT** (código + npm) · AG-UI **MIT** · HumanLayer **Apache-2.0**.
+Todas seguras para producto propietario. Evitar copyleft fuerte (AGPL/GPL) en lo que se incruste.
 
 ---
 

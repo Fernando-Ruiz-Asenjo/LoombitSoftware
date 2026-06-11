@@ -560,4 +560,26 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   cobro (vertical, sobre el cerebro + gate ya existentes), con su golden + recibo en vivo.
 - *Reversible:* sí (docs; `git revert`). Adoptar como roadmap firme exige construir por rebanadas con recibo.
 
+**D-58 — Un veredicto de investigación exige RECIBO DE LECTURA (§META-3 disparado por incidente).**
+- *Contexto (el PILLADO):* al redactar §3 de `VISION_LOOMBIT_DECIDE.md` se afirmaron veredictos
+  (`adopt`/`learn`/`avoid`, "production-ready", "encaja con el backend") **sin haber leído las fuentes enteras**
+  — solo búsqueda/titular. Fernando lo destapó ("¿has hecho la investigación a fondo?"). La lectura real
+  **corrigió** ≥2 afirmaciones falsas: (a) `humanlayer/humanlayer` ya **no** es el SDK Python que se describía
+  sino **CodeLayer** (IDE TS+Go); el SDK Python existe pero está *superseded*. (b) Vercel AI SDK RSC **no es
+  "production-ready"**: su propia doc dice *"currently experimental, use AI SDK UI for production"*. (c) AG-UI
+  es **MIT framework-agnóstico**, no "CopilotKit/React". (d) Adaptive Cards **MIT verificado** y sus principios
+  ("no code allowed / safe payloads") **son la Ley Fundacional en la pantalla**.
+- *Disparador §META-3:* tras el incidente → *"¿qué norma/mecanismo faltó?"*. Faltaba la norma de que un
+  **veredicto es una afirmación** y, como toda afirmación en Loombit (predicción ≠ hecho), **exige recibo** —
+  aquí, recibo de **lectura íntegra**, no de búsqueda.
+- *Elegido (en el mismo PR del arreglo, como manda §META-3):* (1) nueva norma en BRÚJULA §INNOVACIÓN —
+  *"Un VEREDICTO exige RECIBO DE LECTURA"* + fila en la tabla Parte IV (norma→mecanismo→auditoría); (2) sync de
+  la cabecera de `CLAUDE.md`; (3) §3 del doc de visión **corregido** con un bloque explícito *leído íntegro
+  (6 fuentes) vs solo búsqueda (provisional)* y los veredictos rectificados.
+- *Mecanismo / auditoría:* recibo manual hoy (bloque "leído vs buscado" en todo doc de investigación);
+  **futuro:** el sensor §META-1 marca como deuda cualquier veredicto sin fuente leída.
+- *Honestidad:* esto NO automatiza nada todavía (el sensor es hueco). Es la **norma + el recibo manual**; el
+  cierre fuerte (sensor) queda declarado como deuda, no fingido.
+- *Reversible:* sí (docs; `git revert`).
+
 *(se irán añadiendo entradas según avance el bloque)*

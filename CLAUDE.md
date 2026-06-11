@@ -52,6 +52,9 @@ Hazlo igual o mejor que Google/los grandes; que sean más grandes NO es excusa.
   skills, experimenta, propón tools/skills nuevas**. Decide y sorprende.
 - **El radar VIVE:** destila tendencias y competidores de verdad (no un doc muerto) y conviértelo en
   propuestas concretas para Loombit. Si algo se puede automatizar (una routine), automatízalo.
+- **Un veredicto exige recibo de lectura (D-58).** `adopt`/`learn`/`avoid`/"encaja"/licencia son afirmaciones:
+  exigen haber **leído la fuente entera**, no su titular. Marca *leído íntegro* vs *solo búsqueda* (provisional).
+  Afirmar un veredicto sin lectura = falsear un golden.
 
 **GOBIERNO (los mecanismos que hacen cumplir lo anterior).** Una norma sin mecanismo es decoración. Ver
 `docs/BRUJULA.md` Partes II-V: §GOB (autoridad única + compila + auditor≠constructor), §SEG (datos≠órdenes +
