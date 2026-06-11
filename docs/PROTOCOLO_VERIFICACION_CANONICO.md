@@ -88,3 +88,24 @@ mismo código, sin drift (§GOB-2). Niveles acumulativos:
 
 Si el agente dice "verde" y el check está rojo, se ve al instante. Esa es la idea: **la verdad no pasa por
 la palabra del agente.**
+
+---
+
+## 5. El bucle se cierra solo — auto-merge en verde (D-66)
+
+`.github/workflows/automerge.yml`: cuando el workflow **CI** termina en **VERDE** para un PR, GitHub lo
+**funde automáticamente**. El merge no lo dispara el agente ni un clic humano — lo dispara **el check**.
+
+```
+agente abre PR (ready) → GitHub corre el gate (--strict --live) → VERDE → GitHub funde solo.
+                                                                 → ROJO  → no funde; el agente arregla.
+```
+
+- **El agente solo PROPONE** (abre el PR como *ready*). No funde, no decide "hecho". Si lo quiere parar,
+  deja el PR en **borrador** (los borradores NO se auto-funden).
+- **Requisito de la protección de rama** (una vez): para que el auto-merge pueda fundir, `main` debe exigir
+  el check `quality` y **NO** exigir aprobaciones humanas (`Require approvals = 0`) — porque, con un solo
+  desarrollador, esa aprobación no existe y bloquearía cualquier automatismo. Mantén el check **requerido**:
+  ese es el gate real. (Si entra un segundo revisor, se sube a 1 y el auto-merge espera también su OK.)
+- **Conflictos:** si el PR tiene conflictos (p. ej. dos ramas tocan `DECISIONES.md`), GitHub no fuerza el
+  merge: queda a mano. El auto-merge solo actúa sobre lo que está **verde y limpio**.
