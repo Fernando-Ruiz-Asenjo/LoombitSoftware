@@ -77,6 +77,21 @@ mismo código, sin drift (§GOB-2). Niveles acumulativos:
 - **Pendiente (siguiente vuelta de §GOB):** `validate_brujula.py` (compilar la tabla norma→mecanismo),
   prohibir `--no-verify` de forma efectiva, e independencia auditor≠constructor (§GOB-3).
 
+### 3.1 ¿Se puede engañar a GitHub? — la verdad (D-67)
+
+**No se puede falsear el RESULTADO** (el exit code lo produce GitHub en su máquina; el agente no lo toca).
+Pero **sí se puede bajar lo que el verde SIGNIFICA**, por dos vías — y por eso existen estos candados:
+
+| Agujero | Defensa (ratchet, solo sube) | Residuo honesto |
+|---|---|---|
+| Tests flojos / código sin test | **suelo de cobertura** `fail_under` (pyproject) → bajar cobertura = rojo | cobertura ≠ correctitud; un test puede cubrir sin comprobar |
+| Debilitar el gate (quitar checks, borrar tests, bajar umbrales) | **`tests/test_gate_integridad.py`** → capar el gate = rojo, RUIDOSO | el candado también es editable; lo hace visible, no imposible |
+| Mutación solo sobre una lista fija | (pendiente: mutación sobre ficheros cambiados) | tests de código nuevo aún sin "dientes" probados |
+
+**La pieza irreducible:** el ojo humano sobre los cambios al **gate** (superficie pequeña: `verify.py`,
+`ci.yml`, `pyproject` umbrales, `test_gate_integridad.py`). El verde es tan fuerte como los arneses; estos
+mecanismos suben el listón y lo protegen — **no vuelven el sistema infalible, y decirlo es parte del gate**.
+
 ---
 
 ## 4. Cómo lo verifica el humano (sin fiarse del agente)

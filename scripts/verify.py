@@ -30,7 +30,8 @@ PY = sys.executable
 _CORE = [
     ("black (formato)", [PY, "-m", "black", "--check", "."]),
     ("ruff (lint)", [PY, "-m", "ruff", "check", "."]),
-    ("pytest (tests + eval-set F1-F8 + goldens)", [PY, "-m", "pytest", "--no-cov", "-q"]),
+    # pytest CON cobertura: el `fail_under` de pyproject (§GOB-2b) pone el gate ROJO si la cobertura baja.
+    ("pytest + cobertura (suelo fail_under)", [PY, "-m", "pytest", "-q"]),
 ]
 
 # Auditorías DETERMINISTAS (sin LLM, sin red, rápidas). Cada una sale != 0 si encuentra un hallazgo.

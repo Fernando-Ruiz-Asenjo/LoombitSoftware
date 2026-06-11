@@ -704,4 +704,23 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   un 🟢 falso en prosa (por eso "hecho" lo otorga el check, no la narración). Pendiente §GOB: `validate_brujula.py`,
   prohibir `--no-verify` efectivo, independencia auditor≠constructor (§GOB-3).
 - *Reversible:* sí (scripts + 1 step de CI + docs; `git revert`).
+
+**D-67 — Endurecer y agrandar lo que el verde abarca: suelo de cobertura + candado anti-debilitamiento.**
+- *Contexto:* Fernando pregunta si es imposible engañar a GitHub. Respuesta honesta: NO se puede falsear el
+  RESULTADO (lo corre GitHub), pero SÍ se puede bajar lo que el verde SIGNIFICA — (1) tests flojos / código
+  sin test, (2) debilitar el propio gate (el zorro y el gallinero, §GOB-3). Pide endurecer.
+- *Elegido:* (1) **Suelo de cobertura** `[tool.coverage.report] fail_under = 68` (ratchet, sube; cobertura
+  real ~71%); el gate corre pytest CON cobertura → añadir código sin test baja la cobertura y pone el verde
+  ROJO. (2) **`tests/test_gate_integridad.py`**: candado determinista que se pone ROJO si se quita un check de
+  `verify.py`, si el CI deja de correr `--strict --live`, si se borran tests en masa (suelo 740), si se bajan
+  los `--iters` del fuzz (suelo 2000) o si desaparece/cae el `fail_under` (suelo 65). Bajar el listón pasa de
+  ser un descuido-en-verde a un acto **deliberado y ruidoso**.
+- *Honestidad (lo que NO cierra):* el candado **no hace imposible** debilitar el gate — también este fichero
+  se puede editar. Lo hace **RUIDOSO** y concentra la vigilancia humana en una superficie pequeña y con
+  nombre (los ficheros del gate). La pieza irreducible sigue siendo el ojo humano sobre los cambios al gate
+  (§GOB-3, auditor≠constructor, aún pendiente del todo). El verde es tan fuerte como los arneses; estos dos
+  mecanismos suben ese listón y lo protegen, no lo vuelven infalible.
+- *Recibo:* gate `--strict --live` VERDE — cobertura 70,74% ≥ 68% (suelo aplicado), integridad 5/5,
+  pytest+449+cobro 0+fuzz 0+mutación 8/0+live 12/12. Lo confirma GitHub CI.
+- *Reversible:* sí (un suelo en pyproject + un test + 1 línea en verify.py; `git revert`).
 *(se irán añadiendo entradas según avance el bloque)*
