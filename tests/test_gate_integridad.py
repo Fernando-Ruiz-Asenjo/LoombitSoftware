@@ -21,13 +21,17 @@ CI = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
 PYPROJECT = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
 
 # Suelos (RATCHET: solo se suben con un cambio deliberado y revisable; bajarlos pone este test en rojo).
-MIN_TESTS = 750  # funciones `def test_` en tests/ (hoy ~755)
+MIN_TESTS = 755  # funciones `def test_` en tests/ (hoy ~759)
 MIN_FUZZ_ITERS = 2000  # las auditorías de fuzz no pueden quedar en un puñado de casos
 MIN_COV_FAIL_UNDER = 65  # el suelo de cobertura no puede desaparecer ni desplomarse
 
 # Tests que NO pueden desaparecer (borrarlos = quitar un candado): nombre → marcadores que deben seguir ahí.
 _CANDADOS_OBLIGATORIOS = {
     "tests/test_brujula_cumplimiento.py": ["_DEUDA_TAMANO", "test_tabla_brujula_sin_celdas_vacias"],
+    "tests/test_gobierno_cobertura.py": [
+        "MANIFIESTO",
+        "test_toda_norma_de_la_brujula_esta_contabilizada",
+    ],
     "tests/test_gate_integridad.py": ["_CANDADOS_OBLIGATORIOS"],
 }
 

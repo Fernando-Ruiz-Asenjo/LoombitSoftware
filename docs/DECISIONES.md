@@ -742,4 +742,23 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
 - *Recibo:* gate `--strict --live` VERDE — 756 tests, candados 11/11, cobertura 70,74%≥68%, mutación 8/0,
   live 12/12. Lo confirma GitHub CI.
 - *Reversible:* sí (dos tests + ratchets; `git revert`).
+
+**D-69 — «Díselo a GitHub: TODA la brújula y TODO el gobierno» — manifiesto de cobertura contabilizado.**
+- *Contexto:* Fernando exige que el verde abarque la brújula y el gobierno ENTEROS. Verdad honesta: las
+  normas de CONDUCTA (mejora lo que se te pide, cognición≠extracción, acierta al 100%) **no son
+  mecanizables** — pretender un check que las "pase" sería mentir otra vez. Lo máximo honesto: que el gate
+  CONTABILICE la brújula entera y no deje punto ciego.
+- *Elegido:* `tests/test_gobierno_cobertura.py` (en el gate) — **manifiesto de las 20 normas** (Partes I-III)
+  → estado AUTOMÁTICO / PARCIAL / HUMANO / PENDIENTE + evidencia. Meta-checks: (1) **cada norma `###` de la
+  brújula está contabilizada** (y al revés) → un punto ciego pone el gate ROJO; (2) todo arnés afirmado
+  AUTOMÁTICO/PARCIAL **existe** (no enforcement de mentira); (3) estados del vocabulario cerrado con motivo no
+  vacío. Añadido a los candados de `test_gate_integridad.py` (no se puede borrar) + suelo de tests a 755.
+- *Honestidad (la línea que no cruzo):* esto NO hace que la máquina "pase" la conducta — la marca **HUMANO**
+  y declara que la verifica una persona. Reparto real hoy: AUTOMÁTICO §GOB-1/§GOB-2/§META-4/INGENIERÍA ·
+  PARCIAL Ley Fundacional/PRODUCTO/§GOB-4/§SEG/§DATOS/§META-1/§META-3 · HUMANO Ley0/NORTE/INNOVACIÓN/§CONC/
+  §EST/§META-2/§META-5 · PENDIENTE §GOB-3/§14B. GitHub no juzga conducta; **garantiza que nada queda en
+  punto ciego** y que ningún check afirmado es de mentira.
+- *Recibo:* gate `--strict --live` VERDE — 759 tests, 20/20 normas contabilizadas, candados ok, cobertura
+  70,86%≥68%, mutación 8/0, live 12/12. Lo confirma GitHub CI.
+- *Reversible:* sí (un test-manifiesto; `git revert`).
 *(se irán añadiendo entradas según avance el bloque)*
