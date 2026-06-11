@@ -8,10 +8,18 @@
 
 ## 🧭 BRÚJULA — normas que dirigen Loombit (aplícalas SIEMPRE, sin que haya que recordarlas)
 
-> Doc canónico: `docs/BRUJULA.md`. Esto es el resumen que gobierna cada turno. Si dudas, vuelve aquí.
+> Doc canónico: `docs/BRUJULA.md` (**v2 — constitución + gobierno**, adoptada 2026-06-11, D-54). Esto es el
+> resumen que gobierna cada turno. Si dudas, vuelve aquí.
 
 **0. Mejora lo que se te pide.** No te quedes en la orden literal: entiéndela, mejórala y ve más
 allá. Si Fernando pide X, entrega X **mejor de lo que pidió**. Eres el motor, no un ejecutor.
+
+**LEY FUNDACIONAL — Separación de Autoridades (unifica 5 normas en 1).** *El LLM nunca está en el camino de
+control de confianza para nada consecuente.* "El LLM propone / el código dispone" · "las cifras las calcula
+código determinista" · "gate humano para todo efecto externo" · "datos ≠ órdenes" · CaMeL. Todo lo
+consecuente (€, fechas, IBAN, impuestos, qué tool corre y con qué parámetros, el efecto externo) lo deciden
+**código determinista verificable + el gate humano**; el LLM entiende, narra y propone, y por construcción
+no puede causar daño. Todo lo demás cuelga de aquí.
 
 **NORTE (qué es y para quién).** Loombit = el operador administrativo **privado** del autónomo/PYME
 español. **Foso: LOCAL (los datos no salen de la máquina) · español · administrativo profundo.**
@@ -44,6 +52,13 @@ Hazlo igual o mejor que Google/los grandes; que sean más grandes NO es excusa.
   skills, experimenta, propón tools/skills nuevas**. Decide y sorprende.
 - **El radar VIVE:** destila tendencias y competidores de verdad (no un doc muerto) y conviértelo en
   propuestas concretas para Loombit. Si algo se puede automatizar (una routine), automatízalo.
+
+**GOBIERNO (los mecanismos que hacen cumplir lo anterior).** Una norma sin mecanismo es decoración. Ver
+`docs/BRUJULA.md` Partes II-V: §GOB (autoridad única + compila + auditor≠constructor), §SEG (datos≠órdenes +
+suite de inyección), §CONC (worktree + tamaño de rama), §14B (cifras POST-LLM), §META (sensor + retirada +
+mantenla viva). La **tabla norma→mecanismo→auditoría** (Parte IV) es la espina dorsal; el orden de
+construcción es P0→P4 (Parte V). **Estado en construcción**: la mayoría son "hueco hoy", no des por hecho lo
+que no tiene recibo.
 
 ---
 
@@ -79,30 +94,16 @@ Está **prohibido** marcar algo 🟢 sin cumplir el DoD. Si es parcial, se dice 
 
 ---
 
-## Fase actual: Fase 1 — Verdad de conectores
+## Fase y estado actual → fuente única: `docs/ESTADO_Y_ROADMAP.md`
 
-Estamos en la **Fase 1**. La Fase 0 (fundación limpia) ya está cerrada.
+> **§META-4 (norma): ningún estado fechado vive en la constitución.** La fase en curso, qué falta para
+> cerrarla, conectores, nº de tests y snapshots son **estado volátil** y viven SOLO en
+> `docs/ESTADO_Y_ROADMAP.md` (con fecha). Aquí solían contradecirse ("Fase 1" y "Fase 1 CERRADA" a la vez;
+> "84 tests" cuando hay ~560) — por eso se sacaron.
 
-### Qué hay que hacer en Fase 1
-1. Crear el flujo OAuth local completo para Google:
-   - `authorization-url` → callback → token store (redactado) → refresh → disconnect.
-2. **Enviar 1 correo real** a una cuenta de prueba vía Gmail API.
-3. **Crear 1 evento real** en Google Calendar.
-4. Probar refresh de token y 3 rutas de fallo: token caducado, permiso faltante, destinatario inválido.
-5. Guardar recibos 🟢 auditables de cada operación en `runtime/local/`.
-
-**La Fase 1 está cerrada cuando existen recibos 🟢 de envío de correo y creación
-de evento contra cuenta real, y la ruta de fallo bloquea limpio.**
-
-> **✅ #28 resuelto (2026-06-08):** la app OAuth "App de escritorio" está creada en Google
-> Cloud Console, la cuenta real está conectada y el token está cifrado en disco. **Gmail send
-> ya está 🟢** (envío real verificado el 2026-06-07, recibo con `message_id`). **Calendar create
-> también 🟢** (evento real 2026-06-08, `event_id` `vmovd103mbb40u7ek3ehb5jsa0`). **Fase 1 CERRADA.**
-
-### Qué NO tocar ahora
-- Industrial, inspección, rover, acuático, deportes → están en `docs/PARKED.md`.
-- Fine-tuning de pesos de modelos → fuera de alcance, el aprendizaje es memoria operativa.
-- Jetson benchmark → requiere comprar hardware; no bloquea el resto.
+**Aparcado / fuera de alcance (estable):** industrial, inspección, rover, acuático, deportes → `docs/PARKED.md`.
+Fine-tuning de pesos → fuera de alcance (el aprendizaje es memoria operativa). Jetson benchmark → requiere
+hardware, no bloquea.
 
 ---
 
@@ -115,22 +116,10 @@ de evento contra cuenta real, y la ruta de fallo bloquea limpio.**
 
 Camino crítico sin dispersión: **Fase 1 → 2 → 3 → 4**.
 
-## Estado real del repo (snapshot 2026-06-07)
+## Estado real del repo → `docs/ESTADO_Y_ROADMAP.md`
 
-Verificado contra el código, no contra notas previas:
-
-- ✅ Repo limpio: historial profesional, LICENSE propietaria, CI verde
-  (`black --check` + `ruff check` + `pytest`, 84 tests). Árbol sin cambios pendientes.
-- ✅ **OAuth modo escritorio**: PKCE (S256), auto-refresh, token cifrado en reposo
-  (keyring/DPAPI, 🟢 verificado en Windows), botón "Conectar Google" en el home.
-  Pendiente 🟢: piloto real (cliente "App de escritorio" en Google Console + 1 envío real).
-- ✅ **Skill W Pilot reforzada**: DPI-awareness (per-monitor v2), tecleo Unicode-seguro
-  (acentos/€ vía portapapeles), `wait_for_window`/`click_accessibility`/`screen_changed`
-  con endpoint + lógica + executor, y **accesibilidad-primero** (`ui_snapshot` UIA).
-  El prompt del agente codifica la jerarquía API→navegador→UIA→coordenadas y los gates.
-  Pendiente 🟢: verificación en escritorio real; pendiente build: adaptador de navegador
-  (Playwright/CDP) y contrato de escalado de coordenadas.
-- ✅ `lm_jobs.py`, `skills.py` y `skill_loader.py` migrados (🟡, unit-tested; sin montar en routers).
+El snapshot del repo (qué está 🟢/🟡/⬜, OAuth, Pilot, migraciones, nº de tests) es estado volátil y vive
+ahí (§META-4). No lo dupliques aquí.
 
 ---
 
@@ -216,22 +205,10 @@ loombit_operator/
 
 ---
 
-## Conectores de oficina — estado actual
+## Conectores de oficina → estado en `docs/ESTADO_Y_ROADMAP.md`
 
-| Conector | Estado | Notas |
-|---|---|---|
-| Gmail send | 🟢 **verificado** | Envío real a cuenta de prueba el 2026-06-07; recibo en `runtime/local/skill_blanca_connector_outbox/` (message_id `19ea478e791867b0`, respuesta API Gmail) |
-| Google Calendar create | 🟢 **verificado** | Evento real creado el 2026-06-08 (`event_id` `vmovd103mbb40u7ek3ehb5jsa0`); recibo en `runtime/local/skill_blanca_connector_outbox/` |
-| Microsoft Graph sendMail | 🟡 fake-tested | Ídem |
-| Microsoft Graph createEvent | 🟡 fake-tested | Ídem |
-| Outbox local (.eml) | 🟢 | Sin credenciales cloud |
-| Calendario local (.ics) | 🟢 | Sin credenciales cloud |
-| Gmail read-only | ⬜ pendiente | No implementado |
-| Outlook read-only | ⬜ pendiente | No implementado |
-| Calendar read-only | ⬜ pendiente | No implementado |
-| Google Contacts | ⬜ pendiente | No implementado |
-
-Gmail send 🟢 (2026-06-07) y Calendar create 🟢 (2026-06-08, `event_id` `vmovd103mbb40u7ek3ehb5jsa0`). **Fase 1 CERRADA** (envío de correo + creación de evento reales, con recibo).
+El estado 🟢/🟡/⬜ de cada conector (Gmail, Calendar, Graph, outbox local, lecturas) es estado volátil con
+recibos fechados; vive ahí (§META-4), no aquí.
 
 ---
 
