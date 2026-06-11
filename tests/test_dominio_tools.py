@@ -162,6 +162,61 @@ def test_resumen_financiero_registrado_y_enrutado():
     assert "resumen_financiero" in select_tool_names("dame un resumen financiero del trimestre")
 
 
+def test_reclamar_cobro_cliente_resuelve_factura_por_nombre():
+    # GAP de flujo: «reclama el cobro a Acme» SIN importe → resuelve la factura registrada de Acme y
+    # calcula el plan (Ley 3/2004), sin pedir el importe ni buscar en el correo.
+    import shutil
+
+    from loombit_operator.config import get_settings
+    from loombit_operator.tools import dominio
+
+    ent = "_test_cobro_cliente"
+    base = get_settings().entities_dir / ent
+    shutil.rmtree(base, ignore_errors=True)
+    orig = dominio._ENTIDAD_DEFECTO
+    dominio._ENTIDAD_DEFECTO = ent
+    try:
+        # Acme: emitida vencida (sin cobrar) → reclamable; Beta: otra emitida pendiente
+        dominio._registrar_factura(
+            contraparte="Acme", base=2000, tipo=21, sentido="emitida", fecha="2024-01-15"
+        )
+        dominio._registrar_factura(
+            contraparte="Beta", base=1500, tipo=21, sentido="emitida", fecha="2024-02-01"
+        )
+        # una RECIBIDA (compra) NO se cobra: no debe reclamarse aunque se nombre al proveedor
+        dominio._registrar_factura(
+            contraparte="Proveedor X", base=900, tipo=21, sentido="recibida", fecha="2024-02-10"
+        )
+        # resuelve SOLO la de Acme, con su total (2420) y el marco legal; no mezcla a Beta
+        out = dominio._reclamar_cobro_cliente(contraparte="Acme")
+        assert "Acme" in out and "2420" in out and "Ley 3/2004" in out
+        assert "Saldo pendiente" in out and "40" in out  # compensación legal art. 8
+        assert "Beta" not in out
+        # case/acento-insensible: 'acme' minúscula también resuelve
+        assert "2420" in dominio._reclamar_cobro_cliente(contraparte="acme")
+        # cliente sin coincidencia → NO inventa: lista a quién SÍ se le debe (Acme, Beta)
+        sin = dominio._reclamar_cobro_cliente(contraparte="Inexistente")
+        assert "No encuentro" in sin and "Acme" in sin and "Beta" in sin
+        # un proveedor (compra) no es un cobro pendiente → no se reclama
+        prov = dominio._reclamar_cobro_cliente(contraparte="Proveedor X")
+        assert "No encuentro" in prov
+    finally:
+        dominio._ENTIDAD_DEFECTO = orig
+        shutil.rmtree(base, ignore_errors=True)
+
+
+def test_reclamar_cobro_cliente_registrado_y_enrutado():
+    from loombit_operator.tools import tool_registry
+    from loombit_operator.tools.registry import select_tool_names
+
+    names = {t.name for t in tool_registry.list()}
+    assert "reclamar_cobro_cliente" in names
+    # la petición por cliente sin importe debe OFRECER la tool (para que el force-tool la enfoque)
+    assert "reclamar_cobro_cliente" in select_tool_names(
+        "reclama el cobro de la factura vencida de Acme"
+    )
+
+
 def test_registrar_factura_acepta_base_negativa_rectificativa():
     # Rectificativa/devolución: base negativa → registra base/IVA/total negativos (reduce el 303).
     # El cálculo es CORRECTO de forma determinista; lo que es flaky es la EXTRACCIÓN del importe

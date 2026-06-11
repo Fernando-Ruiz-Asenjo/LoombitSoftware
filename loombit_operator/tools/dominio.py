@@ -12,6 +12,8 @@ pasando por gmail_send con su gate.
 
 from __future__ import annotations
 
+import re
+import unicodedata
 from calendar import monthrange
 from datetime import date
 from typing import Any
@@ -352,6 +354,133 @@ def _cobros_pendientes(**_: object) -> str:
     return "\n".join(lineas)
 
 
+def _norm_nombre(s: object) -> str:
+    """Normaliza un nombre para comparar contrapartes: minúsculas, sin acentos, sin espacios extra."""
+    t = unicodedata.normalize("NFKD", str(s or "").lower())
+    return " ".join("".join(c for c in t if not unicodedata.combining(c)).split())
+
+
+# Tokens de forma jurídica/genéricos: no identifican a un cliente por sí solos («SL» no es «la SL»).
+_TOKENS_GENERICOS = {"sl", "sa", "slu", "sau", "scp", "sc", "cb", "slne", "sociedad", "limitada"}
+
+
+def _sanea_nombre(s: object, limite: int = 80) -> str:
+    """Limpia el nombre de cliente antes de meterlo en una respuesta AUTORITATIVA (se relaya verbatim
+    y se reinyecta en el contexto del LLM): quita saltos de línea/controles y marcadores markdown/HTML,
+    colapsa espacios y recorta. Neutraliza el phishing embebido en el campo `proveedor` de una factura
+    (texto de un tercero, no de confianza). No altera el cálculo: solo cómo se MUESTRA el nombre."""
+    t = re.sub(r"[\x00-\x1f\x7f]", " ", str(s or ""))  # controles + saltos de línea
+    t = re.sub(r"[*_`#>\[\]<>|~]", "", t)  # marcadores markdown/HTML
+    t = " ".join(t.split())
+    return t[:limite].strip()
+
+
+def _casa_contraparte(objetivo: str, contraparte: str) -> bool:
+    """¿El nombre pedido `objetivo` identifica a esta `contraparte`? Coincidencia por PALABRA, no por
+    substring crudo: «Acme» casa «Acme Dos SL» (prefijo de la razón social) y «García» casa «Marco
+    García» (palabra), pero «Marco» NO casa «Comarco SL» y «SL»/«a» no casan a nadie. Evita reclamar a
+    un tercero o agregar varios clientes bajo el nombre del primero."""
+    o = _norm_nombre(objetivo)
+    c = _norm_nombre(contraparte)
+    if len(o) < 2 or not c or o in _TOKENS_GENERICOS:
+        return False
+    if o == c or c.startswith(o + " "):
+        return True
+    return o in [w for w in c.split() if w not in _TOKENS_GENERICOS]
+
+
+def _reclamar_cobro_cliente(contraparte: str = "", **_: object) -> str:
+    """Reclama el cobro de la(s) factura(s) pendiente(s) de un CLIENTE por su NOMBRE, sin que el
+    usuario dicte el importe: localiza en las facturas REGISTRADAS las emitidas y aún no cobradas de
+    esa contraparte y calcula su plan de cobro (Ley 3/2004). Cierra el flujo «reclama el cobro a Acme»
+    sin importe — resuelve la factura en vez de pedir el dato o irse a buscar al correo. Determinista:
+    el importe y el vencimiento salen de la factura registrada, no del LLM."""
+    from ..skill_d_fiscal.conciliacion_cobros import (
+        pendientes_con_vencimiento,
+        rectificativas_pendientes,
+    )
+
+    nombre = str(contraparte or "").strip()
+    try:
+        store = ExpedienteStore(entity_id=_ENTIDAD_DEFECTO)
+        todos = pendientes_con_vencimiento(store)
+        rects = rectificativas_pendientes(store)
+    except Exception as exc:  # noqa: BLE001
+        return f"ERROR al leer tus facturas registradas: {exc}"
+    if not todos:
+        return (
+            "No tienes ninguna factura emitida pendiente de cobro registrada. Regístrala (o dime el "
+            "importe y el vencimiento) y te preparo la reclamación según la Ley 3/2004."
+        )
+    casos = [t for t in todos if _casa_contraparte(nombre, t[0].contraparte)]
+    if not casos:
+        # Sin nombre o sin coincidencia: enseña a QUIÉN se le debe (para que elija), en vez de pedir
+        # un dato a ciegas o irse al correo. No inventa la factura de un cliente que no existe.
+        clientes = sorted(
+            {_sanea_nombre(p.contraparte) or "(cliente sin nombre)" for p, *_ in todos}
+        )
+        quien = f"«{_sanea_nombre(nombre)}»" if nombre else "ese cliente"
+        return (
+            f"No encuentro ninguna factura pendiente de cobro de {quien} en tus registros. "
+            f"Tienes cobros pendientes de: {', '.join(clientes)}. Dime de cuál preparo la "
+            "reclamación (o regístrala si te falta)."
+        )
+    # DESAMBIGUACIÓN: si el nombre casa con VARIOS clientes distintos, no agregues sus facturas bajo
+    # el primero — pregunta de cuál (mejor que una reclamación con la contraparte equivocada).
+    distintas = sorted({_sanea_nombre(p.contraparte) for p, *_ in casos})
+    if len(distintas) > 1:
+        return (
+            f"«{_sanea_nombre(nombre)}» coincide con varios clientes: {', '.join(distintas)}. "
+            "¿De cuál preparo la reclamación?"
+        )
+    cliente0 = _sanea_nombre(casos[0][0].contraparte) or "ese cliente"
+    # NETEO de rectificativas (notas de abono) del MISMO cliente: una rectificativa que cancela la
+    # factura deja la deuda neta en 0 → no hay nada que reclamar (no reclamar dinero ya anulado).
+    bruto = round(sum(float(p.importe) for p, *_ in casos), 2)
+    neg = round(sum(float(imp) for cp, imp in rects if _casa_contraparte(nombre, cp)), 2)
+    neto = round(bruto + neg, 2)
+    if neg and neto <= 0:
+        return (
+            f"La(s) rectificativa(s) de {cliente0} cancelan la deuda (facturado {bruto:.2f} € − "
+            f"{abs(neg):.2f} € en rectificativas = {neto:.2f} €): no hay nada que reclamar."
+        )
+    bloques: list[str] = []
+    for p, venc, estimado, pagado in casos:
+        if venc:
+            plan = _plan_cobro(total=float(p.importe), fecha_vencimiento=venc, cobrado=pagado)
+            if estimado:
+                plan += (
+                    " (Sin vencimiento pactado en la factura: aplico el plazo legal de 30 días desde "
+                    "la emisión, Ley 3/2004 art. 4.)"
+                )
+        else:
+            saldo = float(p.importe) - pagado
+            plan = (
+                f"Saldo pendiente: {saldo:.2f} €. Esta factura no tiene ni vencimiento ni fecha de "
+                "emisión registrada, así que no puedo fijar la etapa ni el interés de demora; dime el "
+                "vencimiento y te calculo la reclamación completa."
+            )
+        ref = f" (factura {_sanea_nombre(p.referencia, 40)})" if p.referencia else ""
+        bloques.append(
+            f"• {_sanea_nombre(p.contraparte) or 'cliente'}{ref} — {float(p.importe):.2f} €:\n{plan}"
+        )
+    if len(casos) == 1:
+        cab = (
+            f"Reclamación de cobro de {cliente0} (Ley 3/2004), desde tus facturas registradas:\n\n"
+        )
+    else:
+        cab = (
+            f"{len(casos)} facturas pendientes de {cliente0} (Ley 3/2004), desde tus facturas "
+            "registradas:\n\n"
+        )
+    if neg:  # hay rectificativas pero la deuda neta sigue siendo positiva → avisar
+        cab += (
+            f"⚠ OJO: hay {abs(neg):.2f} € en rectificativas de {cliente0}; la deuda NETA es "
+            f"{neto:.2f} € (verifica antes de reclamar el bruto factura a factura).\n\n"
+        )
+    return cab + "\n\n".join(bloques)
+
+
 def _resumen_financiero(periodo: str = "") -> str:
     """Resumen FINANCIERO COMPLETO de un periodo, TODO en una respuesta determinista: lo FACTURADO
     (ingresos), los GASTOS, el BENEFICIO, el IVA del 303 del periodo y cuánto te DEBEN (cobros
@@ -577,6 +706,34 @@ tool_registry.register(
         ),
         parameters={"type": "object", "properties": {}},
         fn=_cobros_pendientes,
+        category="base",
+        authoritative=True,
+    )
+)
+
+
+tool_registry.register(
+    ToolDefinition(
+        name="reclamar_cobro_cliente",
+        description=(
+            "RECLAMA el cobro de la(s) factura(s) pendiente(s) de un CLIENTE por su NOMBRE, cuando el "
+            "usuario NO dice el importe (p.ej. «reclama el cobro de la factura vencida de Acme», "
+            "«cóbrale a García lo que me debe»). Busca en tus facturas REGISTRADAS las emitidas a esa "
+            "contraparte aún no cobradas y calcula el plan de cobro (Ley 3/2004): saldo, días "
+            "vencidos, etapa, compensación de 40 € e interés de demora. NO envía nada. Úsala en vez de "
+            "pedir el importe o buscar en el correo cuando el usuario nombra al cliente."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "contraparte": {
+                    "type": "string",
+                    "description": "Nombre del cliente al que reclamar el cobro (p.ej. 'Acme').",
+                },
+            },
+            "required": ["contraparte"],
+        },
+        fn=_reclamar_cobro_cliente,
         category="base",
         authoritative=True,
     )

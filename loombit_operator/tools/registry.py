@@ -194,7 +194,14 @@ TOOL_GROUPS: list[tuple[tuple[str, ...], set[str]]] = [
             "pendiente de cobro",
             "sin cobrar",
         ),
-        {"plan_cobro", "cobros_pendientes", "resumen_financiero", "gmail_search", "gmail_send"},
+        {
+            "plan_cobro",
+            "reclamar_cobro_cliente",
+            "cobros_pendientes",
+            "resumen_financiero",
+            "gmail_search",
+            "gmail_send",
+        },
     ),
     (
         (

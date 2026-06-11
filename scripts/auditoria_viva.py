@@ -14,6 +14,11 @@ from datetime import date, timedelta
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+# La consola Windows (cp1252) no codifica los ✅/€ de las respuestas → el print crasheaba la auditoría
+# entera. Forzar UTF-8 en stdout la hace robusta sin depender de PYTHONIOENCODING.
+with contextlib.suppress(Exception):
+    sys.stdout.reconfigure(encoding="utf-8")
+
 from funcional_live import _emit  # noqa: E402
 from funcional_live3 import _con_timeout, _entidad_aislada, _run, _stub_send  # noqa: E402
 from loombit_operator.tools import dominio as _Dm  # noqa: E402
@@ -63,6 +68,17 @@ ESCENARIOS = [
         "Reclama los 2000 € que me debe Acme, vencidos hace un mes.",
         lambda r, t, x: _tiene(t, "plan_cobro", "cobro", "cobros_pendientes")
         and any(k in x for k in ("saldo", "interés", "demora", "vencid", "deben", "2420", "2000")),
+    ),
+    (
+        # GAP de flujo cerrado: «reclama el cobro de la factura vencida de Acme» SIN importe → resuelve
+        # la factura REGISTRADA de Acme (reclamar_cobro_cliente) y calcula el plan, en vez de pedir el
+        # dato o irse a gmail_search. La factura de Acme es 2000@21 = 2420 € de total.
+        "cobro_cliente_sin_importe",
+        [_emit(2000, c="Acme", fecha=_VENC)],
+        "Reclama el cobro de la factura vencida de Acme.",
+        lambda r, t, x: _tiene(t, "reclamar_cobro_cliente")
+        and any(k in x for k in ("saldo", "2420", "demora", "vencid", "reclam"))
+        and not _tiene(t, "gmail_search"),
     ),
     (
         "cobros_pendientes",

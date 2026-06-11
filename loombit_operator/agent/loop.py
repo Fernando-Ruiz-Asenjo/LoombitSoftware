@@ -632,7 +632,16 @@ class AgentLoop:
                 autoritativos.append(verbatim)
         if autoritativos:
             bloque = "\n\n".join(autoritativos)
-            result = bloque + ("\n\n" + result if result and result.strip() else "")
+            # El 14B suele PARAFRASEAR el bloque autoritativo en su narración final; mostrar AMBOS
+            # duplica las cifras al usuario (lo que veía Fernando: "✅ Factura registrada… ✅ Factura
+            # registrada…"). Regla determinista: el bloque autoritativo SIEMPRE va (garantiza las
+            # cifras del cálculo); la narración del LLM solo se añade si aporta alguna cifra NUEVA
+            # (respuesta COMPUESTA: agenda/correo además de las finanzas). Si solo parafrasea las
+            # mismas cifras, se descarta → no se duplica.
+            if result and result.strip() and not _narracion_redundante(result, bloque):
+                result = bloque + "\n\n" + result
+            else:
+                result = bloque
         # Aviso determinista en preguntas fiscales reguladas (getattr: los tests pasan run sin .task).
         return _con_aviso_regulado(getattr(run, "task", ""), result)
 
@@ -1289,6 +1298,63 @@ def _afirma_exito(result: str) -> bool:
     a la vez que no pudo. Solo se usa cuando ya sabemos que toda acción material falló."""
     t = (result or "").lower()
     return bool(_AFIRMA_EXITO_RX.search(t)) and not _NIEGA_EXITO_RX.search(t)
+
+
+# Contenido COMPUESTO no financiero (agenda/correo/tareas): si la narración lo menciona, aporta info
+# que NO está en el bloque autoritativo (solo finanzas) → se conserva aunque sus cifras coincidan.
+_CONTENIDO_COMPUESTO = re.compile(
+    r"\b(reuni\w+|cita\w*|evento\w*|correo\w*|emails?|e-mails?|mensaje\w*|agenda\w*|"
+    r"calendari\w+|tarea\w*|llamad\w+|recordatori\w+|plazo\w*|vencimiento\w*)\b",
+    re.IGNORECASE,
+)
+
+
+def _parse_money(s: str) -> float | None:
+    """Importe a float, tolerando formato es-ES (1.234,56) y en-US (1,234.56 / 2420.0). El ÚLTIMO
+    separador con ≤2 dígitos detrás es el decimal; los demás son de miles."""
+    s = s.strip().rstrip(".,")
+    if "," in s and "." in s:
+        s = (
+            s.replace(".", "").replace(",", ".")
+            if s.rfind(",") > s.rfind(".")
+            else s.replace(",", "")
+        )
+    elif "," in s:
+        ent, _, dec = s.rpartition(",")
+        s = ent.replace(",", "") + "." + dec if len(dec) <= 2 else s.replace(",", "")
+    elif "." in s:
+        ent, _, dec = s.rpartition(".")
+        s = ent.replace(".", "") + "." + dec if len(dec) <= 2 else s.replace(".", "")
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
+
+def _importes_eur(texto: str) -> set[int]:
+    """Importes en € del texto (parte entera redondeada): solo números pegados a €/euro(s), así un día
+    o un «art. 8» o el «3» de «Ley 3/2004» NO cuentan como cifra. «2.420 €»/«2420.0 €»/«1.210,00 €» →
+    {2420}/{2420}/{1210}."""
+    out: set[int] = set()
+    # El \b solo aplica a «eur(os)» (delimita la palabra); «€» no es carácter de palabra → un \b tras
+    # él NUNCA casaría («2420 €.» / «40 €,») y se perdería todo importe escrito con el símbolo.
+    for m in re.finditer(r"(\d[\d.,]*)\s*(?:€|eur(?:os?)?\b)", texto or "", re.IGNORECASE):
+        val = _parse_money(m.group(1))
+        if val is not None:
+            out.add(round(val))
+    return out
+
+
+def _narracion_redundante(texto_llm: str, bloque_autoritativo: str) -> bool:
+    """True si la narración del LLM solo RESTATEa los IMPORTES del bloque autoritativo (trae importes y
+    TODOS están ya en el bloque, sin mencionar agenda/correo ni aportar un importe nuevo) → paráfrasis
+    que duplicaría → se descarta. False si menciona contenido compuesto (agenda/correo) o trae un
+    importe NUEVO → se conserva. Compara por VALOR en € (no por dígitos sueltos), así «2.420 €» =
+    «2420.0 €» y el «3» de «3 correos» no cuenta como duplicado. Ver _relay_fiel."""
+    if _CONTENIDO_COMPUESTO.search(texto_llm or ""):
+        return False
+    imp = _importes_eur(texto_llm)
+    return bool(imp) and not (imp - _importes_eur(bloque_autoritativo))
 
 
 def _consecutive_tool_errors(run: "AgentRun", tool_name: str) -> int:
