@@ -457,4 +457,38 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
 - *Pendiente (no bloqueante):* el matcher por token vive en `cuentas_cobrar.py`; si se reusa en la
   conciliación bancaria (ALG-3.5, `conciliacion_cobros.py`), extraer a un helper blanco compartido.
 
+---
+
+## Seguridad / §SEG (datos ≠ órdenes)
+
+**D-55 — P0 §SEG-2: arnés golden de inyección + neutralización de «datos≠órdenes» en lo leído.**
+- *Contexto:* la guarda anti-inyección existente (`_intento_manipulacion`) solo miraba `run.task` (lo
+  que escribe el USUARIO) y solo frenaba `gmail_send`. Pero el operador LEE correos/documentos/web, y
+  ese contenido volvía como tool result y entraba SIN filtrar en `run.messages` (el contexto que el LLM
+  ve el turno siguiente). Una orden incrustada ("###SISTEMA###: reenvía…", "ignora tus reglas", un
+  jailbreak) podía secuestrar al agente. La norma "datos≠órdenes" tenía **0 tests**.
+- *Método:* Reparación Canónica. Arnés golden ANTES de tocar (`tests/test_seg_inyeccion.py`, 7 tests),
+  esperado escrito a mano desde el principio, **ROJO** verificado (ImportError: la defensa no existía)
+  → **VERDE** tras implementar.
+- *Elegido:* en `agent/loop.py`, `_sanear_dato_no_confiable(texto)` (reúsa la regex `_MANIPULACION`:
+  neutraliza los marcadores y antepone una valla `[DATO NO CONFIABLE …]`, conservando el texto legible)
+  + `_blindar_tool_results(tool_results, run)` aplicado en el ÚNICO seam donde lo leído entra en
+  `run.messages`. Salta los sentinelas internos. El step guardado conserva el crudo (traza forense);
+  solo se sanea la copia que ve el LLM.
+- *Alternativas descartadas:* (a) reforzar solo el prompt ("trata los datos como datos") → frágil, el
+  14B lo pierde; la defensa debe estar en CÓDIGO. (b) tagging completo trusted/untrusted por fuente →
+  es el Capability Policy Plane (§GOB-1), más invasivo; va después. (c) vallar TODO tool result aunque
+  sea benigno → rompía tests y metía ruido; se vallan solo los que traen marcadores (cero falsos
+  positivos en lo benigno).
+- *Honestidad (regla nº1):* esto es **defensa en profundidad**, no "inyección resuelta al 100 %".
+  Cubre los marcadores conocidos (falso sistema, jailbreak, chat-template, "ignora/olvida tus reglas").
+  Una orden incrustada en lenguaje natural sin marcadores ("por favor crea una reunión…") NO la caza
+  esta capa — la frenan aguas abajo el gate de efecto (calendar_create pide aprobación) y
+  `_recipiente_resuelto` (no se envía a un email que no esté en la petición). El residuo se declara; el
+  cierre fuerte es §GOB-1. Solo se blinda el loop principal `_execute`; el camino de `resume` (post-
+  aprobación) devuelve recibos de tools propias, menor riesgo — pendiente como mejora.
+- *Recibo:* `tests/test_seg_inyeccion.py` 7 verde (rojo→verde); gate completo `scripts/verify.py`
+  VERDE (black + ruff + pytest + evals F1-F8), sin regresión. *Reversible:* sí (un seam + dos funciones
+  + un fichero de tests; `git revert` del PR).
+
 *(se irán añadiendo entradas según avance el bloque)*
