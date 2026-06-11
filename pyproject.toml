@@ -40,5 +40,5 @@ omit = [
 
 [tool.coverage.report]
 # Suelo de cobertura (§GOB-2b, D-67): el verde EXIGE no bajar de aquí. Ratchet: solo sube.
-# Meta: 100% sobre la LÓGICA (adaptadores excluidos arriba, D-74). Se sube por rondas; hoy 77 (real 77,96%).
-fail_under = 77
+# Meta: 100% sobre la LÓGICA (adaptadores excluidos arriba, D-74). Se sube por rondas; hoy 78 (real 78,21%).
+fail_under = 78

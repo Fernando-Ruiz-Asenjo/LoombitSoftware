@@ -884,4 +884,17 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
 - *Recibo:* gate normal VERDE local — black+ruff+mypy(6/6) limpios, mutación **16 cazadas/0 sobreviven**,
   794 tests, cobertura lógica 77,96%≥77. Falta el check verde de GitHub (CI `--strict --live`) para «hecho».
 - *Reversible:* sí; `git revert`. El módulo es aditivo (nadie depende aún de él en el loop).
+
+**D-76 — Cobertura de la LÓGICA, ronda 2: `fabrica/estrategia.py` 0%→64%. Suelo 77→78.**
+- *Contexto:* sigue el grind honesto de D-74 (100% sobre la lógica, adaptadores declarados). `estrategia.py`
+  (síntesis de producto/monetización desde el radar) estaba a 0%.
+- *Elegido:* golden `tests/test_estrategia.py` (9 casos) que ejerce la lógica por su costura inyectable
+  (fake LLM en `.chat()`, D-74 lo avala): extracción de señales (dict anidado/plano y objeto Necesidad),
+  rama sin señales (no inventa), respuesta vacía, excepción del LLM, y el guard PURO no-http de `_leer_url`.
+- *Honesto — lo que NO se cubre y por qué:* el cuerpo httpx de `_leer_url` (red) y la construcción del
+  `LLMClient` real cuando `llm is None` son frontera de adaptador → se verifican EN VIVO, no con un mock
+  que mienta. Por eso el módulo queda en 64%, no 100%, y se dice.
+- *Recibo:* gate normal VERDE local — cobertura lógica 78,21%≥78, mutación 16/0, 803 tests. Falta el check
+  verde de GitHub (CI `--strict --live`) para «hecho».
+- *Reversible:* sí; `git revert` (solo añade tests + sube el suelo).
 *(se irán añadiendo entradas según avance el bloque)*
