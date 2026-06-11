@@ -853,4 +853,19 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
 - *Recibo:* gate `--strict --live` VERDE — mypy 5/5, cobertura 70,82%≥70, **mutación 14 cazadas/0 sobreviven**,
   773 tests, live 12/12. Lo confirma GitHub CI.
 - *Reversible:* sí; `git revert`.
+
+**D-74 — Camino al 100% honesto: adaptadores excluidos+declarados; cobertura de la LÓGICA 70→76 (ronda 1).**
+- *Contexto:* Fernando exige cobertura 100% antes de echar la llave. Honestidad: forzar 100% con mocks de
+  hardware/OAuth sería cobertura que MIENTE. Decisión suya (AskUserQuestion): **100% honesto = excluir y
+  declarar** los adaptadores intestables, y cubrir la lógica de verdad.
+- *Elegido:* `[tool.coverage.run] omit` en pyproject con la **lista VISIBLE de adaptadores** (launcher,
+  pilot/*, tools de escritorio, llm, gmail/calendar send, oauth, docs_intel_vision) — cada uno con su motivo.
+  No se simulan con mocks; se verifican EN VIVO (recibo manual). Excluyéndolos, la lógica pasa de 70,8% →
+  **77,6%** (sin un solo mock falso). Suelo 70→76 (ratchet); MIN_COV_FAIL_UNDER 68→72.
+- *Honestidad — el camino que queda:* faltan ~2.100 líneas de LÓGICA por cubrir hasta el 100%, incluido
+  `agent/loop.py` (703 líneas, el bucle ReAct) y `memory.py` (426). Parte de eso exige **mockear el LLM**
+  para probar la lógica alrededor — test más blando que la verificación real, pero legítimo (no es hardware).
+  Es un grind de **varias rondas**, no de una.
+- *Recibo:* gate `--strict --live` VERDE — cobertura lógica 77,76%≥76, mypy 5/5, mutación 14/0, live 12/12.
+- *Reversible:* sí (config de cobertura; `git revert`).
 *(se irán añadiendo entradas según avance el bloque)*

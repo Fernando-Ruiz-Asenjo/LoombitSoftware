@@ -23,7 +23,7 @@ PYPROJECT = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
 # Suelos (RATCHET: solo se suben con un cambio deliberado y revisable; bajarlos pone este test en rojo).
 MIN_TESTS = 765  # funciones `def test_` en tests/ (hoy ~768)
 MIN_FUZZ_ITERS = 2000  # las auditorías de fuzz no pueden quedar en un puñado de casos
-MIN_COV_FAIL_UNDER = 68  # el suelo de cobertura no puede desaparecer ni caer por debajo de esto
+MIN_COV_FAIL_UNDER = 72  # el suelo de cobertura no puede desaparecer ni caer por debajo de esto
 
 # Tests que NO pueden desaparecer (borrarlos = quitar un candado): nombre → marcadores que deben seguir ahí.
 _CANDADOS_OBLIGATORIOS = {
