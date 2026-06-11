@@ -108,3 +108,5 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
+# Prueba del candado Code Owners (se revierte) — verifica que tocar el gate exige tu review.
