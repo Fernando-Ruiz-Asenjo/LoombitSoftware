@@ -491,4 +491,24 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   VERDE (black + ruff + pytest + evals F1-F8), sin regresión. *Reversible:* sí (un seam + dos funciones
   + un fichero de tests; `git revert` del PR).
 
+**D-56 — P0 §GOB-1: Capability Policy Plane (superficie única de autoridad).**
+- *Contexto:* la Ley Fundacional pide que TODA la autoridad consecuente cuelgue de una sola superficie.
+  Vivía dispersa en `_execute_tool_call`: gate de efecto, resolución de destinatario, no-auto-revelarse-
+  bot, rehúsa-ante-manipulación, cada una en su `if`.
+- *Elegido:* nuevo paquete `loombit_operator/policy/` — `authority_plane.py` con `AuthorityPlane.autorizar()`
+  que devuelve una `Decision` (EJECUTAR / APROBAR=gate humano / CORREGIR / REHUSAR); `_execute_tool_call`
+  ahora DELEGA en el plano en un solo punto. Política gemela en la frontera de datos: `sanear_dato()`
+  (datos≠órdenes, §SEG). **Golden de autoridad** `tests/test_gob1_authority_plane.py` (10 tests, un eje
+  cada uno: lectura, efecto-externo, run_shell, destinatario inventado/claro/ambiguo, proactivo, bot,
+  manipulación, datos≠órdenes).
+- *Diseño (sin ciclo de import):* los predicados puros (`_recipiente_resuelto`, `_intento_manipulacion`,
+  `_destinatario_claro`, `_DELATA_BOT`, `_sanear_dato_no_confiable`) siguen HOY en `agent/loop.py`; el
+  plano los compone con **import diferido** dentro de los métodos. El plano es la superficie de DECISIÓN.
+  Migrar los predicados a `policy/policies.py` es follow-up limpio que NO cambia conducta.
+- *Honestidad:* el comportamiento es **idéntico** — los ~717 tests existentes pasan **a través** del plano
+  (prueba de no-regresión); el golden fija el contrato de la superficie. **Falta recibo EN VIVO con el 14B**
+  para 🟢 pleno (siguiente paso). Es 🟡→🟠: superficie operativa y probada por test, pendiente recibo vivo.
+- *Recibo:* golden 10 verde + gate completo `scripts/verify.py` VERDE (black+ruff+pytest+evals), sin
+  regresión ni ciclo de import. *Reversible:* sí (un paquete nuevo + delegación en un punto; `git revert`).
+
 *(se irán añadiendo entradas según avance el bloque)*
