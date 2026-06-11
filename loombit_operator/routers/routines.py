@@ -15,12 +15,18 @@ import json
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel
 
 from ..routine_executors import brief_executor, ensure_default_routines
 from ..routines import RoutineNotFoundError, RoutineStore
 from ..scheduler import RoutineScheduler
 
 router = APIRouter(prefix="/routines", tags=["routines"])
+
+
+class AprenderBody(BaseModel):
+    texto: str
+
 
 _EMPTY_WATCH = "Sin respuestas nuevas"
 
@@ -109,6 +115,18 @@ def status(request: Request) -> dict:
         "routines": routines,
         "novedades": novedades,
     }
+
+
+@router.post("/aprender")
+def aprender(body: AprenderBody) -> dict:
+    """'Enséñale' (S2): de una orden en lenguaje natural a una skill/routine auto-disparada.
+    El horario lo dispone el código (determinista); el efecto externo se queda en aprobación."""
+    from ..aprender_skill import crear_skill_desde_texto
+
+    try:
+        return crear_skill_desde_texto(body.texto, _store())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get("")

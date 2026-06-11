@@ -430,6 +430,20 @@ def aprendizaje_executor(routine: Routine, now: datetime) -> str:
     return consolidar().get("resumen", "Aprendizaje: sin resultado.")
 
 
+def agente_executor(routine: Routine, now: datetime) -> str:
+    """Ejecuta la tarea de una skill ENSEÑADA (S2) vía el agent loop, en modo PROACTIVO: prepara
+    el trabajo y se queda en pending_approval (nunca auto-envía; lo proactivo siempre se confirma).
+    Reutiliza el bucle del agente, igual que la vigilancia de respuestas."""
+    from .routers.agent import _get_loop
+
+    loop = _get_loop()
+    run = loop.create(task=routine.objective, profile="administrativo")
+    run.proactive = True
+    loop.store.save_run(run)
+    loop.execute_run(run.id)
+    return f"Preparé «{routine.name}». Pendiente de tu aprobación si implica un envío."
+
+
 def default_executor(routine: Routine, now: datetime) -> str:
     """Despacha al executor según el tipo de routine (un solo punto de entrada para el scheduler)."""
     if routine.output_kind == "mejora":
@@ -440,6 +454,8 @@ def default_executor(routine: Routine, now: datetime) -> str:
         return fabrica_skills_executor(routine, now)
     if routine.output_kind == "aprendizaje":
         return aprendizaje_executor(routine, now)
+    if routine.output_kind == "agente":
+        return agente_executor(routine, now)
     return brief_executor(routine, now)
 
 
