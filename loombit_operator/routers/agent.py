@@ -230,6 +230,12 @@ async def approve_run(
         )
         store.save_run(run)
 
+    # Aprende del hábito: aprobar una sugerencia PROACTIVA es señal de "sueles aceptar" este asunto
+    # (se captura ANTES de aceptar, mientras pending_approval aún tiene la acción propuesta).
+    from ..habitos_runs import registrar_decision_run
+
+    registrar_decision_run(run, "aceptada")
+
     # Aceptamos la aprobación de forma SÍNCRONA (run → running) y dejamos la ejecución de la tool
     # aprobada + la continuación del LLM para background. Así la respuesta ya NO devuelve el estado
     # viejo (pending_approval) y la UI no vuelve a pintar la misma tarjeta; hace polling al estado real.
@@ -246,6 +252,10 @@ async def approve_all(background_tasks: BackgroundTasks) -> dict:
     loop = _get_loop()
     pendientes = store.list(status=AgentStatus.PENDING_APPROVAL)
     ids = [r.id for r in pendientes]
+    from ..habitos_runs import registrar_decision_run
+
+    for r in pendientes:
+        registrar_decision_run(r, "aceptada")  # aprender de cada sugerencia proactiva aprobada
     for run_id in ids:
         background_tasks.add_task(loop.resume, run_id)
     if ids:
@@ -308,6 +318,12 @@ async def cancel_run(run_id: str) -> RunResponse:
             status_code=409,
             detail=f"El run no se puede cancelar (status={run.status})",
         )
+
+    # Cancelar una sugerencia PROACTIVA que esperaba aprobación es señal de "sueles ignorar/rechazar".
+    if run.status == AgentStatus.PENDING_APPROVAL:
+        from ..habitos_runs import registrar_decision_run
+
+        registrar_decision_run(run, "rechazada")
 
     run.cancel()
     store.save_run(run)
