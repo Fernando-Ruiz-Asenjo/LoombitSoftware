@@ -575,4 +575,28 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   una página de la Tela. Dos toques (decisión + gate) podrían colapsarse a uno → decisión de UX/autoridad de
   Fernando, no se hace aquí.
 - *Reversible:* sí (un módulo nuevo + 1 endpoint + cableado en `resolve`; `git revert`).
+
+**D-62 — «Loombit Decide»: la decisión y el gate de efecto quedan SEPARADOS (decide Fernando).**
+- *Contexto:* en LD-2 hay dos toques — la tarjeta de decisión («¿persigo este cobro?») y el gate de envío
+  («¿envío este texto exacto?»). Se preguntó si colapsarlos a uno.
+- *Elegido por Fernando:* **separados.** Son dos autoridades distintas; mantenerlas separadas es lo más
+  seguro y ya es el comportamiento construido en LD-2 → **sin cambio de código**.
+- *Reversible:* trivial (es una decisión de UX; unirlos sería un cambio aditivo futuro si cambia el criterio).
+
+**D-63 — «Loombit Decide» LD-3: autonomía graduada (y capada con honestidad, §14B).**
+- *Contexto:* el operador pasa de reactivo a trabajar en background y encolar decisiones — pero la
+  autonomía se gradúa y se mide, no se promete (el 14B local la limita).
+- *Elegido:* `loombit_operator/autonomy.py` — niveles `observa` (cuenta, no molesta) / `propone` (encola;
+  DEFAULT) / `actua_con_gate` (encola; el acto pasa por el gate = LD-2) / `actua_solo` (**NO implementado**).
+  `generar_decisiones_cobro` compone y encola (idempotente por `cuenta_id`) según el nivel. Routine
+  «Decisiones de cobro» (PASSIVE, 08:00 L-V, opt-in vía daemon) + executor en `routine_executors.py` +
+  setting `decide_autonomy_level`.
+- *Cap honesto (§14B):* el generador **solo encola decisiones**; `auto_actuado` es SIEMPRE 0 — nunca dispara
+  un efecto externo ni auto-resuelve. `actua_solo` se trata como `propone` y se declara no construido, no se
+  finge. El acto consecuente sigue exigiendo al humano (la cola) + el gate (el envío).
+- *Recibo (🟡):* 6 goldens — `observa` no encola · `propone`/`actua_con_gate` encolan · idempotente ·
+  `actua_solo` NO auto-actúa (auto_actuado==0) · parse tolerante · executor real encola en background. Gate
+  VERDE: black + ruff (`.`) + **805 pytest**, cero regresión. Honesto: 🟡 — sin recibo EN VIVO con el daemon
+  corriendo + datos reales.
+- *Reversible:* sí (un módulo + un executor + una routine seedeada + 1 setting; `git revert`).
 *(se irán añadiendo entradas según avance el bloque)*
