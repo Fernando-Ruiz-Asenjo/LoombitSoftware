@@ -23,7 +23,7 @@ PYPROJECT = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
 # Suelos (RATCHET: solo se suben con un cambio deliberado y revisable; bajarlos pone este test en rojo).
 MIN_TESTS = 765  # funciones `def test_` en tests/ (hoy ~768)
 MIN_FUZZ_ITERS = 2000  # las auditorías de fuzz no pueden quedar en un puñado de casos
-MIN_COV_FAIL_UNDER = 65  # el suelo de cobertura no puede desaparecer ni desplomarse
+MIN_COV_FAIL_UNDER = 68  # el suelo de cobertura no puede desaparecer ni caer por debajo de esto
 
 # Tests que NO pueden desaparecer (borrarlos = quitar un candado): nombre → marcadores que deben seguir ahí.
 _CANDADOS_OBLIGATORIOS = {
@@ -42,6 +42,7 @@ def test_el_gate_corre_todos_los_checks():
     for pieza in (
         '"-m", "black"',
         '"-m", "ruff"',
+        '"-m", "mypy"',
         '"-m", "pytest"',
         "auditoria_d1d2d3.py",
         "auditoria_cobro.py",
@@ -50,6 +51,21 @@ def test_el_gate_corre_todos_los_checks():
         "live_smoke.py",
     ):
         assert pieza in VERIFY, f"el gate ya no corre: {pieza} (¿se ha debilitado verify.py?)"
+
+
+def test_la_mutacion_cubre_el_codigo_nuevo():
+    """La mutación debe seguir probando los dientes del código de hoy (no se pueden quitar esos mutantes)."""
+    mut = (ROOT / "scripts" / "mutation_test.py").read_text(encoding="utf-8")
+    for modulo in (
+        "ui_spec.py",
+        "decisions.py",
+        "conducta.py",
+        "autonomy.py",
+        "decisions_cobros.py",
+    ):
+        assert (
+            modulo in mut
+        ), f"la mutación ya no cubre {modulo} (¿se quitó el mutante con dientes?)"
 
 
 def test_ci_corre_el_gate_estricto_y_en_vivo():

@@ -80,6 +80,49 @@ MUTACIONES = [
         _pytest("303 or rectificativa or registradas", "tests/test_dominio_tools.py"),
         "303: resultado SUMA en vez de RESTA",
     ),
+    # ── Mutantes de «Loombit Decide» + gobierno (prueban que LOS TESTS DE HOY tienen dientes) ──
+    (
+        "loombit_operator/ui_spec.py",
+        "not _MARKUP.search(s)",
+        "_MARKUP.search(s)",
+        _pytest("test_", "tests/test_ui_spec.py"),
+        "ui_spec: desactivar el filtro de inyección",
+    ),
+    (
+        "loombit_operator/decisions.py",
+        "if option_id not in {o.id for o in self.options}:",
+        "if option_id in {o.id for o in self.options}:",
+        _pytest("test_", "tests/test_decisions.py"),
+        "decisions: aceptar una opción inexistente",
+    ),
+    (
+        "loombit_operator/conducta.py",
+        "and d <= a:",
+        "and d >= a:",
+        _pytest("test_", "tests/test_conducta.py"),
+        "conducta: aceptar un prompt que NO mejora",
+    ),
+    (
+        "loombit_operator/conducta.py",
+        "elif v < VALOR_MIN:",
+        "elif v > VALOR_MIN:",
+        _pytest("test_", "tests/test_conducta.py"),
+        "conducta: aceptar innovación de bajo valor",
+    ),
+    (
+        "loombit_operator/autonomy.py",
+        "if nivel_encola(level):",
+        "if not nivel_encola(level):",
+        _pytest("test_", "tests/test_autonomy.py"),
+        "autonomy: invertir quién encola (observa actuaría)",
+    ),
+    (
+        "loombit_operator/decisions_cobros.py",
+        'if plan.get("action") != "reclamar":',
+        'if plan.get("action") == "reclamar":',
+        _pytest("test_", "tests/test_decisions_cobros.py"),
+        "decisions_cobros: dejar de generar la decisión del cobro",
+    ),
 ]
 
 

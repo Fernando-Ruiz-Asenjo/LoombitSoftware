@@ -26,10 +26,25 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 PY = sys.executable
 
+# Módulos NUEVOS tipados (los typed por mí). El resto del repo arrastra el patrón `.list()` que tapa al
+# builtin (AgentStore incl.) → type-check repo-wide es un refactor aparte, declarado, no fingido.
+_MYPY_TARGETS = [
+    "loombit_operator/conducta.py",
+    "loombit_operator/ui_spec.py",
+    "loombit_operator/autonomy.py",
+    "loombit_operator/decisions_cobros.py",
+    "loombit_operator/policy/authority_plane.py",
+]
+
 # black/ruff sobre TODO el repo, EXACTAMENTE como CI (§GOB-2, evita el drift que arregló PR #15).
 _CORE = [
     ("black (formato)", [PY, "-m", "black", "--check", "."]),
     ("ruff (lint)", [PY, "-m", "ruff", "check", "."]),
+    # mypy: type-check ESTRICTO de los módulos nuevos (caza una familia entera de bugs de tipo).
+    (
+        "mypy (tipos de los módulos nuevos)",
+        [PY, "-m", "mypy", *_MYPY_TARGETS, "--ignore-missing-imports", "--follow-imports=silent"],
+    ),
     # pytest CON cobertura: el `fail_under` de pyproject (§GOB-2b) pone el gate ROJO si la cobertura baja.
     ("pytest + cobertura (suelo fail_under)", [PY, "-m", "pytest", "-q"]),
 ]
