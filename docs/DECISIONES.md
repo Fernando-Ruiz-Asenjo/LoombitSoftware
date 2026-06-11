@@ -897,4 +897,21 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
 - *Recibo:* gate normal VERDE local — cobertura lógica 78,21%≥78, mutación 16/0, 803 tests. Falta el check
   verde de GitHub (CI `--strict --live`) para «hecho».
 - *Reversible:* sí; `git revert` (solo añade tests + sube el suelo).
+
+**D-77 — La llave (auditor≠constructor) cubre TODO el repo, no solo el gate.**
+- *Contexto:* Fernando señaló el hueco de mi propio encuadre: la llave de D-71 solo impedía DEBILITAR el
+  gate; el resto del código se fundía en verde sin que nadie lo mirara. Como el gate aún NO garantiza por
+  sí solo «cero mentiras» (cobertura 78% < 100%, mutación finita de 16 mutantes, normas no mecánicas que
+  ninguna máquina verifica), eso deja un resquicio: una mentira en un camino no cubierto pasa en verde.
+- *Elegido (decisión de Fernando, AskUserQuestion):* `* @construiaapp` en CODEOWNERS → **ningún PR llega a
+  `main` sin su Approve como cuenta auditora independiente**, para todo el repo. Se mantienen listadas
+  aparte las piezas del gate/constitución (D-71) para dejar a la vista cuáles son críticas.
+- *Tensión declarada:* choca con la norma PRODUCTO «NUNCA pidas al usuario que revise tu trabajo». Es una
+  elección consciente que prioriza la GARANTÍA sobre la fricción mientras el gate no esté completo. La vía
+  para que Fernando revise CADA VEZ MENOS no es estrechar la llave, sino COMPLETAR el gate (cobertura→100%,
+  más mutantes/goldens): cuando verde = sin mentira posible, esta lista puede volver a estrecharse.
+- *Recibo:* el bloqueo es real solo si la protección de `main` tiene «Require review from Code Owners»
+  activado (ajuste del repo, de Fernando) — ya probado con PR #27/#28. El fichero es el mecanismo; el
+  enforcement, su ajuste. Honesto.
+- *Reversible:* sí; quitar la línea `*` (o `git revert`) devuelve la llave al subconjunto del gate.
 *(se irán añadiendo entradas según avance el bloque)*
