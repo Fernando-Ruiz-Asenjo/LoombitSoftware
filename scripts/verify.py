@@ -2,16 +2,19 @@
 verify.py — la PUERTA de calidad de Loombit. Un solo comando que prueba el repo de verdad.
 
 §GOB-2: el gate canónico. Lo usan el hook de pre-commit, el CI y yo — **el mismo conjunto de checks**,
-para que nada pase en un sitio y falle en otro (sin drift). No se afirma "hecho" sin que esto pase.
+para que nada pase en un sitio y falle en otro (sin drift). **"Hecho" NO es la palabra de nadie: es este
+gate en verde, y GitHub CI lo re-confirma.** Ver `docs/PROTOCOLO_VERIFICACION_CANONICO.md`.
 
-Dos niveles:
+Niveles (acumulativos):
   - normal   → formato + lint + tests + auditorías deterministas + fuzz de invariantes.
   - --strict → además MUTATION TESTING (prueba que los tests tienen DIENTES, no son de mentira).
+  - --live   → además TEST EN VIVO: arranca el servidor real y ejerce los endpoints por HTTP.
 
-El **CI corre `--strict`** (la puerta del merge exige los dientes). El **hook** corre el nivel normal
-(rápido, no muta ficheros). Honesto sobre lo que prueba: que el comportamiento conocido NO ha regresado,
-que las cifras del camino crítico cumplen invariantes sobre miles de casos, y (en strict) que el arnés
-caza bugs metidos a propósito. NO prueba "es perfecto" ni caza un 🟢 falso (eso es recibo + honestidad).
+El **CI corre `--strict --live`** (la puerta del merge exige dientes + comportamiento en vivo). El **hook**
+corre el nivel normal (rápido, no muta ficheros ni arranca el servidor). Honesto sobre lo que prueba: que el
+comportamiento conocido NO ha regresado, que el camino crítico cumple invariantes sobre miles de casos, que
+el arnés caza bugs metidos a propósito, y que el sistema CORRIENDO se comporta como se pide. NO prueba "es
+perfecto" ni caza un 🟢 falso en una afirmación (por eso "hecho" lo declara el check, no el LLM).
 """
 
 from __future__ import annotations
@@ -48,6 +51,11 @@ _STRICT = [
     ("mutation testing (¿tienen dientes los tests?)", [PY, "scripts/mutation_test.py"]),
 ]
 
+# Solo en --live: arranca el servidor REAL y comprueba el comportamiento por HTTP (no mocks).
+_LIVE = [
+    ("test EN VIVO (servidor real, HTTP real)", [PY, "scripts/live_smoke.py"]),
+]
+
 
 def _correr(checks: list[tuple[str, list[str]]], fallos: list[str]) -> None:
     for nombre, cmd in checks:
@@ -61,18 +69,23 @@ def _correr(checks: list[tuple[str, list[str]]], fallos: list[str]) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    strict = "--strict" in (argv if argv is not None else sys.argv[1:])
-    print(f"== Loombit · puerta de verificación {'(STRICT)' if strict else ''} ==")
+    args = argv if argv is not None else sys.argv[1:]
+    strict = "--strict" in args
+    live = "--live" in args
+    flags = " ".join(f for f in ("STRICT" if strict else "", "LIVE" if live else "") if f)
+    print(f"== Loombit · puerta de verificación {('[' + flags + ']') if flags else ''} ==")
     fallos: list[str] = []
     _correr(_CORE, fallos)
     _correr(_AUDITS, fallos)
     if strict:
         _correr(_STRICT, fallos)
+    if live:
+        _correr(_LIVE, fallos)
     print("\n" + "=" * 50)
     if fallos:
         print("VERIFICACIÓN EN ROJO. No se da por hecho. Fallan: " + ", ".join(fallos))
         return 1
-    extra = " + dientes (mutación)" if strict else ""
+    extra = "".join([" + dientes (mutación)" if strict else "", " + EN VIVO" if live else ""])
     print(f"VERIFICACIÓN VERDE. Tests + auditorías + fuzz{extra}: el camino crítico aguanta.")
     return 0
 

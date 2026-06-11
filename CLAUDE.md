@@ -37,6 +37,11 @@ Hazlo igual o mejor que Google/los grandes; que sean más grandes NO es excusa.
 - **Blanco (Skill W).** Nada hardcodeado de usuario/cliente; se personaliza luego.
 
 **INGENIERÍA (cómo construir).**
+- **«Hecho» lo declara GitHub, no tú (§GOB-2b, D-66).** Gate canónico único `scripts/verify.py`
+  (hook + CI + tú); el CI corre `--strict --live` (black+ruff+pytest+auditorías+fuzz+**mutación**+**test
+  EN VIVO**). Cada tarea trae su **arnés** (prueba ejecutable; en vivo si toca el servidor). NUNCA digas
+  "hecho/🟢": di *"propuesto · gate local verde · esperando a GitHub"* hasta que el **check verde** lo
+  confirme; solo entonces se funde. Algoritmo: `docs/PROTOCOLO_VERIFICACION_CANONICO.md`.
 - **Rama/worktree por cambio. Verifica EN VIVO antes de afirmar nada.** Tests + `black` + `ruff`
   verdes (el pre-commit gate los exige). El **núcleo del agente** se funde con OK de Fernando (lo
   pre-autoriza); **rebasa antes** de fundir.

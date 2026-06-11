@@ -107,6 +107,15 @@ La tabla norma→mecanismo (Parte IV) no es un `.md` de honor: **compila** a reg
 mecanismo, ninguno huérfano). Resuelve la ambigüedad "hook vs CI": las reglas SON el gate canónico, y **se
 prohíbe `--no-verify`** (salvo gate roto y dicho en voz alta).
 
+**§GOB-2b — «Hecho» lo declara GitHub, no el LLM *(la Ley Fundacional aplicada al agente; D-66).***
+El LLM **nunca está en el camino de control de confianza**, tampoco para decir "está hecho". Por tanto:
+1. **Gate canónico único:** `scripts/verify.py` lo corren hook + CI + agente, sin drift. El CI corre
+   `--strict --live` (black + ruff + pytest + auditorías + fuzz + **mutación** + **test EN VIVO** del servidor
+   real). 2. **Cada tarea trae su arnés** (prueba ejecutable; en vivo si toca el servidor). Sin arnés no es
+   "hecho posible". 3. **"Hecho" = check verde en GitHub**, no la palabra del agente; el agente reporta
+   *"propuesto · gate local verde · esperando a GitHub"* hasta que el check confirma. 4. **Solo se funde con
+   el check verde.** Algoritmo y verificación-por-el-humano: `docs/PROTOCOLO_VERIFICACION_CANONICO.md`.
+
 ### §GOB-3 — Independencia: constructor ≠ auditor *(núcleo anti-teatro)*
 Un gate que te calificas tú no es un gate. (a) **Firma de auditoría** de un rol ≠ constructor en cada PR
 (`.github/CODEOWNERS`); métrica anti-decorativa: `auditorías que bloquearon > 0`. (b) **Mutantes

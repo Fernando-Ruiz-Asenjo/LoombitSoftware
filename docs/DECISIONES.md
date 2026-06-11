@@ -685,4 +685,23 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   código y tests). §GOB-2 sube de 🟠: falta aún `validate_brujula.py` (compilar la tabla Parte IV) + prohibir
   `--no-verify` de forma efectiva.
 - *Reversible:* sí (un script + un step de CI; `git revert`).
+
+**D-66 — Protocolo de Verificación Canónico: «hecho» lo declara GitHub, no el LLM.**
+- *Contexto (la grieta de confianza):* Fernando deja de fiarse de la palabra del agente — con razón
+  (D-58: afirmé veredictos en falso). Pide un **mecanismo** para que se haga al 100% lo pedido con
+  **resultados chequeables confirmados por GitHub**, con **test en vivo**, codificado y canónico.
+- *Elegido:* la Ley Fundacional aplicada al propio agente — **el LLM nunca está en el camino de control de
+  confianza, tampoco para decir "hecho"**. (1) `docs/PROTOCOLO_VERIFICACION_CANONICO.md`: el algoritmo
+  TAREA→ARNÉS→GATE local→push→**GitHub confirma**→hecho; el agente NUNCA declara hecho, lo declara el check
+  verde. (2) Gate canónico único `scripts/verify.py` con niveles acumulativos; el CI corre `--strict --live`.
+  (3) **Test EN VIVO** nuevo `scripts/live_smoke.py`: arranca el servidor real (cwd aislado) y ejerce los
+  endpoints por HTTP (12 recibos: salud, sembrar cobro, cola+spec **validada**, resolver sin efecto,
+  idempotencia, opción inválida→400). (4) Norma §GOB-2b en BRÚJULA + sync `CLAUDE.md` + puntero en el DoD.
+- *Recibo:* `verify.py --strict --live` VERDE en local (pytest + 449 + cobro 0 + fuzz 0 + mutación 8/0 +
+  **live 12/12, estable 3/3 runs**). **Lo confirma GitHub CI** (el check `quality` corre el mismo gate) — y
+  ese check, no este texto, es el recibo de que esto está hecho.
+- *Honesto (residuo declarado):* un check verde NO prueba el mejor diseño ni cubre código sin arnés, ni caza
+  un 🟢 falso en prosa (por eso "hecho" lo otorga el check, no la narración). Pendiente §GOB: `validate_brujula.py`,
+  prohibir `--no-verify` efectivo, independencia auditor≠constructor (§GOB-3).
+- *Reversible:* sí (scripts + 1 step de CI + docs; `git revert`).
 *(se irán añadiendo entradas según avance el bloque)*
