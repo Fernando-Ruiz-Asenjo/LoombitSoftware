@@ -801,4 +801,18 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
 - *Recibo:* gate `--strict --live` VERDE — 768 tests, conducta 9/9, 20/20 normas contabilizadas, cobertura
   70,80%≥68%, mutación 8/0, live 12/12. Lo confirma GitHub CI.
 - *Reversible:* sí (un módulo + un test + un log + manifiesto; `git revert`).
+
+**D-71 — §GOB-3 (auditor≠constructor): CODEOWNERS sobre los ficheros del gate.**
+- *Contexto:* terminar lo declarado. §GOB-3 era la PENDIENTE más importante: el agente que escribe el gate no
+  puede ser quien lo aprueba (el zorro y el gallinero). La mutación da dientes pero NO es independencia.
+- *Elegido:* `.github/CODEOWNERS` nombra a Fernando dueño de los ficheros del GATE (verify.py, auditorías,
+  candados, conducta) y de la CONSTITUCIÓN (BRUJULA, CLAUDE, protocolo, pyproject, .github). Tocar cualquiera
+  pide SU review → debilitar el gate o cambiar normas ya no se cuela en un auto-merge verde. Manifiesto:
+  §GOB-3 PENDIENTE→PARCIAL.
+- *Honestidad (residuo):* es un GATE DURO solo si la protección de `main` activa «Require review from Code
+  Owners» — ajuste del repo, **propiedad de Fernando** (la llave de su repo no debe estar en mis manos). Sin
+  eso, CODEOWNERS solicita su review pero no bloquea. Mecanismo presente; enforcement = su ajuste.
+- *Recibo:* gate `--strict --live` VERDE; manifiesto recontabilizado (§GOB-3 con arnés `.github/CODEOWNERS`).
+  Lo confirma GitHub CI.
+- *Reversible:* sí (un fichero + manifiesto; `git revert`).
 *(se irán añadiendo entradas según avance el bloque)*

@@ -74,9 +74,11 @@ MANIFIESTO: dict[str, tuple[str, str]] = {
         "`tests/test_gate_integridad.py` + ESTA contabilidad. §GOB-2b: el CI corre `--strict --live`.",
     ),
     "§GOB-3": (
-        PENDIENTE,
-        "Independencia auditor≠constructor: la pieza irreducible (un humano revisa los ficheros del gate). "
-        "La mutación mitiga (tests con dientes) pero NO es independencia. Sin construir.",
+        PARCIAL,
+        "Auditor≠constructor: `.github/CODEOWNERS` nombra a Fernando dueño de los ficheros del gate y la "
+        "constitución → tocarlos pide SU review (el constructor no se aprueba a sí mismo). La mutación "
+        "mitiga (dientes). Residuo: el enforcement duro exige «Require review from Code Owners» en la "
+        "protección de rama (ajuste del repo, de Fernando).",
     ),
     "§GOB-4": (
         PARCIAL,
@@ -137,6 +139,7 @@ _ARNESES = [
     "tests/test_brujula_cumplimiento.py",
     "loombit_operator/conducta.py",
     "tests/test_conducta.py",
+    ".github/CODEOWNERS",
     "scripts/verify.py",
     "scripts/mutation_test.py",
     "scripts/auditoria_cobro.py",
