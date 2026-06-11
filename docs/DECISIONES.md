@@ -664,4 +664,23 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   VERDE: black + ruff (`.`) + **805 pytest**, cero regresión. Honesto: 🟡 — sin recibo EN VIVO con el daemon
   corriendo + datos reales.
 - *Reversible:* sí (un módulo + un executor + una routine seedeada + 1 setting; `git revert`).
+
+**D-64 — NORTE reencuadrado: visión AMPLIA (compañero universal) + cuña como foco (decide Fernando).**
+- *Contexto:* el resumen del NORTE decía «operador administrativo del autónomo/PYME español» como si fuera el
+  techo. Fernando corrige: la ambición real es ser **el compañero de trabajo necesario para cualquier
+  actividad —laboral o no— de una persona ante un ordenador, tablet o teléfono.** El código ya lo soportaba
+  (núcleo blanco + skills; «el mismo binario puede ser operador de oficina, auditor industrial o cerebro de
+  robótica», `CLAUDE.md`); era el wording del NORTE el que estrechaba.
+- *Elegido (opción «visión amplia + cuña como foco»):* reescrito §NORTE en `BRUJULA.md` separando **VISIÓN**
+  (norte largo, universal) · **FOSO** (local · comprensión profunda · adaptativo — vale para cualquier
+  actividad) · **CUÑA ACTIVA** (admin/autónomo PYME España = la cabeza de playa, NO el límite; ejecución por
+  cuñas, cerrar una al 100 % antes de abrir la siguiente). Sincronizado en `CLAUDE.md` (cabecera) y
+  `ESTADO_Y_ROADMAP.md` (línea del NORTE). De paso refrescadas líneas desfasadas del roadmap (Foto global con
+  #15/#16/#17; «Loombit Decide 0% construido» → LD-0…LD-3 🟡 fundidos).
+- *Tensión señalada (no ocultada):* el riesgo del norte amplio es la dispersión; se mitiga con la disciplina
+  de cuñas (la propia brújula: «camino crítico sin dispersión»). Norte amplio, ejecución por cuñas.
+- *Alternativas descartadas:* (a) solo visión amplia sin cuña formal (más riesgo de dispersión); (b) solo
+  retocar el texto sin tocar la constitución (no reflejaría la ambición real).
+- *Procedimiento §META-3:* rama + PR + esta entrada + sync de `CLAUDE.md` + OK de Fernando (dado). Solo docs.
+- *Reversible:* sí (`git revert`).
 *(se irán añadiendo entradas según avance el bloque)*

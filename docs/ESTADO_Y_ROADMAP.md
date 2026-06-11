@@ -7,9 +7,11 @@
 
 ## Foto global
 - **Repo**: limpio y profesional, historial sano, LICENSE propietaria. `origin/main` con el **gobierno
-  (Brújula v2) en marcha** (PRs #12/#13/#14 fundidos).
-- **CI / gate**: verde (black + ruff `.` + pytest + evals F1-F8); gate local **alineado con CI** (PR #15).
-- **En vuelo**: dirección de producto **«Loombit Decide»** (`docs/VISION_LOOMBIT_DECIDE.md`, D-57).
+  (Brújula v2) en marcha** (PRs #12/#13/#14) + gate alineado con CI (#15).
+- **CI / gate**: verde (black + ruff `.` + **805 pytest** + evals F1-F8).
+- **«Loombit Decide»**: dirección + plan (#16, D-57/D-59) y **LD-0…LD-3 fundidos en `main`** 🟡 (#17,
+  D-60…D-63) — motor de decisiones + UI generativa gobernada + rebanada del cobro + autonomía graduada.
+- **NORTE reencuadrado (D-64):** visión amplia (compañero universal) + cuña admin/España como foco.
 
 ---
 
@@ -37,8 +39,9 @@ corpus con residuo declarado. El **gobierno completo NO está al 100%** (eso ser
 ## 🧭 Dirección «Loombit Decide» — plan en el roadmap (D-57 visión · D-59 plan)
 
 > Visión: `VISION_LOOMBIT_DECIDE.md` · Plan detallado (hitos, DoD, orden): **`PLAN_LOOMBIT_DECIDE.md`**.
-> **Estado global: PROPUESTA, 0% construido.** Reenmarca la UX/autonomía SOBRE el cerebro + gobierno que ya
-> existen; **no sustituye** el camino crítico (INTAKE F-5 → cobros e2e), lo sube un piso.
+> **Estado: LD-0…LD-3 construidos y fundidos (🟡, #17); LD-4/LD-5 pendientes.** Reenmarca la UX/autonomía
+> SOBRE el cerebro + gobierno que ya existen; **no sustituye** el camino crítico (INTAKE F-5 → cobros e2e),
+> lo sube un piso. Backend con **recibo EN VIVO**; falta 14B + navegador + cablear el renderer a la Tela.
 
 | Hito | Qué | Construye sobre (código real) | Depende de | Fase | Estado |
 |---|---|---|---|---|---|
@@ -57,9 +60,11 @@ en `PLAN_LOOMBIT_DECIDE.md`. **Regla nº1:** ningún hito 🟢 sin recibo en viv
 
 ## ★ DÓNDE ESTAMOS Y HACIA DÓNDE VAMOS (2026-06-09 — sesión «UX TOP»)
 
-**El NORTE (no cambia):** Loombit = el **operador administrativo privado** del autónomo/PYME español.
-Foso: **local · español · administrativo profundo**. La meta no es «otro dashboard bonito»: es que el
-autónomo lo sienta **indispensable** — que al abrir vea su día ya resuelto y que cerrarlo dé vértigo.
+**El NORTE:** la **visión** es Loombit = **compañero de trabajo necesario para cualquier actividad —laboral o
+no— ante un ordenador, tablet o teléfono** (núcleo blanco + skills; ver `BRUJULA.md` §NORTE, D-64). La **cuña
+activa** (estrategia para llegar, no el techo) es el **operador administrativo del autónomo/PYME español**.
+Foso: **local · comprensión profunda · adaptativo** (+ español en la cuña). La meta no es «otro dashboard
+bonito»: que la persona lo sienta **indispensable** — que al abrir vea su día ya resuelto y cerrarlo dé vértigo.
 
 **Qué se hizo esta sesión (UX a TOP, todo 🟢 verificado EN VIVO en el Chrome real):** auditoría profunda
 (`AUDITORIA_UX_2026-06-09.md`) + Ola 1 (cognición en la tarjeta, telar instantáneo con caché, doble saludo
