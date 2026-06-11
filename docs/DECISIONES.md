@@ -537,4 +537,27 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   [2] manipulación `###SISTEMA###`+«ignora tus reglas» → no salió correo; [3] lectura `resumen_facturacion`
   → ejecuta sin gate. **3/3.** *Reversible:* sí (un paquete nuevo + delegación en un punto; `git revert`).
 
+## Producto / Dirección
+
+**D-57 — Dirección «Loombit Decide»: operador autónomo + interfaz generativa GOBERNADA + criterio "sin fallos".**
+- *Contexto:* Fernando fija el norte de producto — el usuario NO hace nada administrativo (ni lee correos);
+  Loombit lo hace todo y el humano SOLO decide lo que Loombit le plantea; la UI se genera al vuelo según lo
+  que haga falta. Encargo: plantear escenario + necesidades + investigar (web/GitHub) + integrar + roadmap.
+- *Elegido:* doc `docs/VISION_LOOMBIT_DECIDE.md` (escenario, arquitectura, investigación con veredicto
+  adopt/learn/avoid, necesidades, integración con lo existente, primera rebanada, riesgos). **Idea clave: UI
+  generativa GOBERNADA** = §GOB-1 aplicado a la pantalla — el LLM PROPONE una *spec* JSON desde un vocabulario
+  CERRADO; el código la valida y la rinde (server-driven, JS plano, local). NUNCA HTML del LLM (reabriría el
+  agujero de §SEG/§GOB-1). + actualizado `ESTADO_Y_ROADMAP.md` con el **estado real del gobierno** y el
+  **criterio "sin fallos"** (recibo + golden + live + 0 regresión; seguridad = corpus a 0 + residuo declarado).
+- *Investigación (recibo):* web (Vercel AI SDK / Adaptive Cards / agentes de correo Shortwave/Fyxer/Alfred /
+  LangChain HumanInTheLoop / HumanLayer) + GitHub (`gh search`: microsoft/AdaptiveCards, humanlayer,
+  CopilotKit/AG-UI, narrowin/awesome-generative-ui, aladin2907/overhuman). Veredicto: ADOPTAR JSON→UI
+  (Adaptive Cards base), APRENDER cola async + niveles de autonomía (HumanLayer), EVITAR React y HTML-del-LLM.
+- *Alternativas descartadas:* UI generativa con React/RSC (no encaja: nube + reescritura); HTML crudo del LLM
+  (viola la Ley Fundacional).
+- *Honestidad:* es **PROPUESTA DE DIRECCIÓN**, nada construido (0% de la visión). El P0 del gobierno
+  (§META-4/§SEG-2/§GOB-1) sí está 🟢 en main. Primera rebanada propuesta: `decision_card` generativa para un
+  cobro (vertical, sobre el cerebro + gate ya existentes), con su golden + recibo en vivo.
+- *Reversible:* sí (docs; `git revert`). Adoptar como roadmap firme exige construir por rebanadas con recibo.
+
 *(se irán añadiendo entradas según avance el bloque)*

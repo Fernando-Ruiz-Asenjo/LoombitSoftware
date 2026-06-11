@@ -3,12 +3,34 @@
 > Documento vivo. Honestidad obligatoria (`DEFINITION_OF_DONE.md`): 🟢 = funciona
 > contra el servicio/realidad con recibo; 🟡 = código completo + tests (sin piloto
 > real); 🟠 = parcial; ⬜ = pendiente; 🔴 = bloqueado.
-> Actualizado: 2026-06-09.
+> Actualizado: 2026-06-11.
 
 ## Foto global
-- **Repo**: limpio y profesional, historial sano, LICENSE propietaria. `origin/main` = `948bf76`.
-- **CI / gate**: verde (black + ruff + pytest + evals F1-F8). **560 tests**.
-- **En vuelo**: rama `feat/ux-top-ola1` (17 commits, sin PR) — la sesión «UX TOP» (ver abajo).
+- **Repo**: limpio y profesional, historial sano, LICENSE propietaria. `origin/main` con el **gobierno
+  (Brújula v2) en marcha** (PRs #12/#13/#14 fundidos).
+- **CI / gate**: verde (black + ruff `.` + pytest + evals F1-F8); gate local **alineado con CI** (PR #15).
+- **En vuelo**: dirección de producto **«Loombit Decide»** (`docs/VISION_LOOMBIT_DECIDE.md`, D-57).
+
+---
+
+## 🏛️ Gobierno (Brújula v2) — estado real
+
+> **Criterio "sin fallos" (medible, no aspiracional; reconcilia con la regla nº1 "nunca 100%"):**
+> un mecanismo está **🟢 sin fallos** solo si: (1) **recibo real** (DoD) · (2) **golden en el gate**
+> (rojo→verde, no tautológico) · (3) **verificado EN VIVO** con el 14B · (4) **cero regresión** (gate
+> entero verde). La **seguridad operativa "sin fallos"** = un **corpus de ataque definido pasa a 0** +
+> **defensa medida** + **residuo declarado** (qué NO cubre y qué lo frena aguas abajo). Nunca "es seguro".
+
+| § | Mecanismo | Estado | Recibo | Fallos abiertos |
+|---|---|---|---|---|
+| §META-4 | Estado fuera de la constitución | ✅ | `CLAUDE.md` saneado → `ESTADO_Y_ROADMAP.md` (PR #12) | 0 |
+| §SEG-2 | datos≠órdenes (neutraliza inyección en lo leído) | 🟢 | golden `test_seg_inyeccion.py` 7 (rojo→verde) + live [2] del plano (PR #13) | 0 en corpus; **residuo:** lenguaje natural sin marcadores (lo frenan gate de efecto + `_recipiente_resuelto`); `resume` no blindado |
+| §GOB-1 | Capability Policy Plane (autoridad única) | 🟢 | golden `test_gob1_authority_plane.py` 10 + ~717 tests A TRAVÉS del plano + **live 3/3** `live_gob1_receipt.py` (PR #14) | 0 en corpus; **residuo:** predicados aún en `loop.py` (migración pendiente) |
+| §GOB-2 | gate canónico + compila la tabla + prohibir `--no-verify` | 🟠 | gate local alineado con CI (PR #15) | falta `validate_brujula.py` (compilar tabla Parte IV) + prohibición efectiva de `--no-verify` |
+| §GOB-3/4 · §META-1/2/3/5 · §14B · §DATOS · §CONC · §EST | resto del gobierno | ⬜ | — | sin construir (orden P0→P4, ver `BRUJULA.md` Parte V) |
+
+**Honesto:** el **P0 cimiento** (§META-4 + §SEG-2 + §GOB-1) está 🟢 en `main`, cada uno a 0 fallos en su
+corpus con residuo declarado. El **gobierno completo NO está al 100%** (eso sería teatro): P1-P4 pendientes.
 
 ---
 
