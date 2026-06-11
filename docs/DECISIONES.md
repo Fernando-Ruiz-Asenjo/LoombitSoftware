@@ -537,4 +537,69 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   [2] manipulación `###SISTEMA###`+«ignora tus reglas» → no salió correo; [3] lectura `resumen_facturacion`
   → ejecuta sin gate. **3/3.** *Reversible:* sí (un paquete nuevo + delegación en un punto; `git revert`).
 
+## Producto / Dirección
+
+**D-57 — Dirección «Loombit Decide»: operador autónomo + interfaz generativa GOBERNADA + criterio "sin fallos".**
+- *Contexto:* Fernando fija el norte de producto — el usuario NO hace nada administrativo (ni lee correos);
+  Loombit lo hace todo y el humano SOLO decide lo que Loombit le plantea; la UI se genera al vuelo según lo
+  que haga falta. Encargo: plantear escenario + necesidades + investigar (web/GitHub) + integrar + roadmap.
+- *Elegido:* doc `docs/VISION_LOOMBIT_DECIDE.md` (escenario, arquitectura, investigación con veredicto
+  adopt/learn/avoid, necesidades, integración con lo existente, primera rebanada, riesgos). **Idea clave: UI
+  generativa GOBERNADA** = §GOB-1 aplicado a la pantalla — el LLM PROPONE una *spec* JSON desde un vocabulario
+  CERRADO; el código la valida y la rinde (server-driven, JS plano, local). NUNCA HTML del LLM (reabriría el
+  agujero de §SEG/§GOB-1). + actualizado `ESTADO_Y_ROADMAP.md` con el **estado real del gobierno** y el
+  **criterio "sin fallos"** (recibo + golden + live + 0 regresión; seguridad = corpus a 0 + residuo declarado).
+- *Investigación (recibo):* web (Vercel AI SDK / Adaptive Cards / agentes de correo Shortwave/Fyxer/Alfred /
+  LangChain HumanInTheLoop / HumanLayer) + GitHub (`gh search`: microsoft/AdaptiveCards, humanlayer,
+  CopilotKit/AG-UI, narrowin/awesome-generative-ui, aladin2907/overhuman). Veredicto: ADOPTAR JSON→UI
+  (Adaptive Cards base), APRENDER cola async + niveles de autonomía (HumanLayer), EVITAR React y HTML-del-LLM.
+- *Alternativas descartadas:* UI generativa con React/RSC (no encaja: nube + reescritura); HTML crudo del LLM
+  (viola la Ley Fundacional).
+- *Honestidad:* es **PROPUESTA DE DIRECCIÓN**, nada construido (0% de la visión). El P0 del gobierno
+  (§META-4/§SEG-2/§GOB-1) sí está 🟢 en main. Primera rebanada propuesta: `decision_card` generativa para un
+  cobro (vertical, sobre el cerebro + gate ya existentes), con su golden + recibo en vivo.
+- *Reversible:* sí (docs; `git revert`). Adoptar como roadmap firme exige construir por rebanadas con recibo.
+
+**D-58 — Un veredicto de investigación exige RECIBO DE LECTURA (§META-3 disparado por incidente).**
+- *Contexto (el PILLADO):* al redactar §3 de `VISION_LOOMBIT_DECIDE.md` se afirmaron veredictos
+  (`adopt`/`learn`/`avoid`, "production-ready", "encaja con el backend") **sin haber leído las fuentes enteras**
+  — solo búsqueda/titular. Fernando lo destapó ("¿has hecho la investigación a fondo?"). La lectura real
+  **corrigió** ≥2 afirmaciones falsas: (a) `humanlayer/humanlayer` ya **no** es el SDK Python que se describía
+  sino **CodeLayer** (IDE TS+Go); el SDK Python existe pero está *superseded*. (b) Vercel AI SDK RSC **no es
+  "production-ready"**: su propia doc dice *"currently experimental, use AI SDK UI for production"*. (c) AG-UI
+  es **MIT framework-agnóstico**, no "CopilotKit/React". (d) Adaptive Cards **MIT verificado** y sus principios
+  ("no code allowed / safe payloads") **son la Ley Fundacional en la pantalla**.
+- *Disparador §META-3:* tras el incidente → *"¿qué norma/mecanismo faltó?"*. Faltaba la norma de que un
+  **veredicto es una afirmación** y, como toda afirmación en Loombit (predicción ≠ hecho), **exige recibo** —
+  aquí, recibo de **lectura íntegra**, no de búsqueda.
+- *Elegido (en el mismo PR del arreglo, como manda §META-3):* (1) nueva norma en BRÚJULA §INNOVACIÓN —
+  *"Un VEREDICTO exige RECIBO DE LECTURA"* + fila en la tabla Parte IV (norma→mecanismo→auditoría); (2) sync de
+  la cabecera de `CLAUDE.md`; (3) §3 del doc de visión **corregido** con un bloque explícito *leído íntegro
+  (6 fuentes) vs solo búsqueda (provisional)* y los veredictos rectificados.
+- *Mecanismo / auditoría:* recibo manual hoy (bloque "leído vs buscado" en todo doc de investigación);
+  **futuro:** el sensor §META-1 marca como deuda cualquier veredicto sin fuente leída.
+- *Honestidad:* esto NO automatiza nada todavía (el sensor es hueco). Es la **norma + el recibo manual**; el
+  cierre fuerte (sensor) queda declarado como deuda, no fingido.
+- *Reversible:* sí (docs; `git revert`).
+
+**D-59 — Plan de implementación de «Loombit Decide» metido en el roadmap.**
+- *Contexto:* la dirección D-57 era visión sin secuenciar. Fernando: "hay que planearlo para meterlo en el
+  roadmap".
+- *Elegido:* doc nuevo `docs/PLAN_LOOMBIT_DECIDE.md` con **6 hitos LD-0…LD-5** (objetivo · construye sobre
+  código real verificado · entregable · DoD 🟢 · dependencias · esfuerzo · riesgo) + **orden recomendado** +
+  cómo se refleja en cada fase. Integrado en `ESTADO_Y_ROADMAP.md` (sección compacta + tabla + Fases 3/4).
+  Enlazado desde la visión §6.
+- *Secuenciado honesto:* **LD-0 (motor de decisiones + cola) y LD-1 (UI generativa gobernada: vocabulario
+  cerrado + validador + renderer)** se construyen YA sobre `policy/authority_plane.py` + `PENDING_APPROVAL` +
+  `telar.py` + `static/` (no dependen de datos). **LD-2 (rebanada: `decision_card` de un cobro) DEPENDE del
+  INTAKE de facturas (F-5, 🔴)** para datos reales. LD-3 (autonomía graduada) / LD-4 (correo autónomo) / LD-5
+  (generalizar el vocabulario) detrás.
+- *Alternativas descartadas:* (a) meter el plan dentro de la visión (la habría hinchado >300 líneas, mezcla
+  qué-y-cómo); (b) reordenar el camino crítico para anteponer la UI generativa (rompería el desbloqueo de
+  datos: sin intake no hay cobro real que decidir). El plan **se apila**, no reordena el crítico.
+- *Honestidad:* 0% construido; es secuenciado. Ningún LD es 🟢 sin recibo en vivo + golden + cero regresión.
+  Las piezas de código citadas como base se **verificaron existentes** (telar/authority_plane/comprension/
+  routines/scheduler/intake/cobros) — aplicando D-58 (no afirmar sin comprobar).
+- *Reversible:* sí (docs; `git revert`).
+
 *(se irán añadiendo entradas según avance el bloque)*

@@ -3,12 +3,55 @@
 > Documento vivo. Honestidad obligatoria (`DEFINITION_OF_DONE.md`): 🟢 = funciona
 > contra el servicio/realidad con recibo; 🟡 = código completo + tests (sin piloto
 > real); 🟠 = parcial; ⬜ = pendiente; 🔴 = bloqueado.
-> Actualizado: 2026-06-09.
+> Actualizado: 2026-06-11.
 
 ## Foto global
-- **Repo**: limpio y profesional, historial sano, LICENSE propietaria. `origin/main` = `948bf76`.
-- **CI / gate**: verde (black + ruff + pytest + evals F1-F8). **560 tests**.
-- **En vuelo**: rama `feat/ux-top-ola1` (17 commits, sin PR) — la sesión «UX TOP» (ver abajo).
+- **Repo**: limpio y profesional, historial sano, LICENSE propietaria. `origin/main` con el **gobierno
+  (Brújula v2) en marcha** (PRs #12/#13/#14 fundidos).
+- **CI / gate**: verde (black + ruff `.` + pytest + evals F1-F8); gate local **alineado con CI** (PR #15).
+- **En vuelo**: dirección de producto **«Loombit Decide»** (`docs/VISION_LOOMBIT_DECIDE.md`, D-57).
+
+---
+
+## 🏛️ Gobierno (Brújula v2) — estado real
+
+> **Criterio "sin fallos" (medible, no aspiracional; reconcilia con la regla nº1 "nunca 100%"):**
+> un mecanismo está **🟢 sin fallos** solo si: (1) **recibo real** (DoD) · (2) **golden en el gate**
+> (rojo→verde, no tautológico) · (3) **verificado EN VIVO** con el 14B · (4) **cero regresión** (gate
+> entero verde). La **seguridad operativa "sin fallos"** = un **corpus de ataque definido pasa a 0** +
+> **defensa medida** + **residuo declarado** (qué NO cubre y qué lo frena aguas abajo). Nunca "es seguro".
+
+| § | Mecanismo | Estado | Recibo | Fallos abiertos |
+|---|---|---|---|---|
+| §META-4 | Estado fuera de la constitución | ✅ | `CLAUDE.md` saneado → `ESTADO_Y_ROADMAP.md` (PR #12) | 0 |
+| §SEG-2 | datos≠órdenes (neutraliza inyección en lo leído) | 🟢 | golden `test_seg_inyeccion.py` 7 (rojo→verde) + live [2] del plano (PR #13) | 0 en corpus; **residuo:** lenguaje natural sin marcadores (lo frenan gate de efecto + `_recipiente_resuelto`); `resume` no blindado |
+| §GOB-1 | Capability Policy Plane (autoridad única) | 🟢 | golden `test_gob1_authority_plane.py` 10 + ~717 tests A TRAVÉS del plano + **live 3/3** `live_gob1_receipt.py` (PR #14) | 0 en corpus; **residuo:** predicados aún en `loop.py` (migración pendiente) |
+| §GOB-2 | gate canónico + compila la tabla + prohibir `--no-verify` | 🟠 | gate local alineado con CI (PR #15) | falta `validate_brujula.py` (compilar tabla Parte IV) + prohibición efectiva de `--no-verify` |
+| §GOB-3/4 · §META-1/2/3/5 · §14B · §DATOS · §CONC · §EST | resto del gobierno | ⬜ | — | sin construir (orden P0→P4, ver `BRUJULA.md` Parte V) |
+
+**Honesto:** el **P0 cimiento** (§META-4 + §SEG-2 + §GOB-1) está 🟢 en `main`, cada uno a 0 fallos en su
+corpus con residuo declarado. El **gobierno completo NO está al 100%** (eso sería teatro): P1-P4 pendientes.
+
+---
+
+## 🧭 Dirección «Loombit Decide» — plan en el roadmap (D-57 visión · D-59 plan)
+
+> Visión: `VISION_LOOMBIT_DECIDE.md` · Plan detallado (hitos, DoD, orden): **`PLAN_LOOMBIT_DECIDE.md`**.
+> **Estado global: PROPUESTA, 0% construido.** Reenmarca la UX/autonomía SOBRE el cerebro + gobierno que ya
+> existen; **no sustituye** el camino crítico (INTAKE F-5 → cobros e2e), lo sube un piso.
+
+| Hito | Qué | Construye sobre (código real) | Depende de | Fase | Estado |
+|---|---|---|---|---|---|
+| **LD-0** | `Decision` de 1ª clase + **cola** | `policy/authority_plane.py` + `PENDING_APPROVAL` + `telar.py` | — (ya construible) | 3/4 | ⬜ |
+| **LD-1** | **UI generativa GOBERNADA**: vocabulario cerrado + validador + renderer JS | `static/` (Tela/galaxia) | LD-0 | 4 | ⬜ |
+| **LD-2** | Rebanada vertical: `decision_card` de **un cobro** | `cobros.py` + `comprension.py` + LD-0/LD-1 | **INTAKE F-5** (datos reales) | 3↔4 | ⬜ |
+| **LD-3** | Agente reactivo→autónomo, **niveles graduados** | `routers/routines.py` + `scheduler.py` | LD-0 | 5 | ⬜ |
+| **LD-4** | Correo: contexto→**triaje autónomo** (el usuario no toca el correo) | `gmail_search` + §SEG-2 + LD-0/1 | LD-0/1 | 2/6 | ⬜ |
+| **LD-5** | Generalizar el vocabulario (303, conciliación, agenda…) | skills D + LD-1 | LD-1 maduro | 4+ | ⬜ |
+
+**Orden:** **LD-0 + LD-1 primero** (cimiento, no dependen de datos) ∥ **INTAKE F-5** (🔴 desbloqueo de datos)
+→ **LD-2** (demo del lazo entero) → **LD-3/LD-4** (autonomía) → **LD-5** (generalizar). Detalle y DoD por hito
+en `PLAN_LOOMBIT_DECIDE.md`. **Regla nº1:** ningún hito 🟢 sin recibo en vivo + golden + cero regresión.
 
 ---
 
@@ -78,8 +121,8 @@ Ver `DECISIONES.md` D-42…D-45 (todo 🟢 verificado EN VIVO en :8787).
 | 0 · Fundación limpia | Repo, CI, estructura | ✅ Cerrada | — |
 | 1 · Verdad de conectores | OAuth real Google + 1 correo + 1 evento reales | ✅ **Cerrada (2026-06-08)** | Correo real (`message_id` 19ea478e791867b0) + evento real (`event_id` vmovd103mbb40u7ek3ehb5jsa0), ambos con recibo |
 | 2 · Percepción real (Morning Brief) | Brief diario con datos reales | 🟢 **Brief con datos reales** (store de cuentas a cobrar D-23 + `daily_brief` en el chat con agenda/correos/cobros D-28) | Daemon programado del brief (hoy es invocable, no aún cron diario) |
-| 3 · Bucle e2e cuña 1 (cobros) | Flujo cobros completo ×5 sin intervención | 🟠 Cerebro listo | Orquestación e2e + recibos 🟢. **Dependía de tener datos → primero INTAKE de facturas (F-5).** |
-| 4 · UI humana | Dashboard no técnico | 🟢 **Galaxia + drag-to-act**; 🟠 **rediseño «Tela» en curso** | Galaxia MVP (D-26/27) + drag-to-act (D-31). **Sesión UX TOP (`feat/ux-top-ola1`)**: auditoría + Ola 1-2 (telar instantáneo, cognición en tarjeta, chat copiloto, galaxia real, Google, aprobación con borrador, todo botón con función) en la **Tela nueva** `/static/loombit.html`. **Falta para cerrar:** paridad (sidebar/historial/settings) → **promover a `/`**; Ola 3 (pasos del agente en vivo, polling→eventos); Ola 4 (⌘K, motion, responsive); Fábrica a backstage. Ver `AUDITORIA_UX_2026-06-09.md` + `EXPERIENCIA_LOOMBIT.md` |
+| 3 · Bucle e2e cuña 1 (cobros) | Flujo cobros completo ×5 sin intervención | 🟠 Cerebro listo | Orquestación e2e + recibos 🟢. **Dependía de tener datos → primero INTAKE de facturas (F-5).** **Loombit Decide:** su vista de decisión = **LD-2** (`decision_card` de un cobro), ver `PLAN_LOOMBIT_DECIDE.md`. |
+| 4 · UI humana | Dashboard no técnico | 🟢 **Galaxia + drag-to-act**; 🟠 **rediseño «Tela» en curso** | Galaxia MVP (D-26/27) + drag-to-act (D-31). **Sesión UX TOP (`feat/ux-top-ola1`)**: auditoría + Ola 1-2 (telar instantáneo, cognición en tarjeta, chat copiloto, galaxia real, Google, aprobación con borrador, todo botón con función) en la **Tela nueva** `/static/loombit.html`. **Falta para cerrar:** paridad (sidebar/historial/settings) → **promover a `/`**; Ola 3 (pasos del agente en vivo, polling→eventos); Ola 4 (⌘K, motion, responsive); Fábrica a backstage. **Loombit Decide:** evolución a **UI generativa GOBERNADA** = **LD-0/LD-1/LD-5** (`PLAN_LOOMBIT_DECIDE.md`) — la Tela pasa de pantallas fijas a spec JSON validada. Ver `AUDITORIA_UX_2026-06-09.md` + `EXPERIENCIA_LOOMBIT.md` |
 | 5 · Memoria y aprendizaje | Daemon de memoria proactiva | 🟢 **Cerrada (2026-06-09)** — memoria + RAG semántico + Reflexion + GEPA + **daemon de aprendizaje proactivo** (`aprendizaje.py`, routine `Aprendizaje`: reindexa RAG + destila lecciones, idempotente) | daemon opt-in global (`routines_daemon_enabled`); refinar grafo temporal (#6) es mejora futura |
 | 6 · Endurecimiento + navegador | Consentimiento, export, Skill Pilot navegador | ⬜ | Adaptador Playwright/CDP, contrato de coordenadas |
 | 7 · Edge / Jetson | Benchmark en Jetson Orin NX | ⬜ | Comprar hardware |

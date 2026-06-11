@@ -83,6 +83,11 @@ No es un adjetivo del README: es un número de retención en Fase 4.
 - **El RADAR VIVE** con fuentes **reales y verificadas** (`docs/RADAR_INNOVACION.md`); **inventarse el radar
   es tan grave como falsear un golden**. Incluye un **eje regulatorio** (§EST-2). Automatiza en routines lo
   que pueda avanzar solo.
+- **Un VEREDICTO exige RECIBO DE LECTURA** *(predicción ≠ hecho, aplicado a la investigación; D-58, §META-3).*
+  Un veredicto sobre una fuente (`adopt`/`learn`/`avoid`, "encaja", "production-ready", licencia X) es una
+  **afirmación**: requiere haber **LEÍDO la fuente entera**, no su titular ni un resultado de búsqueda. En todo
+  doc de investigación, **marca explícitamente** *leído íntegro* vs *solo búsqueda*; un veredicto sobre
+  búsqueda-sola va etiquetado **provisional**. **Afirmar un veredicto sin lectura = falsear un golden.**
 - **La innovación NO rompe la honestidad:** una idea o prototipo es 🟡 hasta su recibo.
 
 ---
@@ -219,6 +224,7 @@ psicología humana — se gestionan con honestidad, no se "resuelven".
 | Rama por cambio | política de tamaño (§CONC) | sensor (§META-1) | sin límite (176 commits) |
 | Golden no tautológico | mutación adversarial en el gate (§GOB-3/4) | mutantes de otro agente | mutación suelta → al gate |
 | El radar VIVE | routine tech-radar + eje regulatorio (§EST-2) | fuentes verificadas | falta cadencia |
+| Un veredicto exige recibo de lectura (D-58) | bloque "leído íntegro vs solo búsqueda" en todo doc de investigación | revisión humana del recibo; futuro: sensor §META-1 marca veredicto sin fuente leída | recibo manual hoy → automatizar en sensor |
 | Mejora lo que se te pide (Ley 0) | sensor + deuda normativa (§META-1) | el agente lee deuda primero | **falta el sensor** |
 | Mantenla viva | disparador+dueño+procedimiento (§META-3) | PR + DECISIONES + sync | ya con disparador |
 
