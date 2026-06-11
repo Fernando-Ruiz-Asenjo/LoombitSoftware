@@ -62,6 +62,8 @@ def _plan_cobro(
     accion = plan.get("action")
     if accion == "no_reclamar":
         return "Esta factura ya está cobrada por completo: no hay nada que reclamar."
+    if accion == "revisar":
+        return f"No es reclamable tal cual: {plan.get('note', 'revisar los datos de la factura.')}"
 
     saldo = plan.get("outstanding")
     overdue = plan.get("overdue_days", 0)

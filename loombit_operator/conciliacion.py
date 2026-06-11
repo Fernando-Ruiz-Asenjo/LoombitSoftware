@@ -320,21 +320,40 @@ def conciliar(
 
     Solo los **abonos** se casan contra cobros; los cargos se devuelven marcados como fuera
     de alcance (nada se descarta en silencio). Determinista: el tier sale de reglas, no de un
-    modelo. Devuelve una `Conciliacion` por movimiento, en orden.
+    modelo. Devuelve una `Conciliacion` por movimiento, en orden. Cada pendiente se concilia
+    UNA sola vez: un segundo abono que solo casaría con una pendiente ya usada se ABSTIENE
+    (posible pago duplicado del cliente → escala al humano, no se "cobra" dos veces).
     """
-    return [
-        (
-            _conciliar_abono(mov, pendientes, alias_resolver)
-            if mov.es_abono
-            else Conciliacion(
-                mov,
-                None,
-                ConfianzaTier.ABSTENCION,
-                "Movimiento de cargo (pago emitido): fuera del alcance de conciliación de cobros.",
+    usadas: set[str] = set()
+    out: list[Conciliacion] = []
+    for mov in movimientos:
+        if not mov.es_abono:
+            out.append(
+                Conciliacion(
+                    mov,
+                    None,
+                    ConfianzaTier.ABSTENCION,
+                    "Movimiento de cargo (pago emitido): fuera del alcance de conciliación de cobros.",
+                )
             )
-        )
-        for mov in movimientos
-    ]
+            continue
+        libres = [p for p in pendientes if p.id not in usadas]
+        c = _conciliar_abono(mov, libres, alias_resolver)
+        if c.pendiente is None and len(libres) < len(pendientes):
+            # ¿Habría casado contra una pendiente YA conciliada? → señal de pago duplicado.
+            repesca = _conciliar_abono(mov, pendientes, alias_resolver)
+            if repesca.pendiente is not None:
+                c = Conciliacion(
+                    mov,
+                    None,
+                    ConfianzaTier.ABSTENCION,
+                    f"La candidata ({repesca.pendiente.id}) ya quedó conciliada con un abono "
+                    "anterior: posible PAGO DUPLICADO del cliente — revisar, no conciliar dos veces.",
+                )
+        if c.pendiente is not None:
+            usadas.add(c.pendiente.id)
+        out.append(c)
+    return out
 
 
 def _conciliar_abono(

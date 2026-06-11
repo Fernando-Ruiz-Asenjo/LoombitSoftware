@@ -95,19 +95,30 @@ _CENT = Decimal("0.01")
 
 def inferir_tipo_iva(base: float | Decimal, iva: float | Decimal) -> Decimal | None:
     """Devuelve el tipo estándar cuya cuota (|base| × tipo) cuadra con el |IVA| declarado al céntimo;
-    None si ninguno encaja (no se adivina). Robusto al tamaño de la base. Acepta importes NEGATIVOS
-    (rectificativas/abonos): el tipo se infiere por valor absoluto y el signo se conserva en la
-    LineaIVA, de modo que una devolución REDUCE el devengado del 303 (antes se caía → 303 inflado).
+    None si ninguno encaja O si VARIOS encajan sin un cuadre exacto único (no se adivina: con
+    importes diminutos la tolerancia de 1 céntimo hace que varios tipos "cuadren"). Robusto al
+    tamaño de la base. Acepta importes NEGATIVOS (rectificativas/abonos): el tipo se infiere por
+    valor absoluto y el signo se conserva en la LineaIVA, de modo que una devolución REDUCE el
+    devengado del 303 (antes se caía → 303 inflado).
     """
     base_d = Decimal(str(base))
     iva_d = Decimal(str(iva))
     if base_d == 0:
         return None  # sin base no se puede inferir
+    exactos: list[Decimal] = []
+    al_centimo: list[Decimal] = []
     for tipo in _TIPOS:
         cuota = (abs(base_d) * tipo).quantize(_CENT, rounding=ROUND_HALF_UP)
-        if abs(cuota - abs(iva_d)) <= _CENT:
-            return tipo
-    return None
+        diff = abs(cuota - abs(iva_d))
+        if diff == 0:
+            exactos.append(tipo)
+        elif diff <= _CENT:
+            al_centimo.append(tipo)
+    if len(exactos) == 1:
+        return exactos[0]  # cuadre exacto único: gana aunque otro tipo cuadre "al céntimo"
+    if not exactos and len(al_centimo) == 1:
+        return al_centimo[0]
+    return None  # cero candidatos, o varios sin desempate exacto → abstención honesta
 
 
 def linea_desde_factura(inv: InvoiceFields, sentido: str) -> tuple[LineaIVA | None, list[str]]:
@@ -151,26 +162,63 @@ def registrar_factura(
     return exp
 
 
+def _fecha_factura(raw: object) -> date | None:
+    """Parsea la fecha de una factura tal y como la emite el extractor real (`docs_intel`):
+    ISO (2026-04-15) o formato español (15/04/2026, 15-04-2026, 15.04.2026, año de 2 o 4 cifras,
+    convención dd/mm — la habitual en factura española). None si no es legible."""
+    s = str(raw or "").strip()
+    if not s:
+        return None
+    try:
+        return date.fromisoformat(s[:10])
+    except ValueError:
+        pass
+    m = re.fullmatch(r"(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})", s)
+    if not m:
+        return None
+    dd, mm, yy = int(m.group(1)), int(m.group(2)), int(m.group(3))
+    if yy < 100:
+        yy += 2000
+    try:
+        return date(yy, mm, dd)
+    except ValueError:
+        return None  # 31/02, mes 13… → ilegible, no se inventa
+
+
 def recopilar_lineas(
     store: ExpedienteStore, desde: date | None = None, hasta: date | None = None
 ) -> tuple[list[LineaIVA], list[str]]:
     """Reúne las líneas de IVA de los expedientes `factura_intake`. Si se da [desde, hasta], SOLO las
-    facturas cuya fecha cae en ese rango (el 303 de un trimestre no puede mezclar trimestres)."""
+    facturas cuya fecha cae en ese rango (el 303 de un trimestre no puede mezclar trimestres).
+    Deduplica por nº de factura: la misma factura registrada dos veces NO se suma dos veces."""
     lineas: list[LineaIVA] = []
     avisos: list[str] = []
     filtrar = desde is not None and hasta is not None
     fuera, sin_fecha = 0, 0
+    vistas: dict[tuple, str] = {}  # clave de factura → nº (dedup del doble cómputo)
+    duplicadas: list[str] = []
     for exp in store.list(kind="factura_intake"):
         fields = exp.data.get("fields", {})
         if filtrar:
-            try:
-                f = date.fromisoformat(str(fields.get("fecha") or "")[:10])
-            except ValueError:
+            f = _fecha_factura(fields.get("fecha"))
+            if f is None:
                 sin_fecha += 1
                 continue  # sin fecha legible no se puede ubicar en un trimestre → no se incluye
             if not (desde <= f <= hasta):
                 fuera += 1
                 continue
+        numero = fields.get("numero")
+        if numero:
+            clave = (
+                str(numero),
+                str(fields.get("base_imponible")),
+                str(fields.get("iva")),
+                exp.data.get("sentido", "soportado"),
+            )
+            if clave in vistas:
+                duplicadas.append(str(numero))
+                continue  # misma factura registrada otra vez: contar UNA sola vez
+            vistas[clave] = str(numero)
         inv = InvoiceFields(
             numero=fields.get("numero"),
             base_imponible=fields.get("base_imponible"),
@@ -181,6 +229,11 @@ def recopilar_lineas(
         avisos.extend(avs)
         if linea is not None:
             lineas.append(linea)
+    if duplicadas:
+        avisos.append(
+            f"Factura(s) duplicada(s) detectada(s) y contadas UNA sola vez: {', '.join(duplicadas)}. "
+            "Revisar el registro (¿se subió dos veces el mismo PDF?)."
+        )
     if fuera:
         avisos.append(f"{fuera} factura(s) de otros periodos quedaron fuera de este trimestre.")
     if sin_fecha:
