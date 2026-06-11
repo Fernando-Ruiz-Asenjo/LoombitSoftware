@@ -169,6 +169,8 @@ async def lifespan(app: FastAPI):
             build_default_scheduler(), settings.routines_daemon_interval_seconds
         )
         daemon.start()
+    # Latido visible (S1): el endpoint /routines/status lee de aquí. None = daemon apagado (opt-in).
+    app.state.daemon = daemon
     try:
         yield
     finally:
