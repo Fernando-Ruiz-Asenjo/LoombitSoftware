@@ -123,6 +123,21 @@ MUTACIONES = [
         _pytest("test_", "tests/test_decisions_cobros.py"),
         "decisions_cobros: dejar de generar la decisión del cobro",
     ),
+    # ── §14B-1: el guardia POST-LLM de cifras (que el hedge y el respaldo al céntimo tienen dientes) ──
+    (
+        "loombit_operator/agent/cifra_parser.py",
+        "if c.aproximada:",
+        "if not c.aproximada:",
+        _pytest("test_", "tests/test_cifra_parser.py"),
+        "cifra_parser: dejar pasar el '~2.400 €' narrado a ojo",
+    ),
+    (
+        "loombit_operator/agent/cifra_parser.py",
+        "abs(valor - r) <= TOL_CENTIMO",
+        "abs(valor - r) >= TOL_CENTIMO",
+        _pytest("test_", "tests/test_cifra_parser.py"),
+        "cifra_parser: invertir el respaldo al céntimo",
+    ),
 ]
 
 

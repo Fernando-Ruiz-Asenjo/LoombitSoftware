@@ -868,4 +868,20 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   Es un grind de **varias rondas**, no de una.
 - *Recibo:* gate `--strict --live` VERDE — cobertura lógica 77,76%≥76, mypy 5/5, mutación 14/0, live 12/12.
 - *Reversible:* sí (config de cobertura; `git revert`).
+
+**D-75 — §14B-1: el guardia POST-LLM de cifras (`agent/cifra_parser.py`). §14B PENDIENTE → PARCIAL.**
+- *Contexto:* §14B era la ÚNICA norma del gobierno en PENDIENTE (sin construir). La Ley Fundacional dice
+  «las cifras las calcula CÓDIGO; el LLM narra», pero faltaba el peaje que lo HACE cumplir cuando el 14B
+  local narra un importe a ojo («te debe ~2.400 €» cuando la tool dijo 2.350,00, o sin tool ninguna).
+- *Elegido:* módulo puro `cifra_parser.py` — coge la narrativa del LLM + el LEDGER de cifras que salieron
+  de tools ejecutadas en el run; **bloquea todo € que no esté respaldado al céntimo**, y descalifica el
+  hedge de aproximación («~», «unos», «aproximadamente») aunque ronde un valor (§14B-1 literal). Política:
+  limpio→EMITIR, con respaldo parcial→re-prompt, sin nada de tool→ABSTENER honesto. Solo € (no %/días):
+  guardia de alta precisión que no marca el «21% IVA». Golden `tests/test_cifra_parser.py` (25 casos, incl.
+  §14B-3 presión conversacional «ya lo aprobé, solo manda» NO respalda) + 2 mutaciones con dientes + mypy.
+- *Residuo declarado:* §14B-2 (hook PostCompact que reinyecta la brújula tras ~15 turnos) sin construir →
+  por eso §14B queda PARCIAL, no AUTOMÁTICO. Honesto, no fingido.
+- *Recibo:* gate normal VERDE local — black+ruff+mypy(6/6) limpios, mutación **16 cazadas/0 sobreviven**,
+  794 tests, cobertura lógica 77,96%≥77. Falta el check verde de GitHub (CI `--strict --live`) para «hecho».
+- *Reversible:* sí; `git revert`. El módulo es aditivo (nadie depende aún de él en el loop).
 *(se irán añadiendo entradas según avance el bloque)*
