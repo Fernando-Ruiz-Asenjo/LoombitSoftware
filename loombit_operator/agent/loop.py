@@ -632,7 +632,16 @@ class AgentLoop:
                 autoritativos.append(verbatim)
         if autoritativos:
             bloque = "\n\n".join(autoritativos)
-            result = bloque + ("\n\n" + result if result and result.strip() else "")
+            # El 14B suele PARAFRASEAR el bloque autoritativo en su narración final; mostrar AMBOS
+            # duplica las cifras al usuario (lo que veía Fernando: "✅ Factura registrada… ✅ Factura
+            # registrada…"). Regla determinista: el bloque autoritativo SIEMPRE va (garantiza las
+            # cifras del cálculo); la narración del LLM solo se añade si aporta alguna cifra NUEVA
+            # (respuesta COMPUESTA: agenda/correo además de las finanzas). Si solo parafrasea las
+            # mismas cifras, se descarta → no se duplica.
+            if result and result.strip() and not _narracion_redundante(result, bloque):
+                result = bloque + "\n\n" + result
+            else:
+                result = bloque
         # Aviso determinista en preguntas fiscales reguladas (getattr: los tests pasan run sin .task).
         return _con_aviso_regulado(getattr(run, "task", ""), result)
 
@@ -1289,6 +1298,20 @@ def _afirma_exito(result: str) -> bool:
     a la vez que no pudo. Solo se usa cuando ya sabemos que toda acción material falló."""
     t = (result or "").lower()
     return bool(_AFIRMA_EXITO_RX.search(t)) and not _NIEGA_EXITO_RX.search(t)
+
+
+def _digit_runs(texto: str) -> set[str]:
+    """Secuencias de dígitos del texto (ignora separadores y formato: '1.210,00 €' → {'1','210','00'})."""
+    return set(re.findall(r"\d+", texto or ""))
+
+
+def _narracion_redundante(texto_llm: str, bloque_autoritativo: str) -> bool:
+    """True si la narración del LLM solo RESTATEa las cifras del bloque autoritativo (trae cifras y
+    TODAS están ya en el bloque) → paráfrasis redundante que duplicaría → se descarta. False si no
+    trae cifras (un acknowledgment como 'Te preparo la reclamación') o trae cifras NUEVAS (respuesta
+    compuesta: agenda/correo además de las finanzas) → se conserva. Ver _relay_fiel."""
+    nums = _digit_runs(texto_llm)
+    return bool(nums) and not (nums - _digit_runs(bloque_autoritativo))
 
 
 def _consecutive_tool_errors(run: "AgentRun", tool_name: str) -> int:

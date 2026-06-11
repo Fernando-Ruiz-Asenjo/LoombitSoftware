@@ -201,7 +201,9 @@ def resolver(task: str, llm) -> list[Sub]:
 # previmos), este clasificador LLM cubre la cola larga: clasifica a un MENÚ CERRADO con confianza, sin
 # inventar. Así no hay que añadir un regex por cada fraseo nuevo. Las cifras siguen por código.
 _MENU_INTENCION: dict[str, str] = {
-    "cobro": "reclamar/cobrar UNA factura impagada o vencida (necesita un importe)",
+    "cobro": "reclamar/cobrar UNA factura impagada o vencida indicando el IMPORTE en el mensaje",
+    "cobro_cliente": "reclamar/cobrar la factura ya registrada de UN CLIENTE concreto al que nombra "
+    "(p.ej. «reclama el cobro a Acme»), SIN decir el importe (lo resuelve de sus facturas)",
     "303": "calcular el IVA, el modelo 303 o la liquidación trimestral",
     "factura": "registrar, apuntar o emitir UNA factura nueva",
     "facturacion": "cuánto ha facturado / ingresado / gastado, o su beneficio, en un periodo",

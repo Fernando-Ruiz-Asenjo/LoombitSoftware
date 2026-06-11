@@ -33,9 +33,13 @@ def _importe_factura(fields: dict) -> Decimal | None:
     return Decimal(str(total)).quantize(CENT)
 
 
-def pendientes_de_cobro(store: ExpedienteStore) -> list[Pendiente]:
-    """Partidas pendientes de cobro: facturas `devengado` (ventas) aún no marcadas cobradas."""
-    pendientes: list[Pendiente] = []
+def pendientes_con_vencimiento(store: ExpedienteStore) -> list[tuple[Pendiente, str]]:
+    """Como `pendientes_de_cobro`, pero adjunta a cada partida su VENCIMIENTO para poder calcular el
+    plan de cobro (Ley 3/2004) sin que el usuario dicte el importe ni la fecha. El vencimiento sale
+    del campo `vencimiento`; si falta, de la `fecha` de la factura (NO se inventa un plazo). Devuelve
+    `(Pendiente, vencimiento_iso)`; la cadena de vencimiento puede ir vacía si la factura no la trae.
+    """
+    out: list[tuple[Pendiente, str]] = []
     for exp in store.list(kind=FACTURA_KIND):
         if exp.data.get("sentido") != "devengado" or exp.data.get("cobrado"):
             continue
@@ -43,15 +47,20 @@ def pendientes_de_cobro(store: ExpedienteStore) -> list[Pendiente]:
         importe = _importe_factura(fields)
         if importe is None or importe <= 0:
             continue  # sin importe fiable → no se concilia (no inventa)
-        pendientes.append(
-            Pendiente(
-                id=exp.id,
-                importe=importe,
-                referencia=fields.get("numero") or "",
-                contraparte=fields.get("proveedor") or "",
-            )
+        pend = Pendiente(
+            id=exp.id,
+            importe=importe,
+            referencia=fields.get("numero") or "",
+            contraparte=fields.get("proveedor") or "",
         )
-    return pendientes
+        venc = str(fields.get("vencimiento") or fields.get("fecha") or "")
+        out.append((pend, venc))
+    return out
+
+
+def pendientes_de_cobro(store: ExpedienteStore) -> list[Pendiente]:
+    """Partidas pendientes de cobro: facturas `devengado` (ventas) aún no marcadas cobradas."""
+    return [p for p, _ in pendientes_con_vencimiento(store)]
 
 
 def marcar_cobrada(

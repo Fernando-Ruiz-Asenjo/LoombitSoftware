@@ -17,6 +17,16 @@ import re
 # «venc\w+» cubre vence/venció/vencía/vencida/vencido/vencimiento (antes solo «vencid\w+» → «venció»
 # en pasado NO casaba y la consulta de cobro se iba a un free-form que alucinaba tools).
 _COBRO = re.compile(r"\b(cobro|cobrar|reclam\w+|moros\w+|impag\w+|deuda|deudas|venc\w+|demora)\b")
+# Verbo CLARO de reclamar/cobrar (NO el mero «vence», que en una pregunta de fecha no es reclamación):
+# para enrutar «reclama el cobro a <Cliente>» SIN importe → reclamar la factura registrada del cliente.
+# Tolerante a acentos en imperativos enclíticos («cóbrale», «reclámale») — igual que _FACTURA.
+_RECLAMO_VERBO = re.compile(r"\b(c[oó]br\w+|recl[aá]m\w+|moros\w+|impag\w+|adeud\w*|deuda\w*)\b")
+# Contraparte NOMBRADA: un nombre propio (mayúscula inicial en el texto ORIGINAL) tras una preposición
+# mid-frase («a Acme», «de García», «para Beta»). La preposición en minúscula evita casar la mayúscula
+# inicial de la frase; el nombre propio es señal de baja-falso-positivo de que hay un cliente concreto.
+_PREP_NOMBRE = re.compile(r"\b(?:a|de|al|para|con|contra)\s+([A-ZÁÉÍÓÚÑ][\wÁÉÍÓÚÑáéíóúñ&.\-]*)")
+# Palabras que, aun capitalizadas tras preposición, NO son una contraparte (instituciones/genéricos).
+_NO_CONTRAPARTE = {"hacienda", "aeat", "iva", "el", "la", "los", "las", "ley"}
 _F303 = re.compile(r"\b(303|iva|trimestral|repercutid\w+|soportad\w+|devengad\w+|liquidaci[oó]n)\b")
 # 303 «con lo que tengo registrado/apuntado»: lee las facturas registradas → NO necesita un número.
 _F303_REGISTRADAS = re.compile(
@@ -137,6 +147,7 @@ _TIENE_DATO = re.compile(
 # Tools a las que se LIMITA la llamada forzada (+ ask_user/task_done para poder preguntar o terminar).
 _TOOLS_POR_INTENCION: dict[str, set[str]] = {
     "cobro": {"plan_cobro"},
+    "cobro_cliente": {"reclamar_cobro_cliente"},
     "303": {"calcular_303", "calcular_303_registradas"},
     "factura": {"registrar_factura"},
     "buscar": {"gmail_search"},
@@ -153,6 +164,16 @@ def tiene_dato(task: str) -> bool:
     """True si la petición trae un DATO numérico (cifra o número en palabras). Lo usa el clasificador
     LLM de respaldo: cobro/303/factura SIN dato no se fuerzan (que pregunte, no que invente)."""
     return bool(_TIENE_DATO.search((task or "").lower()))
+
+
+def _contraparte_nombrada(task: str) -> bool:
+    """True si la petición nombra a una CONTRAPARTE (cliente) con nombre propio: «… de Acme», «a
+    García». Usa el texto ORIGINAL (la mayúscula del nombre propio es la señal); descarta genéricos
+    («el cliente de siempre» → ningún nombre propio tras la preposición)."""
+    for m in _PREP_NOMBRE.finditer(task or ""):
+        if m.group(1).lower() not in _NO_CONTRAPARTE:
+            return True
+    return False
 
 
 def intencion_consecuente(task: str) -> str | None:
@@ -181,6 +202,11 @@ def intencion_consecuente(task: str) -> str | None:
         return "factura"
     if _COBRO.search(t) and tiene_dato:
         return "cobro"
+    # COBRO por CLIENTE sin importe: «reclama el cobro de la factura vencida de Acme» → resuelve la
+    # factura REGISTRADA de esa contraparte y calcula el plan (Ley 3/2004), en vez de pedir el importe
+    # o irse a buscar al correo. Va DESPUÉS del cobro-con-dato (un importe explícito → plan_cobro).
+    if _RECLAMO_VERBO.search(t) and _contraparte_nombrada(task):
+        return "cobro_cliente"
     # 303 con DATO, o «calcula el IVA del trimestre con mis facturas registradas» (sin número: las lee).
     if _F303.search(t) and (tiene_dato or _F303_REGISTRADAS.search(t)):
         return "303"
@@ -203,6 +229,11 @@ def tools_foco(intencion: str | None) -> set[str]:
         return {"resumen_facturacion"}
     if intencion == "cobros_pend":
         return {"cobros_pendientes"}
+    if intencion == "cobro_cliente":
+        # SOLO reclamar_cobro_cliente: que RESUELVA la factura del cliente y calcule el plan, sin
+        # escaparse a ask_user («¿qué importe?») ni a buscar en el correo. La tool ya degrada con
+        # gracia si no hay coincidencia (lista a quién se le debe).
+        return {"reclamar_cobro_cliente"}
     if intencion == "resumen_financiero":
         # un solo tool que COMPONE todas las métricas (facturado+gastos+beneficio+303+me-deben).
         return {"resumen_financiero"}
@@ -218,6 +249,7 @@ def tools_foco(intencion: str | None) -> set[str]:
 # intenciones para que el agente no divague (p.ej. en un cobro NO registre una factura fantasma).
 _DOMINIO_TODAS = {
     "plan_cobro",
+    "reclamar_cobro_cliente",
     "calcular_303",
     "calcular_303_registradas",
     "registrar_factura",

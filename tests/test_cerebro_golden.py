@@ -527,6 +527,29 @@ def test_relay_fiel_ignora_no_autoritativas_y_errores():
     assert loop._relay_fiel(run2, "narración") == "narración"  # un error no se relaya
 
 
+def test_relay_fiel_no_duplica_cuando_el_llm_solo_parafrasea():
+    # BUG real (Fernando 2026-06-10): el 14B parafrasea el bloque autoritativo (mismas cifras,
+    # otras palabras) y se mostraban LAS DOS → cifras duplicadas. La paráfrasis redundante NO se añade.
+    loop = AgentLoop(llm=SimpleNamespace())
+    verbatim = "Saldo pendiente: 1210.00 €. Total con IVA: 1210.00 €."
+    run = SimpleNamespace(steps=[SimpleNamespace(tool_name="plan_cobro", result=verbatim)])
+    parafrasis = "He preparado el cobro: te deben 1210 euros en total."
+    out = loop._relay_fiel(run, parafrasis)
+    assert verbatim in out  # las cifras deterministas se garantizan
+    assert "He preparado" not in out  # la paráfrasis redundante NO se duplica
+
+
+def test_relay_fiel_conserva_narracion_si_aporta_cifras_nuevas():
+    # Pero una respuesta COMPUESTA (finanzas + agenda) trae cifras nuevas → no se pierde.
+    loop = AgentLoop(llm=SimpleNamespace())
+    verbatim = "Saldo pendiente: 1210.00 €."
+    run = SimpleNamespace(steps=[SimpleNamespace(tool_name="plan_cobro", result=verbatim)])
+    compuesta = "Te deben 1210 € y además tienes 2 reuniones el jueves 18."
+    out = loop._relay_fiel(run, compuesta)
+    assert verbatim in out
+    assert "reuniones" in out  # la info de agenda (cifra nueva: 2, 18) NO se pierde
+
+
 # ── DoD (no mentir): no afirmar un éxito que no ocurrió ───────────────────────
 def test_relay_fiel_no_afirma_exito_si_toda_accion_material_fallo():
     loop = AgentLoop(llm=SimpleNamespace())
@@ -962,9 +985,29 @@ def test_factura_registradas_no_es_intencion_factura():
 
 
 def test_intencion_consecuente_sin_datos_no_fuerza():
-    # sin número → NO forzar (que pregunte, no que invente; regresión observada)
-    assert intencion_consecuente("reclama el cobro de la factura de Acme") is None
+    # sin número Y sin cliente NOMBRADO → NO forzar plan_cobro (que pregunte, no que invente)
     assert intencion_consecuente("reclámale el cobro al cliente de siempre") is None
+    assert intencion_consecuente("reclama el cobro pendiente") is None
+
+
+def test_intencion_cobro_por_cliente_sin_importe():
+    # GAP de flujo: «reclama el cobro a Acme» SIN importe → cobro_cliente (resuelve la factura
+    # registrada del cliente y calcula el plan, en vez de pedir el dato o buscar en el correo).
+    assert intencion_consecuente("reclama el cobro de la factura de Acme") == "cobro_cliente"
+    assert (
+        intencion_consecuente("reclama el cobro de la factura vencida de Acme") == "cobro_cliente"
+    )
+    assert intencion_consecuente("reclama la deuda de García") == "cobro_cliente"
+    assert intencion_consecuente("cóbrale a Beta lo pendiente") == "cobro_cliente"
+    # con importe explícito → sigue siendo plan_cobro (cobro), NO cobro_cliente
+    assert intencion_consecuente("reclama 2000 € a Acme vencidos el 1 de mayo") == "cobro"
+    # sin cliente nombrado → no se fuerza cobro_cliente
+    assert intencion_consecuente("reclama el cobro pendiente") is None
+    # «¿cuándo vence la factura de Acme?» NO es reclamación (no hay verbo de cobro) → no fuerza
+    assert intencion_consecuente("¿cuándo vence la factura de Acme?") is None
+    assert tools_foco("cobro_cliente") == {"reclamar_cobro_cliente"}
+    assert "reclamar_cobro_cliente" in tools_excluir("cobro")  # otra intención lo excluye
+    assert "reclamar_cobro_cliente" not in tools_excluir("cobro_cliente")  # la propia no
 
 
 def test_intencion_consecuente_lecturas_y_cortesias_no():

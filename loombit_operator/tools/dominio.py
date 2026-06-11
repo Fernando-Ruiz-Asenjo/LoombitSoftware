@@ -12,6 +12,7 @@ pasando por gmail_send con su gate.
 
 from __future__ import annotations
 
+import unicodedata
 from calendar import monthrange
 from datetime import date
 from typing import Any
@@ -352,6 +353,68 @@ def _cobros_pendientes(**_: object) -> str:
     return "\n".join(lineas)
 
 
+def _norm_nombre(s: object) -> str:
+    """Normaliza un nombre para comparar contrapartes: minúsculas, sin acentos, sin espacios extra."""
+    t = unicodedata.normalize("NFKD", str(s or "").lower())
+    return " ".join("".join(c for c in t if not unicodedata.combining(c)).split())
+
+
+def _reclamar_cobro_cliente(contraparte: str = "", **_: object) -> str:
+    """Reclama el cobro de la(s) factura(s) pendiente(s) de un CLIENTE por su NOMBRE, sin que el
+    usuario dicte el importe: localiza en las facturas REGISTRADAS las emitidas y aún no cobradas de
+    esa contraparte y calcula su plan de cobro (Ley 3/2004). Cierra el flujo «reclama el cobro a Acme»
+    sin importe — resuelve la factura en vez de pedir el dato o irse a buscar al correo. Determinista:
+    el importe y el vencimiento salen de la factura registrada, no del LLM."""
+    from ..skill_d_fiscal.conciliacion_cobros import pendientes_con_vencimiento
+
+    nombre = str(contraparte or "").strip()
+    try:
+        store = ExpedienteStore(entity_id=_ENTIDAD_DEFECTO)
+        todos = pendientes_con_vencimiento(store)
+    except Exception as exc:  # noqa: BLE001
+        return f"ERROR al leer tus facturas registradas: {exc}"
+    if not todos:
+        return (
+            "No tienes ninguna factura emitida pendiente de cobro registrada. Regístrala (o dime el "
+            "importe y el vencimiento) y te preparo la reclamación según la Ley 3/2004."
+        )
+    objetivo = _norm_nombre(nombre)
+    casos = [(p, v) for (p, v) in todos if objetivo and objetivo in _norm_nombre(p.contraparte)]
+    if not casos:
+        # Sin nombre o sin coincidencia: enseña a QUIÉN se le debe (para que elija), en vez de pedir
+        # un dato a ciegas o irse al correo. No inventa la factura de un cliente que no existe.
+        clientes = sorted({(p.contraparte or "(cliente sin nombre)") for p, _ in todos})
+        quien = f"«{nombre}»" if nombre else "ese cliente"
+        return (
+            f"No encuentro ninguna factura pendiente de cobro de {quien} en tus registros. "
+            f"Tienes cobros pendientes de: {', '.join(clientes)}. Dime de cuál preparo la "
+            "reclamación (o regístrala si te falta)."
+        )
+    bloques: list[str] = []
+    for p, venc in casos:
+        if venc:
+            plan = _plan_cobro(total=float(p.importe), fecha_vencimiento=venc)
+        else:
+            plan = (
+                f"Saldo pendiente: {float(p.importe):.2f} €. Esta factura no tiene fecha de "
+                "vencimiento registrada, así que no puedo fijar la etapa ni el interés de demora; "
+                "dime el vencimiento y te calculo la reclamación completa."
+            )
+        ref = f" (factura {p.referencia})" if p.referencia else ""
+        bloques.append(f"• {p.contraparte or 'cliente'}{ref} — {float(p.importe):.2f} €:\n{plan}")
+    cliente0 = casos[0][0].contraparte or "ese cliente"
+    if len(casos) == 1:
+        cab = (
+            f"Reclamación de cobro de {cliente0} (Ley 3/2004), desde tus facturas registradas:\n\n"
+        )
+    else:
+        cab = (
+            f"{len(casos)} facturas pendientes de {cliente0} (Ley 3/2004), desde tus facturas "
+            "registradas:\n\n"
+        )
+    return cab + "\n\n".join(bloques)
+
+
 def _resumen_financiero(periodo: str = "") -> str:
     """Resumen FINANCIERO COMPLETO de un periodo, TODO en una respuesta determinista: lo FACTURADO
     (ingresos), los GASTOS, el BENEFICIO, el IVA del 303 del periodo y cuánto te DEBEN (cobros
@@ -577,6 +640,34 @@ tool_registry.register(
         ),
         parameters={"type": "object", "properties": {}},
         fn=_cobros_pendientes,
+        category="base",
+        authoritative=True,
+    )
+)
+
+
+tool_registry.register(
+    ToolDefinition(
+        name="reclamar_cobro_cliente",
+        description=(
+            "RECLAMA el cobro de la(s) factura(s) pendiente(s) de un CLIENTE por su NOMBRE, cuando el "
+            "usuario NO dice el importe (p.ej. «reclama el cobro de la factura vencida de Acme», "
+            "«cóbrale a García lo que me debe»). Busca en tus facturas REGISTRADAS las emitidas a esa "
+            "contraparte aún no cobradas y calcula el plan de cobro (Ley 3/2004): saldo, días "
+            "vencidos, etapa, compensación de 40 € e interés de demora. NO envía nada. Úsala en vez de "
+            "pedir el importe o buscar en el correo cuando el usuario nombra al cliente."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "contraparte": {
+                    "type": "string",
+                    "description": "Nombre del cliente al que reclamar el cobro (p.ej. 'Acme').",
+                },
+            },
+            "required": ["contraparte"],
+        },
+        fn=_reclamar_cobro_cliente,
         category="base",
         authoritative=True,
     )

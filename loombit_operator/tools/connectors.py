@@ -101,6 +101,13 @@ def _gmail_search(query: str, max_results: int = 5) -> str:
                 headers={"Authorization": f"Bearer {token}"},
                 params=params,
             )
+            # Gmail devuelve 204 (cuerpo VACÍO) cuando la búsqueda no casa nada y el filtro `fields`
+            # deja el cuerpo sin contenido. CERO resultados NO es un error: si se trata como tal, el
+            # agente ve un fallo y se va a otra tool (bug real de "buscar-correo" → resumen_financiero).
+            if resp.status_code == 204:
+                return json.dumps(
+                    {"ok": True, "count": 0, "messages": [], "query": query}, ensure_ascii=False
+                )
             if resp.status_code != 200:
                 return json.dumps(
                     {"ok": False, "error": f"Gmail API {resp.status_code}: {resp.text[:200]}"},
