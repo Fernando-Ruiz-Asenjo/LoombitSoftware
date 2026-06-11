@@ -664,4 +664,25 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   VERDE: black + ruff (`.`) + **805 pytest**, cero regresión. Honesto: 🟡 — sin recibo EN VIVO con el daemon
   corriendo + datos reales.
 - *Reversible:* sí (un módulo + un executor + una routine seedeada + 1 setting; `git revert`).
+
+**D-65 — Gate canónico ENDURECIDO: el CI corre `verify.py --strict` (dientes + invariantes + auditorías).**
+- *Contexto:* Fernando pide el gate **lo más confiable y estricto posible** para que «cuando se corrige, se
+  corrija lo mejor posible». El gate de merge era solo black + ruff + pytest (regresión + higiene). Faltaban
+  los **dientes** (§GOB-3/4) y el gate canónico único (§GOB-2).
+- *Elegido:* `scripts/verify.py` pasa a ser el **gate canónico de dos niveles** y el **CI lo ejecuta en
+  `--strict`** (`.github/workflows/ci.yml`): además de black+ruff(.)+pytest, corre las piezas DETERMINISTAS
+  que ya existían pero NO estaban en el gate de merge — **auditoría caja-blanca** (449 sondas,
+  `auditoria_d1d2d3.py`), **auditoría del cobro** (Ley 3/2004 + 5000 fuzz), **fuzz de invariantes** (5000
+  casos/propiedad) y **mutation testing** (`mutation_test.py`: mete bugs a propósito y exige que el arnés se
+  ponga ROJO → prueba que los tests tienen DIENTES, no son tautológicos). El hook de pre-commit usa el mismo
+  `verify.py` (nivel normal, sin mutación para no mutar un árbol sucio) → hook ⊆ CI, **sin drift** (§GOB-2).
+- *Recibo:* `verify.py --strict` VERDE en ~13s — pytest + auditoría 449/449 + cobro 0 (5000 fuzz) + invariantes
+  0 violaciones + **mutación 8 cazadas / 0 sobreviven**. Las 4 piezas se corrieron una a una antes de cablear
+  (no se mete un gate rojo).
+- *Qué tapa y qué NO (honesto):* sube fuerte **"con fallos"** y **"mal hecho"** (regresión + invariantes +
+  dientes). La mutación dificulta MUCHO colar un test de mentira en el camino crítico. **NO** caza un 🟢 falso
+  en una afirmación/doc (eso sigue siendo recibo + honestidad), ni da independencia real §GOB-3 (yo escribo
+  código y tests). §GOB-2 sube de 🟠: falta aún `validate_brujula.py` (compilar la tabla Parte IV) + prohibir
+  `--no-verify` de forma efectiva.
+- *Reversible:* sí (un script + un step de CI; `git revert`).
 *(se irán añadiendo entradas según avance el bloque)*

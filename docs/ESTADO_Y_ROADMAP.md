@@ -26,8 +26,9 @@
 | §META-4 | Estado fuera de la constitución | ✅ | `CLAUDE.md` saneado → `ESTADO_Y_ROADMAP.md` (PR #12) | 0 |
 | §SEG-2 | datos≠órdenes (neutraliza inyección en lo leído) | 🟢 | golden `test_seg_inyeccion.py` 7 (rojo→verde) + live [2] del plano (PR #13) | 0 en corpus; **residuo:** lenguaje natural sin marcadores (lo frenan gate de efecto + `_recipiente_resuelto`); `resume` no blindado |
 | §GOB-1 | Capability Policy Plane (autoridad única) | 🟢 | golden `test_gob1_authority_plane.py` 10 + ~717 tests A TRAVÉS del plano + **live 3/3** `live_gob1_receipt.py` (PR #14) | 0 en corpus; **residuo:** predicados aún en `loop.py` (migración pendiente) |
-| §GOB-2 | gate canónico + compila la tabla + prohibir `--no-verify` | 🟠 | gate local alineado con CI (PR #15) | falta `validate_brujula.py` (compilar tabla Parte IV) + prohibición efectiva de `--no-verify` |
-| §GOB-3/4 · §META-1/2/3/5 · §14B · §DATOS · §CONC · §EST | resto del gobierno | ⬜ | — | sin construir (orden P0→P4, ver `BRUJULA.md` Parte V) |
+| §GOB-2 | gate canónico + compila la tabla + prohibir `--no-verify` | 🟠→🟢 parcial | **gate canónico único `verify.py --strict` = hook ⊆ CI, sin drift** (D-65) | falta `validate_brujula.py` (compilar tabla Parte IV) + prohibición efectiva de `--no-verify` |
+| §GOB-3/4 | dientes del arnés (mutación) + auditorías en el gate de merge | 🟠 | **mutación 8/8 + auditoría 449 + cobro/fuzz 10k casos, todo en CI** (D-65) | falta independencia real (auditor≠constructor) + held-out |
+| §META-1/2/3/5 · §14B · §DATOS · §CONC · §EST | resto del gobierno | ⬜ | — | sin construir (orden P0→P4, ver `BRUJULA.md` Parte V) |
 
 **Honesto:** el **P0 cimiento** (§META-4 + §SEG-2 + §GOB-1) está 🟢 en `main`, cada uno a 0 fallos en su
 corpus con residuo declarado. El **gobierno completo NO está al 100%** (eso sería teatro): P1-P4 pendientes.
