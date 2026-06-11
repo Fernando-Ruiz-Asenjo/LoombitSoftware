@@ -4,6 +4,10 @@ Una capacidad pasa por tres estados y solo uno cuenta como "hecho". El objetivo 
 este documento es que **nadie** (ni Codex, ni un modelo local, ni yo) pueda volver
 a decir "ya está" sin prueba.
 
+> **Canónico (§GOB-2b, D-66): «hecho» lo declara GitHub, no el agente.** El árbitro de 🟢 es un **check
+> verde en GitHub CI** corriendo el gate canónico `scripts/verify.py --strict --live` — no la palabra de
+> nadie. Algoritmo completo: `docs/PROTOCOLO_VERIFICACION_CANONICO.md`.
+
 ## Los tres estados
 
 | Estado | Qué significa | Evidencia exigida |

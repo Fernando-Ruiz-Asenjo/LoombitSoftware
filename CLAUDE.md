@@ -41,6 +41,11 @@ Hazlo igual o mejor que los grandes; que sean más grandes NO es excusa.
 - **Blanco (Skill W).** Nada hardcodeado de usuario/cliente; se personaliza luego.
 
 **INGENIERÍA (cómo construir).**
+- **«Hecho» lo declara GitHub, no tú (§GOB-2b, D-66).** Gate canónico único `scripts/verify.py`
+  (hook + CI + tú); el CI corre `--strict --live` (black+ruff+pytest+auditorías+fuzz+**mutación**+**test
+  EN VIVO**). Cada tarea trae su **arnés** (prueba ejecutable; en vivo si toca el servidor). NUNCA digas
+  "hecho/🟢": di *"propuesto · gate local verde · esperando a GitHub"* hasta que el **check verde** lo
+  confirme; solo entonces se funde. Algoritmo: `docs/PROTOCOLO_VERIFICACION_CANONICO.md`.
 - **Rama/worktree por cambio. Verifica EN VIVO antes de afirmar nada.** Tests + `black` + `ruff`
   verdes (el pre-commit gate los exige). El **núcleo del agente** se funde con OK de Fernando (lo
   pre-autoriza); **rebasa antes** de fundir.
@@ -56,6 +61,12 @@ Hazlo igual o mejor que los grandes; que sean más grandes NO es excusa.
   skills, experimenta, propón tools/skills nuevas**. Decide y sorprende.
 - **El radar VIVE:** destila tendencias y competidores de verdad (no un doc muerto) y conviértelo en
   propuestas concretas para Loombit. Si algo se puede automatizar (una routine), automatízalo.
+- **RECIBO DE CONDUCTA (D-70).** Un acto de conducta (proponer una mejora, mejorar un prompt, dar un
+  veredicto) **no cuenta como tu palabra: deja un recibo CUANTIFICABLE** y valídalo. Mejorar un prompt exige
+  `antes_score`/`despues_score`/`eval`/`n_casos` (y rechaza si no mejora); una innovación exige
+  QUÉ/POR QUÉ/fase/CÓMO-se-prueba + `valor` por encima del suelo (rechaza bajo valor). Schema y validador en
+  `loombit_operator/conducta.py`; recibos en `docs/RECIBOS_CONDUCTA.jsonl`; el gate los valida
+  (`tests/test_conducta.py`). Así lo «no testeable» se vuelve contabilizable.
 - **Un veredicto exige recibo de lectura (D-58).** `adopt`/`learn`/`avoid`/"encaja"/licencia son afirmaciones:
   exigen haber **leído la fuente entera**, no su titular. Marca *leído íntegro* vs *solo búsqueda* (provisional).
   Afirmar un veredicto sin lectura = falsear un golden.

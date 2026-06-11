@@ -16,9 +16,8 @@ jobs:
           python-version: "3.12"
       - name: Instalar dependencias
         run: python -m pip install -r requirements.txt
-      - name: Formato (black)
-        run: python -m black --check .
-      - name: Lint (ruff)
-        run: python -m ruff check .
-      - name: Tests + cobertura
-        run: python -m pytest
+      - name: Puerta de verificación (gate canónico · STRICT + LIVE)
+        # §GOB-2: el MISMO gate que el hook de pre-commit, en strict + live (todo lo comprobable):
+        # black + ruff + pytest + auditorías + fuzz + mutation testing + TEST EN VIVO (servidor real).
+        # GitHub re-confirma este gate; un check verde aquí es el ÚNICO recibo de "hecho" (no la palabra del LLM).
+        run: python scripts/verify.py --strict --live

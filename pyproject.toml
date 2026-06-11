@@ -18,3 +18,8 @@ extend-exclude = ["*.ipynb"]
 [tool.pytest.ini_options]
 addopts = "-q --cov=loombit_operator --cov-report=term-missing"
 testpaths = ["tests"]
+
+[tool.coverage.report]
+# Suelo de cobertura (§GOB-2b, D-67): el verde EXIGE no bajar de aquí. Ratchet: solo sube.
+# Inicial conservador (cobertura real ~71%); se calibra/sube con el primer CI y a medida que crece.
+fail_under = 68

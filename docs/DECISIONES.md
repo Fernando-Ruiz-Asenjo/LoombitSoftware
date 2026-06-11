@@ -683,4 +683,122 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   retocar el texto sin tocar la constitución (no reflejaría la ambición real).
 - *Procedimiento §META-3:* rama + PR + esta entrada + sync de `CLAUDE.md` + OK de Fernando (dado). Solo docs.
 - *Reversible:* sí (`git revert`).
+**D-65 — Gate canónico ENDURECIDO: el CI corre `verify.py --strict` (dientes + invariantes + auditorías).**
+- *Contexto:* Fernando pide el gate **lo más confiable y estricto posible** para que «cuando se corrige, se
+  corrija lo mejor posible». El gate de merge era solo black + ruff + pytest (regresión + higiene). Faltaban
+  los **dientes** (§GOB-3/4) y el gate canónico único (§GOB-2).
+- *Elegido:* `scripts/verify.py` pasa a ser el **gate canónico de dos niveles** y el **CI lo ejecuta en
+  `--strict`** (`.github/workflows/ci.yml`): además de black+ruff(.)+pytest, corre las piezas DETERMINISTAS
+  que ya existían pero NO estaban en el gate de merge — **auditoría caja-blanca** (449 sondas,
+  `auditoria_d1d2d3.py`), **auditoría del cobro** (Ley 3/2004 + 5000 fuzz), **fuzz de invariantes** (5000
+  casos/propiedad) y **mutation testing** (`mutation_test.py`: mete bugs a propósito y exige que el arnés se
+  ponga ROJO → prueba que los tests tienen DIENTES, no son tautológicos). El hook de pre-commit usa el mismo
+  `verify.py` (nivel normal, sin mutación para no mutar un árbol sucio) → hook ⊆ CI, **sin drift** (§GOB-2).
+- *Recibo:* `verify.py --strict` VERDE en ~13s — pytest + auditoría 449/449 + cobro 0 (5000 fuzz) + invariantes
+  0 violaciones + **mutación 8 cazadas / 0 sobreviven**. Las 4 piezas se corrieron una a una antes de cablear
+  (no se mete un gate rojo).
+- *Qué tapa y qué NO (honesto):* sube fuerte **"con fallos"** y **"mal hecho"** (regresión + invariantes +
+  dientes). La mutación dificulta MUCHO colar un test de mentira en el camino crítico. **NO** caza un 🟢 falso
+  en una afirmación/doc (eso sigue siendo recibo + honestidad), ni da independencia real §GOB-3 (yo escribo
+  código y tests). §GOB-2 sube de 🟠: falta aún `validate_brujula.py` (compilar la tabla Parte IV) + prohibir
+  `--no-verify` de forma efectiva.
+- *Reversible:* sí (un script + un step de CI; `git revert`).
+
+**D-66 — Protocolo de Verificación Canónico: «hecho» lo declara GitHub, no el LLM.**
+- *Contexto (la grieta de confianza):* Fernando deja de fiarse de la palabra del agente — con razón
+  (D-58: afirmé veredictos en falso). Pide un **mecanismo** para que se haga al 100% lo pedido con
+  **resultados chequeables confirmados por GitHub**, con **test en vivo**, codificado y canónico.
+- *Elegido:* la Ley Fundacional aplicada al propio agente — **el LLM nunca está en el camino de control de
+  confianza, tampoco para decir "hecho"**. (1) `docs/PROTOCOLO_VERIFICACION_CANONICO.md`: el algoritmo
+  TAREA→ARNÉS→GATE local→push→**GitHub confirma**→hecho; el agente NUNCA declara hecho, lo declara el check
+  verde. (2) Gate canónico único `scripts/verify.py` con niveles acumulativos; el CI corre `--strict --live`.
+  (3) **Test EN VIVO** nuevo `scripts/live_smoke.py`: arranca el servidor real (cwd aislado) y ejerce los
+  endpoints por HTTP (12 recibos: salud, sembrar cobro, cola+spec **validada**, resolver sin efecto,
+  idempotencia, opción inválida→400). (4) Norma §GOB-2b en BRÚJULA + sync `CLAUDE.md` + puntero en el DoD.
+- *Recibo:* `verify.py --strict --live` VERDE en local (pytest + 449 + cobro 0 + fuzz 0 + mutación 8/0 +
+  **live 12/12, estable 3/3 runs**). **Lo confirma GitHub CI** (el check `quality` corre el mismo gate) — y
+  ese check, no este texto, es el recibo de que esto está hecho.
+- *Honesto (residuo declarado):* un check verde NO prueba el mejor diseño ni cubre código sin arnés, ni caza
+  un 🟢 falso en prosa (por eso "hecho" lo otorga el check, no la narración). Pendiente §GOB: `validate_brujula.py`,
+  prohibir `--no-verify` efectivo, independencia auditor≠constructor (§GOB-3).
+- *Reversible:* sí (scripts + 1 step de CI + docs; `git revert`).
+
+**D-67 — Endurecer y agrandar lo que el verde abarca: suelo de cobertura + candado anti-debilitamiento.**
+- *Contexto:* Fernando pregunta si es imposible engañar a GitHub. Respuesta honesta: NO se puede falsear el
+  RESULTADO (lo corre GitHub), pero SÍ se puede bajar lo que el verde SIGNIFICA — (1) tests flojos / código
+  sin test, (2) debilitar el propio gate (el zorro y el gallinero, §GOB-3). Pide endurecer.
+- *Elegido:* (1) **Suelo de cobertura** `[tool.coverage.report] fail_under = 68` (ratchet, sube; cobertura
+  real ~71%); el gate corre pytest CON cobertura → añadir código sin test baja la cobertura y pone el verde
+  ROJO. (2) **`tests/test_gate_integridad.py`**: candado determinista que se pone ROJO si se quita un check de
+  `verify.py`, si el CI deja de correr `--strict --live`, si se borran tests en masa (suelo 740), si se bajan
+  los `--iters` del fuzz (suelo 2000) o si desaparece/cae el `fail_under` (suelo 65). Bajar el listón pasa de
+  ser un descuido-en-verde a un acto **deliberado y ruidoso**.
+- *Honestidad (lo que NO cierra):* el candado **no hace imposible** debilitar el gate — también este fichero
+  se puede editar. Lo hace **RUIDOSO** y concentra la vigilancia humana en una superficie pequeña y con
+  nombre (los ficheros del gate). La pieza irreducible sigue siendo el ojo humano sobre los cambios al gate
+  (§GOB-3, auditor≠constructor, aún pendiente del todo). El verde es tan fuerte como los arneses; estos dos
+  mecanismos suben ese listón y lo protegen, no lo vuelven infalible.
+- *Recibo:* gate `--strict --live` VERDE — cobertura 70,74% ≥ 68% (suelo aplicado), integridad 5/5,
+  pytest+449+cobro 0+fuzz 0+mutación 8/0+live 12/12. Lo confirma GitHub CI.
+- *Reversible:* sí (un suelo en pyproject + un test + 1 línea en verify.py; `git revert`).
+
+**D-68 — Test de CUMPLIMIENTO DE LA BRÚJULA en el gate (§GOB-2 «la constitución COMPILA») + blindaje doble.**
+- *Contexto (el PILLADO):* Fernando — «pero ¿GitHub no confirmaba que aplicabas la brújula?». Respuesta
+  honesta: **NO**. El verde confirmaba el CÓDIGO; **nunca** el cumplimiento de la constitución. Prueba: 15
+  ficheros incumplen «<400 líneas» (loop.py 1433, memory.py 964…) y llevaban **en verde** porque el gate
+  jamás midió eso. Llevo tiempo sin aplicar la brújula de forma sistemática y no había nada que lo cazara.
+- *Elegido:* (1) **`tests/test_brujula_cumplimiento.py`** (corre en el gate): tamaño <400 con **deuda
+  declarada y congelada** (los 15 ficheros no pueden CRECER; ninguno nuevo nace >400; la deuda solo encoge);
+  §GOB-2 tabla Parte IV sin celdas vacías; DECISIONES sin D-NN duplicados; sincronía de `CLAUDE.md` con la
+  norma §GOB-2b. (2) **Blindaje agujero 2 reforzado:** `test_gate_integridad.py` ahora protege los
+  tests-candado (no se pueden borrar ni vaciar sin rojo) y sube el suelo de tests a 750. (3) **Agujero 1:** el
+  suelo de cobertura (D-67) sigue cazando código sin test.
+- *Honestidad (residuo, lo declaro porque es parte del gate):* esto NO comprueba la brújula «al completo» —
+  normas de conducta (mejora lo que se te pide, cognición≠extracción, rama por cambio) NO son unit-testeables.
+  Cubre el **subconjunto mecanizable**. Y los 15 ficheros grandes quedan **congelados, no arreglados**:
+  dividirlos es trabajo futuro; ahora al menos no empeoran y están a la vista.
+- *Recibo:* gate `--strict --live` VERDE — 756 tests, candados 11/11, cobertura 70,74%≥68%, mutación 8/0,
+  live 12/12. Lo confirma GitHub CI.
+- *Reversible:* sí (dos tests + ratchets; `git revert`).
+
+**D-69 — «Díselo a GitHub: TODA la brújula y TODO el gobierno» — manifiesto de cobertura contabilizado.**
+- *Contexto:* Fernando exige que el verde abarque la brújula y el gobierno ENTEROS. Verdad honesta: las
+  normas de CONDUCTA (mejora lo que se te pide, cognición≠extracción, acierta al 100%) **no son
+  mecanizables** — pretender un check que las "pase" sería mentir otra vez. Lo máximo honesto: que el gate
+  CONTABILICE la brújula entera y no deje punto ciego.
+- *Elegido:* `tests/test_gobierno_cobertura.py` (en el gate) — **manifiesto de las 20 normas** (Partes I-III)
+  → estado AUTOMÁTICO / PARCIAL / HUMANO / PENDIENTE + evidencia. Meta-checks: (1) **cada norma `###` de la
+  brújula está contabilizada** (y al revés) → un punto ciego pone el gate ROJO; (2) todo arnés afirmado
+  AUTOMÁTICO/PARCIAL **existe** (no enforcement de mentira); (3) estados del vocabulario cerrado con motivo no
+  vacío. Añadido a los candados de `test_gate_integridad.py` (no se puede borrar) + suelo de tests a 755.
+- *Honestidad (la línea que no cruzo):* esto NO hace que la máquina "pase" la conducta — la marca **HUMANO**
+  y declara que la verifica una persona. Reparto real hoy: AUTOMÁTICO §GOB-1/§GOB-2/§META-4/INGENIERÍA ·
+  PARCIAL Ley Fundacional/PRODUCTO/§GOB-4/§SEG/§DATOS/§META-1/§META-3 · HUMANO Ley0/NORTE/INNOVACIÓN/§CONC/
+  §EST/§META-2/§META-5 · PENDIENTE §GOB-3/§14B. GitHub no juzga conducta; **garantiza que nada queda en
+  punto ciego** y que ningún check afirmado es de mentira.
+- *Recibo:* gate `--strict --live` VERDE — 759 tests, 20/20 normas contabilizadas, candados ok, cobertura
+  70,86%≥68%, mutación 8/0, live 12/12. Lo confirma GitHub CI.
+- *Reversible:* sí (un test-manifiesto; `git revert`).
+
+**D-70 — RECIBOS DE CONDUCTA: las normas conductuales se vuelven contabilizables con evidencia cuantificable.**
+- *Contexto:* Fernando — las normas de conducta (marcadas HUMANO en D-69) deben pasarse «con propuestas a
+  esas conductas que sí se contabilizarán, con algún método». Ejemplo suyo: mejorar un prompt debe dejar
+  registro de CÓMO, con elementos cuantificables y útiles, para evitar proponer cosas de bajo valor.
+- *Análisis:* la máquina no puede JUZGAR la conducta, pero sí puede EXIGIR un recibo con números y un suelo
+  de valor, y rechazar lo vago/de bajo valor. Eso transforma HUMANO → contabilizable (sin fingir que la
+  máquina opina).
+- *Elegido:* `loombit_operator/conducta.py` (mismo patrón que el validador de UI): vocabulario CERRADO de
+  recibos — `mejora_prompt` (exige antes/después + eval + n_casos; rechaza si NO mejora o es anecdótico),
+  `innovacion` (QUÉ/POR QUÉ/fase/CÓMO-se-prueba + valor>=suelo; rechaza bajo valor o sin mecanismo
+  verificable), `mejora_generica` (antes/después medibles), `veredicto` (mecaniza D-58: veredicto fuerte
+  exige lectura íntegra). Log `docs/RECIBOS_CONDUCTA.jsonl` (dogfood: el primer recibo es este sistema).
+  Gate: `tests/test_conducta.py` (9 goldens + valida los recibos commiteados). Integrado en el manifiesto
+  (`tests/test_gobierno_cobertura.py`): nuevo estado **RECIBO**; INNOVACIÓN y Ley 0 pasan de HUMANO→RECIBO.
+  Norma canónica en `CLAUDE.md`.
+- *Honestidad:* esto NO juzga si una idea es brillante — exige que sea MEDIBLE y supere un suelo (filtra el
+  ruido). El juicio fino sigue siendo de Fernando; lo que se elimina es «confía en mi palabra» y el bajo valor
+  sin números. Quedan HUMANO las que no admiten métrica (NORTE, §CONC, §EST, §META-2/5).
+- *Recibo:* gate `--strict --live` VERDE — 768 tests, conducta 9/9, 20/20 normas contabilizadas, cobertura
+  70,80%≥68%, mutación 8/0, live 12/12. Lo confirma GitHub CI.
+- *Reversible:* sí (un módulo + un test + un log + manifiesto; `git revert`).
 *(se irán añadiendo entradas según avance el bloque)*
