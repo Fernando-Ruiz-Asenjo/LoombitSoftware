@@ -1,0 +1,33 @@
+# CODEOWNERS — §GOB-3 (auditor ≠ constructor, D-71).
+#
+# La pieza irreducible del gobierno: el agente que ESCRIBE el gate no puede ser quien lo APRUEBA. Aquí se
+# nombra a Fernando como dueño de los ficheros del GATE y de la CONSTITUCIÓN: tocar cualquiera de ellos
+# exige su review. Así, debilitar el gate o cambiar las normas deja de poder colarse en un auto-merge verde.
+#
+# ENFORCEMENT: esto solo es un GATE DURO si la protección de `main` tiene activado
+# "Require review from Code Owners" (ajuste del repo, propiedad de Fernando). Sin eso, es una señal
+# (se solicita su review) pero no bloquea. Honesto: mecanismo presente; enforcement = un ajuste suyo.
+
+# La puerta de calidad y sus piezas deterministas
+/scripts/verify.py                      @FernandoAsenjo777
+/scripts/mutation_test.py               @FernandoAsenjo777
+/scripts/auditoria_d1d2d3.py            @FernandoAsenjo777
+/scripts/auditoria_cobro.py             @FernandoAsenjo777
+/scripts/fuzz_invariantes.py            @FernandoAsenjo777
+/scripts/live_smoke.py                  @FernandoAsenjo777
+
+# Los candados del gobierno (anti-debilitamiento, cumplimiento de brújula, cobertura, conducta)
+/tests/test_gate_integridad.py          @FernandoAsenjo777
+/tests/test_brujula_cumplimiento.py     @FernandoAsenjo777
+/tests/test_gobierno_cobertura.py       @FernandoAsenjo777
+/tests/test_conducta.py                 @FernandoAsenjo777
+/loombit_operator/conducta.py           @FernandoAsenjo777
+
+# CI / auto-merge y los umbrales del gate
+/.github/                               @FernandoAsenjo777
+/pyproject.toml                         @FernandoAsenjo777
+
+# La constitución y su cabecera
+/docs/BRUJULA.md                        @FernandoAsenjo777
+/docs/PROTOCOLO_VERIFICACION_CANONICO.md @FernandoAsenjo777
+/CLAUDE.md                              @FernandoAsenjo777
