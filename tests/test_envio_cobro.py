@@ -40,10 +40,8 @@ def test_sin_aprobacion_no_envia(tmp_path):
 
 
 def test_no_envia_sola_outbox_vacio(tmp_path):
-    try:
+    with pytest.raises(EnvioBloqueado):
         enviar_recordatorio(_decision(), aprobada=False, outbox_dir=tmp_path)
-    except EnvioBloqueado:
-        pass
     assert list(tmp_path.glob("*.eml")) == []  # NADA escrito
 
 
