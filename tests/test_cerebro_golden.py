@@ -1017,6 +1017,22 @@ def test_intencion_consecuente_lecturas_y_cortesias_no():
     assert intencion_consecuente("manda un correo a Ana") is None
 
 
+def test_intencion_contacto_fuerza_contacts_find():
+    # «el correo/email/teléfono de <persona>» → intención 'contacto' (resolver con contacts_find,
+    # NUNCA pedir el dato al usuario). Bug en vivo 2026-06-12: «¿cuál es el correo de David?» daba
+    # steps=[] y el 14B pedía la dirección. RC·Cerebro.
+    assert intencion_consecuente("¿cuál es el correo de David Valentín?") == "contacto"
+    assert intencion_consecuente("dame el email de Ana") == "contacto"
+    assert intencion_consecuente("¿tienes el teléfono de Pepe?") == "contacto"
+    assert intencion_consecuente("¿cómo contacto con María?") == "contacto"
+    # fuerza SOLO contacts_find (sin escape a ask_user)
+    assert tools_foco("contacto") == {"contacts_find"}
+    # NO roba otras intenciones (regresión):
+    assert intencion_consecuente("busca en mi correo los mensajes de David") == "buscar"
+    assert intencion_consecuente("manda un correo a Ana") is None  # «correo A» = envío, no lookup
+    assert intencion_consecuente("¿cuánto me debe Acme?") == "cobros_pend"  # financiero intacto
+
+
 def test_tools_foco_enfoca_la_tool_correcta():
     # cobro → solo plan_cobro (+ ask_user/task_done), NUNCA registrar_factura (era el bug)
     foco = tools_foco("cobro")

@@ -211,6 +211,7 @@ _MENU_INTENCION: dict[str, str] = {
     "cobros_pend": "cuánto le deben, quién le debe, o sus cobros pendientes",
     "resumen_financiero": "una visión GLOBAL o VARIAS métricas financieras a la vez",
     "buscar": "buscar correos/emails en su bandeja sobre alguien o algo",
+    "contacto": "averiguar el correo/email/teléfono o los datos de contacto de UNA persona por su nombre (p.ej. «¿cuál es el correo de David?»)",
     "recordatorio": "crear un recordatorio o evento en su agenda",
 }
 _SISTEMA_INTENCION = (
