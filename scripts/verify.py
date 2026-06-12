@@ -67,6 +67,8 @@ _AUDITS = [
     ("cadena de gobierno (tamper-evident)", [PY, "scripts/auditoria_cadena.py"]),
     # La herramienta viva (D-80): ¿el CAMBIO de este diff aplicó la parte mecánica de la brújula?
     ("brújula per-diff (¿aplicada en el cambio?)", [PY, "scripts/auditoria_brujula.py"]),
+    # Check de PROMESA (D-82): ¿el código hace lo PEDIDO? Una promesa no es 🟢 sin probar sus criterios.
+    ("promesas (¿hace lo pedido?)", [PY, "scripts/auditoria_promesas.py"]),
 ]
 
 # Solo en --strict: muta el código a propósito y exige que el arnés se ponga ROJO (dientes).
