@@ -61,6 +61,8 @@ _AUDITS = [
         "fuzz de invariantes (5000 casos/propiedad)",
         [PY, "scripts/fuzz_invariantes.py", "--iters", "5000"],
     ),
+    # Algoritmo del foso LOCAL (NORTE): ningún destino de egress sin declarar (los datos no salen).
+    ("foso LOCAL (egress declarado)", [PY, "scripts/auditoria_foso_local.py"]),
 ]
 
 # Solo en --strict: muta el código a propósito y exige que el arnés se ponga ROJO (dientes).

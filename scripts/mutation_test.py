@@ -138,6 +138,14 @@ MUTACIONES = [
         _pytest("test_", "tests/test_cifra_parser.py"),
         "cifra_parser: invertir el respaldo al céntimo",
     ),
+    # ── Foso LOCAL (NORTE): que el detector de egress sin declarar tiene dientes ──
+    (
+        "scripts/auditoria_foso_local.py",
+        "if clasificar(host) is None:",
+        "if clasificar(host) is not None:",
+        _pytest("test_", "tests/test_foso_local.py"),
+        "foso_local: dejar pasar un egress NO declarado",
+    ),
 ]
 
 

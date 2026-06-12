@@ -914,4 +914,21 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   activado (ajuste del repo, de Fernando) — ya probado con PR #27/#28. El fichero es el mecanismo; el
   enforcement, su ajuste. Honesto.
 - *Reversible:* sí; quitar la línea `*` (o `git revert`) devuelve la llave al subconjunto del gate.
+
+**D-78 — Un algoritmo por norma: el del foso LOCAL del NORTE (`auditoria_foso_local.py`).**
+- *Contexto:* Fernando pregunta si se pueden hacer ALGORITMOS del norte/brújula/gobierno. Sí, de su parte
+  MECÁNICA — y es la propia §GOB-2 («la constitución COMPILA»). Primera demostración del patrón sobre el
+  foso nº1 del NORTE («los datos no salen de la máquina»), que hoy no tenía algoritmo que lo defendiera.
+- *Elegido:* `scripts/auditoria_foso_local.py` — recorre `loombit_operator/` por AST, saca cada host de
+  egress que aparece en una cadena de CÓDIGO (excluye docstrings/comentarios → sin falsos positivos) y exige
+  que esté en una ALLOWLIST declarada (LOCAL · CONECTOR_CONSENTIDO · LECTURA_PUBLICA, cada host con su
+  porqué). Un destino a la nube nuevo sin declarar → gate ROJO. Mismo patrón que `cifra_parser`. Cableado en
+  `verify.py` (auditoría), golden `tests/test_foso_local.py` (9 casos: repo limpio + dientes que cazan un
+  exfil + ignora docstring/placeholder) + 1 mutación con dientes.
+- *Frontera honesta:* decide el PROXY (ningún egress sin declarar), NO la visión. Residuo declarado: caza
+  URLs literales; un destino construido en runtime desde variable/setting necesita un guardia de egress en
+  vivo (v2). Por eso es un algoritmo del foso, no «el foso resuelto».
+- *Recibo:* gate normal VERDE local — 17 hosts declarados, 0 sin declarar, mutación **17 cazadas/0**, 812
+  tests. Falta el check verde de GitHub para «hecho».
+- *Reversible:* sí; `git revert` (aditivo: nueva auditoría + tests).
 *(se irán añadiendo entradas según avance el bloque)*
