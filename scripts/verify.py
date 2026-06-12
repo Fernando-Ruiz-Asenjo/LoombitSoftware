@@ -34,6 +34,7 @@ _MYPY_TARGETS = [
     "loombit_operator/autonomy.py",
     "loombit_operator/decisions_cobros.py",
     "loombit_operator/policy/authority_plane.py",
+    "loombit_operator/agent/cifra_parser.py",
 ]
 
 # black/ruff sobre TODO el repo, EXACTAMENTE como CI (§GOB-2, evita el drift que arregló PR #15).
@@ -60,6 +61,12 @@ _AUDITS = [
         "fuzz de invariantes (5000 casos/propiedad)",
         [PY, "scripts/fuzz_invariantes.py", "--iters", "5000"],
     ),
+    # Algoritmo del foso LOCAL (NORTE): ningún destino de egress sin declarar (los datos no salen).
+    ("foso LOCAL (egress declarado)", [PY, "scripts/auditoria_foso_local.py"]),
+    # Cadena de gobierno (D-79): el registro de recibos no se puede reescribir sin que se note.
+    ("cadena de gobierno (tamper-evident)", [PY, "scripts/auditoria_cadena.py"]),
+    # La herramienta viva (D-80): ¿el CAMBIO de este diff aplicó la parte mecánica de la brújula?
+    ("brújula per-diff (¿aplicada en el cambio?)", [PY, "scripts/auditoria_brujula.py"]),
 ]
 
 # Solo en --strict: muta el código a propósito y exige que el arnés se ponga ROJO (dientes).

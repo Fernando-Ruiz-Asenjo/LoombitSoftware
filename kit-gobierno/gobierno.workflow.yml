@@ -1,0 +1,30 @@
+# Cópialo a `.github/workflows/gobierno.yml` en tu repo.
+# Luego, en Settings → Branches/Rules, márcalo como check OBLIGATORIO ("required") en `main`.
+# A partir de ahí: si el cambio no aplica las normas, el check sale ROJO y el PR NO se funde.
+name: Gobierno — la brújula bloquea
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  brujula:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # historial completo: el check necesita el diff vs main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Calidad básica (ajusta a tu stack)
+        run: |
+          python -m pip install --quiet black ruff pytest
+          python -m black --check .
+          python -m ruff check .
+          python -m pytest -q
+      - name: Brújula — ¿se aplicó en este cambio? (si no, falla)
+        run: python brujula_check.py

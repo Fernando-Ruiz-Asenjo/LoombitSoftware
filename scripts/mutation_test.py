@@ -123,6 +123,45 @@ MUTACIONES = [
         _pytest("test_", "tests/test_decisions_cobros.py"),
         "decisions_cobros: dejar de generar la decisión del cobro",
     ),
+    # ── §14B-1: el guardia POST-LLM de cifras (que el hedge y el respaldo al céntimo tienen dientes) ──
+    (
+        "loombit_operator/agent/cifra_parser.py",
+        "if c.aproximada:",
+        "if not c.aproximada:",
+        _pytest("test_", "tests/test_cifra_parser.py"),
+        "cifra_parser: dejar pasar el '~2.400 €' narrado a ojo",
+    ),
+    (
+        "loombit_operator/agent/cifra_parser.py",
+        "abs(valor - r) <= TOL_CENTIMO",
+        "abs(valor - r) >= TOL_CENTIMO",
+        _pytest("test_", "tests/test_cifra_parser.py"),
+        "cifra_parser: invertir el respaldo al céntimo",
+    ),
+    # ── Foso LOCAL (NORTE): que el detector de egress sin declarar tiene dientes ──
+    (
+        "scripts/auditoria_foso_local.py",
+        "if clasificar(host) is None:",
+        "if clasificar(host) is not None:",
+        _pytest("test_", "tests/test_foso_local.py"),
+        "foso_local: dejar pasar un egress NO declarado",
+    ),
+    # ── Cadena de gobierno (D-79): que el detector de manipulación tiene dientes ──
+    (
+        "scripts/auditoria_cadena.py",
+        'if b.get("prev") != prev_hash:',
+        'if b.get("prev") == prev_hash:',
+        _pytest("test_", "tests/test_cadena.py"),
+        "cadena: no detectar el eslabón roto (prev)",
+    ),
+    # ── La herramienta viva per-diff (D-80): que el check de tamaño tiene dientes ──
+    (
+        "scripts/auditoria_brujula.py",
+        "if n > LIMITE_LINEAS",
+        "if n < LIMITE_LINEAS",
+        _pytest("test_", "tests/test_auditoria_brujula.py"),
+        "brujula: dejar pasar un fichero > 400 líneas",
+    ),
 ]
 
 

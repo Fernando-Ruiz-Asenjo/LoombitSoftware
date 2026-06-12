@@ -1,12 +1,22 @@
-# CODEOWNERS — §GOB-3 (auditor ≠ constructor, D-71).
+# CODEOWNERS — §GOB-3 (auditor ≠ constructor, D-71 · ampliado D-77).
 #
-# La pieza irreducible del gobierno: el agente que ESCRIBE el gate no puede ser quien lo APRUEBA. Aquí se
-# nombra a Fernando como dueño de los ficheros del GATE y de la CONSTITUCIÓN: tocar cualquiera de ellos
-# exige su review. Así, debilitar el gate o cambiar las normas deja de poder colarse en un auto-merge verde.
+# La pieza irreducible del gobierno: el agente que ESCRIBE el código no puede ser quien lo APRUEBA.
+#
+# DECISIÓN DE FERNANDO (D-77): la llave cubre TODO el repo, no solo el gate. Mientras el gate de CI no
+# garantice por sí solo «cero mentiras» (cobertura < 100%, mutación finita, normas no mecánicas), NINGÚN
+# cambio llega a `main` sin su review como dueño. El auto-merge en verde solo se completa CON su Approve.
+# Es una elección consciente que prioriza la garantía sobre la fricción (y sobre la norma PRODUCTO «no le
+# pidas que revise»): él manda. Reversible: estrechar la cobertura de esta lista cuando el gate esté al 100%.
 #
 # ENFORCEMENT: esto solo es un GATE DURO si la protección de `main` tiene activado
 # "Require review from Code Owners" (ajuste del repo, propiedad de Fernando). Sin eso, es una señal
 # (se solicita su review) pero no bloquea. Honesto: mecanismo presente; enforcement = un ajuste suyo.
+
+# TODO el repositorio: cada PR pide la review de la cuenta auditora independiente (D-77).
+*                                       @construiaapp
+
+# ── Subconjunto del GATE y la CONSTITUCIÓN (D-71) — ya cubiertos por `*`, listados para dejar a la vista
+#    cuáles son las piezas críticas que jamás deben fundirse sin auditor independiente. ────────────────
 
 # La puerta de calidad y sus piezas deterministas
 /scripts/verify.py                      @construiaapp

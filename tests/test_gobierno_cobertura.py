@@ -128,8 +128,11 @@ MANIFIESTO: dict[str, tuple[str, str]] = {
         "Concurrencia multiagente (worktree, no tocar WIP ajeno): disciplina de proceso — no unit-testeable.",
     ),
     "§14B": (
-        PENDIENTE,
-        "Gobierno dimensionado al 14B (parser POST-LLM de cifras, goldens de presión): sin construir.",
+        PARCIAL,
+        "§14B-1 ✅ guardia POST-LLM `agent/cifra_parser.py`: bloquea todo € narrado que no salga de una "
+        "tool del run (hedge «~2.400 €» descalificado, respaldo al céntimo), golden "
+        "`tests/test_cifra_parser.py` + mutación con dientes. §14B-3 (presión conversacional) cubierto en "
+        "ese golden. Residuo declarado: §14B-2 (hook PostCompact que reinyecta la brújula) sin construir.",
     ),
     "§EST": (
         RECIBO,
@@ -172,6 +175,8 @@ _ARNESES = [
     "tests/test_brujula_cumplimiento.py",
     "loombit_operator/conducta.py",
     "tests/test_conducta.py",
+    "loombit_operator/agent/cifra_parser.py",
+    "tests/test_cifra_parser.py",
     ".github/CODEOWNERS",
     "scripts/verify.py",
     "scripts/mutation_test.py",
