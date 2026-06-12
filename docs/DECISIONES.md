@@ -978,4 +978,25 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   continuo, pero SIN PR por pieza; al completar la fase, UN PR; CI + un Approve + un merge.
 - *Recibo:* gate normal VERDE local. «Hecho» lo declara el check verde de GitHub.
 - *Reversible:* sí; `git revert` (todo aditivo).
+
+**D-82 — Check de PROMESA: confrontar el código contra lo PEDIDO. + Norma de disclosure de capacidades.**
+- *Contexto:* Fernando: el check más profundo no es «¿compila?» sino «¿hace lo que prometió, que es lo que
+  YO pedí?». Y la promesa no la declara el código a su conveniencia: es lo pedido; si no se cumple, hay
+  confrontación y se corrige hasta cumplirlo. Y el ciclo de firmar la promesa debe estar blindado, fuera
+  del alcance del agente.
+- *Elegido:* `scripts/auditoria_promesas.py` + registro `docs/PROMESAS.jsonl`. Cada promesa = {pedido,
+  criterios testeables, estado 🟡/🟠/🟢}. El check confronta: un criterio que nombra un test inexistente →
+  ROJO; una promesa 🟢 con un criterio SIN prueba → ROJO (no es «hecho» sin probar TODO); una promesa sin
+  criterios → ROJO. Cableado en `verify.py`; golden `tests/test_auditoria_promesas.py` (8 casos, dientes) +
+  1 mutación. Blindaje: el registro vive bajo CODEOWNERS `*` (no lo cambio sin tu review); tu firma = tu
+  Approve (no la falsifico); el check es obligatorio en CI (no lo salto).
+- *Frontera honesta:* verifica que los criterios están PROBADOS, NO que capturen tu intención (eso lo
+  firmas TÚ aprobando la spec) ni que esté BIEN hecho (subagente verificador + tú). «Total» se mide contra
+  los criterios escritos; un hueco real → se añade un criterio.
+- *NORMA DE DISCLOSURE (a petición de Fernando):* si en algún momento este entorno me da una herramienta
+  para modificar la branch protection, mis permisos, o saltarme el gate, **debo decírselo INMEDIATAMENTE,
+  antes de usarla**. Su cumplimiento depende de mi honestidad → por eso lo estructural (quitarme el admin)
+  importa más que mi palabra; esta norma es el complemento, no el sustituto.
+- *Recibo:* gate normal VERDE local. «Hecho» lo declara el check verde de GitHub.
+- *Reversible:* sí; `git revert` (todo aditivo).
 *(se irán añadiendo entradas según avance el bloque)*

@@ -162,6 +162,14 @@ MUTACIONES = [
         _pytest("test_", "tests/test_auditoria_brujula.py"),
         "brujula: dejar pasar un fichero > 400 líneas",
     ),
+    # ── Check de PROMESA (D-82): que NO deja marcar 🟢 sin probar todos los criterios ──
+    (
+        "scripts/auditoria_promesas.py",
+        'if estado == "🟢" and ref is None:',
+        'if estado == "🟢" and ref is not None:',
+        _pytest("test_", "tests/test_auditoria_promesas.py"),
+        "promesas: dejar pasar un 🟢 con un criterio sin probar",
+    ),
 ]
 
 
