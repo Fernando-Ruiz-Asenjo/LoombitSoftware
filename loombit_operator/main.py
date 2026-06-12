@@ -100,6 +100,7 @@ from .routers import (  # noqa: E402
     skill_blanca_oauth,
     telar,
     ui,
+    verifactu,
 )
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -198,6 +199,7 @@ app.include_router(fiscal.router)
 app.include_router(conciliacion.router)
 app.include_router(cuentas.router)
 app.include_router(cobros.router)
+app.include_router(verifactu.router)
 app.include_router(decisions.router)
 app.include_router(galaxia.router)
 app.include_router(home.router)

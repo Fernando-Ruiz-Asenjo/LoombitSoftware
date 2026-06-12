@@ -202,6 +202,14 @@ MUTACIONES = [
         _pytest("test_", "tests/test_verifactu.py"),
         "verifactu: no detectar un registro alterado (huella)",
     ),
+    # ── Libro VeriFactu persistente (D-89): que el ENCADENAMIENTO al último guardado tiene dientes ──
+    (
+        "loombit_operator/skill_d_fiscal/verifactu_store.py",
+        "return self._items[-1].huella if self._items else GENESIS",
+        "return GENESIS",
+        _pytest("test_", "tests/test_verifactu_store.py"),
+        "verifactu_store: no encadenar (cada alta arranca en GENESIS)",
+    ),
 ]
 
 
