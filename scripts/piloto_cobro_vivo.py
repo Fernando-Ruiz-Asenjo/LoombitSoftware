@@ -19,6 +19,13 @@ import sys
 import urllib.error
 import urllib.request
 from datetime import date, timedelta
+from typing import NoReturn
+
+
+def _fatal_url_error(url: str, reason: object) -> NoReturn:
+    """Loombit no responde: imprime la causa y termina (esta rama nunca retorna)."""
+    print(f"\n❌ No pude hablar con Loombit en {url}\n   ¿Está lanzado? ({reason})")
+    sys.exit(2)
 
 
 def _req(method: str, url: str, body: dict | None = None) -> tuple[int, dict]:
@@ -36,8 +43,7 @@ def _req(method: str, url: str, body: dict | None = None) -> tuple[int, dict]:
         except json.JSONDecodeError:
             return e.code, {"raw": detail}
     except urllib.error.URLError as e:
-        print(f"\n❌ No pude hablar con Loombit en {url}\n   ¿Está lanzado? ({e.reason})")
-        sys.exit(2)
+        _fatal_url_error(url, e.reason)
 
 
 def main(argv: list[str] | None = None) -> int:
