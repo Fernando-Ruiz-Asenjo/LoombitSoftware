@@ -178,6 +178,14 @@ MUTACIONES = [
         _pytest("test_", "tests/test_intake_batch.py"),
         "intake: romper la idempotencia (re-procesa duplicados)",
     ),
+    # ── El radar vive (D-85): que exige FUENTE en cada señal (no humo) ──
+    (
+        "scripts/auditoria_radar.py",
+        'fuente.startswith("http")',
+        'fuente.startswith("")',
+        _pytest("test_", "tests/test_auditoria_radar.py"),
+        "radar: dejar pasar una señal sin fuente real",
+    ),
 ]
 
 

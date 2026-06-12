@@ -69,6 +69,8 @@ _AUDITS = [
     ("brújula per-diff (¿aplicada en el cambio?)", [PY, "scripts/auditoria_brujula.py"]),
     # Check de PROMESA (D-82): ¿el código hace lo PEDIDO? Una promesa no es 🟢 sin probar sus criterios.
     ("promesas (¿hace lo pedido?)", [PY, "scripts/auditoria_promesas.py"]),
+    # El RADAR vive (D-85, §INNOVACIÓN): si no hay radar (señales reales + propuestas), no pasa.
+    ("radar (¿vive? si no hay radar, no pasa)", [PY, "scripts/auditoria_radar.py"]),
 ]
 
 # Solo en --strict: muta el código a propósito y exige que el arnés se ponga ROJO (dientes).

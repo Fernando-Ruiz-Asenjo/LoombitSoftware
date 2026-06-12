@@ -88,10 +88,11 @@ MANIFIESTO: dict[str, tuple[str, str]] = {
         "`tests/test_brujula_cumplimiento.py`. «Rama por cambio / verifica en vivo» = proceso/humano.",
     ),
     "INNOVACIÓN": (
-        RECIBO,
-        "→ recibo de conducta (`conducta.py`): tipo `innovacion` exige QUÉ/POR QUÉ/fase/CÓMO-se-prueba + "
-        "`valor` >= suelo (rechaza bajo valor); tipo `veredicto` mecaniza D-58 (veredicto fuerte exige "
-        "lectura íntegra). Validado en `tests/test_conducta.py` + recibos en `docs/RECIBOS_CONDUCTA.jsonl`.",
+        PARCIAL,
+        "El RADAR VIVE ✅ AUTOMÁTICO (D-85): `scripts/auditoria_radar.py` exige `docs/RADAR.jsonl` con "
+        "señales reales (fuente URL) + propuesta accionable — «si no hay radar, no pasa» (golden "
+        "`tests/test_auditoria_radar.py` + mutación). El resto (innovación/veredicto) → recibo de conducta "
+        "(`conducta.py`, D-58/D-70), validado en `tests/test_conducta.py`.",
     ),
     # ── Parte II · Gobierno ───────────────────────────────────────────────────
     "§GOB-1": (
@@ -183,6 +184,8 @@ _ARNESES = [
     "scripts/auditoria_cobro.py",
     "scripts/fuzz_invariantes.py",
     "loombit_operator/policy/authority_plane.py",
+    "scripts/auditoria_radar.py",
+    "docs/RADAR.jsonl",
 ]
 
 

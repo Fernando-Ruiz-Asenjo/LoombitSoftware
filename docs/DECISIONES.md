@@ -1030,4 +1030,23 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   (LD-1 / gate de efecto) queda FUERA de esta promesa. Estado **🟡** (e2e en tests; piloto en vivo aparte).
 - *Recibo:* gate normal VERDE local. Promesa seguimiento-cobros registrada y su check verde.
 - *Reversible:* sí; `git revert` (aditivo).
+
+**D-85 — El RADAR vive, verificable en el muro: «si no hay radar, no pasa» (§INNOVACIÓN).**
+- *Contexto:* Fernando: el radar (norma INNOVACIÓN: tendencias + competidores reales → propuestas) estaba
+  APAGADO toda la sesión, y era norma sin mecanismo (decoración). Pidió aplicarlo CON CÓDIGO, verificable en
+  GitHub, e integrado en lo ya estipulado: «si no hay radar, no pasa».
+- *Elegido:* `scripts/auditoria_radar.py` + registro `docs/RADAR.jsonl` (señales con fecha/tema/FUENTE
+  URL/evidencia dura|blanda/hallazgo/PROPUESTA). El check se pone ROJO si NO hay radar (vacío/ausente/<3
+  señales) o si una señal es HUMO (sin fuente o sin propuesta). No juzga si la idea es buena; exige que sea
+  REAL (fuente) y ACCIONABLE (propuesta). Cableado en `verify.py`; golden `tests/test_auditoria_radar.py`
+  (8 casos, dientes) + 1 mutación. Integrado en el manifiesto (`test_gobierno_cobertura.py`): INNOVACIÓN
+  pasa de RECIBO a PARCIAL (radar AUTOMÁTICO + conducta RECIBO).
+- *Sembrado con el radar REAL de hoy:* 6 señales con fuente sobre el mercado del compañero de trabajo IA
+  (grandes cloud-horizontales, verticales fiscales cloud, hueco local-first, AutonoTools castrado, computer-
+  use inmaduro, VeriFactu como gate de entrada). Conclusión del radar: AFILAR la cuña (VeriFactu autónomo),
+  no ensancharla — fundamenta la decisión de cuña pendiente.
+- *Frontera honesta:* el check exige que el radar EXISTA y sea real; la FRESCURA (que se actualice) la
+  lleva una routine/humano (residuo declarado) — un check por fecha en CI sería frágil.
+- *Recibo:* gate normal VERDE local. «Hecho» lo declara el check verde de GitHub.
+- *Reversible:* sí; `git revert` (aditivo).
 *(se irán añadiendo entradas según avance el bloque)*
