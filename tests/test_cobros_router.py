@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import functools
 from datetime import date, timedelta
+from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
@@ -61,3 +62,40 @@ def test_aprobar_envia_un_recordatorio_al_outbox(store_aislado):
 
 def test_aprobar_cuenta_inexistente_es_404(store_aislado):
     assert client.post("/cobros/aprobar", json={"cuenta_id": "noexiste"}).status_code == 404
+
+
+# ── via='gmail': envío real, pero SIEMPRE al destino seguro del piloto (§SEG-4) ──
+
+
+def test_aprobar_via_gmail_va_al_destino_seguro(store_aislado, monkeypatch):
+    cuenta, _outbox = store_aislado
+    monkeypatch.setattr(
+        cobros_router,
+        "get_settings",
+        lambda: SimpleNamespace(cobros_piloto_destino_seguro="admin@construiaapp.com"),
+    )
+    capturado: dict = {}
+
+    def fake_send(*, to, subject, body_text):
+        capturado.update(to=to, subject=subject, body=body_text)
+        return {"message_id": "real123", "dod": "🟢"}
+
+    monkeypatch.setattr("loombit_operator.skill_blanca_gmail.send_email", fake_send)
+    r = client.post("/cobros/aprobar", json={"cuenta_id": cuenta.id, "via": "gmail"})
+    assert r.status_code == 200
+    recibo = r.json()["recibo"]
+    assert recibo["via"] == "gmail" and recibo["destino"] == "admin@construiaapp.com"
+    # §SEG-4: el correo va a TU buzón, NUNCA al cliente (aunque la decisión sea de "Acme SL").
+    assert capturado["to"] == "admin@construiaapp.com"
+    assert "reclamable" in capturado["body"].lower()  # cuerpo por código, no del LLM
+
+
+def test_via_gmail_sin_destino_seguro_es_422(store_aislado, monkeypatch):
+    cuenta, _ = store_aislado
+    monkeypatch.setattr(
+        cobros_router,
+        "get_settings",
+        lambda: SimpleNamespace(cobros_piloto_destino_seguro=""),
+    )
+    r = client.post("/cobros/aprobar", json={"cuenta_id": cuenta.id, "via": "gmail"})
+    assert r.status_code == 422 and "destino seguro" in r.json()["detail"].lower()

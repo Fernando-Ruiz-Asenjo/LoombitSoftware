@@ -121,6 +121,12 @@ class AppSettings(BaseSettings):
     ] = "disabled"
     skill_blanca_connector_outbox_path: Path = Path("runtime/local/skill_blanca_connector_outbox")
 
+    # ── Cobros — piloto de envío real (§SEG-4) ────────────────────────────────
+    # Destino SEGURO del piloto: durante el piloto TODO recordatorio enviado por Gmail va aquí (a tu
+    # buzón), NUNCA al cliente real. Vacío = el envío por Gmail está cerrado (solo outbox). Se pone en
+    # `.env` (no se hardcodea cliente en el núcleo blanco): LOOMBIT_OPERATOR_COBROS_PILOTO_DESTINO_SEGURO=...
+    cobros_piloto_destino_seguro: str = ""
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> AppSettings:

@@ -21,7 +21,7 @@ CI = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
 PYPROJECT = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
 
 # Suelos (RATCHET: solo se suben con un cambio deliberado y revisable; bajarlos pone este test en rojo).
-MIN_TESTS = 885  # funciones `def test_` en tests/ (hoy ~888)
+MIN_TESTS = 888  # funciones `def test_` en tests/ (hoy ~890)
 MIN_FUZZ_ITERS = 2000  # las auditorías de fuzz no pueden quedar en un puñado de casos
 MIN_COV_FAIL_UNDER = 72  # el suelo de cobertura no puede desaparecer ni caer por debajo de esto
 
