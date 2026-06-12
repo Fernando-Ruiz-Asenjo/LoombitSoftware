@@ -642,6 +642,8 @@ class AgentLoop:
                 result = bloque + "\n\n" + result
             else:
                 result = bloque
+        # Envelope: quita volcados de JSON de tools de LECTURA que el 14B pega en su narración.
+        result = _limpiar_volcado_lectura(result)
         # Aviso determinista en preguntas fiscales reguladas (getattr: los tests pasan run sin .task).
         return _con_aviso_regulado(getattr(run, "task", ""), result)
 
@@ -1355,6 +1357,60 @@ def _narracion_redundante(texto_llm: str, bloque_autoritativo: str) -> bool:
         return False
     imp = _importes_eur(texto_llm)
     return bool(imp) and not (imp - _importes_eur(bloque_autoritativo))
+
+
+# El 14B a veces PEGA el JSON crudo de una tool de LECTURA (gmail_search/contacts_find) dentro de su
+# narración final en lugar de contarlo en humano (incumple «cognición, no extracción»; visto en vivo
+# 2026-06-12). Esta guarda quita esos volcados —objetos JSON BALANCEADOS con la firma de una lectura—
+# SIN tocar los bloques autoritativos (cobro/303/factura, que no llevan estas claves). Determinista.
+_FIRMA_LECTURA = (
+    '"messages"',
+    '"contacts"',
+    '"estado": "resuelto"',
+    '"estado":"resuelto"',
+    '"snippet"',
+)
+
+
+def _limpiar_volcado_lectura(texto: str) -> str:
+    """Recorta del texto los objetos JSON balanceados que parezcan el volcado crudo de una tool de
+    lectura (`"ok"` + alguna firma). Conserva la prosa y cualquier otro `{...}` (p.ej. financiero).
+    """
+    if not texto or "{" not in texto:
+        return texto
+    out: list[str] = []
+    i, n = 0, len(texto)
+    while i < n:
+        if texto[i] != "{":
+            out.append(texto[i])
+            i += 1
+            continue
+        depth, j, in_str, esc = 0, i, False, False
+        while j < n:
+            c = texto[j]
+            if in_str:
+                if esc:
+                    esc = False
+                elif c == "\\":
+                    esc = True
+                elif c == '"':
+                    in_str = False
+            elif c == '"':
+                in_str = True
+            elif c == "{":
+                depth += 1
+            elif c == "}":
+                depth -= 1
+                if depth == 0:
+                    j += 1
+                    break
+            j += 1
+        blob = texto[i:j]
+        if '"ok"' not in blob or not any(f in blob for f in _FIRMA_LECTURA):
+            out.append(blob)  # no es un volcado de lectura → se conserva (p.ej. recibo financiero)
+        i = j
+    limpio = re.sub(r"[ \t]+\n", "\n", re.sub(r"\n{3,}", "\n\n", "".join(out))).strip()
+    return limpio or texto  # si SOLO era el volcado, no dejamos vacío (caso raro)
 
 
 def _consecutive_tool_errors(run: "AgentRun", tool_name: str) -> int:

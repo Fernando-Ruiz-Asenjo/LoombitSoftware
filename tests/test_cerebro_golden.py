@@ -1017,6 +1017,50 @@ def test_intencion_consecuente_lecturas_y_cortesias_no():
     assert intencion_consecuente("manda un correo a Ana") is None
 
 
+def test_intencion_contacto_fuerza_contacts_find():
+    # «el correo/email/teléfono de <persona>» → intención 'contacto' (resolver con contacts_find,
+    # NUNCA pedir el dato al usuario). Bug en vivo 2026-06-12: «¿cuál es el correo de David?» daba
+    # steps=[] y el 14B pedía la dirección. RC·Cerebro.
+    assert intencion_consecuente("¿cuál es el correo de David Valentín?") == "contacto"
+    assert intencion_consecuente("dame el email de Ana") == "contacto"
+    assert intencion_consecuente("¿tienes el teléfono de Pepe?") == "contacto"
+    assert intencion_consecuente("¿cómo contacto con María?") == "contacto"
+    # fuerza SOLO contacts_find (sin escape a ask_user)
+    assert tools_foco("contacto") == {"contacts_find"}
+    # NO roba otras intenciones (regresión):
+    assert (
+        intencion_consecuente("busca en mi correo los mensajes de David") == "buscar"
+    )  # verbo → buscar
+    assert intencion_consecuente("manda un correo a Ana") is None  # «correo A» = envío, no lookup
+    assert intencion_consecuente("¿cuánto me debe Acme?") == "cobros_pend"  # financiero intacto
+
+
+def test_envelope_recorta_volcado_json_de_lectura():
+    # El 14B a veces PEGA el JSON crudo de gmail_search/contacts_find en su narración final → la guarda
+    # «envelope» lo recorta y deja la prosa, sin tocar bloques financieros. Bug en vivo 2026-06-12.
+    from loombit_operator.agent.loop import _limpiar_volcado_lectura
+
+    leak = (
+        "Aquí tienes tus correos importantes: "
+        '{"ok": true, "count": 2, "messages": [{"id": "a1", "subject": "Hola", "snippet": "x"}]} '
+        "¿Quieres que abra alguno?"
+    )
+    out = _limpiar_volcado_lectura(leak)
+    assert '"messages"' not in out and '"ok": true' not in out
+    assert "Aquí tienes tus correos importantes:" in out and "¿Quieres que abra alguno?" in out
+
+    contactos = (
+        'El correo: {"ok": true, "estado": "resuelto", '
+        '"mejor": {"email": "a@b.c"}, "contacts": [{"email": "a@b.c"}]}.'
+    )
+    out_c = _limpiar_volcado_lectura(contactos)
+    assert '"contacts"' not in out_c and '"estado"' not in out_c and "El correo:" in out_c
+
+    # NO toca un bloque con llaves SIN la firma de lectura (p.ej. un recibo financiero):
+    fin = 'Plan: {"principal": 1000.0, "intereses": 20.0, "total": 1020.0}'
+    assert _limpiar_volcado_lectura(fin) == fin
+
+
 def test_tools_foco_enfoca_la_tool_correcta():
     # cobro → solo plan_cobro (+ ask_user/task_done), NUNCA registrar_factura (era el bug)
     foco = tools_foco("cobro")

@@ -113,6 +113,16 @@ _BUSCAR_CORREO = re.compile(
     r"\b(busca\w*|b[uú]scame|encuentra|revisa|mira)\b[^\n]{0,25}\b"
     r"(correo|correos|email|e-mail|mail|bandeja|mensaje\w*|inbox)\b"
 )
+# «¿cuál es el correo/email/teléfono de <persona>?», «dame el contacto de X», «¿cómo contacto con X?»
+# = AVERIGUAR los datos de contacto de una persona por su nombre → contacts_find. Distinto de
+# _BUSCAR_CORREO (lleva verbo de búsqueda: «busca correos de…») y del ENVÍO («un correo A Ana»): aquí
+# es «… DE <nombre>». Antes no existía esta intención, así que «¿cuál es el correo de David?» no forzaba
+# contacts_find y el 14B acababa PIDIENDO el dato al usuario (viola «acierta, no preguntes»). RC·Cerebro.
+_CONTACTO = re.compile(
+    r"\b(correo|email|e-mail|mail|tel[eé]fono|m[oó]vil|contacto|direcci[oó]n)\b"
+    r"[^.\n]{0,18}\bde\b\s+[a-záéíóúñ]"
+    r"|\bc[oó]mo\s+(?:puedo\s+)?contact\w+"
+)
 # «recuérdame [hacer X] [cuándo]» = crear un EVENTO de recordatorio, NO registrar/ejecutar la acción.
 # El 14B lo confundía con registrar un pago/factura y pedía NIF; aquí forzamos calendar_create.
 # NO incluimos «apúntame que …»: es AMBIGUO («apúntame que el cliente prefiere transferencia» es un
@@ -223,6 +233,7 @@ _TOOLS_POR_INTENCION: dict[str, set[str]] = {
     "cobros_pend": {"cobros_pendientes"},
     "resumen_financiero": {"resumen_financiero"},
     "comparativo": {"resumen_comparativo"},
+    "contacto": {"contacts_find"},
 }
 _SIEMPRE = {"ask_user", "task_done"}
 
@@ -275,6 +286,10 @@ def intencion_consecuente(task: str) -> str | None:
         return "cobros_pend"
     if _BUSCAR_CORREO.search(t):
         return "buscar"
+    # «el correo/email/teléfono/contacto de <persona>» → averiguar su contacto (contacts_find), NO
+    # pedírselo al usuario. Va DESPUÉS de buscar (que lleva verbo) y de cobros_pend (financiero).
+    if _CONTACTO.search(t):
+        return "contacto"
     tiene_dato = bool(_TIENE_DATO.search(t))
     # La reclamación ya no procede (ya cobrada / negada / futura) → no se fuerza ninguna ruta de cobro;
     # que lo gestione el LLM (p.ej. marcar la factura cobrada), no una reclamación contra quien pagó.
@@ -321,6 +336,10 @@ def tools_foco(intencion: str | None) -> set[str]:
         # escaparse a ask_user («¿qué importe?») ni a buscar en el correo. La tool ya degrada con
         # gracia si no hay coincidencia (lista a quién se le debe).
         return {"reclamar_cobro_cliente"}
+    if intencion == "contacto":
+        # SOLO contacts_find: que RESUELVA el contacto por nombre, sin escaparse a ask_user (pedirle
+        # el dato al usuario). Si no lo encuentra, la tool degrada con gracia y el agente lo narra.
+        return {"contacts_find"}
     if intencion == "resumen_financiero":
         # un solo tool que COMPONE todas las métricas (facturado+gastos+beneficio+303+me-deben).
         return {"resumen_financiero"}
