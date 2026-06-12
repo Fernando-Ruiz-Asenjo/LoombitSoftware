@@ -1049,4 +1049,23 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   lleva una routine/humano (residuo declarado) — un check por fecha en CI sería frágil.
 - *Recibo:* gate normal VERDE local. «Hecho» lo declara el check verde de GitHub.
 - *Reversible:* sí; `git revert` (aditivo).
+
+**D-86 — Redefinición de la CUÑA (cambio constitucional §META-3): usuario estrecho, actividades anchas.**
+- *Contexto:* Fernando quiso ensanchar la cuña hacia «compañero de oficina general». Se aplicó la brújula
+  (§NORTE anti-dispersión desaconseja ensanchar) y se encendió y aplicó el RADAR (D-85): el radar **recomienda
+  AFILAR a VeriFactu autónomo, no ensanchar** (competir con M365 Copilot en cloud horizontal = morir).
+- *Decisión de Fernando (AskUserQuestion):* **ensanchar a oficina general SIN perder VeriFactu, ni autónomos,
+  ni PYME.** Síntesis coherente con la brújula: **el USUARIO de la cuña sigue estrecho** (autónomo/PYME
+  español; foso local + español + VeriFactu) → no se compite en «cualquier puesto»; **las ACTIVIDADES se
+  ensanchan** del ancla fiscal/cobros al trabajo de oficina general de ESE mismo usuario (correo, agenda,
+  documentos, datos, seguimientos). VeriFactu queda de cabeza de playa.
+- *RECIBO honesto (no se oculta):* el **radar (D-85) DESACONSEJÓ ensanchar**; Fernando lo amplía igualmente,
+  acotando la dispersión a «actividades, no usuarios». Queda escrito que la recomendación del radar fue
+  contraria, y por qué la dispersión está **acotada** (el usuario no se ensancha). Criterio de cierre: el
+  ancla (VeriFactu + cobros) al 100% antes de la cuña 2.
+- *Mecanismo:* §META-3 — edita `BRUJULA.md` §NORTE + `CLAUDE.md` (NORTE + «Cuña de mercado activa»), esta
+  entrada en DECISIONES, y el OK de Fernando (su Approve del PR = la firma).
+- *Recibo:* gate normal VERDE local (brújula per-diff exige esta entrada al tocar la constitución; sync
+  CLAUDE↔norma intacto). «Hecho» lo declara el check verde de GitHub.
+- *Reversible:* sí; `git revert` devuelve la cuña al «operador administrativo» anterior.
 *(se irán añadiendo entradas según avance el bloque)*
