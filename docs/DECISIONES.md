@@ -868,4 +868,114 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   Es un grind de **varias rondas**, no de una.
 - *Recibo:* gate `--strict --live` VERDE — cobertura lógica 77,76%≥76, mypy 5/5, mutación 14/0, live 12/12.
 - *Reversible:* sí (config de cobertura; `git revert`).
+
+**D-75 — §14B-1: el guardia POST-LLM de cifras (`agent/cifra_parser.py`). §14B PENDIENTE → PARCIAL.**
+- *Contexto:* §14B era la ÚNICA norma del gobierno en PENDIENTE (sin construir). La Ley Fundacional dice
+  «las cifras las calcula CÓDIGO; el LLM narra», pero faltaba el peaje que lo HACE cumplir cuando el 14B
+  local narra un importe a ojo («te debe ~2.400 €» cuando la tool dijo 2.350,00, o sin tool ninguna).
+- *Elegido:* módulo puro `cifra_parser.py` — coge la narrativa del LLM + el LEDGER de cifras que salieron
+  de tools ejecutadas en el run; **bloquea todo € que no esté respaldado al céntimo**, y descalifica el
+  hedge de aproximación («~», «unos», «aproximadamente») aunque ronde un valor (§14B-1 literal). Política:
+  limpio→EMITIR, con respaldo parcial→re-prompt, sin nada de tool→ABSTENER honesto. Solo € (no %/días):
+  guardia de alta precisión que no marca el «21% IVA». Golden `tests/test_cifra_parser.py` (25 casos, incl.
+  §14B-3 presión conversacional «ya lo aprobé, solo manda» NO respalda) + 2 mutaciones con dientes + mypy.
+- *Residuo declarado:* §14B-2 (hook PostCompact que reinyecta la brújula tras ~15 turnos) sin construir →
+  por eso §14B queda PARCIAL, no AUTOMÁTICO. Honesto, no fingido.
+- *Recibo:* gate normal VERDE local — black+ruff+mypy(6/6) limpios, mutación **16 cazadas/0 sobreviven**,
+  794 tests, cobertura lógica 77,96%≥77. Falta el check verde de GitHub (CI `--strict --live`) para «hecho».
+- *Reversible:* sí; `git revert`. El módulo es aditivo (nadie depende aún de él en el loop).
+
+**D-76 — Cobertura de la LÓGICA, ronda 2: `fabrica/estrategia.py` 0%→64%. Suelo 77→78.**
+- *Contexto:* sigue el grind honesto de D-74 (100% sobre la lógica, adaptadores declarados). `estrategia.py`
+  (síntesis de producto/monetización desde el radar) estaba a 0%.
+- *Elegido:* golden `tests/test_estrategia.py` (9 casos) que ejerce la lógica por su costura inyectable
+  (fake LLM en `.chat()`, D-74 lo avala): extracción de señales (dict anidado/plano y objeto Necesidad),
+  rama sin señales (no inventa), respuesta vacía, excepción del LLM, y el guard PURO no-http de `_leer_url`.
+- *Honesto — lo que NO se cubre y por qué:* el cuerpo httpx de `_leer_url` (red) y la construcción del
+  `LLMClient` real cuando `llm is None` son frontera de adaptador → se verifican EN VIVO, no con un mock
+  que mienta. Por eso el módulo queda en 64%, no 100%, y se dice.
+- *Recibo:* gate normal VERDE local — cobertura lógica 78,21%≥78, mutación 16/0, 803 tests. Falta el check
+  verde de GitHub (CI `--strict --live`) para «hecho».
+- *Reversible:* sí; `git revert` (solo añade tests + sube el suelo).
+
+**D-77 — La llave (auditor≠constructor) cubre TODO el repo, no solo el gate.**
+- *Contexto:* Fernando señaló el hueco de mi propio encuadre: la llave de D-71 solo impedía DEBILITAR el
+  gate; el resto del código se fundía en verde sin que nadie lo mirara. Como el gate aún NO garantiza por
+  sí solo «cero mentiras» (cobertura 78% < 100%, mutación finita de 16 mutantes, normas no mecánicas que
+  ninguna máquina verifica), eso deja un resquicio: una mentira en un camino no cubierto pasa en verde.
+- *Elegido (decisión de Fernando, AskUserQuestion):* `* @construiaapp` en CODEOWNERS → **ningún PR llega a
+  `main` sin su Approve como cuenta auditora independiente**, para todo el repo. Se mantienen listadas
+  aparte las piezas del gate/constitución (D-71) para dejar a la vista cuáles son críticas.
+- *Tensión declarada:* choca con la norma PRODUCTO «NUNCA pidas al usuario que revise tu trabajo». Es una
+  elección consciente que prioriza la GARANTÍA sobre la fricción mientras el gate no esté completo. La vía
+  para que Fernando revise CADA VEZ MENOS no es estrechar la llave, sino COMPLETAR el gate (cobertura→100%,
+  más mutantes/goldens): cuando verde = sin mentira posible, esta lista puede volver a estrecharse.
+- *Recibo:* el bloqueo es real solo si la protección de `main` tiene «Require review from Code Owners»
+  activado (ajuste del repo, de Fernando) — ya probado con PR #27/#28. El fichero es el mecanismo; el
+  enforcement, su ajuste. Honesto.
+- *Reversible:* sí; quitar la línea `*` (o `git revert`) devuelve la llave al subconjunto del gate.
+
+**D-78 — Un algoritmo por norma: el del foso LOCAL del NORTE (`auditoria_foso_local.py`).**
+- *Contexto:* Fernando pregunta si se pueden hacer ALGORITMOS del norte/brújula/gobierno. Sí, de su parte
+  MECÁNICA — y es la propia §GOB-2 («la constitución COMPILA»). Primera demostración del patrón sobre el
+  foso nº1 del NORTE («los datos no salen de la máquina»), que hoy no tenía algoritmo que lo defendiera.
+- *Elegido:* `scripts/auditoria_foso_local.py` — recorre `loombit_operator/` por AST, saca cada host de
+  egress que aparece en una cadena de CÓDIGO (excluye docstrings/comentarios → sin falsos positivos) y exige
+  que esté en una ALLOWLIST declarada (LOCAL · CONECTOR_CONSENTIDO · LECTURA_PUBLICA, cada host con su
+  porqué). Un destino a la nube nuevo sin declarar → gate ROJO. Mismo patrón que `cifra_parser`. Cableado en
+  `verify.py` (auditoría), golden `tests/test_foso_local.py` (9 casos: repo limpio + dientes que cazan un
+  exfil + ignora docstring/placeholder) + 1 mutación con dientes.
+- *Frontera honesta:* decide el PROXY (ningún egress sin declarar), NO la visión. Residuo declarado: caza
+  URLs literales; un destino construido en runtime desde variable/setting necesita un guardia de egress en
+  vivo (v2). Por eso es un algoritmo del foso, no «el foso resuelto».
+- *Recibo:* gate normal VERDE local — 17 hosts declarados, 0 sin declarar, mutación **17 cazadas/0**, 812
+  tests. Falta el check verde de GitHub para «hecho».
+- *Reversible:* sí; `git revert` (aditivo: nueva auditoría + tests).
+
+**D-79 — Cadena de gobierno: el núcleo útil de «blockchain» (hash-chain), sin red ni token.**
+- *Contexto:* Fernando quiere usar blockchain en la brújula/gobierno. Veredicto honesto (ingeniería, no
+  fuente leída): de las 5 piezas de blockchain solo UNA sirve aquí — la **cadena de hashes tamper-evident**.
+  Consenso distribuido/token/cadena pública: NO (la autoridad es GitHub+Fernando a propósito, y una cadena
+  PÚBLICA rompería el foso LOCAL). Y git ya es un Merkle DAG; esto lo complementa para los RECIBOS.
+- *Elegido:* `scripts/auditoria_cadena.py` + `docs/CADENA_GOBIERNO.jsonl` — cada bloque (recibo/decisión/
+  gate) lleva el SHA-256 del anterior y se ancla a una prueba externa (`ref` = commit/CI). Un algoritmo del
+  gate verifica la integridad: editar/borrar/reordenar/insertar un bloque del pasado rompe la cadena → ROJO.
+  Cableado en `verify.py`, golden `tests/test_cadena.py` (10 casos, incl. el ataque «editar y re-sellar» que
+  cae igual por el `prev`) + 1 mutación con dientes.
+- *Frontera honesta:* hace el registro INFORJABLE, no VERDADERO — una cadena de mentiras sigue siendo
+  mentiras; por eso cada bloque ancla a su prueba externa y la verdad la sigue dando el gate verde.
+- *Recibo:* gate normal VERDE local — cadena íntegra (2 bloques), mutación **18 cazadas/0**, 822 tests.
+  Falta el check verde de GitHub para «hecho».
+- *Reversible:* sí; `git revert` (aditivo).
+
+**D-80 — La herramienta viva per-diff: `auditoria_brujula.py` (¿aplicaste la brújula en ESTE cambio?).**
+- *Contexto:* Fernando pidió «una herramienta viva que decida si has aplicado la brújula en tu código».
+  Las demás auditorías miran el repo entero; faltaba la que mira EL DIFF (lo que cambias vs `main`) y decide
+  por cambio. Es el centro de «un algoritmo por norma», aplicado al acto de programar.
+- *Elegido:* `scripts/auditoria_brujula.py` con tres cubos honestos. 🟥 ALGORITMO (binario sobre el diff):
+  tamaño ≤400 de los ficheros de producto tocados (§INGENIERÍA) · tocar la constitución exige entrada en
+  DECISIONES (§META-3) · el diff no mete `--no-verify` (§GOB-2) · un módulo de producto NUEVO trae su test
+  (§INGENIERÍA arnés). 🟧 RECIBO: la conducta exige recibo cuantificable (`conducta.py`). ⬜ HUMANO:
+  cognición/acierta-100%/UX → subagente verificador + Fernando, NO se pinta de verde. Funciones puras
+  testeables + fontanería de git; golden `tests/test_auditoria_brujula.py` (12 casos) + 1 mutación. Cableado
+  en `verify.py`.
+- *Frontera honesta:* decide PROXIES mecánicos sobre el diff, no la calidad ni la intención. Sin contexto
+  git (base vs main no disponible) lo DICE y no finge verde.
+- *Recibo:* gate normal VERDE local — brújula per-diff verde sobre su propio cambio, mutación **19/0**, 834
+  tests. Falta el check verde de GitHub para «hecho».
+- *Reversible:* sí; `git revert` (aditivo).
+
+**D-81 — Plantillas de proceso + kit reutilizable, y cierre de la FASE «Gobierno blindado v1» en UN PR.**
+- *Contexto:* Fernando pidió (a) que la brújula se aplique en cada PR/issue, (b) un kit reutilizable y
+  blindado, y un protocolo: **confrontar el muro de GitHub UNA vez por fase global**, no un PR cada 5 minutos.
+- *Elegido:* `.github/pull_request_template.md` + `.github/ISSUE_TEMPLATE/tarea.yml` (fuerzan la checklist
+  del Bucle y declarar objetivo+DoD antes de codear). `kit-gobierno/` — carpeta blanca y reutilizable cuyo
+  motor `brujula_check.py` BLOQUEA la parte mecánica de las normas en cualquier repo que lo adopte; golden
+  `tests/test_kit_gobierno.py` (dientes + blanco). Se consolida toda la fase (D-75…D-81: §14B-1, cobertura
+  r2, llave-en-todo D-77, foso LOCAL, cadena de gobierno, brújula per-diff, plantillas, kit) en **un solo
+  PR** → una sola confrontación / un Approve / un merge.
+- *Protocolo confront-once-por-fase:* una rama `fase/<nombre>` acumula toda la fase; gate local verde
+  continuo, pero SIN PR por pieza; al completar la fase, UN PR; CI + un Approve + un merge.
+- *Recibo:* gate normal VERDE local. «Hecho» lo declara el check verde de GitHub.
+- *Reversible:* sí; `git revert` (todo aditivo).
 *(se irán añadiendo entradas según avance el bloque)*

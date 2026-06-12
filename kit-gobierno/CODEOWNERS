@@ -1,0 +1,14 @@
+# CODEOWNERS (plantilla) — auditor ≠ constructor.
+#
+# Quien ESCRIBE el código no puede ser quien lo APRUEBA. Pon abajo una cuenta AUDITORA INDEPENDIENTE
+# (distinta de la que programa) como dueña de los ficheros del gate y de las normas. Tocarlos pedirá SU
+# review, así que debilitar el gate o cambiar las normas no se cuela en un merge verde.
+#
+# Solo bloquea de verdad si la protección de `main` tiene activado "Require review from Code Owners".
+
+# Reemplaza @cuenta-auditora por la cuenta independiente.
+/brujula_check.py            @cuenta-auditora
+/CLAUDE.md                   @cuenta-auditora
+/BRUJULA.md                  @cuenta-auditora
+/DECISIONES.md               @cuenta-auditora
+/.github/                    @cuenta-auditora

@@ -1,0 +1,53 @@
+name: "🎯 Tarea (Bucle de la brújula)"
+description: "Abre una tarea declarando OBJETIVO y DoD antes de codear (cadena de dirección, paso 1)."
+labels: ["tarea"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Paso 1 de la cadena de dirección: **fija la meta y su prueba ANTES de tocar código.**
+        El último eslabón (check verde de GitHub) confirmará esta meta.
+  - type: textarea
+    id: objetivo
+    attributes:
+      label: "🎯 Objetivo"
+      description: "Qué hay que conseguir y por qué. Una frase clara, para el autónomo/PYME."
+      placeholder: "Que el operador reclame un cobro vencido con su carta conforme a la Ley 3/2004."
+    validations:
+      required: true
+  - type: textarea
+    id: dod
+    attributes:
+      label: "✅ Definición de Hecho (la prueba)"
+      description: "¿Qué prueba EJECUTABLE demuestra que está hecho? El contrato. En vivo si toca el servidor."
+      placeholder: "Test/arnés que ejerce el flujo real y deja recibo. Comando con el que se verifica."
+    validations:
+      required: true
+  - type: dropdown
+    id: estado_objetivo
+    attributes:
+      label: "Estado al que apunta"
+      options:
+        - "🟢 Hecho (servicio real + recibo)"
+        - "🟠 Parcial (real bajo condiciones)"
+        - "🟡 Contrato (mock/fake-tested)"
+    validations:
+      required: true
+  - type: textarea
+    id: alcance
+    attributes:
+      label: "🔒 Alcance — qué NO entra"
+      description: "Acota. Anti-dispersión: cierra esto antes de abrir lo siguiente (§CONC / cuña activa)."
+    validations:
+      required: false
+  - type: checkboxes
+    id: brujula
+    attributes:
+      label: "Recordatorio de la brújula"
+      options:
+        - label: "Las cifras/€/fechas las calculará CÓDIGO, no el LLM."
+          required: false
+        - label: "Ningún efecto externo autónomo sin gate humano."
+          required: false
+        - label: "No se dará por 'hecho' sin el check verde de GitHub."
+          required: false
