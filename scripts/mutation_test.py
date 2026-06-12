@@ -170,6 +170,14 @@ MUTACIONES = [
         _pytest("test_", "tests/test_auditoria_promesas.py"),
         "promesas: dejar pasar un 🟢 con un criterio sin probar",
     ),
+    # ── Intake de facturas (D-83): que la idempotencia tiene dientes ──
+    (
+        "loombit_operator/skill_d_fiscal/intake_batch.py",
+        "if numero and numero in ya:",
+        "if numero and numero not in ya:",
+        _pytest("test_", "tests/test_intake_batch.py"),
+        "intake: romper la idempotencia (re-procesa duplicados)",
+    ),
 ]
 
 

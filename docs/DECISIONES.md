@@ -999,4 +999,18 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   importa más que mi palabra; esta norma es el complemento, no el sustituto.
 - *Recibo:* gate normal VERDE local. «Hecho» lo declara el check verde de GitHub.
 - *Reversible:* sí; `git revert` (todo aditivo).
+
+**D-83 — PRODUCTO (fase 1ª promesa): intake de facturas por carpeta → cuentas a cobrar + 303.**
+- *Contexto:* primera fase de PRODUCTO tras el gobierno. Camino crítico del roadmap: llenar de datos para
+  desbloquear cobros/303. Promesa FIRMADA por Fernando (`docs/PROMESAS.jsonl` · intake-facturas).
+- *Elegido:* `loombit_operator/skill_d_fiscal/intake_batch.py` — `intake_carpeta()` procesa una carpeta
+  entera; por factura legible: la registra (expediente), saca su línea de 303 (`intake.py`) y su cuenta a
+  cobrar (`cuentas_cobrar.py`). Cifras por **regex determinista** (`docs_intel`), NO el LLM. Idempotente
+  por nº de factura. Ilegibles/incompletas → `abstenidas` con motivo, NUNCA inventadas. Golden
+  `tests/test_intake_batch.py` (7 casos = 6 criterios firmados + 1 extra) + 1 mutación (idempotencia).
+- *Frontera honesta:* escaneados sin texto (visión local) **fuera de esta promesa** (declarado en el
+  contrato) → se listan como abstención. Estado **🟡**: cumple los criterios en tests; **falta el piloto
+  EN VIVO con una carpeta real de PDFs para 🟢** (DoD).
+- *Recibo:* gate normal VERDE local. La promesa intake-facturas queda registrada y su check verde.
+- *Reversible:* sí; `git revert` (aditivo: módulo nuevo + tests, no toca lo existente).
 *(se irán añadiendo entradas según avance el bloque)*
