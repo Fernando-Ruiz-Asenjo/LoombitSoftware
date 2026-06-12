@@ -19,6 +19,7 @@ perfecto" ni caza un 🟢 falso en una afirmación (por eso "hecho" lo declara e
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -85,9 +86,14 @@ _LIVE = [
 
 
 def _correr(checks: list[tuple[str, list[str]]], fallos: list[str]) -> None:
+    # En Windows la consola es cp1252; los checks imprimen emojis (✅/🟢/⬜) en sus banners de ÉXITO y
+    # crashean con UnicodeEncodeError aunque su veredicto sea VERDE (punto ciego de plataforma del gate,
+    # invisible en CI/Linux donde stdout ya es utf-8). Forzar UTF-8 en los subprocesos hace el muro
+    # robusto en Windows SIN cambiar ningún veredicto. Descubierto 2026-06-12 (mismo cp1252 del piloto).
+    env = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"}
     for nombre, cmd in checks:
         print(f"\n-> {nombre} ...")
-        r = subprocess.run(cmd, cwd=ROOT)
+        r = subprocess.run(cmd, cwd=ROOT, env=env)
         if r.returncode != 0:
             fallos.append(nombre)
             print(f"   FALLO: {nombre}")
