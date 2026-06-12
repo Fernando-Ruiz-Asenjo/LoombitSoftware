@@ -1083,4 +1083,26 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   tests va a outbox. El cuerpo lo redacta CÓDIGO; el LLM no interviene en este efecto.
 - *Recibo:* gate normal VERDE local. Promesa envio-cobro registrada y su check verde.
 - *Reversible:* sí; `git revert` (aditivo).
+
+**D-88 — FASE LARGA «Cierre del lazo de cobros + arranque VeriFactu» (orquestador + API + VeriFactu).**
+- *Contexto:* Fernando pidió **fases más largas** para abarcar más trabajo. Esta fase cierra el lazo de
+  cobros de punta a punta (ya usable por API) y enciende el ancla regulatoria de la cuña (D-86 / §EST-2:
+  VeriFactu, deadline autónomos 1-jul-2027). Tres piezas aditivas sobre lo ya construido (intake D-83 →
+  seguimiento D-84 → envío D-87):
+- *Pieza orquestador:* `skill_d_fiscal/cobros_flujo.py` — `pendientes()` solo LISTA; `aprobar_y_enviar()`
+  dispara el envío con el gate dentro (no se salta §14B). Golden `tests/test_cobros_flujo.py` (3, promesa
+  `cobros-orquestador`).
+- *Pieza API:* `routers/cobros.py` montado en `main.py` — `GET /cobros/pendientes` (lista, no envía) +
+  `POST /cobros/aprobar` (aprobar una cuenta vencida `cuenta_id` ES la autorización humana, D-20 → manda al
+  outbox; destino seguro por defecto §SEG-4). Golden `tests/test_cobros_router.py` (3, promesa
+  `cobros-endpoint`); cuenta inexistente/no vencida → 404.
+- *Pieza VeriFactu:* `skill_d_fiscal/verifactu.py` — `RegistroVerifactu` con **huella SHA-256 encadenada**
+  (mismo patrón que la cadena de gobierno D-79): de la factura sale el registro INALTERABLE; cifras por
+  CÓDIGO; **abstención** si faltan campos; `verificar_cadena()` detecta alteración/reordenado. Golden
+  `tests/test_verifactu.py` (6, promesa `verifactu-arranque`) + 1 mutación al detector de alteración.
+- *Frontera DECLARADA (honesta):* la **PRESENTACIÓN a la Sede AEAT** (certificado/firma electrónica) queda
+  **FUERA** — esto PREPARA el registro conforme, no lo presenta (necesita el certificado de Fernando). Las
+  tres promesas quedan **🟡** (contrato/fake-tested) hasta el piloto en vivo. Sin LLM en ningún efecto.
+- *Recibo:* gate normal VERDE local; las 3 promesas registradas con su check verde; MIN_TESTS subido.
+- *Reversible:* sí; `git revert` (todo aditivo: módulos nuevos + 1 línea de router en `main.py`).
 *(se irán añadiendo entradas según avance el bloque)*

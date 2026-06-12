@@ -79,6 +79,7 @@ from fastapi.staticfiles import StaticFiles  # noqa: E402
 from .config import get_settings  # noqa: E402
 from .routers import (  # noqa: E402
     agent,
+    cobros,
     computer,
     conciliacion,
     credentials,
@@ -196,6 +197,7 @@ app.include_router(routines.router)
 app.include_router(fiscal.router)
 app.include_router(conciliacion.router)
 app.include_router(cuentas.router)
+app.include_router(cobros.router)
 app.include_router(decisions.router)
 app.include_router(galaxia.router)
 app.include_router(home.router)

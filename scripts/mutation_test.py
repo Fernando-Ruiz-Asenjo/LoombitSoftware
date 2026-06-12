@@ -194,6 +194,14 @@ MUTACIONES = [
         _pytest("test_", "tests/test_envio_cobro.py"),
         "envio_cobro: invertir el gate (enviar SIN aprobación)",
     ),
+    # ── VeriFactu (D-88): que el detector de registro ALTERADO (huella) tiene dientes ──
+    (
+        "loombit_operator/skill_d_fiscal/verifactu.py",
+        "if r.huella != huella_registro(r):",
+        "if r.huella == huella_registro(r):",
+        _pytest("test_", "tests/test_verifactu.py"),
+        "verifactu: no detectar un registro alterado (huella)",
+    ),
 ]
 
 
