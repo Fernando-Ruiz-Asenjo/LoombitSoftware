@@ -186,6 +186,14 @@ MUTACIONES = [
         _pytest("test_", "tests/test_auditoria_radar.py"),
         "radar: dejar pasar una señal sin fuente real",
     ),
+    # ── Envío de cobro (D-87): que el GATE DE EFECTO (aprobación) tiene dientes ──
+    (
+        "loombit_operator/skill_d_fiscal/envio_cobro.py",
+        "if not aprobada:",
+        "if aprobada:",
+        _pytest("test_", "tests/test_envio_cobro.py"),
+        "envio_cobro: invertir el gate (enviar SIN aprobación)",
+    ),
 ]
 
 

@@ -1068,4 +1068,19 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
 - *Recibo:* gate normal VERDE local (brújula per-diff exige esta entrada al tocar la constitución; sync
   CLAUDE↔norma intacto). «Hecho» lo declara el check verde de GitHub.
 - *Reversible:* sí; `git revert` devuelve la cuña al «operador administrativo» anterior.
+
+**D-87 — PRODUCTO: envío real del recordatorio de cobro, con GATE DE EFECTO. Cierra el lazo de cobros.**
+- *Contexto:* última pieza del lazo de cobros (cuña 1). Promesa FIRMADA (`docs/PROMESAS.jsonl` · envio-cobro).
+  Toca un EFECTO EXTERNO → la brújula es máxima aquí (nunca sin aprobación humana, cifras por código, en dev
+  solo destino seguro §SEG-4).
+- *Elegido:* `loombit_operator/skill_d_fiscal/envio_cobro.py` — `enviar_recordatorio(decision, aprobada)`:
+  (1) GATE SAGRADO: si no está aprobada, LANZA `EnvioBloqueado` (no sale nada); (2) cuerpo construido por
+  CÓDIGO desde el plan; (3) el cuerpo pasa por el guardia §14B-1 (`cifra_parser`): un € sin respaldo del plan
+  → BLOQUEA; (4) recibo auditable (outbox `.eml` por defecto, sin credenciales; Gmail real = `enviar_fn`
+  inyectada, piloto en vivo); destinatario SEGURO por defecto (no arbitrario, §SEG-4). Golden
+  `tests/test_envio_cobro.py` (7 = 5 criterios firmados + 2) + 1 mutación al gate de efecto.
+- *Frontera honesta:* envío real por Gmail con tu cuenta = **🟡** hasta piloto en vivo (OAuth conectado); en
+  tests va a outbox. El cuerpo lo redacta CÓDIGO; el LLM no interviene en este efecto.
+- *Recibo:* gate normal VERDE local. Promesa envio-cobro registrada y su check verde.
+- *Reversible:* sí; `git revert` (aditivo).
 *(se irán añadiendo entradas según avance el bloque)*
