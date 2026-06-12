@@ -63,6 +63,8 @@ _AUDITS = [
     ),
     # Algoritmo del foso LOCAL (NORTE): ningún destino de egress sin declarar (los datos no salen).
     ("foso LOCAL (egress declarado)", [PY, "scripts/auditoria_foso_local.py"]),
+    # Cadena de gobierno (D-79): el registro de recibos no se puede reescribir sin que se note.
+    ("cadena de gobierno (tamper-evident)", [PY, "scripts/auditoria_cadena.py"]),
 ]
 
 # Solo en --strict: muta el código a propósito y exige que el arnés se ponga ROJO (dientes).

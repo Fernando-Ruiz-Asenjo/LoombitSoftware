@@ -931,4 +931,20 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
 - *Recibo:* gate normal VERDE local — 17 hosts declarados, 0 sin declarar, mutación **17 cazadas/0**, 812
   tests. Falta el check verde de GitHub para «hecho».
 - *Reversible:* sí; `git revert` (aditivo: nueva auditoría + tests).
+
+**D-79 — Cadena de gobierno: el núcleo útil de «blockchain» (hash-chain), sin red ni token.**
+- *Contexto:* Fernando quiere usar blockchain en la brújula/gobierno. Veredicto honesto (ingeniería, no
+  fuente leída): de las 5 piezas de blockchain solo UNA sirve aquí — la **cadena de hashes tamper-evident**.
+  Consenso distribuido/token/cadena pública: NO (la autoridad es GitHub+Fernando a propósito, y una cadena
+  PÚBLICA rompería el foso LOCAL). Y git ya es un Merkle DAG; esto lo complementa para los RECIBOS.
+- *Elegido:* `scripts/auditoria_cadena.py` + `docs/CADENA_GOBIERNO.jsonl` — cada bloque (recibo/decisión/
+  gate) lleva el SHA-256 del anterior y se ancla a una prueba externa (`ref` = commit/CI). Un algoritmo del
+  gate verifica la integridad: editar/borrar/reordenar/insertar un bloque del pasado rompe la cadena → ROJO.
+  Cableado en `verify.py`, golden `tests/test_cadena.py` (10 casos, incl. el ataque «editar y re-sellar» que
+  cae igual por el `prev`) + 1 mutación con dientes.
+- *Frontera honesta:* hace el registro INFORJABLE, no VERDADERO — una cadena de mentiras sigue siendo
+  mentiras; por eso cada bloque ancla a su prueba externa y la verdad la sigue dando el gate verde.
+- *Recibo:* gate normal VERDE local — cadena íntegra (2 bloques), mutación **18 cazadas/0**, 822 tests.
+  Falta el check verde de GitHub para «hecho».
+- *Reversible:* sí; `git revert` (aditivo).
 *(se irán añadiendo entradas según avance el bloque)*

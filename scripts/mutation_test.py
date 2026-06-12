@@ -146,6 +146,14 @@ MUTACIONES = [
         _pytest("test_", "tests/test_foso_local.py"),
         "foso_local: dejar pasar un egress NO declarado",
     ),
+    # ── Cadena de gobierno (D-79): que el detector de manipulación tiene dientes ──
+    (
+        "scripts/auditoria_cadena.py",
+        'if b.get("prev") != prev_hash:',
+        'if b.get("prev") == prev_hash:',
+        _pytest("test_", "tests/test_cadena.py"),
+        "cadena: no detectar el eslabón roto (prev)",
+    ),
 ]
 
 
