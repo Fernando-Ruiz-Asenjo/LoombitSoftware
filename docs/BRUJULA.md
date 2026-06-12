@@ -48,11 +48,14 @@ hardware instalados (la arquitectura ya lo permite — ver `CLAUDE.md` "Qué es 
 **comprensión profunda del trabajo real** (cognición, no extracción) · **adaptativo** (genera lo que la
 persona necesita ver en cada momento). Igual o mejor que los grandes; que sean más grandes no es excusa.
 
-**CUÑA ACTIVA (la estrategia para llegar, NO el límite).** Se ejecuta **por cuñas**, cerrando una al 100 %
-antes de abrir la siguiente — así se alcanza la visión sin dispersión (*"camino crítico sin dispersión"*). La
-cuña 1 es el **operador administrativo del autónomo/PYME español** (fiscal, cobros, plazos, trámites; foso
-añadido: **español**). Es la cabeza de playa, no el techo. La cuña en curso vive en `ESTADO_Y_ROADMAP.md`
-(§META-4).
+**CUÑA ACTIVA (la estrategia para llegar, NO el límite; redefinida D-86).** Se ejecuta **por cuñas**,
+cerrando una al 100 % antes de abrir la siguiente — visión sin dispersión. La cuña 1 es el **compañero de
+trabajo de oficina del autónomo/PYME español**: **USUARIO estrecho** (autónomo/PYME español; foso añadido:
+**local + español + VeriFactu**), **ACTIVIDADES anchas** — del **ancla fiscal/cobros** (VeriFactu:
+factura→registro→303, morosidad, plazos, trámites) al **trabajo de oficina general de ese mismo usuario**
+(correo, agenda, documentos, datos, seguimientos). Se ensancha en **actividades**, sin saltar a «cualquier
+puesto» (el radar lo desaconseja, D-85). Es la cabeza de playa, no el techo. La cuña en curso vive en
+`ESTADO_Y_ROADMAP.md` (§META-4).
 
 **Mecanismo:** el foso es una **afirmación hasta que se mide**. North-star = **coste de cambio** (§EST-1).
 No es un adjetivo del README: es un número de retención en Fase 4. **Disciplina anti-dispersión:** abrir una

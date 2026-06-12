@@ -25,9 +25,12 @@ no puede causar daño. Todo lo demás cuelga de aquí.
 necesario para cualquier actividad —laboral o no— de una persona ante un ordenador, tablet o teléfono.**
 Núcleo **blanco y reutilizable**: el mismo runtime sirve cualquier dominio/dispositivo según las skills.
 **Foso (vale para todo): LOCAL** (los datos no salen de la máquina) · **comprensión profunda del trabajo** ·
-**adaptativo.** **CUÑA ACTIVA (estrategia, no límite):** se ejecuta por cuñas, cerrando una al 100 % antes de
-abrir la siguiente (anti-dispersión); la cuña 1 = operador administrativo del autónomo/PYME **español**.
-Hazlo igual o mejor que los grandes; que sean más grandes NO es excusa.
+**adaptativo.** **CUÑA ACTIVA (estrategia, no límite; D-86):** se ejecuta por cuñas, cerrando una al 100 %
+antes de abrir la siguiente (anti-dispersión); la cuña 1 = **el compañero de trabajo de oficina del
+autónomo/PYME español**. **Usuario ESTRECHO** (autónomo/PYME español; foso: local + español + **VeriFactu**),
+**actividades ANCHAS:** del **ancla fiscal/cobros** (VeriFactu: factura→registro→303, morosidad) al **trabajo
+de oficina general de ese mismo usuario** (correo, agenda, documentos, datos, seguimientos). Se ensancha en
+ACTIVIDADES, no a «cualquier puesto» (el radar lo desaconseja, D-85). Hazlo igual o mejor que los grandes.
 
 **PRODUCTO (cómo entiende y trata al usuario).**
 - **Cognición, no extracción.** Comprende los hilos: quién es quién, de qué va, en qué estado. De ahí
@@ -125,12 +128,14 @@ hardware, no bloquea.
 
 ---
 
-## Cuña de mercado activa
+## Cuña de mercado activa (D-86: usuario estrecho, actividades anchas)
 
-- **Mercado:** PYMES y autónomos en España.
-- **Skill principal:** `Skill D Skill Blanca Administration` — Trabajo Administrativo General.
-- **Primer flujo vertical (decide Fernando):** seguimiento de cobros **ó** intake de facturas.
-- **Criterio de cierre:** operatividad y autonomía al 100 % en ese flujo antes de abrir la cuña 2.
+- **Usuario (estrecho):** autónomo/PYME en **España**. Foso: local + español + **VeriFactu**.
+- **Skill principal:** `Skill D Skill Blanca Administration` — Trabajo de oficina general.
+- **Ancla / cabeza de playa:** flujo **VeriFactu** (factura → registro → 303) + **cobros** (morosidad).
+- **Actividades anchas (del mismo usuario):** correo, agenda, documentos, datos, seguimientos — el trabajo
+  de oficina general, no solo lo fiscal. **NO** se salta a «cualquier puesto» (radar D-85).
+- **Criterio de cierre:** el ancla (VeriFactu + cobros) operativa y autónoma al 100 % antes de la cuña 2.
 
 Camino crítico sin dispersión: **Fase 1 → 2 → 3 → 4**.
 
