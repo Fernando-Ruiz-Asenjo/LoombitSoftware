@@ -947,4 +947,21 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
 - *Recibo:* gate normal VERDE local — cadena íntegra (2 bloques), mutación **18 cazadas/0**, 822 tests.
   Falta el check verde de GitHub para «hecho».
 - *Reversible:* sí; `git revert` (aditivo).
+
+**D-80 — La herramienta viva per-diff: `auditoria_brujula.py` (¿aplicaste la brújula en ESTE cambio?).**
+- *Contexto:* Fernando pidió «una herramienta viva que decida si has aplicado la brújula en tu código».
+  Las demás auditorías miran el repo entero; faltaba la que mira EL DIFF (lo que cambias vs `main`) y decide
+  por cambio. Es el centro de «un algoritmo por norma», aplicado al acto de programar.
+- *Elegido:* `scripts/auditoria_brujula.py` con tres cubos honestos. 🟥 ALGORITMO (binario sobre el diff):
+  tamaño ≤400 de los ficheros de producto tocados (§INGENIERÍA) · tocar la constitución exige entrada en
+  DECISIONES (§META-3) · el diff no mete `--no-verify` (§GOB-2) · un módulo de producto NUEVO trae su test
+  (§INGENIERÍA arnés). 🟧 RECIBO: la conducta exige recibo cuantificable (`conducta.py`). ⬜ HUMANO:
+  cognición/acierta-100%/UX → subagente verificador + Fernando, NO se pinta de verde. Funciones puras
+  testeables + fontanería de git; golden `tests/test_auditoria_brujula.py` (12 casos) + 1 mutación. Cableado
+  en `verify.py`.
+- *Frontera honesta:* decide PROXIES mecánicos sobre el diff, no la calidad ni la intención. Sin contexto
+  git (base vs main no disponible) lo DICE y no finge verde.
+- *Recibo:* gate normal VERDE local — brújula per-diff verde sobre su propio cambio, mutación **19/0**, 834
+  tests. Falta el check verde de GitHub para «hecho».
+- *Reversible:* sí; `git revert` (aditivo).
 *(se irán añadiendo entradas según avance el bloque)*

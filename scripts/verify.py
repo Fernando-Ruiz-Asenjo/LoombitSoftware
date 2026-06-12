@@ -65,6 +65,8 @@ _AUDITS = [
     ("foso LOCAL (egress declarado)", [PY, "scripts/auditoria_foso_local.py"]),
     # Cadena de gobierno (D-79): el registro de recibos no se puede reescribir sin que se note.
     ("cadena de gobierno (tamper-evident)", [PY, "scripts/auditoria_cadena.py"]),
+    # La herramienta viva (D-80): ¿el CAMBIO de este diff aplicó la parte mecánica de la brújula?
+    ("brújula per-diff (¿aplicada en el cambio?)", [PY, "scripts/auditoria_brujula.py"]),
 ]
 
 # Solo en --strict: muta el código a propósito y exige que el arnés se ponga ROJO (dientes).

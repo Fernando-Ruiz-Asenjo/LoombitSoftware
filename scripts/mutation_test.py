@@ -154,6 +154,14 @@ MUTACIONES = [
         _pytest("test_", "tests/test_cadena.py"),
         "cadena: no detectar el eslabón roto (prev)",
     ),
+    # ── La herramienta viva per-diff (D-80): que el check de tamaño tiene dientes ──
+    (
+        "scripts/auditoria_brujula.py",
+        "if n > LIMITE_LINEAS",
+        "if n < LIMITE_LINEAS",
+        _pytest("test_", "tests/test_auditoria_brujula.py"),
+        "brujula: dejar pasar un fichero > 400 líneas",
+    ),
 ]
 
 
