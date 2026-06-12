@@ -1013,4 +1013,21 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   EN VIVO con una carpeta real de PDFs para 🟢** (DoD).
 - *Recibo:* gate normal VERDE local. La promesa intake-facturas queda registrada y su check verde.
 - *Reversible:* sí; `git revert` (aditivo: módulo nuevo + tests, no toca lo existente).
+
+**D-84 — PRODUCTO (fase): seguimiento de cobros — cuentas vencidas → decisión de cobro lista para aprobar.**
+- *Contexto:* segunda fase de producto, cierra más de la Fase 3 (cuña 1). Ahora que el intake llena
+  `cuentas a cobrar`, el lazo del cobro por fin tiene materia. Promesa FIRMADA (`docs/PROMESAS.jsonl` ·
+  seguimiento-cobros).
+- *Elegido:* `loombit_operator/skill_d_fiscal/seguimiento_cobros.py` — `decisiones_pendientes(store_cc,
+  today)` = conector del LAZO: `cuentas_cobrar.vencidas()` → `decisions_cobros.decisiones_de_cobros()`.
+  No reinventa (el cerebro del cobro ya existía). El importe legal (saldo + 40 € art. 8 + interés Ley
+  3/2004) lo calcula `cobros.py` determinista, no el LLM; si el interés cae fuera de la tabla BOE, se
+  abstiene. La decisión queda como PROPUESTA con gate humano: NO envía nada sola. Golden
+  `tests/test_seguimiento_cobros.py` (6 = los 6 criterios firmados, incl. e2e intake→cobro).
+- *Sobre la mutación:* el conector es un paso recto sin ramas; los DIENTES están en `decisions_cobros`
+  (ya con mutación, gate `action=='reclamar'`) + el e2e. No se añade mutación decorativa (sería teatro).
+- *Frontera honesta:* deja las decisiones LISTAS para aprobar; el **envío real por email con recibo**
+  (LD-1 / gate de efecto) queda FUERA de esta promesa. Estado **🟡** (e2e en tests; piloto en vivo aparte).
+- *Recibo:* gate normal VERDE local. Promesa seguimiento-cobros registrada y su check verde.
+- *Reversible:* sí; `git revert` (aditivo).
 *(se irán añadiendo entradas según avance el bloque)*
