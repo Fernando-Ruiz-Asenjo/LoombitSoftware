@@ -186,6 +186,22 @@ MUTACIONES = [
         _pytest("test_", "tests/test_auditoria_radar.py"),
         "radar: dejar pasar una señal sin fuente real",
     ),
+    # ── Envío de cobro (D-87): que el GATE DE EFECTO (aprobación) tiene dientes ──
+    (
+        "loombit_operator/skill_d_fiscal/envio_cobro.py",
+        "if not aprobada:",
+        "if aprobada:",
+        _pytest("test_", "tests/test_envio_cobro.py"),
+        "envio_cobro: invertir el gate (enviar SIN aprobación)",
+    ),
+    # ── VeriFactu (D-88): que el detector de registro ALTERADO (huella) tiene dientes ──
+    (
+        "loombit_operator/skill_d_fiscal/verifactu.py",
+        "if r.huella != huella_registro(r):",
+        "if r.huella == huella_registro(r):",
+        _pytest("test_", "tests/test_verifactu.py"),
+        "verifactu: no detectar un registro alterado (huella)",
+    ),
 ]
 
 

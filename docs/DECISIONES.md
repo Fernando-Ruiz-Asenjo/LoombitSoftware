@@ -1068,4 +1068,41 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
 - *Recibo:* gate normal VERDE local (brújula per-diff exige esta entrada al tocar la constitución; sync
   CLAUDE↔norma intacto). «Hecho» lo declara el check verde de GitHub.
 - *Reversible:* sí; `git revert` devuelve la cuña al «operador administrativo» anterior.
+
+**D-87 — PRODUCTO: envío real del recordatorio de cobro, con GATE DE EFECTO. Cierra el lazo de cobros.**
+- *Contexto:* última pieza del lazo de cobros (cuña 1). Promesa FIRMADA (`docs/PROMESAS.jsonl` · envio-cobro).
+  Toca un EFECTO EXTERNO → la brújula es máxima aquí (nunca sin aprobación humana, cifras por código, en dev
+  solo destino seguro §SEG-4).
+- *Elegido:* `loombit_operator/skill_d_fiscal/envio_cobro.py` — `enviar_recordatorio(decision, aprobada)`:
+  (1) GATE SAGRADO: si no está aprobada, LANZA `EnvioBloqueado` (no sale nada); (2) cuerpo construido por
+  CÓDIGO desde el plan; (3) el cuerpo pasa por el guardia §14B-1 (`cifra_parser`): un € sin respaldo del plan
+  → BLOQUEA; (4) recibo auditable (outbox `.eml` por defecto, sin credenciales; Gmail real = `enviar_fn`
+  inyectada, piloto en vivo); destinatario SEGURO por defecto (no arbitrario, §SEG-4). Golden
+  `tests/test_envio_cobro.py` (7 = 5 criterios firmados + 2) + 1 mutación al gate de efecto.
+- *Frontera honesta:* envío real por Gmail con tu cuenta = **🟡** hasta piloto en vivo (OAuth conectado); en
+  tests va a outbox. El cuerpo lo redacta CÓDIGO; el LLM no interviene en este efecto.
+- *Recibo:* gate normal VERDE local. Promesa envio-cobro registrada y su check verde.
+- *Reversible:* sí; `git revert` (aditivo).
+
+**D-88 — FASE LARGA «Cierre del lazo de cobros + arranque VeriFactu» (orquestador + API + VeriFactu).**
+- *Contexto:* Fernando pidió **fases más largas** para abarcar más trabajo. Esta fase cierra el lazo de
+  cobros de punta a punta (ya usable por API) y enciende el ancla regulatoria de la cuña (D-86 / §EST-2:
+  VeriFactu, deadline autónomos 1-jul-2027). Tres piezas aditivas sobre lo ya construido (intake D-83 →
+  seguimiento D-84 → envío D-87):
+- *Pieza orquestador:* `skill_d_fiscal/cobros_flujo.py` — `pendientes()` solo LISTA; `aprobar_y_enviar()`
+  dispara el envío con el gate dentro (no se salta §14B). Golden `tests/test_cobros_flujo.py` (3, promesa
+  `cobros-orquestador`).
+- *Pieza API:* `routers/cobros.py` montado en `main.py` — `GET /cobros/pendientes` (lista, no envía) +
+  `POST /cobros/aprobar` (aprobar una cuenta vencida `cuenta_id` ES la autorización humana, D-20 → manda al
+  outbox; destino seguro por defecto §SEG-4). Golden `tests/test_cobros_router.py` (3, promesa
+  `cobros-endpoint`); cuenta inexistente/no vencida → 404.
+- *Pieza VeriFactu:* `skill_d_fiscal/verifactu.py` — `RegistroVerifactu` con **huella SHA-256 encadenada**
+  (mismo patrón que la cadena de gobierno D-79): de la factura sale el registro INALTERABLE; cifras por
+  CÓDIGO; **abstención** si faltan campos; `verificar_cadena()` detecta alteración/reordenado. Golden
+  `tests/test_verifactu.py` (6, promesa `verifactu-arranque`) + 1 mutación al detector de alteración.
+- *Frontera DECLARADA (honesta):* la **PRESENTACIÓN a la Sede AEAT** (certificado/firma electrónica) queda
+  **FUERA** — esto PREPARA el registro conforme, no lo presenta (necesita el certificado de Fernando). Las
+  tres promesas quedan **🟡** (contrato/fake-tested) hasta el piloto en vivo. Sin LLM en ningún efecto.
+- *Recibo:* gate normal VERDE local; las 3 promesas registradas con su check verde; MIN_TESTS subido.
+- *Reversible:* sí; `git revert` (todo aditivo: módulos nuevos + 1 línea de router en `main.py`).
 *(se irán añadiendo entradas según avance el bloque)*
