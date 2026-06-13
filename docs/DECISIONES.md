@@ -1156,4 +1156,19 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   vocabulario, «email» vs «correo») necesita EMBEDDINGS → **🟠 declarado** (RAG local). `add_lesson` sigue con
   dedup exacto (no se toca por el ratchet). No toca el bucle del agente.
 - *Reversible:* sí; aditivo (1 módulo + dedup en el daemon + tests). Umbral tunable.
+
+**D-96 — SEGURIDAD/§GOB-1: cuarentena CaMeL en el Capability Policy Plane (dato lifteado → no se ejecuta).**
+- *Contexto:* del barrido (D-92, señal CaMeL): un argumento CONSECUENTE cuyo valor venga de contenido NO
+  CONFIABLE (correo/web/documento leído) es una orden incrustada disfrazada de dato. El plano ya tenía
+  `sanear_dato` (neutraliza órdenes); faltaba la pieza «no liftees un valor consecuente de ahí». PR apilado sobre #50.
+- *Elegido (determinista):* `policy/authority_plane.py` — `valor_de_cuarentena(valor, contenido)` (¿el valor
+  aparece literal en el contenido no confiable?) + `autorizar(..., contenido_no_confiable="")`: si un campo
+  consecuente (to/iban/importe/url…) fue lifteado de contenido no confiable → `CORREGIR` (no ejecuta; pide
+  resolver por código o preguntar). Con `contenido_no_confiable=""` (defecto) el comportamiento previo del
+  plano queda INTACTO (test_gob1 verde). Golden `tests/test_cuarentena_camel.py` (3).
+- *Frontera honesta:* la PRIMITIVA está wireada en `autorizar`, pero **el loop aún no le pasa el contenido
+  leído** → el guardia no actúa en vivo hasta ese wiring (🟠 declarado: `agent/loop.py` está en deuda de
+  tamaño, así que el cableado se hará al partir el loop, sin engordarlo). Mismo patrón honesto que el núcleo
+  del navegador (#48): primitiva gobernada y testeada; activación en vivo declarada.
+- *Reversible:* sí; aditivo (1 helper + 1 param opcional + tests). No cambia el comportamiento existente del plano.
 *(se irán añadiendo entradas según avance el bloque)*
