@@ -130,11 +130,46 @@ con evidencia *dura* (papers/repos/docs oficiales). Ver el registro.
 
 ---
 
+## 6. Pasada corta — competidores cerrados + local-first (ampliación, leído a mano)
+
+Cierre de los dos huecos declarados. 5 fuentes; marca de lectura entre paréntesis.
+
+**Competidores cerrados:**
+- **Manus — Context Engineering** (leído): 6 lecciones directas para 8K — (1) diseñar alrededor del
+  **KV-cache** (prefijos estables, append-only); (2) **enmascarar tools, no quitarlas** (no invalida la
+  caché); (3) **filesystem como contexto externo** ilimitado (en contexto solo referencias); (4)
+  **recitación** (todo.md reescrito) para no perder el foco; (5) **conservar los errores en el contexto**
+  (sin evidencia no aprende); (6) evitar el ruido de few-shot. → Casi todo aplicable tal cual a tu 14B/8K.
+- **Cognition / Devin — "Don't Build Multi-Agents"** (leído): defienden agente **single-threaded lineal** >
+  multi-agente, con 2 principios: *comparte la traza COMPLETA* y *las acciones llevan decisiones implícitas;
+  decisiones en conflicto = mal resultado*. Subagentes SOLO para Q&A read-only (como hace Claude Code). →
+  **Resuelve la tensión con el post multi-agente de Anthropic** (§1.4): para Loombit, **single-thread lineal**
+  para el trabajo con decisiones coherentes (cobros/intake/303) + gate, y **subagentes solo para
+  investigación read-only aislada**. Nada de multi-agente escribiendo en paralelo.
+- **OpenAI Agents SDK** (leído): 5 primitivas — Agents, **Handoffs** (delegación), **Guardrails** (validación
+  entrada/salida en paralelo, fail-fast), **Sessions** (memoria), agent loop + tracing. → Mapa directo:
+  handoffs ≈ enrutado a skills; **guardrails ≈ tus guardas**; sessions ≈ tu memoria.
+- **Cursor** (superficial): su doc es un índice JS no legible por fetch; su mecánica conocida (codebase
+  indexing por embeddings + `.cursor/rules` persistentes) queda **no verificada a fondo** aquí.
+
+**Local-first / on-device:**
+- **Ollama tool-calling** (leído): los modelos locales (Llama 3.1, Qwen, Mistral) SÍ hacen function-calling
+  (`tools` → `tool_calls`), pero la **fiabilidad en modelos pequeños es un riesgo no resuelto** (parsing de
+  parámetros, alucinación en la selección de tool). → **Valida tu Ley Fundacional**: no confiar en el
+  tool-call del 14B — validación JSON estricta + reintento ("solo JSON válido") + **abstención** + logging.
+
+**Headline:** el debate Anthropic (multi-agente, +90 %) vs Cognition (single-thread) se resuelve **por
+tarea**: multi/subagente para **leer/investigar en paralelo** (contextos independientes), single-thread para
+**decidir/escribir coherente**. Loombit cae en single-thread + gate, con subagentes solo para lecturas
+pesadas aisladas.
+
+---
+
 ## Frontera honesta / pendiente
 
-- **Harness `deep-research` parado a las ~2h20** (atascado) → la **barrida amplia verificada** (5 ángulos ×
-  ~15 fuentes con verificación adversarial) queda **pendiente**; es reanudable si se quiere ese cruce.
-- **Competidores cerrados** (Cursor, Devin, Manus, Google Gemini/Jules/Antigravity, OpenAI Operator/Codex)
-  cubiertos solo **superficialmente** — merecen una pasada dirigida si interesa el ángulo competitivo.
-- **Eje local-first / on-device**: tocado por las fuentes, pero su propia pasada (Ollama/LM Studio tool-use,
-  límites reales de modelos ~14B) lo dejaría redondo.
+- **Huecos cerrados (ampliación):** competidores **Manus**, **Cognition/Devin** y **OpenAI (SDK)**, y el eje
+  **local-first** (Ollama tool-calling), ya **leídos** (sección 6).
+- **Pendiente aún:** **Google** (Gemini/Jules/Antigravity/Mariner) y **OpenAI Operator/Codex** sin pasada
+  dedicada; **Cursor** internals no verificados (su doc es un índice JS no legible por fetch).
+- **Harness `deep-research`** parado a las ~2h20 (atascado, reanudable): este informe es el layer profundo
+  **leído a mano**, NO la barrida amplia con verificación adversarial 3-votos.
