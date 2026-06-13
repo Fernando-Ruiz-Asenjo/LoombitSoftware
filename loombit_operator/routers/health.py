@@ -34,6 +34,16 @@ def selfcheck() -> dict:
     return run_selfcheck()
 
 
+@router.get("/health/llm-context")
+def llm_context() -> dict:
+    """¿El modelo cargado en LM Studio tiene contexto suficiente? Compara el contexto REALMENTE
+    cargado contra `llm_context_length`. Hace ruidoso el fallo silencioso «cargado < configurado»
+    que revienta toda operación viva con 400 (y que el gate, con LLM stub, no caza)."""
+    from ..llm_health import check_context
+
+    return check_context()
+
+
 @router.get("/health/python-env")
 def python_env() -> dict:
     """Debug: info del entorno Python del proceso servidor."""

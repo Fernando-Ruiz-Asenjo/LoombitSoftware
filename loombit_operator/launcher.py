@@ -112,6 +112,30 @@ def _wait_server_ready(port: int, timeout: float = 20.0) -> bool:
     return False
 
 
+# ── Aviso de contexto del LLM (fallo silencioso → ruidoso) ────────────────────
+
+
+def _avisar_contexto_llm() -> None:
+    """Avisa FUERTE si el modelo cargado en LM Studio tiene menos contexto del que Loombit espera
+    (cargado < `llm_context_length`) — eso revienta toda operación viva con 400 'n_keep >= n_ctx' y
+    el gate no lo caza. Nunca debe impedir el arranque: cualquier fallo del propio chequeo se ignora.
+    """
+    try:
+        from loombit_operator.llm_health import check_context
+
+        res = check_context()
+    except Exception as exc:  # noqa: BLE001 — el chequeo jamás bloquea el arranque
+        logger.warning("No se pudo chequear el contexto del LLM: %s", exc)
+        return
+    if res.get("status") == "context_too_small":
+        logger.error("LLM: %s", res["message"])
+        _fatal(res["message"])  # MessageBox: el usuario lo ve antes de operar y falle todo
+    elif res.get("status") in ("not_loaded", "unreachable"):
+        logger.warning("LLM: %s", res["message"])
+    else:
+        logger.info("LLM: %s", res.get("message", "contexto OK"))
+
+
 # ── Servidor uvicorn en hilo ──────────────────────────────────────────────────
 
 _server: object = None  # uvicorn.Server
@@ -234,6 +258,7 @@ def main() -> None:
     logger.info("Esperando al servidor en %s ...", UI_URL)
     if _wait_server_ready(PORT):
         logger.info("Servidor listo en %s", UI_URL)
+        _avisar_contexto_llm()
         webbrowser.open(UI_URL)
     else:
         _fatal(

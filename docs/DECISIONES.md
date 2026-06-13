@@ -1105,4 +1105,24 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   tres promesas quedan **🟡** (contrato/fake-tested) hasta el piloto en vivo. Sin LLM en ningún efecto.
 - *Recibo:* gate normal VERDE local; las 3 promesas registradas con su check verde; MIN_TESTS subido.
 - *Reversible:* sí; `git revert` (todo aditivo: módulos nuevos + 1 línea de router en `main.py`).
+
+**D-89 — INGENIERÍA: healthcheck de contexto del LLM — hace RUIDOSO un fallo silencioso real.**
+- *Contexto:* regresión real (2026-06-11): si el 14B se recarga en LM Studio con MENOS contexto del
+  configurado (`llm_context_length`, p.ej. 4096 < 8192), TODA operación viva revienta con
+  `400 'n_keep >= n_ctx'` — pero el gate (pytest con LLM stub) sigue VERDE: fallo SILENCIOSO que el muro
+  no caza.
+- *Elegido:* `loombit_operator/llm_health.py` — `check_context()` compara el contexto REALMENTE cargado
+  (API nativa LM Studio `/api/v0/models`, campo `loaded_context_length`) contra el configurado.
+  Determinista, sin efectos. Estados: `ok` / `context_too_small` (ok=False, el grave) / `not_loaded` /
+  `unreachable` (LM Studio apagado ≠ bug de contexto → ok=True) / `disabled`. Se expone en
+  `GET /health/llm-context` (routers/health.py) y avisa al arrancar (`_avisar_contexto_llm` en
+  launcher.py: MessageBox si `context_too_small`; el chequeo NUNCA bloquea el arranque). Golden
+  `tests/test_llm_health.py` (7 casos, los 5 estados).
+- *Alternativa descartada:* meterlo en el gate de CI — el gate usa LLM stub y no hay LM Studio real en CI;
+  es un chequeo de ENTORNO de ejecución (la máquina del usuario), no de código.
+- *Rama:* `feat/llm-health-context` desde `main` limpio (el WIP venía de una rama 56 commits por detrás del
+  gobierno ya fusionado; se relocalizó para pasar por el muro actual).
+- *Frontera honesta:* la verificación EN VIVO contra LM Studio real depende de que esté arriba; los 7
+  tests cubren la lógica con la API nativa mockeada. Recibo = gate verde (hook + CI).
+- *Reversible:* sí; `git revert` (aditivo: módulo + endpoint + aviso de arranque).
 *(se irán añadiendo entradas según avance el bloque)*
