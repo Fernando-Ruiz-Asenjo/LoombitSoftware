@@ -13,7 +13,6 @@ import re
 
 from ..agent.guardas import registro_guardas
 from ..agent.parsers import validar_iban
-from ..cuentas_cobrar import CuentasCobrarStore
 
 # ── Retención de IRPF: registrar_factura NO la modela. Registrar una factura con retención SIN la
 # retención falsearía el 303 y el 111/130 → se rehúsa honesto, hasta construir el 130 (decisión #8/#9).
@@ -242,41 +241,3 @@ def es_prediccion_financiera(task: str) -> bool:
 @registro_guardas.register
 def _guarda_prediccion(task: str) -> str | None:
     return _MSG_PREDICCION if es_prediccion_financiera(task) else None
-
-
-# ── Sin facturas/cuentas: abstención HONESTA con SALIDA (F-6). Preguntar por cobros cuando NO hay
-# ninguna cuenta registrada no debe devolver un silencio vacío: Loombit dice «no encuentro tus facturas;
-# conéctalas» y guía a subir la carpeta (que las procesa → cuentas + 303). NO dispara si el usuario está
-# APORTANDO datos (sube/registra) ni si ya hay cuentas (entonces el agente las lista o dice «todo
-# cobrado»). La regla de PRODUCTO es acertar solo y guiar, nunca prometer-y-no-hacer sobre el vacío. ──
-_CONSULTA_COBROS = re.compile(
-    r"\b(cobros?|cuentas?\s+(?:a|por)\s+cobrar|vencid\w+|me\s+deben|pendientes?\s+de\s+cobro"
-    r"|impagad\w+|impagos?|moros\w+|qui[eé]n\s+me\s+debe)\b",
-    re.IGNORECASE,
-)
-_APORTA_DATOS = re.compile(
-    r"\b(sub\w+|carpeta|adjunt\w+|import\w+|registr\w+|a[ñn]ad\w+|agreg\w+|nueva\s+cuenta"
-    r"|factura\s+(?:n[ºo°]|num))\b",
-    re.IGNORECASE,
-)
-_MSG_SIN_CUENTAS = (
-    "No tengo ninguna cuenta a cobrar registrada todavía, así que aún no puedo prepararte los cobros. "
-    "Para que lo haga, conéctame tus facturas: súbelas en una carpeta y las proceso —saco tus cuentas a "
-    "cobrar (con vencimientos, interés de demora y recordatorios) y las líneas del 303—, sin que toques "
-    "nada. Dime dónde están tus facturas."
-)
-
-
-def sin_cuentas_que_cobrar(task: str, store: CuentasCobrarStore | None = None) -> bool:
-    """True si se PREGUNTA por cobros/cuentas y NO hay NINGUNA cuenta registrada (store vacío). No
-    dispara si el usuario está aportando datos (sube/registra) — entonces sí va a haber cuentas."""
-    t = task or ""
-    if not _CONSULTA_COBROS.search(t) or _APORTA_DATOS.search(t):
-        return False
-    s = store or CuentasCobrarStore()
-    return not s.list()
-
-
-@registro_guardas.register
-def _guarda_sin_cuentas(task: str) -> str | None:
-    return _MSG_SIN_CUENTAS if sin_cuentas_que_cobrar(task) else None
