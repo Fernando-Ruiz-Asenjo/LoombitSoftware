@@ -1185,4 +1185,22 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   informe es el **layer profundo leído a mano**, NO la barrida amplia verificada. Competidores cerrados y el
   eje local-first quedan cubiertos solo superficialmente.
 - *Reversible:* sí; aditivo (1 doc + 9 señales de radar). No toca código.
+**D-93 — INGENIERÍA/INNOVACIÓN: núcleo GOBERNADO del adaptador de navegador del Pilot (batir a Gemini Spark en local).**
+- *Contexto:* Fernando pidió control del equipo (con permisos) y de Chrome MUY BIEN para órdenes complejas
+  ("comprar billetes"), en LOCAL, batiendo a Gemini Spark — y aplicando el radar ANTES para AFINAR el prompt
+  (proceso nuevo: para prompts de investigar/construir, primero radar→mejora-prompt→ejecuta).
+- *Radar (SOTA):* a11y-tree-first + visión selectiva (AgentOccam; browser-use 89,1% WebVoyager); OSWorld
+  (control de equipo ~72-82%, sigue fallando → gate obligatorio); cascada de permisos de OpenClaw;
+  vision-fallback + extracción con JSON-schema de Skyvern. Cruce con Gemini Spark (D-92): cloud que lee
+  correo/Drive y actúa → Loombit responde LOCAL + gobernado + gate ANTES del pago.
+- *Elegido (construido, 🟡):* `loombit_operator/pilot/browser.py` — núcleo GOBERNADO determinista: espacio de
+  acciones a11y-first (`BROWSER_STEPS`), `dominio_permitido` (allowlist CERRADA por defecto),
+  `es_paso_consecuente`+`validar_secuencia` (pago/compra/envío → GATE humano ANTES de ejecutar),
+  `SAFETY_CONTRACT` como el de `executor.py`. Golden `tests/test_pilot_browser.py` (allowlist,
+  gate-antes-de-pagar, parse a11y, contrato). Diseño en `docs/DISENO_ADAPTADOR_NAVEGADOR_PILOT.md`.
+- *Frontera honesta:* el DRIVING real (Playwright/CDP) y la visión-fallback (VL) son **🟠/⬜ DECLARADOS**
+  (necesitan la dependencia + verificación en vivo); hoy solo está la GOBERNANZA — que es justo la pieza que
+  bate a Spark/OpenClaw (gate antes de pagar + allowlist + local). El código de browser-use/Skyvern/OpenClaw
+  se leyó a nivel ARQUITECTURA (un raw de browser-use dio 404), no fichero-a-fichero; ficheros nombrados.
+- *Reversible:* sí; aditivo (1 módulo + tests + doc + 3 señales). No toca el bucle del agente ni el Pilot de escritorio.
 *(se irán añadiendo entradas según avance el bloque)*
