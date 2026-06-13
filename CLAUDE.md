@@ -64,6 +64,10 @@ ACTIVIDADES, no a «cualquier puesto» (el radar lo desaconseja, D-85). Hazlo ig
   skills, experimenta, propón tools/skills nuevas**. Decide y sorprende.
 - **El radar VIVE:** destila tendencias y competidores de verdad (no un doc muerto) y conviértelo en
   propuestas concretas para Loombit. Si algo se puede automatizar (una routine), automatízalo.
+- **PASA EL RADAR al crear o arreglar (D-90).** Antes de construir CUALQUIER cosa que se te pida, **busca
+  en la web** soluciones útiles e innovaciones para ESA tarea, aplícalas y deja la mejor como señal en
+  `docs/RADAR.jsonl` (con FUENTE real). No es opcional: el gate (`scripts/auditoria_radar.py`) exige el
+  radar vivo **Y fresco** (señal más reciente ≤ 45 días); un radar caducado pone el muro en rojo.
 - **RECIBO DE CONDUCTA (D-70).** Un acto de conducta (proponer una mejora, mejorar un prompt, dar un
   veredicto) **no cuenta como tu palabra: deja un recibo CUANTIFICABLE** y valídalo. Mejorar un prompt exige
   `antes_score`/`despues_score`/`eval`/`n_casos` (y rechaza si no mejora); una innovación exige
