@@ -1219,4 +1219,20 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   quedan como **⬜ siguientes** (la tool no se expone al 14B hasta verificación en vivo: no-mentir).
 - *Reversible:* sí; aditivo (1 módulo + tests). No añade dependencia obligatoria (Playwright es opcional) ni
   toca el bucle del agente ni el Pilot de escritorio.
+
+**D-95 — MEMORIA: consolidación por NEAR-DUPLICADO (dedup estilo Mem0) en el daemon de aprendizaje.**
+- *Contexto:* del barrido (D-92, señal Mem0): la memoria no debe acumular ruido. La consolidación (D-46)
+  deduplicaba lecciones por texto EXACTO, pero dos casi idénticas con texto distinto se guardaban ambas. PR apilado sobre #49.
+- *El muro mandó (honesto):* mi primer intento metía el dedup DENTRO de `agent/memory.py` y el gate lo
+  RECHAZÓ — ese fichero está en deuda de tamaño (>400 líneas, ratchet de la Brújula) y no puede engordar.
+  Correcto: se movió de capa.
+- *Elegido (determinista):* nuevo `agent/memory_dedup.py` (`solape_jaccard`, `leccion_duplicada`, Jaccard ≥
+  `UMBRAL_DEDUP_LECCION`=0.7) enganchado en `aprendizaje.consolidar` (el daemon, donde se acumulan lecciones
+  en lote): si la lección destilada es duplicada EXACTA o NEAR-DUPLICADA de una existente, se OMITE.
+  `memory.py` NO se toca. Golden `tests/test_memoria_consolidada.py` (jaccard, near-dup, exacto, distinta + el
+  daemon omite el near-dup y sí añade la distinta).
+- *Frontera honesta:* dedup DETERMINISTA (caza variantes de TEXTO). El dedup SEMÁNTICO (paráfrasis con otro
+  vocabulario, «email» vs «correo») necesita EMBEDDINGS → **🟠 declarado** (RAG local). `add_lesson` sigue con
+  dedup exacto (no se toca por el ratchet). No toca el bucle del agente.
+- *Reversible:* sí; aditivo (1 módulo + dedup en el daemon + tests). Umbral tunable.
 *(se irán añadiendo entradas según avance el bloque)*
