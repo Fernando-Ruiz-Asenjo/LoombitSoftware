@@ -97,9 +97,13 @@ cuña nueva exige cerrar la anterior al 100 % (criterio de cierre en el roadmap)
   prueba). Mira más allá de la orden literal. Decide y sorprende.
 - **Sé CREATIVO de verdad.** Cruza skills (fiscal × agenda × correo × cobros), experimenta con prototipos
   pequeños (Skill X), inventa tools/skills y promueve lo que funcione.
-- **El RADAR VIVE** con fuentes **reales y verificadas** (`docs/RADAR_INNOVACION.md`); **inventarse el radar
-  es tan grave como falsear un golden**. Incluye un **eje regulatorio** (§EST-2). Automatiza en routines lo
-  que pueda avanzar solo.
+- **El RADAR VIVE** con fuentes **reales y verificadas** (`docs/RADAR_INNOVACION.md` + el registro máquina
+  `docs/RADAR.jsonl`); **inventarse el radar es tan grave como falsear un golden**. Incluye un **eje
+  regulatorio** (§EST-2). Automatiza en routines lo que pueda avanzar solo.
+- **PASA EL RADAR al crear o arreglar (D-90).** Antes de construir lo que se te pida, **busca en la web**
+  soluciones/innovaciones para ESA tarea, aplícalas y registra la mejor como señal en `docs/RADAR.jsonl`
+  (con FUENTE). El gate `scripts/auditoria_radar.py` exige el radar vivo **Y fresco** (señal más reciente
+  ≤ 45 días); si caduca, el muro se pone rojo — cierra la **cadencia** que faltaba.
 - **Un VEREDICTO exige RECIBO DE LECTURA** *(predicción ≠ hecho, aplicado a la investigación; D-58, §META-3).*
   Un veredicto sobre una fuente (`adopt`/`learn`/`avoid`, "encaja", "production-ready", licencia X) es una
   **afirmación**: requiere haber **LEÍDO la fuente entera**, no su titular ni un resultado de búsqueda. En todo
@@ -249,7 +253,7 @@ psicología humana — se gestionan con honestidad, no se "resuelven".
 | Tests/black/ruff verdes | reglas compiladas = gate canónico (§GOB-2) | CI, sin `--no-verify` | bypass hoy → prohibir |
 | Rama por cambio | política de tamaño (§CONC) | sensor (§META-1) | sin límite (176 commits) |
 | Golden no tautológico | mutación adversarial en el gate (§GOB-3/4) | mutantes de otro agente | mutación suelta → al gate |
-| El radar VIVE | routine tech-radar + eje regulatorio (§EST-2) | fuentes verificadas | falta cadencia |
+| El radar VIVE + FRESCO | `auditoria_radar.py`: vivo + **frescura ≤45d** (D-90) + eje regulatorio (§EST-2) | gate `verify.py` (rojo si caduca) | routine tech-radar que lo refresque solo |
 | Un veredicto exige recibo de lectura (D-58) | bloque "leído íntegro vs solo búsqueda" en todo doc de investigación | revisión humana del recibo; futuro: sensor §META-1 marca veredicto sin fuente leída | recibo manual hoy → automatizar en sensor |
 | Mejora lo que se te pide (Ley 0) | sensor + deuda normativa (§META-1) | el agente lee deuda primero | **falta el sensor** |
 | Mantenla viva | disparador+dueño+procedimiento (§META-3) | PR + DECISIONES + sync | ya con disparador |

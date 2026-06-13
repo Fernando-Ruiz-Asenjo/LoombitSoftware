@@ -1105,4 +1105,24 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   tres promesas quedan **🟡** (contrato/fake-tested) hasta el piloto en vivo. Sin LLM en ningún efecto.
 - *Recibo:* gate normal VERDE local; las 3 promesas registradas con su check verde; MIN_TESTS subido.
 - *Reversible:* sí; `git revert` (todo aditivo: módulos nuevos + 1 línea de router en `main.py`).
+
+**D-90 — INNOVACIÓN: «pasa el radar al crear/arreglar» + freshness gate (cierra la «cadencia» que faltaba).**
+- *Contexto:* Fernando, enfático: el Radar no es un `.jsonl` que el gate mira de reojo — hay que **pasarlo
+  SIEMPRE que se pida crear o arreglar algo**, buscando en la web soluciones útiles e innovaciones para esa
+  tarea. La tabla norma→mecanismo de la propia Brújula marcaba el radar como «falta cadencia».
+- *Radar pasado para ESTA tarea (web):* docdecay (PyPI) valida en CI que un doc se tocó dentro de
+  `STALE_AGE_IN_DAYS`; ThoughtWorks publica el radar 2×/año y un blip cae salvo que se re-argumente → «un
+  radar que no se refresca, muere». Señal registrada en `docs/RADAR.jsonl` (2026-06-13, fuente PyPI).
+- *Elegido:* (a) `scripts/auditoria_radar.py` gana un **check de frescura** — la señal más reciente debe
+  estar a ≤ `MAX_DIAS_FRESCURA` (45 días) de hoy; si no, `radar CADUCADO` → el gate (`verify.py`) se pone
+  ROJO. `hoy` inyectable para tests deterministas; la frescura REAL la mide el gate vivo con `date.today()`.
+  (b) Norma encodeada en `CLAUDE.md` (INNOVACIÓN) y `docs/BRUJULA.md` (norma + tabla norma→mecanismo:
+  «falta cadencia» → resuelta). Golden: +3 tests (fresco pasa / caducado falla / sin fecha falla) y
+  `test_radar_real_vive` hecho determinista (mide desde la señal más nueva, no del reloj de la suite).
+- *Frontera honesta:* el gate fuerza que el radar esté FRESCO (obliga a un pase periódico), pero no puede
+  comprobar mecánicamente que en CADA tarea busqué en la web — eso es conducta, reforzada por la norma en la
+  Brújula (que se carga cada turno) y por memoria. Residuo: una **routine tech-radar** que lo refresque sola.
+- *Trade-off declarado:* el gate vivo se vuelve sensible al reloj — tras 45 días sin tocar el radar, el CI se
+  pone rojo aunque el código esté bien. Es intencional (forzar el pase) y tunable (`MAX_DIAS_FRESCURA`).
+- *Reversible:* sí; aditivo (check + tests + 1 señal + ediciones de doc). Subir `MAX_DIAS_FRESCURA` revierte.
 *(se irán añadiendo entradas según avance el bloque)*

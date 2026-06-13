@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +24,10 @@ RADAR = ROOT / "docs" / "RADAR.jsonl"
 
 MIN_SENALES = 3  # un radar con menos de esto está anémico (no vive)
 MIN_TEXTO = 15  # hallazgo/propuesta por debajo de esto es humo
+# Frescura: la señal más reciente debe estar dentro de esta ventana. Patrón docdecay (CI valida que
+# el doc se tocó dentro de N días) + principio ThoughtWorks (un blip cae salvo que se re-argumente):
+# un radar que no se refresca, muere. Backstop generoso para no estorbar el trabajo activo; tunable.
+MAX_DIAS_FRESCURA = 45
 _EVIDENCIA = {"dura", "blanda"}  # dura = dato/anuncio oficial; blanda = opinión/marketing
 _REQUERIDOS = {"fecha", "tema", "fuente", "evidencia", "hallazgo", "propuesta"}
 
@@ -65,8 +70,17 @@ def validar_senal(s: Any) -> list[str]:
     return errores
 
 
-def auditar(path: Path = RADAR) -> list[str]:
-    """«Si no hay radar, no pasa.» Devuelve los fallos (vacía = el radar vive y es real)."""
+def _fecha_de(s: Any) -> date | None:
+    """La `fecha` de una señal como date, o None si falta/está malformada (AAAA-MM-DD)."""
+    try:
+        return datetime.strptime(str(s.get("fecha", "")), "%Y-%m-%d").date()
+    except (ValueError, TypeError, AttributeError):
+        return None
+
+
+def auditar(path: Path = RADAR, hoy: date | None = None) -> list[str]:
+    """«Si no hay radar, no pasa.» Y si está CADUCADO, tampoco. Devuelve los fallos
+    (lista vacía = el radar vive, es real y está fresco)."""
     senales = cargar(path)
     if not senales:
         return ["NO HAY RADAR: `docs/RADAR.jsonl` ausente o vacío — el radar no vive (§INNOVACIÓN)"]
@@ -77,6 +91,19 @@ def auditar(path: Path = RADAR) -> list[str]:
         )
     for s in senales:
         fallos += validar_senal(s)
+    # Frescura: la señal más reciente debe estar dentro de la ventana → fuerza «pasar el radar»
+    # (buscar en la web una innovación nueva) al crear/arreglar. Un radar viejo no vive.
+    hoy = hoy or date.today()
+    fechas = [f for f in (_fecha_de(s) for s in senales) if f is not None]
+    if not fechas:
+        fallos.append("radar SIN FECHA válida: ninguna señal trae `fecha` AAAA-MM-DD")
+    else:
+        dias = (hoy - max(fechas)).days
+        if dias > MAX_DIAS_FRESCURA:
+            fallos.append(
+                f"radar CADUCADO: la señal más reciente es de hace {dias} días "
+                f"(> {MAX_DIAS_FRESCURA}) — pasa el radar: busca en la web y añade una señal fresca."
+            )
     return fallos
 
 
