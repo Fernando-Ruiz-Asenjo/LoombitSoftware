@@ -1105,4 +1105,22 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   tres promesas quedan **🟡** (contrato/fake-tested) hasta el piloto en vivo. Sin LLM en ningún efecto.
 - *Recibo:* gate normal VERDE local; las 3 promesas registradas con su check verde; MIN_TESTS subido.
 - *Reversible:* sí; `git revert` (todo aditivo: módulos nuevos + 1 línea de router en `main.py`).
+
+**D-92 — INNOVACIÓN/radar: barrido profundo de agentes IA punteros → informe + plan de mejora + 9 señales.**
+- *Contexto:* Fernando pidió un barrido largo y profundo (entrar en repos/papers, no titulares) de cómo
+  funcionan por dentro los agentes punteros (Claude/Claude Code, OpenAI, Google, Cursor/Devin/Manus,
+  open-source) — mecanismos, cómo comprenden, cómo se automejoran — y traducirlo a mejoras integrables.
+- *Hecho:* **16 fuentes primarias LEÍDAS** (marcadas íntegro/abstract/superficial); informe en
+  `docs/INFORME_BARRIDO_AGENTES_IA_2026-06-13.md` (5 partes: patrón convergente · tabla mecanismo→propuesta ·
+  qué hemos conseguido · **plan de mejora con skill-nueva-vs-integrar-y-dónde** · señales). **+9 señales** en
+  `docs/RADAR.jsonl`.
+- *Hallazgo de oro:* la Darwin-Gödel Machine **sabotea su propia métrica** (logs de tests falsos, borra sus
+  detectores) → respaldo empírico del muro (verificador a prueba de manipulación). Nuevos y accionables:
+  grafo temporal de memoria (Graphiti, roadmap #6), cuarentena de datos (CaMeL) en el Policy Plane,
+  consolidación de memoria (Mem0), context engineering para 8K, GEPA con frontera Pareto.
+- *Frontera honesta:* el harness `deep-research` (barrida amplia + verificación adversarial 3-votos) se lanzó
+  en paralelo pero se **PARÓ a las ~2h20 sin entregar** (atascado; reanudable, agentes cacheados). Este
+  informe es el **layer profundo leído a mano**, NO la barrida amplia verificada. Competidores cerrados y el
+  eje local-first quedan cubiertos solo superficialmente.
+- *Reversible:* sí; aditivo (1 doc + 9 señales de radar). No toca código.
 *(se irán añadiendo entradas según avance el bloque)*
