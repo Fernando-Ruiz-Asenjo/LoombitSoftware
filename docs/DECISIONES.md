@@ -1171,4 +1171,22 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   tamaño, así que el cableado se hará al partir el loop, sin engordarlo). Mismo patrón honesto que el núcleo
   del navegador (#48): primitiva gobernada y testeada; activación en vivo declarada.
 - *Reversible:* sí; aditivo (1 helper + 1 param opcional + tests). No cambia el comportamiento existente del plano.
+
+**D-97 — FÁBRICA/GEPA: frontera de Pareto (selección por instancia, no por media).**
+- *Contexto:* del barrido (D-92, señal GEPA, arXiv:2507.19457): el bucle de `gepa.py` guarda UN «mejor»
+  por score AGREGADO. GEPA real mantiene una FRONTERA de candidatos no-dominados y muestrea de ella
+  ponderando por instancias ganadas — así NO se atasca en un óptimo local de la media y conserva
+  estrategias COMPLEMENTARIAS (uno bueno en F2, otro en F7) que la media fusionaría y perdería. PR apilado sobre #51.
+- *El ratchet manda:* `gepa.py` ya está en deuda (416 líneas > 400) y NO puede engordar. Mismo patrón que
+  `memory_dedup.py` (D-95): la pieza nueva va en módulo aparte.
+- *Elegido (determinista):* nuevo `fabrica/gepa_pareto.py` — `vector_de` (detalle de `evaluar` → vector por
+  instancia), `domina` (Pareto: ≥ en todas y > en una), `frontera_pareto`, `instancias_ganadas`,
+  `pesos_de_frontera` (frontera + peso = instancias ganadas, para un sampler con semilla) y
+  `elegir_de_frontera` (elección DETERMINISTA: mayor cobertura, desempate por media y `clave`). Golden
+  `tests/test_gepa_pareto.py` (7): complementarios sobreviven, dominado fuera, elección por cobertura.
+- *Frontera honesta:* la PRIMITIVA está completa y testeada, pero **el cableado en `optimizar_prompt`**
+  (sustituir el «mejor» único por la frontera) es **🟠 declarado**: tocaría `gepa.py`, que está en deuda y no
+  puede engordar — se hará al partir ese fichero, sin engordarlo. El muestreo ESTOCÁSTICO ponderado de GEPA
+  necesita RNG (semilla) → `pesos_de_frontera` lo deja servido; `elegir_de_frontera` da la variante seedless.
+- *Reversible:* sí; aditivo (1 módulo + tests). No toca `gepa.py` ni el bucle del agente.
 *(se irán añadiendo entradas según avance el bloque)*
