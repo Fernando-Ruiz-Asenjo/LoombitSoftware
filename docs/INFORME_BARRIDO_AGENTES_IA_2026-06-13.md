@@ -165,11 +165,63 @@ pesadas aisladas.
 
 ---
 
+## 7. Control del equipo + navegador (Chrome) MUY BIEN + OpenClaw a fondo
+
+Encargo: batir a **Gemini Spark** en local, con control del equipo (con permisos) y navegador para órdenes
+complejas tipo "comprar billetes de avión". Fuentes leídas (READMEs).
+
+**OpenClaw a fondo** ([repo](https://github.com/openclaw/openclaw)): es un **control-plane unificado**
+(sesiones/canales/tools/eventos) que conecta **50+ apps sin APIs externas** (WhatsApp/Telegram/Discord…),
+con tools de 1ª clase (navegador, canvas, nodos iOS/Android, cron), **sandbox modes** (main vs non-main,
+Docker/SSH), permisos por **DM-pairing** (remitente nuevo → código de aprobación) y contexto por ficheros
+(`AGENTS.md`/`SOUL.md`/`TOOLS.md`); skills en `~/.openclaw/workspace/skills/<skill>/SKILL.md` vía ClawHub.
+**PERO su cerebro es CLOUD** (OAuth OpenAI, sin Ollama/LM Studio nativo). → **Loombit gana doble: local de
+control Y de modelo + gobierno/no-mentir/fiscal.** Adoptar: control-plane de sesiones + sandbox-modes +
+DM-pairing (≈ tu gate) + inyección de contexto por ficheros.
+
+**Navegador MUY BIEN — "comprar billetes":**
+- **browser-use** ([repo](https://github.com/browser-use/browser-use)): **Playwright/CDP** + **árbol de
+  accesibilidad/DOM** + screenshots/visión → le da al LLM los elementos clicables; hace login, formularios,
+  **reservas (vuelos)**; recovery loops; **local vía Ollama**; `BrowserProfile(allowed_domains=...)` para
+  permisos; auth con **perfiles reales** (credenciales guardadas, no hardcoded). → **Es el adaptador
+  Playwright/CDP que tu Skill W Pilot tiene PENDIENTE** (roadmap). Misma filosofía que tu UIA
+  accessibility-first del escritorio.
+- **Skyvern** ([repo](https://github.com/Skyvern-AI/skyvern)): **visión LLM, sin XPaths frágiles** →
+  robusto a cambios de layout; `click(prompt="el botón verde Comprar")`; **extracción estructurada con JSON
+  schema**; flujos multi-paso de reserva. → Patrón: **selector con fallback a visión** + extracción con
+  schema.
+
+**Cómo se traduce al adaptador de navegador del Pilot (lo nuevo a construir):**
+- **Playwright/CDP + accessibility-tree-first + visión de respaldo** (browser-use + Skyvern). Para el 14B,
+  el árbol de accesibilidad (texto) reduce la dependencia de visión pesada; visión solo cuando no basta.
+- **allowed_domains** (lista blanca) + credenciales en perfil real, nunca hardcoded.
+- **El gate sagrado de Loombit es la pieza que a ELLOS les falta:** "comprar billetes" = efecto externo +
+  pago → PAUSA y el humano confirma **antes del checkout**. Seguridad nativa, no parche.
+
+**Marketplace de skills (ClawHub) para tu Fábrica** ([repo](https://github.com/openclaw/clawhub)):
+`SKILL.md` + frontmatter que declara `requires` (env/bins); **descubrimiento por embeddings** (no keywords —
+ya tienes RAG); versionado con tags/changelogs; y **"análisis de seguridad que valida lo DECLARADO contra
+el comportamiento REAL"** = exactamente tu **arnés gobernado**. Adoptar el formato de manifiesto +
+permisos-por-skill + descubrimiento por embeddings.
+
+**Headline:** para batir a Gemini Spark en "comprar billetes" y control del equipo, la receta = **adaptador
+de navegador (Playwright/CDP + accessibility + visión-fallback) + el gate sagrado de Loombit antes de
+cualquier pago + todo LOCAL (control Y modelo) + 14B**. OpenClaw da el patrón de control-plane y permisos,
+pero su cerebro es cloud — ahí ya le ganas.
+
+**(Ojo, honesto):** los repos OSS de 2026 (OpenClaw/ClawHub/QwenPaw/Odysseus) son post-corte de
+conocimiento; leídos por README. Cifras de "estrellas" vienen de blogs (no verificadas). El CÓDIGO concreto
+(no solo el README) hay que leerlo al implementar.
+
+---
+
 ## Frontera honesta / pendiente
 
-- **Huecos cerrados (ampliación):** competidores **Manus**, **Cognition/Devin** y **OpenAI (SDK)**, y el eje
-  **local-first** (Ollama tool-calling), ya **leídos** (sección 6).
-- **Pendiente aún:** **Google** (Gemini/Jules/Antigravity/Mariner) y **OpenAI Operator/Codex** sin pasada
-  dedicada; **Cursor** internals no verificados (su doc es un índice JS no legible por fetch).
+- **Cubierto (leído por README/doc):** Manus, Cognition/Devin, OpenAI SDK, Ollama (§6) + **OpenClaw,
+  browser-use, Skyvern, ClawHub, QwenPaw, Dify** (§7). **Gemini Spark** caracterizado por fuentes
+  secundarias (I/O 2026), no por doc técnica de Google.
+- **Pendiente aún:** **Google** internals (Gemini/Jules/Antigravity/Mariner) y **OpenAI Operator/Codex** sin
+  pasada dedicada; **Cursor** internals (doc JS no legible); **Odysseus** y el **código fuente** de
+  OpenClaw/browser-use/Skyvern sin leer a nivel de implementación.
 - **Harness `deep-research`** parado a las ~2h20 (atascado, reanudable): este informe es el layer profundo
   **leído a mano**, NO la barrida amplia con verificación adversarial 3-votos.
