@@ -34,13 +34,22 @@ def _plan_de(c: CuentaCobrar) -> dict:
 def listar() -> dict:
     s = CuentasCobrarStore()
     pend = s.pendientes()
-    return {
+    out: dict = {
         "pendientes": [c.to_dict() for c in pend],
         # cada vencida trae su plan de cobro ya calculado (lo que el operador puede reclamar).
         "vencidas": [{**c.to_dict(), "plan": _plan_de(c)} for c in s.vencidas()],
         "proximas": [c.to_dict() for c in s.proximas(7)],
         "total_pendiente": round(sum(c.importe for c in pend), 2),
     }
+    if not s.list():
+        # F-6: sin NINGUNA cuenta registrada, no devuelvas un vacío mudo — guía a conectar las facturas.
+        out["sin_datos"] = True
+        out["mensaje"] = (
+            "Aún no tengo cuentas a cobrar registradas. Sube tus facturas en una carpeta y las proceso "
+            "—saco tus cuentas a cobrar (vencimientos, interés de demora, recordatorios) y el 303—, sin "
+            "que toques nada."
+        )
+    return out
 
 
 @router.get("/{cuenta_id}/plan")

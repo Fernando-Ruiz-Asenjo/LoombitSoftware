@@ -19,7 +19,7 @@ from typing import Any
 from ..cuentas_cobrar import CuentasCobrarStore, cuenta_desde_factura
 from ..docs_intel import extract_invoice_fields, extract_text_from_pdf
 from ..expedientes import ExpedienteStore
-from .intake import linea_desde_factura, registrar_factura
+from .intake import linea_desde_factura, liquidar_303_periodo, registrar_factura
 
 _EXT_TEXTO = {".txt", ".text"}
 _EXT_FACTURA = _EXT_TEXTO | {".pdf"}
@@ -129,3 +129,31 @@ def intake_carpeta(
             store_cc.add(cuenta)
             r.cuentas_creadas += 1
     return r
+
+
+def intake_y_liquidar(
+    carpeta: str | Path,
+    store_exp: ExpedienteStore,
+    store_cc: CuentasCobrarStore,
+    periodo: str,
+    sentido: str = "devengado",
+    plazo_dias: int = 30,
+) -> dict[str, Any]:
+    """Un tirón (F-5): CARPETA de facturas → facturas registradas + cuentas a cobrar + 303 del periodo.
+
+    Encadena `intake_carpeta` (puebla la plataforma) y `liquidar_303_periodo` (303 `PENDING_APPROVAL`).
+    Las cifras vienen del CÓDIGO (regex determinista), las ilegibles van en `intake.abstenidas` —no se
+    inventan—, y el 303 lo PRESENTA el humano (la IA solo prepara). Devuelve `{"intake": ..., "303": ...}`.
+    """
+    resumen = intake_carpeta(carpeta, store_exp, store_cc, sentido=sentido, plazo_dias=plazo_dias)
+    exp, res = liquidar_303_periodo(store_exp, periodo)
+    return {
+        "intake": resumen.to_dict(),
+        "303": {
+            "expediente_id": exp.id,
+            "status": exp.status.value,  # pending_approval: la IA NO presenta a la AEAT
+            "resultado": str(res.resultado),
+            "casillas": res.casillas,
+            "avisos": res.avisos,
+        },
+    }
