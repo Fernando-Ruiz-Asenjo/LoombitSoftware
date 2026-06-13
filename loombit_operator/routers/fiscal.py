@@ -9,6 +9,7 @@ humano lo cierra aportando el justificante. Ver `docs/PLATAFORMA_FISCAL_ANALISIS
 from __future__ import annotations
 
 from dataclasses import asdict
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -21,6 +22,7 @@ from ..expedientes import (
     ExpedienteStore,
 )
 from ..skill_d_fiscal import liquidar_303_periodo, registrar_factura
+from ..skill_d_fiscal.intake_batch import intake_y_liquidar
 
 router = APIRouter(prefix="/entidades", tags=["fiscal"])
 
@@ -37,6 +39,13 @@ class FacturaIn(BaseModel):
 
 class Liquidar303In(BaseModel):
     periodo: str
+
+
+class IntakeYLiquidarIn(BaseModel):
+    carpeta: str
+    periodo: str
+    sentido: str = "devengado"  # devengado (ventas) | soportado (compras)
+    plazo_dias: int = 30
 
 
 class AprobarIn(BaseModel):
@@ -142,3 +151,21 @@ def aprobar(entity_id: str, expediente_id: str, body: AprobarIn) -> dict:
     else:
         exp = store.set_status(expediente_id, ExpedienteStatus.IN_REVIEW, body.actor)
     return _summary(exp)
+
+
+@router.post("/{entity_id}/intake-y-303")
+def intake_y_303(entity_id: str, body: IntakeYLiquidarIn) -> dict:
+    """F-5 de un tirón: una CARPETA de facturas → facturas registradas + cuentas a cobrar + 303 del
+    periodo. La IA prepara; el 303 queda `PENDING_APPROVAL` (el humano presenta con justificante).
+    Cifras por CÓDIGO (regex determinista, no el LLM); las ilegibles/escaneadas se LISTAN en
+    `intake.abstenidas`, nunca se inventan (Ley Fundacional / §14B). Idempotente por nº de factura.
+    """
+    carpeta = Path(body.carpeta)
+    if not carpeta.is_dir():
+        raise HTTPException(status_code=400, detail=f"No es una carpeta legible: {body.carpeta}")
+    from ..cuentas_cobrar import CuentasCobrarStore
+
+    store = _store(entity_id)
+    return intake_y_liquidar(
+        carpeta, store, CuentasCobrarStore(), body.periodo, body.sentido, body.plazo_dias
+    )

@@ -1105,4 +1105,27 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   tres promesas quedan **🟡** (contrato/fake-tested) hasta el piloto en vivo. Sin LLM en ningún efecto.
 - *Recibo:* gate normal VERDE local; las 3 promesas registradas con su check verde; MIN_TESTS subido.
 - *Reversible:* sí; `git revert` (todo aditivo: módulos nuevos + 1 línea de router en `main.py`).
+
+**D-91 — PRODUCTO/cuña 1: INTAKE F-5 (carpeta → cuentas + 303 de un tirón) + abstención honesta F-6.**
+- *Contexto:* el cuello de botella del producto no era el cerebro sino los DATOS (`/cuentas` vacío, galaxia
+  0 €). El plumbing de intake estaba ~95 % (extracción regex `docs_intel`, `intake_carpeta`, `calcular_303`,
+  store de cuentas, golden). Faltaban dos piezas: encadenar todo en una llamada y la abstención honesta sin datos.
+- *Radar pasado (web):* práctica 2026 de extracción de facturas = confidence-score + human-in-the-loop desde
+  el día 1 + VL multimodal (Qwen2.5-VL) renderizando PDF→imagen. Valida el enfoque (abstención + gate + OCR
+  local). Señal en `docs/RADAR.jsonl` (fuente cradl.ai).
+- *Elegido (F-5):* `skill_d_fiscal.intake_batch.intake_y_liquidar(carpeta, store_exp, store_cc, periodo, …)`
+  encadena `intake_carpeta` (puebla facturas + cuentas) y `liquidar_303_periodo` (303 `PENDING_APPROVAL`).
+  Cifras por CÓDIGO; ilegibles/escaneadas listadas en `abstenidas`, no inventadas. Endpoint
+  `POST /entidades/{id}/intake-y-303` (router fino: valida la carpeta ANTES de tocar stores). El humano presenta.
+- *Elegido (F-6):* `GET /cuentas`, sin NINGUNA cuenta registrada, añade `sin_datos:true` + un `mensaje` que
+  guía a conectar las facturas (subir carpeta → cobros + 303) en vez de un vacío mudo. Aditivo (no rompe el
+  contrato). Capa correcta = el dato que se MUESTRA. (Primero lo intenté como guarda pre-ReAct y el MURO lo
+  RECHAZÓ por interceptar la consulta agregada legítima «¿cuánto me deben?» — golden del cerebro + auditoría
+  D2; el gobierno hizo su trabajo y se corrigió de capa.)
+- *Frontera honesta:* F-5/F-6 quedan en **🟡** (código + golden, sin LLM): facturas con texto (PDF/.txt). El
+  escaneado SIN texto sigue FUERA (necesita el VL local, cableado pero pendiente de un escaneo real para 🟢).
+  Ningún endpoint presenta a la AEAT.
+- *Golden:* `tests/test_intake_f5_f6.py` (F-5: cifras exactas 630,00 + abstención; F-6: `/cuentas` vacío →
+  `sin_datos`+mensaje, con datos → no lo marca).
+- *Reversible:* sí; aditivo (1 función + 1 endpoint + 1 guarda + tests). No toca el núcleo del agente.
 *(se irán añadiendo entradas según avance el bloque)*
