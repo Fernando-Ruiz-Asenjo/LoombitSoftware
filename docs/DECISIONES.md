@@ -1124,4 +1124,20 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   bate a Spark/OpenClaw (gate antes de pagar + allowlist + local). El código de browser-use/Skyvern/OpenClaw
   se leyó a nivel ARQUITECTURA (un raw de browser-use dio 404), no fichero-a-fichero; ficheros nombrados.
 - *Reversible:* sí; aditivo (1 módulo + tests + doc + 3 señales). No toca el bucle del agente ni el Pilot de escritorio.
+
+**D-94 — INGENIERÍA: capa de DRIVING del adaptador de navegador (Playwright/CDP) sobre el núcleo gobernado.**
+- *Contexto:* capa 2 de D-93 (apilada): conducir Chrome de verdad respetando la gobernanza. PR apilado sobre #48.
+- *Elegido (construido, 🟡):* `loombit_operator/pilot/browser_driver.py` — `BrowserDriver`: navega (allowlist),
+  `snapshot_a11y` (aplana `page.accessibility.snapshot()`), **clic ACCESSIBILITY-first por rol+nombre**
+  (`get_by_role`, no XPaths frágiles ni coordenadas), `type_text`, y `ejecutar()` que **ENFORZA el gate en
+  ejecución**: ante un paso consecuente (pago/compra/envío) no aprobado, PARA y devuelve
+  `pendiente_aprobacion` — el pago NO se ejecuta. Recibo local. Playwright = dependencia OPCIONAL (import
+  perezoso, como pypdf); `page` inyectable. Golden `tests/test_browser_driver.py` (5: gate para sin aprobar,
+  procede con aprobación, allowlist bloquea, aplanado a11y, snapshot indexado) — con `page` FALSO, sin Chrome.
+- *Frontera honesta:* el driving REAL contra Chrome es **🟡 hasta verificarse EN VIVO** (`pip install
+  playwright && playwright install chromium`); el golden prueba la lógica/gobernanza con un page falso, no el
+  navegador real. La visión-fallback (Skyvern, VL local) y registrar la tool `browser_*` para el agente
+  quedan como **⬜ siguientes** (la tool no se expone al 14B hasta verificación en vivo: no-mentir).
+- *Reversible:* sí; aditivo (1 módulo + tests). No añade dependencia obligatoria (Playwright es opcional) ni
+  toca el bucle del agente ni el Pilot de escritorio.
 *(se irán añadiendo entradas según avance el bloque)*
