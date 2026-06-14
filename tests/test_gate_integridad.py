@@ -34,6 +34,10 @@ _CANDADOS_OBLIGATORIOS = {
     ],
     "tests/test_conducta.py": ["test_recibos_commiteados_son_validos", "BAJO VALOR"],
     "tests/test_gate_integridad.py": ["_CANDADOS_OBLIGATORIOS"],
+    # El Muro: el centinela always-on y su carta no se pueden borrar ni vaciar (D-102 / §3d).
+    "loombit_operator/el_muro_centinela.py": ["def centinela_executor", "salud_muro"],
+    "tests/test_el_muro_centinela.py": ["test_salud_muro_todo_sano"],
+    "docs/EL_MURO.md": ["El Muro dispone"],
 }
 
 

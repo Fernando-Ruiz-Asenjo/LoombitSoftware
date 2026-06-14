@@ -19,13 +19,20 @@ control de confianza para nada consecuente.* "El LLM propone / el código dispon
 código determinista" · "gate humano para todo efecto externo" · "datos ≠ órdenes" · CaMeL. Todo lo
 consecuente (€, fechas, IBAN, impuestos, qué tool corre y con qué parámetros, el efecto externo) lo deciden
 **código determinista verificable + el gate humano**; el LLM entiende, narra y propone, y por construcción
-no puede causar daño. Todo lo demás cuelga de aquí.
+no puede causar daño. Todo lo demás cuelga de aquí. **Corolario UI (D-101):** el operador puede *generar/adaptar*
+su interfaz, pero la UI generada es **capa de propuesta, jamás el camino de control** — el LLM elige de un
+**vocabulario CERRADO de componentes** (nunca markup/JS libre = inyección) y ningún efecto consecuente se dispara
+desde el markup del modelo; pasa por código + gate (§SEG-8).
 
 **NORTE (qué es y para quién).** **VISIÓN (norte largo, no el techo):** Loombit = el **compañero de trabajo
 necesario para cualquier actividad —laboral o no— de una persona ante un ordenador, tablet o teléfono.**
 Núcleo **blanco y reutilizable**: el mismo runtime sirve cualquier dominio/dispositivo según las skills.
+**LA CAJA (cómo se usa; D-100):** una caja donde escribes cualquier tarea y la hace — *dentro* (skill conocida) →
+vía rápida determinista; *fuera* → **agente autónomo de computer-use LOCAL** (fallthrough), autónomo en lo
+local/lectura/cómputo con **gate humano SOLO en el efecto externo**.
 **Foso (vale para todo): LOCAL** (los datos no salen de la máquina) · **comprensión profunda del trabajo** ·
-**adaptativo.** **CUÑA ACTIVA (estrategia, no límite; D-86):** se ejecuta por cuñas, cerrando una al 100 %
+**adaptativo** (genera la interfaz/pantalla que la tarea necesita; es propuesta, nunca el camino de control —
+§SEG-8, D-101). **CUÑA ACTIVA (estrategia, no límite; D-86):** se ejecuta por cuñas, cerrando una al 100 %
 antes de abrir la siguiente (anti-dispersión); la cuña 1 = **el compañero de trabajo de oficina del
 autónomo/PYME español**. **Usuario ESTRECHO** (autónomo/PYME español; foso: local + español + **VeriFactu**),
 **actividades ANCHAS:** del **ancla fiscal/cobros** (VeriFactu: factura→registro→303, morosidad) al **trabajo
@@ -78,7 +85,11 @@ ACTIVIDADES, no a «cualquier puesto» (el radar lo desaconseja, D-85). Hazlo ig
   exigen haber **leído la fuente entera**, no su titular. Marca *leído íntegro* vs *solo búsqueda* (provisional).
   Afirmar un veredicto sin lectura = falsear un golden.
 
-**GOBIERNO (los mecanismos que hacen cumplir lo anterior).** Una norma sin mecanismo es decoración. Ver
+**GOBIERNO (los mecanismos que hacen cumplir lo anterior).** Una norma sin mecanismo es decoración. **El equipo
+que la hace cumplir se llama EL MURO (D-102):** no es un proceso, es un *equipo* de agentes monitores individuales
+(gate `verify.py` + 8 auditorías + mutación + test en vivo + candados + CI + CODEOWNERS + cadena + scheduler) que
+actúan como uno; **defiende** el NORTE y la Brújula sin *ser* ninguno (Separación de Autoridades). Carta:
+`docs/EL_MURO.md`. Ver
 `docs/BRUJULA.md` Partes II-V: §GOB (autoridad única + compila + auditor≠constructor), §SEG (datos≠órdenes +
 suite de inyección), §CONC (worktree + tamaño de rama), §14B (cifras POST-LLM), §META (sensor + retirada +
 mantenla viva). La **tabla norma→mecanismo→auditoría** (Parte IV) es la espina dorsal; el orden de
