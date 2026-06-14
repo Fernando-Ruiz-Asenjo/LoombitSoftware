@@ -492,6 +492,40 @@ del agente**, no construir desde cero.
 
 ---
 
+## 20. Ronda 3 (5 ciclos) — nuevas Skills propuestas (con radar real)
+
+> Cada propuesta pasó el radar (D-90): fuente real en `docs/RADAR.jsonl` (señales 2026-06-14). Las
+> skills respetan la taxonomía (C>W>G>D>A>X) y las leyes (gate, local-first, cifras por código, ledger).
+
+### 20.1 Skills nuevas propuestas
+
+| Código | Skill | Rol | Reusa del repo | Fuente (radar) |
+|---|---|---|---|---|
+| `Skill A` | **Visión Documental** | Qwen-VL local: lee facturas/PDF/escaneo, extrae campos | `read_invoice` + candado numérico (§19 C8) | SLM/Qwen-VL on-device |
+| `Skill A` | **WhatsApp Connector** | recordatorios de cobro con tono escalado + enlace de pago | `decisions_cobros.py` | WhatsApp 3x cobro |
+| `Skill A` | **Open Banking (AISP)** | importa movimientos (OPT-IN) → auto-concilia, morosidad real | `conciliacion_cobros.py` | PSD2/PSD3 AISP |
+| `Skill D` | **VeriFactu** | hash encadenado + QR + export AEAT + registro de eventos | `expedientes.py` (chain), `verifactu.py` | VeriFactu jul-2026, multas 50k€ |
+| `Skill G` | **Del cobro al 303** | golden path end-to-end que orquesta las D/A | todo lo anterior | — |
+| `Skill X` | **Voz/Teléfono (lab)** | recordatorio de cobro por voz (TTS/ASR local) | — | experimental |
+
+### 20.2 Reglas que cumplen (no son humo)
+- **Cifras:** Visión Documental PROPONE, pero `calcular_303`/`inferir_tipo_iva` (Decimal) DISPONEN (candado §19 C8).
+- **Efectos externos:** WhatsApp/Open Banking/VeriFactu→AEAT pasan por **gate humano** (Ley 3) y entran en el **ledger encadenado** (§19 C7).
+- **Contenido no confiable:** OCR de Visión y movimientos de Open Banking entran como DATO → **exigen CaMeL wired** (R1·P0) ANTES de construirse, o son inyectables.
+- **Adapters reemplazables:** las `Skill A` no contaminan el núcleo; el gate se replica (unificar por `safety_class`, R1·P2).
+
+### 20.3 Secuencia por valor × deadline
+1. `Skill A WhatsApp Cobros` — máximo ROI comercial (ataca morosidad ya).
+2. `Skill D VeriFactu` — deadline jul-2026/2027, reusa la cadena existente.
+3. `Skill A Visión Documental` — intake real de facturas.
+4. `Skill A Open Banking` — cierra el lazo de conciliación.
+5. `Skill G Del cobro al 303` — los une cuando los 4 estén 🟢.
+
+**Precondición:** R1·P0 (CaMeL + valla autoprotección) va DELANTE de estas skills — las que leen contenido
+no confiable (Visión, Open Banking) son inyectables sin él.
+
+---
+
 ## 17. Resumen ejecutivo
 
 - Qwen = motor. LoomBit = SO. El modelo **propone**; el código **dispone**; el humano **aprueba**.
