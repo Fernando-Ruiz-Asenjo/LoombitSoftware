@@ -25,7 +25,6 @@ PKG = ROOT / "loombit_operator"
 # (arreglar deuda) es libre; subirlo exige tocar esta lista a la vista de todos.
 LIMITE = 400
 _DEUDA_TAMANO = {
-    "loombit_operator/agent/loop.py": 1433,
     "loombit_operator/agent/memory.py": 964,
     "loombit_operator/tools/dominio.py": 945,
     "loombit_operator/telar.py": 806,

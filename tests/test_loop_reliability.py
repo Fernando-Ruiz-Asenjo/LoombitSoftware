@@ -16,7 +16,6 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from loombit_operator.agent import loop as loop_mod
 from loombit_operator.agent.loop import (
     AgentLoop,
     _consecutive_tool_errors,
@@ -64,7 +63,7 @@ def _tool(name: str, fn, requires_approval: bool = False) -> ToolDefinition:
 @pytest.fixture
 def _no_memory(monkeypatch):
     """Neutraliza la memoria persistente (reflexión / update) para no tocar disco real."""
-    monkeypatch.setattr(loop_mod, "get_memory", lambda: MagicMock())
+    monkeypatch.setattr("loombit_operator.agent.memory.get_memory", lambda: MagicMock())
 
 
 def _loop_con(registry: ToolRegistry, llm, tmp_path) -> AgentLoop:

@@ -14,7 +14,6 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from loombit_operator.agent import loop as loop_mod
 from loombit_operator.agent.loop import AgentLoop
 from loombit_operator.agent.run import AgentRun, AgentStatus, AgentStep, AgentStore
 from loombit_operator.tools.registry import ToolDefinition, ToolRegistry
@@ -139,7 +138,9 @@ def test_accept_approval_falla_si_no_esta_en_pending_approval(tmp_path):
 def test_resume_execute_ejecuta_la_tool_aprobada(tmp_path, monkeypatch):
     """Tras aceptar, _resume_execute SÍ ejecuta la tool aprobada. La continuación del LLM la captura
     `_execute` (el doble revienta → run failed), pero lo que validamos es que la tool corrió."""
-    monkeypatch.setattr(loop_mod, "get_memory", lambda: MagicMock())  # sin tocar memoria real
+    monkeypatch.setattr(
+        "loombit_operator.agent.memory.get_memory", lambda: MagicMock()
+    )  # sin tocar memoria real
     ejecutada = {"si": False}
 
     def _marca(**_):
