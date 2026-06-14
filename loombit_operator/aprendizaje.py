@@ -77,22 +77,21 @@ def consolidar(
 
                 llm = LLMClient()
 
-            existentes = {le.text.strip().lower() for le in memoria.lessons}
+            from .agent.memory_dedup import leccion_duplicada  # dedup near-dup (D-95)
+
+            vistas = [le.to_dict() for le in memoria.lessons]
             runs = list(store_runs.list())[:max_runs]
             runs_revisados = len(runs)
             for run in runs:
                 leccion = reflexionar_fn(run, llm)
                 if not leccion:
                     continue
-                clave = leccion.strip().lower()
-                if clave in existentes:
+                tags = etiquetas_fn(getattr(run, "task", ""))
+                # Consolidación estilo Mem0: si es duplicada EXACTA o NEAR-DUPLICADA, no acumular ruido.
+                if leccion_duplicada(leccion, tags, vistas) is not None:
                     continue
-                memoria.add_lesson(
-                    leccion,
-                    tags=etiquetas_fn(getattr(run, "task", "")),
-                    source="reflexion_proactiva",
-                )
-                existentes.add(clave)
+                memoria.add_lesson(leccion, tags=tags, source="reflexion_proactiva")
+                vistas.append({"text": leccion.strip(), "tags": [t.lower() for t in tags]})
                 lecciones_nuevas += 1
         except Exception as exc:  # noqa: BLE001
             errores.append(f"lecciones: {exc!r}")

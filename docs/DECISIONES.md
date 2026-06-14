@@ -1125,4 +1125,147 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
 - *Frontera honesta:* la verificación EN VIVO contra LM Studio real depende de que esté arriba; los 7
   tests cubren la lógica con la API nativa mockeada. Recibo = gate verde (hook + CI).
 - *Reversible:* sí; `git revert` (aditivo: módulo + endpoint + aviso de arranque).
+
+**D-90 — INNOVACIÓN: «pasa el radar al crear/arreglar» + freshness gate (cierra la «cadencia» que faltaba).**
+- *Contexto:* Fernando, enfático: el Radar no es un `.jsonl` que el gate mira de reojo — hay que **pasarlo
+  SIEMPRE que se pida crear o arreglar algo**, buscando en la web soluciones útiles e innovaciones para esa
+  tarea. La tabla norma→mecanismo de la propia Brújula marcaba el radar como «falta cadencia».
+- *Radar pasado para ESTA tarea (web):* docdecay (PyPI) valida en CI que un doc se tocó dentro de
+  `STALE_AGE_IN_DAYS`; ThoughtWorks publica el radar 2×/año y un blip cae salvo que se re-argumente → «un
+  radar que no se refresca, muere». Señal registrada en `docs/RADAR.jsonl` (2026-06-13, fuente PyPI).
+- *Elegido:* (a) `scripts/auditoria_radar.py` gana un **check de frescura** — la señal más reciente debe
+  estar a ≤ `MAX_DIAS_FRESCURA` (45 días) de hoy; si no, `radar CADUCADO` → el gate (`verify.py`) se pone
+  ROJO. `hoy` inyectable para tests deterministas; la frescura REAL la mide el gate vivo con `date.today()`.
+  (b) Norma encodeada en `CLAUDE.md` (INNOVACIÓN) y `docs/BRUJULA.md` (norma + tabla norma→mecanismo:
+  «falta cadencia» → resuelta). Golden: +3 tests (fresco pasa / caducado falla / sin fecha falla) y
+  `test_radar_real_vive` hecho determinista (mide desde la señal más nueva, no del reloj de la suite).
+- *Frontera honesta:* el gate fuerza que el radar esté FRESCO (obliga a un pase periódico), pero no puede
+  comprobar mecánicamente que en CADA tarea busqué en la web — eso es conducta, reforzada por la norma en la
+  Brújula (que se carga cada turno) y por memoria. Residuo: una **routine tech-radar** que lo refresque sola.
+- *Trade-off declarado:* el gate vivo se vuelve sensible al reloj — tras 45 días sin tocar el radar, el CI se
+  pone rojo aunque el código esté bien. Es intencional (forzar el pase) y tunable (`MAX_DIAS_FRESCURA`).
+- *Reversible:* sí; aditivo (check + tests + 1 señal + ediciones de doc). Subir `MAX_DIAS_FRESCURA` revierte.
+
+**D-91 — PRODUCTO/cuña 1: INTAKE F-5 (carpeta → cuentas + 303 de un tirón) + abstención honesta F-6.**
+- *Contexto:* el cuello de botella del producto no era el cerebro sino los DATOS (`/cuentas` vacío, galaxia
+  0 €). El plumbing de intake estaba ~95 % (extracción regex `docs_intel`, `intake_carpeta`, `calcular_303`,
+  store de cuentas, golden). Faltaban dos piezas: encadenar todo en una llamada y la abstención honesta sin datos.
+- *Radar pasado (web):* práctica 2026 de extracción de facturas = confidence-score + human-in-the-loop desde
+  el día 1 + VL multimodal (Qwen2.5-VL) renderizando PDF→imagen. Valida el enfoque (abstención + gate + OCR
+  local). Señal en `docs/RADAR.jsonl` (fuente cradl.ai).
+- *Elegido (F-5):* `skill_d_fiscal.intake_batch.intake_y_liquidar(carpeta, store_exp, store_cc, periodo, …)`
+  encadena `intake_carpeta` (puebla facturas + cuentas) y `liquidar_303_periodo` (303 `PENDING_APPROVAL`).
+  Cifras por CÓDIGO; ilegibles/escaneadas listadas en `abstenidas`, no inventadas. Endpoint
+  `POST /entidades/{id}/intake-y-303` (router fino: valida la carpeta ANTES de tocar stores). El humano presenta.
+- *Elegido (F-6):* `GET /cuentas`, sin NINGUNA cuenta registrada, añade `sin_datos:true` + un `mensaje` que
+  guía a conectar las facturas (subir carpeta → cobros + 303) en vez de un vacío mudo. Aditivo (no rompe el
+  contrato). Capa correcta = el dato que se MUESTRA. (Primero lo intenté como guarda pre-ReAct y el MURO lo
+  RECHAZÓ por interceptar la consulta agregada legítima «¿cuánto me deben?» — golden del cerebro + auditoría
+  D2; el gobierno hizo su trabajo y se corrigió de capa.)
+- *Frontera honesta:* F-5/F-6 quedan en **🟡** (código + golden, sin LLM): facturas con texto (PDF/.txt). El
+  escaneado SIN texto sigue FUERA (necesita el VL local, cableado pero pendiente de un escaneo real para 🟢).
+  Ningún endpoint presenta a la AEAT.
+- *Golden:* `tests/test_intake_f5_f6.py` (F-5: cifras exactas 630,00 + abstención; F-6: `/cuentas` vacío →
+  `sin_datos`+mensaje, con datos → no lo marca).
+- *Reversible:* sí; aditivo (1 función + 1 endpoint + 1 guarda + tests). No toca el núcleo del agente.
+**D-92 — INNOVACIÓN/radar: barrido profundo de agentes IA punteros → informe + plan de mejora + 9 señales.**
+- *Contexto:* Fernando pidió un barrido largo y profundo (entrar en repos/papers, no titulares) de cómo
+  funcionan por dentro los agentes punteros (Claude/Claude Code, OpenAI, Google, Cursor/Devin/Manus,
+  open-source) — mecanismos, cómo comprenden, cómo se automejoran — y traducirlo a mejoras integrables.
+- *Hecho:* **16 fuentes primarias LEÍDAS** (marcadas íntegro/abstract/superficial); informe en
+  `docs/INFORME_BARRIDO_AGENTES_IA_2026-06-13.md` (5 partes: patrón convergente · tabla mecanismo→propuesta ·
+  qué hemos conseguido · **plan de mejora con skill-nueva-vs-integrar-y-dónde** · señales). **+9 señales** en
+  `docs/RADAR.jsonl`.
+- *Hallazgo de oro:* la Darwin-Gödel Machine **sabotea su propia métrica** (logs de tests falsos, borra sus
+  detectores) → respaldo empírico del muro (verificador a prueba de manipulación). Nuevos y accionables:
+  grafo temporal de memoria (Graphiti, roadmap #6), cuarentena de datos (CaMeL) en el Policy Plane,
+  consolidación de memoria (Mem0), context engineering para 8K, GEPA con frontera Pareto.
+- *Frontera honesta:* el harness `deep-research` (barrida amplia + verificación adversarial 3-votos) se lanzó
+  en paralelo pero se **PARÓ a las ~2h20 sin entregar** (atascado; reanudable, agentes cacheados). Este
+  informe es el **layer profundo leído a mano**, NO la barrida amplia verificada. Competidores cerrados y el
+  eje local-first quedan cubiertos solo superficialmente.
+- *Reversible:* sí; aditivo (1 doc + 9 señales de radar). No toca código.
+**D-93 — INGENIERÍA/INNOVACIÓN: núcleo GOBERNADO del adaptador de navegador del Pilot (batir a Gemini Spark en local).**
+- *Contexto:* Fernando pidió control del equipo (con permisos) y de Chrome MUY BIEN para órdenes complejas
+  ("comprar billetes"), en LOCAL, batiendo a Gemini Spark — y aplicando el radar ANTES para AFINAR el prompt
+  (proceso nuevo: para prompts de investigar/construir, primero radar→mejora-prompt→ejecuta).
+- *Radar (SOTA):* a11y-tree-first + visión selectiva (AgentOccam; browser-use 89,1% WebVoyager); OSWorld
+  (control de equipo ~72-82%, sigue fallando → gate obligatorio); cascada de permisos de OpenClaw;
+  vision-fallback + extracción con JSON-schema de Skyvern. Cruce con Gemini Spark (D-92): cloud que lee
+  correo/Drive y actúa → Loombit responde LOCAL + gobernado + gate ANTES del pago.
+- *Elegido (construido, 🟡):* `loombit_operator/pilot/browser.py` — núcleo GOBERNADO determinista: espacio de
+  acciones a11y-first (`BROWSER_STEPS`), `dominio_permitido` (allowlist CERRADA por defecto),
+  `es_paso_consecuente`+`validar_secuencia` (pago/compra/envío → GATE humano ANTES de ejecutar),
+  `SAFETY_CONTRACT` como el de `executor.py`. Golden `tests/test_pilot_browser.py` (allowlist,
+  gate-antes-de-pagar, parse a11y, contrato). Diseño en `docs/DISENO_ADAPTADOR_NAVEGADOR_PILOT.md`.
+- *Frontera honesta:* el DRIVING real (Playwright/CDP) y la visión-fallback (VL) son **🟠/⬜ DECLARADOS**
+  (necesitan la dependencia + verificación en vivo); hoy solo está la GOBERNANZA — que es justo la pieza que
+  bate a Spark/OpenClaw (gate antes de pagar + allowlist + local). El código de browser-use/Skyvern/OpenClaw
+  se leyó a nivel ARQUITECTURA (un raw de browser-use dio 404), no fichero-a-fichero; ficheros nombrados.
+- *Reversible:* sí; aditivo (1 módulo + tests + doc + 3 señales). No toca el bucle del agente ni el Pilot de escritorio.
+
+**D-94 — INGENIERÍA: capa de DRIVING del adaptador de navegador (Playwright/CDP) sobre el núcleo gobernado.**
+- *Contexto:* capa 2 de D-93 (apilada): conducir Chrome de verdad respetando la gobernanza. PR apilado sobre #48.
+- *Elegido (construido, 🟡):* `loombit_operator/pilot/browser_driver.py` — `BrowserDriver`: navega (allowlist),
+  `snapshot_a11y` (aplana `page.accessibility.snapshot()`), **clic ACCESSIBILITY-first por rol+nombre**
+  (`get_by_role`, no XPaths frágiles ni coordenadas), `type_text`, y `ejecutar()` que **ENFORZA el gate en
+  ejecución**: ante un paso consecuente (pago/compra/envío) no aprobado, PARA y devuelve
+  `pendiente_aprobacion` — el pago NO se ejecuta. Recibo local. Playwright = dependencia OPCIONAL (import
+  perezoso, como pypdf); `page` inyectable. Golden `tests/test_browser_driver.py` (5: gate para sin aprobar,
+  procede con aprobación, allowlist bloquea, aplanado a11y, snapshot indexado) — con `page` FALSO, sin Chrome.
+- *Frontera honesta:* el driving REAL contra Chrome es **🟡 hasta verificarse EN VIVO** (`pip install
+  playwright && playwright install chromium`); el golden prueba la lógica/gobernanza con un page falso, no el
+  navegador real. La visión-fallback (Skyvern, VL local) y registrar la tool `browser_*` para el agente
+  quedan como **⬜ siguientes** (la tool no se expone al 14B hasta verificación en vivo: no-mentir).
+- *Reversible:* sí; aditivo (1 módulo + tests). No añade dependencia obligatoria (Playwright es opcional) ni
+  toca el bucle del agente ni el Pilot de escritorio.
+
+**D-95 — MEMORIA: consolidación por NEAR-DUPLICADO (dedup estilo Mem0) en el daemon de aprendizaje.**
+- *Contexto:* del barrido (D-92, señal Mem0): la memoria no debe acumular ruido. La consolidación (D-46)
+  deduplicaba lecciones por texto EXACTO, pero dos casi idénticas con texto distinto se guardaban ambas. PR apilado sobre #49.
+- *El muro mandó (honesto):* mi primer intento metía el dedup DENTRO de `agent/memory.py` y el gate lo
+  RECHAZÓ — ese fichero está en deuda de tamaño (>400 líneas, ratchet de la Brújula) y no puede engordar.
+  Correcto: se movió de capa.
+- *Elegido (determinista):* nuevo `agent/memory_dedup.py` (`solape_jaccard`, `leccion_duplicada`, Jaccard ≥
+  `UMBRAL_DEDUP_LECCION`=0.7) enganchado en `aprendizaje.consolidar` (el daemon, donde se acumulan lecciones
+  en lote): si la lección destilada es duplicada EXACTA o NEAR-DUPLICADA de una existente, se OMITE.
+  `memory.py` NO se toca. Golden `tests/test_memoria_consolidada.py` (jaccard, near-dup, exacto, distinta + el
+  daemon omite el near-dup y sí añade la distinta).
+- *Frontera honesta:* dedup DETERMINISTA (caza variantes de TEXTO). El dedup SEMÁNTICO (paráfrasis con otro
+  vocabulario, «email» vs «correo») necesita EMBEDDINGS → **🟠 declarado** (RAG local). `add_lesson` sigue con
+  dedup exacto (no se toca por el ratchet). No toca el bucle del agente.
+- *Reversible:* sí; aditivo (1 módulo + dedup en el daemon + tests). Umbral tunable.
+
+**D-96 — SEGURIDAD/§GOB-1: cuarentena CaMeL en el Capability Policy Plane (dato lifteado → no se ejecuta).**
+- *Contexto:* del barrido (D-92, señal CaMeL): un argumento CONSECUENTE cuyo valor venga de contenido NO
+  CONFIABLE (correo/web/documento leído) es una orden incrustada disfrazada de dato. El plano ya tenía
+  `sanear_dato` (neutraliza órdenes); faltaba la pieza «no liftees un valor consecuente de ahí». PR apilado sobre #50.
+- *Elegido (determinista):* `policy/authority_plane.py` — `valor_de_cuarentena(valor, contenido)` (¿el valor
+  aparece literal en el contenido no confiable?) + `autorizar(..., contenido_no_confiable="")`: si un campo
+  consecuente (to/iban/importe/url…) fue lifteado de contenido no confiable → `CORREGIR` (no ejecuta; pide
+  resolver por código o preguntar). Con `contenido_no_confiable=""` (defecto) el comportamiento previo del
+  plano queda INTACTO (test_gob1 verde). Golden `tests/test_cuarentena_camel.py` (3).
+- *Frontera honesta:* la PRIMITIVA está wireada en `autorizar`, pero **el loop aún no le pasa el contenido
+  leído** → el guardia no actúa en vivo hasta ese wiring (🟠 declarado: `agent/loop.py` está en deuda de
+  tamaño, así que el cableado se hará al partir el loop, sin engordarlo). Mismo patrón honesto que el núcleo
+  del navegador (#48): primitiva gobernada y testeada; activación en vivo declarada.
+- *Reversible:* sí; aditivo (1 helper + 1 param opcional + tests). No cambia el comportamiento existente del plano.
+
+**D-97 — FÁBRICA/GEPA: frontera de Pareto (selección por instancia, no por media).**
+- *Contexto:* del barrido (D-92, señal GEPA, arXiv:2507.19457): el bucle de `gepa.py` guarda UN «mejor»
+  por score AGREGADO. GEPA real mantiene una FRONTERA de candidatos no-dominados y muestrea de ella
+  ponderando por instancias ganadas — así NO se atasca en un óptimo local de la media y conserva
+  estrategias COMPLEMENTARIAS (uno bueno en F2, otro en F7) que la media fusionaría y perdería. PR apilado sobre #51.
+- *El ratchet manda:* `gepa.py` ya está en deuda (416 líneas > 400) y NO puede engordar. Mismo patrón que
+  `memory_dedup.py` (D-95): la pieza nueva va en módulo aparte.
+- *Elegido (determinista):* nuevo `fabrica/gepa_pareto.py` — `vector_de` (detalle de `evaluar` → vector por
+  instancia), `domina` (Pareto: ≥ en todas y > en una), `frontera_pareto`, `instancias_ganadas`,
+  `pesos_de_frontera` (frontera + peso = instancias ganadas, para un sampler con semilla) y
+  `elegir_de_frontera` (elección DETERMINISTA: mayor cobertura, desempate por media y `clave`). Golden
+  `tests/test_gepa_pareto.py` (7): complementarios sobreviven, dominado fuera, elección por cobertura.
+- *Frontera honesta:* la PRIMITIVA está completa y testeada, pero **el cableado en `optimizar_prompt`**
+  (sustituir el «mejor» único por la frontera) es **🟠 declarado**: tocaría `gepa.py`, que está en deuda y no
+  puede engordar — se hará al partir ese fichero, sin engordarlo. El muestreo ESTOCÁSTICO ponderado de GEPA
+  necesita RNG (semilla) → `pesos_de_frontera` lo deja servido; `elegir_de_frontera` da la variante seedless.
+- *Reversible:* sí; aditivo (1 módulo + tests). No toca `gepa.py` ni el bucle del agente.
 *(se irán añadiendo entradas según avance el bloque)*
