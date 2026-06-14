@@ -1,0 +1,7 @@
+{
+  "id": "20260614T224806_d09d2a54",
+  "ts": "2026-06-14T22:48:06.390673+00:00",
+  "shell": "powershell",
+  "cmd": "$ErrorActionPreference=\"SilentlyContinue\"; \"DATE: $(Get-Date -Format o)\"; \"--- loombit_health ---\"; try { Invoke-RestMethod http://127.0.0.1:8787/health | ConvertTo-Json -Compress } catch { \"loombit DOWN: $($_.Exception.Message)\" }; \"--- lm_models ---\"; try { (Invoke-RestMethod http://localhost:1234/v1/models).data.id -join \", \" } catch { \"lm DOWN: $($_.Exception.Message)\" }; \"--- google_oauth_status ---\"; try { Invoke-RestMethod http://127.0.0.1:8787/skill-blanca/oauth/google/status | ConvertTo-Json -Compress } catch { \"oauth ERR: $($_.Exception.Message)\" }",
+  "cwd": ""
+}
