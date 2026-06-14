@@ -1292,3 +1292,31 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
 - *Reversible:* sí; aditivo + extracción (1 módulo nuevo + cableado + 2 tests + baja de deuda). No toca el
   bucle del agente.
 *(se irán añadiendo entradas según avance el bloque)*
+
+**D-99 — ARQUITECTURA: síntesis de plataforma (Qwen motor / LoomBit SO) + catálogo de skills, SOLO DISEÑO.**
+- *Contexto:* se pidió diseñar LoomBit como plataforma local gobernada (no chatbot), con Qwen como motor
+  cognitivo. Se auditó el código real (no las notas) y se hicieron 6 rondas de mejora adversarial (45
+  vueltas), pasando el radar (D-90) con búsquedas reales en cada ronda.
+- *Hallazgo honesto (auditado):* de las 5 leyes, 3 están 🟢, pero **Ley 2 (CaMeL/datos≠órdenes) está
+  🟠 DORMIDA**: `agent/loop.py:706` llama a `AUTHORITY_PLANE.autorizar()` SIN pasar
+  `contenido_no_confiable`, así que el filtro `valor_de_cuarentena` (existe en `policy/authority_plane.py`)
+  nunca dispara. Red team: 2 vías 🔴 — (1) `tools/base.py::_write_file`/`_run_shell` escriben/ejecutan en
+  cualquier ruta → el agente puede reescribir sus propios guardarraíles (`loop.py`, `.env`, token store);
+  (2) con CaMeL dormido, un IBAN/importe inyectado en un correo de cliente puede fluir a una propuesta de
+  cobro (amenaza exacta de la cuña de morosidad). Sandbox de ejecución: ⬜ inexistente.
+- *Conocimiento obtenido (regulatorio):* la cuña son **3 obligaciones distintas** — VeriFactu (antifraude,
+  hash encadenado + QR + AEAT, multas 50k€, autónomos jul-2026/2027), Facturae (formato XML B2B, Crea y
+  Crece, RD 238/2026, reglamento 1-oct-2026) y SII (libros IVA) — más Ley 3/2004 morosidad (interés 10,15%
+  + 40€, cálculo determinista). La cadena de hashes que VeriFactu exige **ya existe** en `expedientes.py`.
+- *Propuesto:* catálogo de skills (cuña: WhatsApp Cobros, Morosidad, VeriFactu, Facturae, SII, Visión
+  Documental, Open Banking, Skill G «Del cobro al 303») + 10 skills NO adyacentes (salud, legal, segundo
+  cerebro, estudio, finanzas personales, empleo, smart home, accesibilidad, visión ambiental, voz) que
+  reusan 6 primitivos del kernel SIN tocar el núcleo (prueba del kernel blanco). Mejoras de núcleo:
+  wirear CaMeL, spotlighting, valla de autoprotección, cognición→contexto, ledger encadenado, candado
+  numérico, constrained decoding, router de modelos.
+- *Estado:* **SOLO DISEÑO, 0 implementación** (es análisis, no código). Acción siguiente única: **P0**
+  (CaMeL wired + valla autoprotección + spotlighting) antes de cualquier skill.
+- *Documentado en:* `docs/SINTESIS_COMPLETA_LOOMBIT.md` (síntesis), `docs/ARQUITECTURA_PLATAFORMA_LOOMBIT.md`
+  (§0–23, detalle), `docs/HANDOFF_ARQUITECTURA_PLATAFORMA.md` (arranque), `docs/RADAR.jsonl` (45 señales con
+  fuente). PR #57, rama `claude/loombit-ai-architecture-nsyw5r`.
+- *Reversible:* sí; solo documentación (no toca código del runtime).

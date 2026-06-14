@@ -211,6 +211,9 @@ loombit_operator/
 | `docs/DECISIONES.md` | Bitácora de decisiones de los bloques autónomos (con alternativas descartadas y reversibilidad) |
 | `docs/FABRICA_DE_SKILLS.md` | Aprendizaje continuo y auto-autoría de skills (del proceso, del usuario, de internet); loop tipo skill-creator, local-first, con evals y procedencia |
 | `docs/RADAR_INNOVACION.md` | Radar vivo de ideas de vanguardia mantenido proactivamente por Claude (+ futura routine tech-radar) |
+| `docs/SINTESIS_COMPLETA_LOOMBIT.md` | **Síntesis consolidada** de la plataforma: Qwen motor/LoomBit SO, las 5 leyes (estado real), 10 capas mapeadas a código, red team, conocimiento regulatorio (VeriFactu/Facturae/SII/morosidad) y técnico, catálogo completo de skills (cuña + no adyacentes), backlog P0→P2 |
+| `docs/ARQUITECTURA_PLATAFORMA_LOOMBIT.md` | Diseño detallado de la plataforma + 6 rondas de mejora adversarial (§0–23): sandbox, cognición, ledger, determinismo de cifras, coste Jetson, skills |
+| `docs/HANDOFF_ARQUITECTURA_PLATAFORMA.md` | Arranque rápido para otra sesión: estado honesto, backlog accionable con archivos, reglas inviolables, acción siguiente única (P0) |
 | `docs/investigacion/INFORME_GLOBAL_TRABAJO_OFICINA.md` | Investigación global del trabajo de oficina: 15 roles, país por país, herramientas, supuestos I-X, mapa de capacidades |
 | `docs/investigacion/OPERATIVA_PYMES_AUTONOMOS_ORDENADOR.md` | Operativa sector por sector de PYMEs/autónomos con el ordenador + ecosistema WhatsApp + supuestos A-G |
 | `docs/investigacion/OPERATIVA_EN_PANTALLA_DIA_A_DIA.md` | Nivel pantalla: qué hace cada perfil con el ordenador, ciclo de cada documento, 5 niveles de capacidad de Loombit |
