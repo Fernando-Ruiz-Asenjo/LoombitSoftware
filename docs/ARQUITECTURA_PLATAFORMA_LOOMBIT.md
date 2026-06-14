@@ -661,6 +661,38 @@ fabrica las skills.** Anti-dispersión (D-86): VISIÓN/radar, no roadmap — la 
 
 ---
 
+## 25. Ronda 8 (30 ciclos) — maduración + adyacentes + no adyacentes creativas
+
+> 30 vueltas en 3 tandas. Señales reales en `docs/RADAR.jsonl` (2026-06-14, 57 señales).
+
+### 25.1 Tanda 1 — maduración de las 9 skills creativas (§24)
+Cada skill creativa madura cuando gana **(1) explicabilidad · (2) verificación/golden · (3) enganche a
+un flujo existente (telar/gate/routine) · (4) privacidad** — esa es la receta para subir de 🟡 a 🟢.
+Mejoras clave: Gemelo→generalizar+redactar secretos · Cazador→feed BOE/BDNS+score+gate · Radar
+Morosidad→fusión con WhatsApp+ML interpretable · Abogado del Diablo→checklist por tipo de acción, solo
+`safety_sensitive` · Buzón→identidad cross-canal · What-if→multi-periodo, "informativo no asesoría" ·
+Caja Negra→consulta NL + export gestoría · Auditoría Inversa→Routine pre-303 + fix enlazado ·
+Profesor→profundidad adaptativa, micro-explicaciones solo ante lo no obvio.
+
+### 25.2 Tanda 2 — el SO fiscal del autónomo COMPLETO (adyacentes)
+"Cubrir el 303" era media foto. Faltan: `Skill D Modelo 130`+`111`/`115` (hermanos del 303,
+determinista) · `Skill D Calendario Fiscal AEAT` (todas las fechas al telar) · `Skill A Gastos & Tickets
+OCR` homologado AEAT (la otra mitad del 303) · `Skill A Conector Norma 43/C43` (conciliación local-first
+sin agregador) · `Skill A Conector AEAT/Sede` (certificado) · `Skill D CRM ligero` (expedientes) ·
+`Skill D Presupuestos→Factura` · `Skill D Resumen Anual` (390/190). Flujo: intake → registro
+(VeriFactu/Facturae) → conciliación (N43) → liquidación (303/130/111/115) → cierre (390/190).
+
+### 25.3 Tanda 3 — no adyacentes a raíz del hilo creativo (superpoder→vida del usuario)
+Patrón: coger un superpoder del kernel y aplicarlo a la vida del usuario. `Skill X Traductor de
+Burocracia` (foto de multa/carta oficial → explica + acción + plazo; **el de mayor alcance, todo
+ciudadano**) · `Investigador Personal` (deep research local citado) · `Acompañante de Trámites/Ejecutor
+Digital` (fallecimiento, con dignidad) · `Legado Digital` · `Onboarding/Enseñar` (Gemelo no adyacente) ·
+`Diario de Vida Verificable` (Caja Negra) · `Pre-mortem de Decisiones` (Abogado) · `Radar de
+Renovaciones` (Predictivo) · `Memoria de Relaciones` (Buzón). El mismo superpoder sirve fiscal y vida
+personal; el foso local-first lo hace defendible en cada dominio. Anti-dispersión (D-86): VISIÓN/radar.
+
+---
+
 ## 17. Resumen ejecutivo
 
 - Qwen = motor. LoomBit = SO. El modelo **propone**; el código **dispone**; el humano **aprueba**.
