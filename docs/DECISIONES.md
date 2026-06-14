@@ -1338,4 +1338,20 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   (`test_gate_integridad.py`). Miembros dormidos despertados: `core.hooksPath`→`.githooks` y mypy instalado.
   🟢 propuesto · gate local verde · espera CI.
 
+**D-103 — PILOTO: envío real del recordatorio por Gmail con DESTINO SEGURO forzado (§SEG-4).**
+- *Contexto:* el lazo de cobros envía al outbox local (🟡); para el primer **🟢 externo** (un correo real)
+  hay que cablear el adaptador Gmail al endpoint. Es un EFECTO EXTERNO → la brújula es máxima.
+- *Decisión de Fernando (efecto externo, registrada):* durante el piloto **TODO** envío por Gmail va a un
+  **destino seguro = `admin@construiaapp.com`**, NUNCA al cliente. El destino vive en `.env`
+  (`LOOMBIT_OPERATOR_COBROS_PILOTO_DESTINO_SEGURO`), **no hardcodeado** en el núcleo blanco (Skill W).
+- *Elegido:* `POST /cobros/aprobar` gana `via` (`outbox`|`gmail`). Con `gmail`: el destinatario se **fuerza**
+  al destino seguro (se ignora cualquier `to`), se inyecta `skill_blanca_gmail.send_email`, y el cuerpo
+  sigue siendo el de CÓDIGO (cifras §14B). Sin destino seguro configurado → **422** (no envía a ciegas).
+  Golden `tests/test_cobros_router.py` (2 nuevos) + 1 mutación al guardia del destino. Runbook:
+  `docs/PILOTO_ENVIO_COBRO.md`.
+- *Frontera honesta:* el envío Gmail real (OAuth + token) se cierra **en el equipo de Fernando** (el agente,
+  desde la nube, no llega a su navegador/cuenta). La promesa `cobros-envio-gmail` queda **🟡** (contrato,
+  fake-injected en CI) hasta el recibo del piloto en vivo; ahí pasa a **🟢**. La presentación AEAT sigue fuera.
+- *Recibo:* gate normal VERDE local; promesa registrada con su check verde; MIN_TESTS subido.
+- *Reversible:* sí; `git revert` (aditivo: 1 setting + `via` en el endpoint + tests/doc).
 *(se irán añadiendo entradas según avance el bloque)*
