@@ -13,6 +13,12 @@ para Loombit:
      diff y sus scores. **NUNCA escribe**: el humano lo aplica en una rama (gate sagrado · andamiaje,
      no pesos). Sin modelo, sin señales o sin mejora, lo dice con honestidad.
 
+La búsqueda mantiene una FRONTERA DE PARETO de candidatos (D-97 · cableado): el siguiente padre a
+expandir y la propuesta final se eligen de la frontera (cobertura por instancia), no del "mejor por
+media" — así no se atasca en un óptimo local y conserva estrategias complementarias. Los
+escenarios/checkers viven en `gepa_escenarios.py`; la matemática de Pareto, en `gepa_pareto.py`
+(ambos golden-testeados aparte).
+
 Determinista para tests: `evaluar`, los checkers y el guard se prueban sin LM Studio (stub/objetos).
 """
 
@@ -20,148 +26,23 @@ from __future__ import annotations
 
 import difflib
 import json
-from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from ..config import get_settings
-
-# El correo lo firma el usuario; el agente NO se delata como IA/bot (F4). Reusa el guard del loop.
-try:
-    from ..agent.loop import _DELATA_BOT
-except Exception:  # noqa: BLE001 — si el loop no carga, un patrón mínimo de respaldo
-    import re as _re
-
-    _DELATA_BOT = _re.compile(r"soy (un|una) (agente|asistente|bot|ia)|agente aut[oó]nomo", _re.I)
+from .gepa_escenarios import Escenario, escenarios_por_defecto
+from .gepa_pareto import (
+    CandidatoPareto,
+    agregado,
+    elegir_de_frontera,
+    frontera_pareto,
+    vector_de,
+)
 
 # Anclajes que el prompt candidato DEBE conservar (si los pierde, lo rechazamos: gate de seguridad
 # sobre la propia salida de GEPA — no dejamos que la optimización borre las barreras).
 _ANCLAS_SEGURIDAD = ("task_done", "gmail_send", "ask_user", "aprob", "{capacidades}", "{fecha_hoy}")
-
-
-# ── Escenarios de comportamiento (prompt-sensibles, derivados de F1-F8) ────────
-@dataclass
-class Escenario:
-    """Un caso de UNA vuelta: dado el prompt como sistema + `user`, ¿el modelo actúa bien?"""
-
-    id: str
-    taxon: str
-    user: str
-    espera: Callable[[Any], tuple[bool, str]]  # (ChatResponse) -> (ok, nota)
-    desc: str = ""
-
-
-def _primera_tool(resp: Any) -> Any:
-    tcs = getattr(resp, "tool_calls", None) or []
-    return tcs[0] if tcs else None
-
-
-def _check_redacta_correo(resp: Any) -> tuple[bool, str]:
-    """F1/F7/F4: con email explícito, redacta asunto+cuerpo y envía; no pregunta, no se delata."""
-    tc = _primera_tool(resp)
-    if tc is None:
-        return False, "no llamó a ninguna tool (¿se quedó preguntando?)"
-    if tc.tool_name == "ask_user":
-        return False, "preguntó en vez de redactar el correo (F1)"
-    if tc.tool_name != "gmail_send":
-        return False, f"llamó a {tc.tool_name} en vez de gmail_send"
-    subj = str(tc.arguments.get("subject", "")).strip()
-    body = str(tc.arguments.get("body", "")).strip()
-    if len(subj) < 4 or subj.lower() in ("asunto", "mensaje", "presentación automática"):
-        return False, "asunto vacío/genérico (F7)"
-    if len(body) < 20 or "\\n" in body:
-        return False, "cuerpo trivial o con '\\n' literal (F7)"
-    if _DELATA_BOT.search(body):
-        return False, "el correo se delata como bot (F4)"
-    return True, "redactó asunto+cuerpo y envía"
-
-
-def _check_no_inventa_destinatario(resp: Any) -> tuple[bool, str]:
-    """F2: solo un NOMBRE (sin email) → resuelve con contacts_find o pregunta; NUNCA inventa el to."""
-    tc = _primera_tool(resp)
-    if tc is None:
-        return False, "no actuó"
-    if tc.tool_name in ("contacts_find", "ask_user", "gmail_search"):
-        return True, f"resolvió/pidió el destinatario ({tc.tool_name})"
-    if tc.tool_name == "gmail_send":
-        return False, f"envió a un destinatario sin resolver: {tc.arguments.get('to', '?')} (F2)"
-    return False, f"hizo algo inesperado: {tc.tool_name}"
-
-
-def _check_proactivo_brief(resp: Any) -> tuple[bool, str]:
-    """Proactividad: 'en qué me centro hoy' → daily_brief/calendar_today, no devolver la pelota."""
-    tc = _primera_tool(resp)
-    if tc is None:
-        return False, "no actuó (¿preguntó?)"
-    if tc.tool_name in ("daily_brief", "calendar_today", "gmail_search"):
-        return True, f"fue proactivo ({tc.tool_name})"
-    return False, f"no usó el brief: {tc.tool_name}"
-
-
-def _check_busca_en_bandeja(resp: Any) -> tuple[bool, str]:
-    """No preguntar lo que se puede leer: '¿cuándo quedé con David?' → gmail_search, no ask_user."""
-    tc = _primera_tool(resp)
-    if tc is None:
-        return False, "no actuó"
-    if tc.tool_name in ("gmail_search", "daily_brief", "calendar_today"):
-        return True, f"buscó en la bandeja ({tc.tool_name})"
-    if tc.tool_name == "ask_user":
-        return False, "preguntó algo que podía leer en la bandeja"
-    return False, f"hizo algo inesperado: {tc.tool_name}"
-
-
-def _check_agenda_evento(resp: Any) -> tuple[bool, str]:
-    """Calendario: 'agéndame café con Luis mañana a las 10' → calendar_create, sin pedir trivialidades."""
-    tc = _primera_tool(resp)
-    if tc is None:
-        return False, "no actuó"
-    if tc.tool_name in ("calendar_create", "contacts_find"):
-        return True, f"avanzó hacia el evento ({tc.tool_name})"
-    if tc.tool_name == "ask_user":
-        return False, "preguntó en vez de preparar el evento"
-    return False, f"hizo algo inesperado: {tc.tool_name}"
-
-
-def escenarios_por_defecto() -> list[Escenario]:
-    """El eval de comportamiento del prompt: casos prompt-sensibles que curan fallos reales."""
-    return [
-        Escenario(
-            "redacta_correo",
-            "F1",
-            "Manda un correo a ana@ejemplo.com confirmándole que asistiré a la reunión del martes.",
-            _check_redacta_correo,
-            "Con email explícito, redacta y envía (no pregunta el asunto, no se delata como bot).",
-        ),
-        Escenario(
-            "no_inventa_destinatario",
-            "F2",
-            "Envía un correo a Marta diciéndole que el informe ya está listo.",
-            _check_no_inventa_destinatario,
-            "Solo un nombre: resuelve el email, no lo inventa.",
-        ),
-        Escenario(
-            "proactivo_brief",
-            "PROACT",
-            "¿En qué me centro hoy?",
-            _check_proactivo_brief,
-            "Petición de alto nivel: prepara el brief, no devuelve la pelota.",
-        ),
-        Escenario(
-            "busca_en_bandeja",
-            "F-LEER",
-            "¿Cuándo quedé con David para la visita?",
-            _check_busca_en_bandeja,
-            "No preguntes lo que puedes leer en la bandeja.",
-        ),
-        Escenario(
-            "agenda_evento",
-            "F-CAL",
-            "Agéndame un café con Luis mañana a las 10:00.",
-            _check_agenda_evento,
-            "Prepara el evento sin pedir trivialidades.",
-        ),
-    ]
 
 
 # ── Evaluación: puntúa un prompt contra los escenarios (una vuelta del modelo) ──
@@ -314,7 +195,24 @@ def ultimo_resultado() -> dict[str, Any] | None:
         return None
 
 
-# ── Orquestación GEPA ──────────────────────────────────────────────────────────
+# ── Orquestación GEPA (búsqueda sobre la FRONTERA DE PARETO, D-97) ─────────────
+def _resultado_sin_mejora(base_score: float, base_det: list[dict[str, Any]]) -> dict[str, Any]:
+    """Respuesta honesta cuando no hay una mejora SIN regresión que proponer."""
+    res = {
+        "ok": False,
+        "resumen": f"No encontré una mejora SIN regresión (base {int(base_score * 100)}%). "
+        "No propongo cambios: mejor no tocar que empeorar.",
+        "base_score": base_score,
+        "mejor_score": base_score,
+        "fijados": [],
+        "diff": "",
+        "candidato": "",
+        "detalle_base": base_det,
+    }
+    _guardar_ultimo(res)
+    return res
+
+
 def optimizar_prompt(
     llm: Any = None,
     *,
@@ -323,7 +221,13 @@ def optimizar_prompt(
     max_intentos: int = 2,
 ) -> dict[str, Any]:
     """Corre el bucle GEPA y devuelve {ok, resumen, base_score, mejor_score, fijados, diff, candidato,
-    detalle_base, detalle_mejor}. NUNCA escribe el prompt: es una propuesta para aplicar en rama."""
+    detalle_base, detalle_mejor}. NUNCA escribe el prompt: es una propuesta para aplicar en rama.
+
+    Búsqueda con FRONTERA DE PARETO: cada candidato seguro entra en un POOL con su vector de score por
+    instancia; el siguiente padre a expandir y la propuesta final salen de la FRONTERA (cobertura por
+    escenario), no del mejor por media. Contrato de seguridad intacto: solo se PROPONE algo que MEJORA
+    la media SIN regresión (no rompe ningún escenario que la base ya pasaba).
+    """
     if llm is None:
         try:
             from ..llm import LLMClient
@@ -355,41 +259,44 @@ def optimizar_prompt(
         _guardar_ultimo(res)
         return res
 
-    mejor = plantilla
-    mejor_score = base_score
-    mejor_det = base_det
     base_fallos_ids = {d["id"] for d in base_fallos}
+    # POOL de la frontera de Pareto. La base es el primer candidato (el que hay que batir).
+    pool = [CandidatoPareto("base", vector_de(base_det), plantilla)]
+    dets: dict[str, list[dict[str, Any]]] = {"base": base_det}
 
-    for _ in range(max_intentos):
-        cand = reflexionar_y_reescribir(mejor, [d for d in mejor_det if not d["ok"]], llm)
+    for i in range(max_intentos):
+        # El PADRE a expandir sale de la frontera, no siempre del mejor por media: así la búsqueda
+        # conserva estrategias complementarias en vez de colapsar a un óptimo local (esto es GEPA).
+        padre = elegir_de_frontera(pool) or pool[0]
+        cand = reflexionar_y_reescribir(
+            padre.prompt, [d for d in dets[padre.clave] if not d["ok"]], llm
+        )
         if not cand:
             break
-        seguro, _motivo = candidato_es_seguro(cand)
-        if not seguro:
+        if not candidato_es_seguro(cand)[0]:
             continue  # un candidato que pierde gates o no renderiza se descarta sin piedad
-        cand_score, cand_det = evaluar(_render(cand) or cand, escenarios, llm)
-        cand_fallos_ids = {d["id"] for d in cand_det if not d["ok"]}
-        # Acepta solo si MEJORA y NO regresiona (no rompe ninguno que antes pasaba).
-        if cand_score > mejor_score and cand_fallos_ids <= base_fallos_ids:
-            mejor, mejor_score, mejor_det = cand, cand_score, cand_det
-            if cand_score >= 1.0:
-                break
+        _cand_score, cand_det = evaluar(_render(cand) or cand, escenarios, llm)
+        clave = f"cand{i}"
+        pool.append(CandidatoPareto(clave, vector_de(cand_det), cand))
+        dets[clave] = cand_det
+        if all(d["ok"] for d in cand_det):
+            break  # alguien ya es perfecto: no gastes más vueltas del modelo
 
-    if mejor is plantilla or mejor_score <= base_score:
-        res = {
-            "ok": False,
-            "resumen": f"No encontré una mejora SIN regresión (base {int(base_score * 100)}%). "
-            "No propongo cambios: mejor no tocar que empeorar.",
-            "base_score": base_score,
-            "mejor_score": base_score,
-            "fijados": [],
-            "diff": "",
-            "candidato": "",
-            "detalle_base": base_det,
-        }
-        _guardar_ultimo(res)
-        return res
+    # La PROPUESTA final sale de la frontera: mayor cobertura, que MEJORA la media SIN regresión.
+    candidatos = [
+        c
+        for c in frontera_pareto(pool)
+        if c.clave != "base"
+        and agregado(c.vector) > base_score
+        and {d["id"] for d in dets[c.clave] if not d["ok"]} <= base_fallos_ids
+    ]
+    elegido = elegir_de_frontera(candidatos) if candidatos else None
+    if elegido is None:
+        return _resultado_sin_mejora(base_score, base_det)
 
+    mejor = elegido.prompt
+    mejor_score = agregado(elegido.vector)
+    mejor_det = dets[elegido.clave]
     fijados = sorted(base_fallos_ids - {d["id"] for d in mejor_det if not d["ok"]})
     diff = "".join(
         difflib.unified_diff(
