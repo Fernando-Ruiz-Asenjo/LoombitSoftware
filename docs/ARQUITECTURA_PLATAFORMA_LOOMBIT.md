@@ -568,6 +568,40 @@ VeriFactu ≠ Facturae ≠ SII, y son **complementarias**:
 
 ---
 
+## 22. Ronda 5 (5 ciclos) — skills NO adyacentes (prueba del kernel blanco)
+
+> La VISIÓN: "el compañero para cualquier actividad —laboral o no— ante ordenador/tablet/teléfono; el
+> mismo runtime sirve cualquier dominio según las skills". Estas skills lo prueban: **cero cambios en
+> el núcleo**. Señales reales en `docs/RADAR.jsonl` (2026-06-14).
+
+### 22.1 Skills no adyacentes propuestas → primitiva del kernel que reusan
+
+| Skill (no adyacente) | Usuario nuevo | Reusa del kernel | ¿Toca núcleo? | Fuente |
+|---|---|---|---|---|
+| `Skill D Salud Personal` | familia/persona | `expedientes` multi-tenant + gate + RAG | No | Amazon/MS Health (cloud→foso local) |
+| `Skill D Legal/Contratos` | abogado/in-house | plazos (`tipos_demora`) + `comprension` + expedientes | No | GC.ai / Sirion |
+| `Skill W/D Segundo Cerebro` | estudiante/investigador | `rag.py` + memoria + `mcp_server` | No | Obsidian + MCP |
+| `Skill A Multi-dispositivo` | tablet/móvil | patrón Adapter + Pilot | No | (visión) |
+| `Skill X Voz local` | manos libres | Adapter + ASR/TTS local (Whisper) | No | Hippocratic voice |
+
+### 22.2 Por qué el local-first pega MÁS fuerte fuera del fiscal
+Los asistentes de salud 2026 (MS Copilot Health, Amazon Health) son **cloud** y avisan de no compartir
+datos de salud. En salud/legal/personal, el dato es **más sensible** que una factura → el foso
+local-first de LoomBit vale **más** ahí, no menos. La no-adyacencia **refuerza** el foso.
+
+### 22.3 La tesis validada + criterio de prueba
+Si 5 dominios lejanos enchufan **sin tocar `loop.py`/`authority_plane`/`expedientes`**, el núcleo blanco
+es real, no eslogan. **Prueba propuesta:** construir UNA (recomendado `Skill D Legal/Contratos`, reuso
+más directo de la máquina de plazos) y declarar éxito **solo si NO se modificó el núcleo**.
+
+### 22.4 Honestidad anti-dispersión (D-86)
+Estas son **VISIÓN / radar**, NO roadmap. La norma CUÑA manda cerrar la cuña 1 (VeriFactu + cobros) al
+100% antes de abrir otra. Su valor HOY: (1) **presionar el diseño** para que el núcleo sea de verdad
+blanco — si una exigiera tocar el núcleo, hay sesgo de dominio que limpiar AHORA; (2) munición de radar
+para la cuña 2. No desvían el ataque; lo blindan.
+
+---
+
 ## 17. Resumen ejecutivo
 
 - Qwen = motor. LoomBit = SO. El modelo **propone**; el código **dispone**; el humano **aprueba**.
