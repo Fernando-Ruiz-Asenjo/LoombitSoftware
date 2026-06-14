@@ -1,0 +1,7 @@
+{
+  "id": "20260614T225631_401c935d",
+  "ts": "2026-06-14T22:56:31.809691+00:00",
+  "shell": "powershell",
+  "cmd": "python scripts/prueba_en_vivo.py --only hola --timeout 60",
+  "cwd": ""
+}
