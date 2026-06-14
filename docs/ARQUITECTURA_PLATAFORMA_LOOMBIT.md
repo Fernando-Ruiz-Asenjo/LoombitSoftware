@@ -10,15 +10,21 @@
 
 ---
 
-## 0. Las cinco leyes de la plataforma
+## 0. Las cinco leyes de la plataforma — y su ESTADO REAL (auditado contra el código)
 
-| # | Ley | Quién la garantiza |
-|---|---|---|
-| 1 | **Qwen propone, no dispone.** El modelo emite `tool(intención, datos)`; nunca ejecuta nada por sí mismo. | `agent/loop.py` → siempre vía `ToolRegistry.execute()` |
-| 2 | **Las cifras y los identificadores los calcula código determinista.** IBAN, importes, fechas, impuestos, destinatarios NUNCA se confían al texto del modelo. | `policy/authority_plane.py` (CaMeL: datos ≠ órdenes) |
-| 3 | **Gate humano para todo efecto externo.** Enviar correo, crear evento, shell, control de escritorio → PENDING_APPROVAL. | `requires_approval=True` + `AgentStatus.PENDING_APPROVAL` |
-| 4 | **Local-first.** Los datos no salen de la máquina; el servidor solo escucha en 127.0.0.1. | `seguridad_web.py` (anti DNS-rebinding + CSRF) |
-| 5 | **Todo deja recibo.** Nada se da por "hecho" sin un registro auditable. | recibos JSON/HTML en `runtime/local/` |
+> Auditado leyendo `loop.py:706`, `policy/authority_plane.py::autorizar`, `tools/base.py`. **No vendas
+> humo:** la columna "Estado real" dice lo que el código hace HOY, no lo que aspiramos.
+
+| # | Ley | Quién la garantiza | Estado real |
+|---|---|---|---|
+| 1 | **Qwen propone, no dispone.** El modelo emite `tool(intención, datos)`; nunca ejecuta por sí mismo. | `agent/loop.py:706` → `AUTHORITY_PLANE.autorizar()` → `ToolRegistry.execute()` | 🟢 |
+| 2 | **Datos ≠ órdenes (CaMeL).** IBAN/importe/destinatario NUNCA se confían al texto del modelo ni se liftean de contenido no confiable. | `authority_plane.valor_de_cuarentena` | **🟠 DORMIDA** — `loop.py:706` NO pasa `contenido_no_confiable` → el filtro nunca se dispara (el propio código lo marca como follow-up). Ver §18. |
+| 3 | **Gate humano para todo efecto externo.** → PENDING_APPROVAL. | `requires_approval=True` + `AgentStatus.PENDING_APPROVAL` | 🟢 con fuga: `gmail_send` auto-envía si el destinatario es "claro" (sin tarjeta). |
+| 4 | **Local-first.** Los datos no salen; el servidor solo escucha en 127.0.0.1. | `seguridad_web.py` (anti DNS-rebinding + CSRF) | 🟢 — pero contiene la **red de entrada**, NO la ejecución (ver §10). |
+| 5 | **Todo deja recibo.** Nada es "hecho" sin registro auditable. | `AgentStore` + recibos en `runtime/local/` | 🟢 |
+
+> **Lectura honesta:** 3 leyes 🟢, 1 dormida (🟠 CaMeL), y el sandbox (§10) ⬜. Las acciones para
+> cerrarlo, priorizadas por valor×esfuerzo, están en §18 (backlog).
 
 ---
 
@@ -317,7 +323,7 @@ routers/agent.py → AgentRun(pending) → agent/loop.py
   ▼
 llm.py → Qwen (LM Studio) ──► propone tool_calls
   ▼
-policy/authority_plane.decidir(tool, args, run)
+policy/authority_plane.autorizar(tool, args, run, requires_approval)
   ├─ REHUSAR   → mensaje al modelo, no ejecuta
   ├─ CORREGIR  → mensaje al modelo (resuelve destinatario / cuarentena CaMeL)
   ├─ APROBAR   → AgentRun(pending_approval) ─► UI muestra tarjeta ─► operador aprueba
@@ -365,6 +371,80 @@ tiene recibo, 🟠 lo que depende de credenciales, ⬜ lo proactivo.
 
 **Lo único que NO debe entrar en el MVP:** routines proactivas y cualquier tool de shell/escritorio
 sin gate — eso espera a F3 (sandbox).
+
+---
+
+## 18. Análisis endurecido (5 ciclos) — red team, contratos y backlog
+
+> Esta sección es el resultado de 5 ciclos de mejora encadenados sobre el análisis. Cada uno corrigió
+> al anterior contrastando con el código. Lo que sigue es lo que NO se puede omitir.
+
+### 18.1 Red team — las 4 vías por donde se rompe la cadena (por gravedad)
+
+1. **🔴 El agente puede reescribir sus propios guardarraíles.** `tools/base.py::_write_file` escribe en
+   cualquier ruta (`Path(path).expanduser()`, raíz `Path.cwd()`). El modelo —o una inyección— puede
+   sobrescribir `loop.py`, `authority_plane.py`, `.env` o el token store → **escalada total**, anula
+   todo lo demás. Es el peor riesgo y prerrequisito bloqueante de la autonomía (F4).
+2. **🔴 Inyección de prompt → acción consecuente.** Como CaMeL está dormido (Ley 2 🟠), un correo de
+   cliente con un IBAN/importe puede fluir a una propuesta de cobro. La única defensa hoy
+   (`gmail_send` resuelve el destinatario) **no cubre IBAN ni importe**, ni otras tools.
+3. **🟠 Auto-envío sin gate.** En `gmail_send`, `auto = (not proactive) and _destinatario_claro(to)` →
+   si el destinatario parece "claro", se envía sin tarjeta. Las defensas no-bot/anti-manipulación son
+   **regex** → evadibles por paráfrasis.
+4. **🟠 Segunda puerta MCP.** `mcp_server.py` aplica el gate por `safety_class`; el loop lo aplica por
+   `requires_approval`. **Dos mecanismos paralelos**: una tool mal etiquetada rompe la coherencia.
+
+### 18.2 Contratos del sandbox (§10 hecho ingeniería)
+
+```python
+# sandbox/policy.py — política declarativa, determinista, testeable
+@dataclass(frozen=True)
+class SandboxPolicy:
+    fs_write_roots: tuple[Path, ...]   # único sitio escribible (p.ej. runtime/local/)
+    fs_deny: tuple[Path, ...]          # .env, token store, loombit_operator/** (AUTOPROTECCIÓN)
+    cmd_allowlist: tuple[str, ...]     # binarios permitidos; resto → blocked_by_default
+    net_allowlist: tuple[str, ...]     # hosts permitidos para web_fetch
+    limits: ResourceLimits             # timeout_s, max_mem_mb, max_cpu_s
+
+def check_fs_write(path, pol) -> Verdict   # resuelve symlinks/.. y valida raíz
+def check_command(argv, pol) -> Verdict
+def check_url(url, pol) -> Verdict
+
+# sandbox/runner.py — contención de ejecución
+def run_contained(fn, args, pol) -> Result:
+    # 1) valida args vs policy ANTES de ejecutar  2) subproceso con setrlimit + timeout
+    # 3) en Jetson: nsjail/firejail o contenedor para safety_sensitive
+```
+
+**Cableado mínimo (quirúrgico):** `_run_shell` (`shell=True`→argv+`check_command`); `_write_file`
+(`check_fs_write`); `registry.execute` enruta `safety_sensitive` por `run_contained`. **Unificar gate
+por `safety_class`** (una fuente de verdad loop+MCP; `requires_approval` pasa a derivado).
+
+**DoD — suite de inyección (§SEG):** test-set que DEBE bloquear: escribir en `loop.py`, leer `.env`,
+`rm -rf`, `web_fetch` a host externo, IBAN inyectado desde correo. Sin suite verde, sandbox ≠ 🟢.
+
+### 18.3 Valor estratégico (cuña: autónomo español · VeriFactu + cobros)
+
+- **CaMeL no es abstracto: es la amenaza exacta de la cuña.** El ancla (cobros/morosidad) **lee
+  correos de clientes** (contenido no confiable) con **IBAN/importe** → wirear CaMeL es **P0 de la
+  cuña**, no "P2 seguridad".
+- **Recibo encadenado (hash chain) sirve dos amos:** confianza demostrable + rastro de cumplimiento
+  **VeriFactu** (registro encadenado factura→registro→303). Un trabajo, dos fosos.
+- **"Local + no puede hacer daño" es argumento de VENTA verificable** frente a las SaaS cloud.
+
+### 18.4 Backlog priorizado (orden de ataque)
+
+| # | Acción | Valor | Esfuerzo | Prio |
+|---|---|---|---|---|
+| P0a | Wirear CaMeL en `loop.py:706` (`contenido_no_confiable`) + cobertura IBAN/importe + test inyección | 🔴 alto (cuña) | bajo | **P0** |
+| P0b | `fs_deny` autoprotección en `write_file`/`run_shell` (prohibir `loombit_operator/**`, `.env`, token) | 🔴 alto (anti-escalada) | bajo-medio | **P0** |
+| P1a | `sandbox/` (policy+runner) + límites recursos + suite §SEG | medio-alto | medio-alto | **P1** |
+| P1b | Recibo encadenado (hash chain) reutilizable VeriFactu | alto (foso doble) | medio | **P1** |
+| P2 | Unificar gate por `safety_class` (loop+MCP una sola verdad) | medio (deuda) | bajo | **P2** |
+
+> **La ÚNICA acción siguiente si solo haces una:** **P0 (CaMeL + valla de autoprotección).** Dos
+> cambios pequeños que cierran las dos vías 🔴 y desbloquean cuña (cobros) y autonomía (F4). El
+> sandbox completo (P1) viene después; estos dos no esperan.
 
 ---
 
