@@ -200,8 +200,26 @@ reemplazable · D-86 anti-dispersión (cerrar cuña 1 antes de otra) · D-90 rad
 
 ---
 
+## PARTE M — Tesis estratégica (fuera de la caja): capa de soberanía personal
+
+Síntesis de las rondas 7-9 (§24-26 del doc de arquitectura): las skills más valiosas **emergen de los
+primitivos del kernel** (gate, ledger encadenado, comprensión, Pilot-observer, visión local, cálculo
+determinista), y casi todas dependen de ser **local-first**. La idea grande:
+
+> **LoomBit = el agente LOCAL que representa al usuario frente a instituciones y empresas en un mundo
+> digital asimétrico.** Cada empresa tiene una IA para extraer al usuario (dark patterns, scams que
+> suplantan a Hacienda, suscripciones-trampa); falta una IA *de su lado*, y eso solo puede ser local.
+
+Piezas frontera que lo habilitan: **A2A + MCP** (habla de igual a igual con otros agentes), **credenciales
+verificables + divulgación selectiva (eIDAS2)** (demuestra lo justo sin entregar datos), **negociador /
+defensor del consumidor / anti-fraude** (actúa por ti), **ledger con procedencia criptográfica** (prueba
+lo que pasó). El foso es estructural: local-first es lo que hace posible un agente que trabaja PARA el
+usuario. La cuña fiscal (autónomo español) es el primer terreno; la tesis escala a cualquier persona.
+**2 upgrades de kernel** que el catálogo pide repetidamente: divulgación selectiva y modo "actúa por mí
+con gate". Catálogo total propuesto: ~80 skills (cuña + no adyacentes + creativas), en §20-26.
+
 ## PARTE L — Estado del trabajo y siguiente paso
 
-- **Hecho:** 6 rondas de diseño (45 vueltas) + 45 señales de radar, todo en la PR #57. **0 implementación.**
+- **Hecho:** 9 rondas de diseño (~105 vueltas) + 63 señales de radar, todo en la PR #57. **0 implementación.**
 - **Siguiente paso único:** abrir rama desde main e implementar **P0** (CaMeL + valla + spotlighting) con
   test de inyección, `scripts/verify.py` verde, PR. **No abrir skills hasta que P0 esté 🟢.**
