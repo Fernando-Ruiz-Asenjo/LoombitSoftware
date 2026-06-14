@@ -1291,4 +1291,46 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   pytest+cobertura 79 % + 8 auditorías + fuzz); 24 goldens de gepa/pareto/escenarios verdes.
 - *Reversible:* sí; aditivo + extracción (1 módulo nuevo + cableado + 2 tests + baja de deuda). No toca el
   bucle del agente.
+## Aterrizaje del NORTE + El Muro (investigación 5 vueltas, 2026-06-14)
+
+**D-100 — Aterrizaje del NORTE: "caja + agente autónomo local + adaptativo" (síntesis V2-V5).**
+- *Contexto:* la investigación de innovación (5 vueltas del harness `deep-research`, verificación adversarial a
+  3 votos) destiló que Loombit es una **caja** donde escribes cualquier tarea: *dentro* = skill rápida
+  determinista, *fuera* = **agente autónomo de computer-use LOCAL** (fallthrough), con interfaz **adaptativa**.
+  Nicho verificado vacío (ni Raycast/Asyar/Open Interpreter lo ocupan). Faltaba esa dimensión en el NORTE.
+- *Elegido:* añadir el bloque **"LA CAJA"** a `### NORTE` (`BRUJULA.md`) y a la VISIÓN (`CLAUDE.md`), **sin
+  crear sección `###` nueva** (para no tocar el manifiesto de `test_gobierno_cobertura`). Reconciliación
+  autonomía↔gate: autónomo en local/lectura/cómputo; gate humano SOLO en el efecto externo consecuente.
+- *Alternativa descartada:* sección `###` nueva (obligaría a tocar el candado de gobierno); doc aparte sin
+  tocar la constitución (no la blindaría cada turno).
+- *Procedencia:* `docs/DESTILADO_STUFF_CAJA_AGENTE_LOOMBIT_2026-06-14.md` + `docs/METODO_DEEP_RESEARCH_VUELTAS.md`.
+- *Reversible:* sí; aditivo en docs.
+
+**D-101 — Ley nueva: "la UI generada NO es camino de confianza" (§SEG-8, de la Vuelta 5).**
+- *Contexto:* la Vuelta 5 (UI generativa/adaptativa 2026) verificó **3-0** el patrón "el LLM propone la UI / el
+  código la dispone" (tldraw `sanitize`/`apply`) y que **ninguna** fuente pone la UI generada como camino de
+  confianza para efectos consecuentes. Refuerza la Ley Fundacional aplicada a la interfaz.
+- *Elegido:* añadir **§SEG-8** (bullet en `### §SEG`) + **fila en la tabla Parte IV** + corolario en `CLAUDE.md`:
+  la UI generada es capa de **propuesta**; el LLM elige de un **vocabulario CERRADO de componentes** (nunca
+  markup/JS libre = inyección); el efecto pasa por código + gate. Local-first: transporte SSE (Vercel AI SDK
+  *Data Stream Protocol*) servible desde FastAPI+Qwen; GenUI cloud-only (Thesys C1) descartado por el foso.
+- *Alternativa descartada:* depender de un producto GenUI cloud (rompe el foso); embeber el SDK de tldraw
+  (source-available, ~6.000 $/año) — se copia el **patrón**, no el SDK.
+- *Reversible:* sí; aditivo en docs. El **golden de UI generada** queda declarado **pendiente** (tabla Parte IV).
+
+**D-102 — "El Muro" = nombre del equipo de defensa (capas separadas).**
+- *Contexto:* los mecanismos de vigilancia (gate, 8 auditorías, mutación, test en vivo, candados, CI,
+  CODEOWNERS, cadena, scheduler) eran individuales y **sin nombre colectivo**. Fernando pidió presentarlos como
+  **UN equipo**, actualizados y activados permanentemente.
+- *Elegido:* bautizar el equipo **El Muro** (eleva el término "muro"=CI a TODO el equipo). **Capas separadas:**
+  El Muro **defiende y hace cumplir** el NORTE y la Brújula pero **NO es ninguno** (Separación de Autoridades
+  aplicada al gobierno). Carta nueva `docs/EL_MURO.md` + párrafo de portada en la Parte II de `BRUJULA.md` +
+  referencia en `CLAUDE.md`. Lema: **"el LLM propone, El Muro dispone".**
+- *Permanencia (pedida: TODO):* este aterrizaje deja la **identidad + carta**; el **centinela continuo
+  always-on** (Routine 24/7 que vigila la salud de El Muro) y el **endurecimiento de candados** son **§3d:
+  código nuevo con arnés, 🟠 declarado pendiente** — se construye tras el OK de Fernando.
+- *Nota K2:* "K2" es **alias de un mecanismo ya existente** (pendiente de que Fernando concrete cuál); ese
+  mecanismo ya es miembro de El Muro → solo faltará ponerle la etiqueta.
+- *Reversible:* sí; la identidad es docs. El centinela (3d) será aditivo (módulo + tests).
+
 *(se irán añadiendo entradas según avance el bloque)*
