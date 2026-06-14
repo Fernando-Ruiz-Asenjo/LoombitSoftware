@@ -29,3 +29,11 @@ def test_prompt_formats_and_appends_memory():
     assert "Loombit Operator" in p
     assert "MEMORIA: saldo" in p
     assert "{rol_descripcion}" not in p  # el .format se aplicó
+
+
+def test_prompt_blinda_ui_generada():
+    """§SEG-8 / D-101: la UI generada es propuesta, no camino de control (catálogo cerrado)."""
+    low = build_system_prompt().lower()
+    assert "interfaz generada" in low
+    assert "catálogo cerrado" in low
+    assert "no el camino de control" in low
