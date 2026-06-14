@@ -61,6 +61,8 @@ from .seguridad import (
     _intento_manipulacion as _intento_manipulacion,
     _recipiente_resuelto as _recipiente_resuelto,
     _sanear_dato_no_confiable as _sanear_dato_no_confiable,
+    _spotlight_delim,
+    frontera_confianza_block,
 )
 
 logger = logging.getLogger(__name__)
@@ -113,9 +115,10 @@ class AgentLoop:
         run.profile = profile
         # Pasar la tarea como hint para que la memoria incluya procedimientos relevantes
         memory_block = memory.get_memory().to_context_block(task_hint=task)
-        messages: list[dict] = [
-            {"role": "system", "content": build_system_prompt(profile, memory_block)}
-        ]
+        sistema = build_system_prompt(profile, memory_block) + frontera_confianza_block(
+            _spotlight_delim(run)
+        )
+        messages: list[dict] = [{"role": "system", "content": sistema}]
         for turn in history or []:
             role = turn.get("role")
             content = turn.get("content")

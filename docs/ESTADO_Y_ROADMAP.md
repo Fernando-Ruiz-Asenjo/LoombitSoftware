@@ -47,7 +47,15 @@
 - **K2 — valla de autoprotección** (`write_file`/`run_shell` no tocan `loombit_operator/**`, `.env`, token
   store) ✅ **HECHO (PR #60)** — `sandbox/policy.py`; cierra la 2ª vía 🔴 del red team. *(El centinela de El
   Muro la vigila viva.)*
-- **K3 — spotlighting** (delimitadores aleatorios anti-inyección) ⬜ **SIGUIENTE**.
+- **K3 — spotlighting** (delimitadores aleatorios anti-inyección) 🟡 **propuesto · gate local verde ·
+  esperando CI** — `agent/seguridad.py` (`_spotlight_delim` por-run derivado del `run.id` +
+  `_spotlight` + `frontera_confianza_block` en el system prompt); `_blindar_tool_results` envuelve los
+  tool results de fuentes externas (`_FUENTES_NO_CONFIABLES`) ENCIMA del saneado regex de §SEG-2 →
+  cierra su residuo declarado (inyección en lenguaje natural sin marcadores). Arnés `test_spotlighting.py`
+  (11 goldens) + radar D-90 (arxiv 2403.14720) + recibo D-70. **Defensa SOFT** (defensa en profundidad,
+  NO camino de control: la garantía dura sigue en el gate de efecto + CaMeL). Con esto, el trío
+  K1✅/K2✅/K3🟡 deja el **cimiento P0 de seguridad** completo. **Residuo:** medición EN VIVO del ASR
+  contra el 14B (corpus de ataque → 0) pendiente de LM Studio.
 
 **Reclasificación cuña/visión** (D-86: la cuña son las ACTIVIDADES ANCHAS del MISMO usuario —autónomo/PYME
 español— en su oficina, no solo lo fiscal):

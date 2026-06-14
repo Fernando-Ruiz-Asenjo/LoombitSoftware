@@ -39,7 +39,7 @@ from .salida import (
     _strip_tool_artifacts,
     _update_memory,
 )
-from .seguridad import _blindar_tool_results
+from .seguridad import _blindar_tool_results, _spotlight_delim, frontera_confianza_block
 
 logger = logging.getLogger(__name__)
 
@@ -68,8 +68,11 @@ def ejecutar(loop, run: AgentRun) -> AgentRun:
     # Fernando). El dueño/firma es contexto, no se deja al azar.
     if not run.messages:
         memory_block = memory.get_memory().to_context_block(task_hint=run.task)
+        sistema = build_system_prompt(run.profile, memory_block) + frontera_confianza_block(
+            _spotlight_delim(run)
+        )
         run.messages = [
-            {"role": "system", "content": build_system_prompt(run.profile, memory_block)},
+            {"role": "system", "content": sistema},
             {"role": "user", "content": run.task},
         ]
 
