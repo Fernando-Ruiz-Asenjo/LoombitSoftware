@@ -448,6 +448,50 @@ por `safety_class`** (una fuente de verdad loop+MCP; `requires_approval` pasa a 
 
 ---
 
+## 19. Ronda 2 (5 ciclos) — cognición, ledger, determinismo, coste, apuesta
+
+> Segunda ronda de mejora, apuntando a producto/foso/viabilidad (la ronda 1 fue seguridad). Todo
+> contrastado con el código: el repo tiene MÁS máquina de la que el diseño asumía, a medio cablear.
+
+### 19.1 Hallazgos de verdad-terreno (corrigen suposiciones)
+- **Cognición existe pero desconectada:** `comprension.py` (cognición de bandeja en background +
+  persistida), `expedientes.py` (CaseFile neutro), `telar.py` (la tela) comprenden los hilos — pero
+  **`agent/contexto.py` NO inyecta ese estado** → el agente planifica ciego al modelo de mundo.
+- **La cadena de hashes YA existe** en `expedientes.py` (`verify_chain` + `sha256`), pero
+  **`AgentStore` (`run.py`) no encadena** las acciones del agente.
+- **Cifras deterministas en la práctica** (`modelo_303.calcular_303`, `intake.inferir_tipo_iva` en
+  `Decimal`) pero **sin candado** que impida al LLM colar un número.
+- **Sin routing de modelos:** instructor 14B / coder 7B definidos en config, pero todo va al 14B.
+
+### 19.2 Propuestas de gran valor (conectar lo que existe)
+
+| # | Propuesta | Reusa | Valor | Esfuerzo |
+|---|---|---|---|---|
+| C6 | Inyectar estado de expediente/comprensión en `contexto.py` antes del ReAct | comprension.py, expedientes.py | foso "comprensión profunda" hecho acción | medio |
+| C7 | Enrutar acciones del agente como eventos en la cadena del CaseFile | expedientes.py (hash chain) | recibo inmutable + rastro VeriFactu, un solo ledger | bajo-medio |
+| C8 | Candado de procedencia numérica en authority_plane + property tests (Hypothesis) sobre `calcular_303` | modelo_303.py | ancla fiscal a prueba de construcción, no de disciplina | bajo |
+| C9 | Router por dificultad (7B/clasificador→14B solo lo duro) + presupuesto VRAM/latencia; generalizar el patrón "LLM fuera del camino caliente" de comprension.py | llm.py roles, config | usable en Jetson 16GB (fricción cero) | medio |
+
+### 19.3 North-star y secuencia integrada (rondas 1+2)
+
+**North-star (BRÚJULA):** *% de tareas cerradas al 100% sin que el usuario revise tu trabajo.*
+
+| Orden | Bloque | Origen | Por qué ahora |
+|---|---|---|---|
+| **P0** | CaMeL wired + valla autoprotección `write_file` | R1 §18 | cierra 2 vías 🔴; barato; desbloquea cuña + F4 |
+| **P1-a** | Expediente/comprensión → `contexto.py` | R2·C6 | el agente actúa con cognición real |
+| **P1-b** | `AgentStore` → cadena de hashes del CaseFile | R2·C7 | recibo inmutable + VeriFactu reusando lo que hay |
+| **P1-c** | Candado de procedencia numérica + property tests 303 | R2·C8 | ancla fiscal a prueba de construcción |
+| **P1-d** | Router de modelos + presupuesto VRAM/latencia | R2·C9 | usable en Jetson |
+| **P2** | `sandbox/` completo + unificar gate por `safety_class` | R1 §18 | contención total para autonomía F4 |
+
+**La apuesta:** el foso no es "otro agente con tools" — es un operador que (1) entiende el hilo,
+(2) nunca calcula lo consecuente, (3) deja rastro inmutable y (4) cabe y responde en local en Jetson.
+Las 4 piezas ya tienen máquina a medio cablear; el trabajo de mayor valor es **conectarlas al camino
+del agente**, no construir desde cero.
+
+---
+
 ## 17. Resumen ejecutivo
 
 - Qwen = motor. LoomBit = SO. El modelo **propone**; el código **dispone**; el humano **aprueba**.
