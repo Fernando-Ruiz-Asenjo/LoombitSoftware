@@ -3,7 +3,29 @@
 > Documento vivo. Honestidad obligatoria (`DEFINITION_OF_DONE.md`): 🟢 = funciona
 > contra el servicio/realidad con recibo; 🟡 = código completo + tests (sin piloto
 > real); 🟠 = parcial; ⬜ = pendiente; 🔴 = bloqueado.
-> Actualizado: 2026-06-11.
+> Actualizado: 2026-06-14.
+
+## ⏱️ 2026-06-14 — Cable de sesiones · GEPA Pareto cableado · el ratchet CONGELÓ el núcleo
+
+- **🟢 EL CABLE (PR #54)** — puente git nube↔PC (`scripts/bridge_*.py` + `docs/CABLE_SESIONES.md`),
+  **verificado e2e EN VIVO en Windows** (round-trip `Get-Date` → `approved=True exit=0`). Corre en 2º plano
+  con gate `allowlist`. Pendiente: tu review de codeowner para fundir.
+- **🟢 D-98 — GEPA frontera de Pareto CABLEADA (PR #55)** — completa el D-97 🟠: `optimizar_prompt` busca
+  sobre la **frontera de no-dominados** (no «mejor por media»); padre a expandir y propuesta final salen de
+  la frontera. Extraído `fabrica/gepa_escenarios.py`; `gepa.py` **416→278** (fuera de deuda). Gate canónico
+  (normal) verde + 24 goldens. Pendiente: tu review de codeowner.
+- **🧱 HALLAZGO IMPORTANTE — el ratchet de tamaño ha CONGELADO los ficheros núcleo.** `auditoria_brujula.py`
+  pone el muro ROJO si TOCAS cualquier `loombit_operator/*.py` **> 400 líneas** (sin excepción de deuda). Como
+  `loop.py`=**1433** y `memory.py`=**964**, **no se pueden editar hasta decomponerlos a <400**. Por tanto:
+  - **D-96 (cuarentena CaMeL EN VIVO)** 🔴 **bloqueado detrás de decomponer `loop.py`**. El cableado en sí es
+    1 línea (`loop.py:706`, pasar `contenido_no_confiable` a `autorizar`), pero no se puede tocar el fichero:
+    es un **refactor grande del núcleo del agente** (se funde con OK de Fernando · arnés antes de tocar).
+  - **Grafo temporal de memoria (#1, «la joya»)** 🔴 bloqueado igual detrás de **decomponer `memory.py`**.
+  - **Navegador (D-93/D-94)** 🟠 — núcleo gobernado + driving 🟡; **registrar la tool + verificar EN VIVO**
+    sigue bloqueado en TUS recursos (`pip install playwright` + web real) y en no-mentir (no se expone al 14B
+    sin recibo en vivo).
+- **deep-research** — la barrida amplia (Google/OpenAI-Operator/Cursor internals) sigue pendiente; se atascó
+  a ~2h20 el 13-jun (reanudable).
 
 ## Foto global
 - **Repo**: limpio y profesional, historial sano, LICENSE propietaria. `origin/main` con el **gobierno
