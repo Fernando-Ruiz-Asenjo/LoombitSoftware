@@ -1332,5 +1332,10 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
 - *Nota K2:* "K2" es **alias de un mecanismo ya existente** (pendiente de que Fernando concrete cuál); ese
   mecanismo ya es miembro de El Muro → solo faltará ponerle la etiqueta.
 - *Reversible:* sí; la identidad es docs. El centinela (3d) será aditivo (módulo + tests).
+- *Actualización (3d, 2026-06-14):* centinela CONSTRUIDO en `loombit_operator/el_muro_centinela.py` (Routine
+  PASSIVE always-on; envuelve el scheduler vía `build_scheduler_con_centinela()` sin tocar
+  `routine_executors.py`) + arnés `tests/test_el_muro_centinela.py` + candados endurecidos
+  (`test_gate_integridad.py`). Miembros dormidos despertados: `core.hooksPath`→`.githooks` y mypy instalado.
+  🟢 propuesto · gate local verde · espera CI.
 
 *(se irán añadiendo entradas según avance el bloque)*

@@ -48,7 +48,7 @@ la Brújula se aplique y que el gobierno no se manipule — sin *ser* ninguno.
 | Recibos de conducta | `loombit_operator/conducta.py` | conducta cuantificable (D-58/D-70) | `tests/test_conducta.py` | gate-time |
 | El muro de GitHub (CI) | `.github/workflows/ci.yml` | `--strict --live` obligatorio antes de merge | push/PR a `main` | always-on |
 | Auditor independiente | `.github/CODEOWNERS` + `branch-protection.yml` | constructor ≠ auditor; protección de `main` | PR + cron | always-on |
-| **Centinela continuo** | *(por construir — §3d)* | salud de El Muro 24/7 (radar fresco, cadena íntegra, gate verde) | Routine cron (`scheduler.py`) | **always-on (🟠 pendiente)** |
+| **Centinela continuo** | `loombit_operator/el_muro_centinela.py` | salud de El Muro 24/7 (radar fresco, cadena íntegra) | Routine cron PASSIVE | **always-on** (🟢 propuesto · espera CI) |
 
 ---
 
@@ -64,15 +64,16 @@ la Brújula se aplique y que el gobierno no se manipule — sin *ser* ninguno.
 
 ## 4. Permanencia — "actualizados y activados permanentemente" (pedido: TODO)
 
-Estado honesto hoy: casi todos los miembros son **gate-time** (se disparan en commit/CI), y solo el CI y la
-protección de rama son **always-on**. El pedido de "permanencia total" se cumple en dos movimientos, ambos
-**🟠 pendientes (§3d del aterrizaje, código nuevo con arnés)**:
+Estado (3d, 2026-06-14 · 🟢 propuesto · gate local verde · espera CI): la permanencia total se materializó así:
 
-1. **Centinela continuo** — una Routine *always-on* sobre el `scheduler.py` existente que corre en bucle los
-   chequeos read-only de salud de El Muro (radar fresco, cadena íntegra, estado del gate) y deja recibo en
-   `runtime/local/`. Vigilancia 24/7, no solo en commit/CI.
-2. **Endurecer candados** — ampliar `test_gate_integridad.py` para que los miembros nuevos (centinela, esta
-   carta) no se puedan desactivar nunca.
+1. **Centinela continuo.** `loombit_operator/el_muro_centinela.py`: Routine **PASSIVE always-on** que corre en
+   bucle los chequeos read-only de salud (radar fresco ≤45 días + cadena íntegra) y deja recibo en
+   `runtime/local/`. Cableado vía `build_scheduler_con_centinela()`, que **envuelve** el scheduler por defecto
+   sin tocar `routine_executors.py` (respeta su deuda de tamaño). Arnés: `tests/test_el_muro_centinela.py`.
+2. **Candados endurecidos.** `tests/test_gate_integridad.py` ahora exige que el centinela y esta carta no se
+   puedan borrar ni vaciar (un miembro de El Muro no se desactiva en silencio).
+3. **Miembros dormidos despertados.** `core.hooksPath` reapuntado a `.githooks` (el gate local vuelve a
+   dispararse en cada commit) y `mypy` instalado (faltaba y degradaba el type-check en silencio).
 
 > **K2:** Fernando lo definió como **alias de un mecanismo ya existente**; ese mecanismo ya es miembro de El
 > Muro (arriba). Cuando concrete cuál, se le añade la etiqueta "K2" — sin cambiar nada más.

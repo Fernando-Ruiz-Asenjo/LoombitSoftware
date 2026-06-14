@@ -127,7 +127,7 @@ cuña nueva exige cerrar la anterior al 100 % (criterio de cierre en el roadmap)
 > equipo** llamado **El Muro**, de agentes monitores individuales que actúan como uno — el gate canónico
 > (`scripts/verify.py`) y sus 8 auditorías, la mutación, el test en vivo, los candados anti-debilitamiento, el CI
 > de GitHub, CODEOWNERS/branch-protection, la cadena de gobierno, los recibos de conducta y el **centinela
-> continuo** (Routine always-on, 🟠 por construir — §3d del aterrizaje). **El Muro NO es la ley ni el destino:
+> continuo** (`el_muro_centinela.py`, Routine always-on; estado en `docs/EL_MURO.md`). **El Muro NO es la ley ni el destino:
 > los *defiende y hace cumplir*** (Separación de Autoridades aplicada al propio gobierno — la ley y quien la
 > aplica no se mezclan). Integra la *vigilancia* del NORTE (`auditoria_foso_local`), de la Brújula
 > (`auditoria_brujula`) y del gobierno (cadena/candados/recibos), **no su contenido**. Lema: **el LLM propone,
