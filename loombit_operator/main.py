@@ -164,11 +164,11 @@ async def lifespan(app: FastAPI):
 
     daemon = None
     if settings.routines_daemon_enabled:
-        from .routine_executors import build_default_scheduler
+        from .el_muro_centinela import build_scheduler_con_centinela
         from .scheduler import SchedulerDaemon
 
         daemon = SchedulerDaemon(
-            build_default_scheduler(), settings.routines_daemon_interval_seconds
+            build_scheduler_con_centinela(), settings.routines_daemon_interval_seconds
         )
         daemon.start()
     try:
