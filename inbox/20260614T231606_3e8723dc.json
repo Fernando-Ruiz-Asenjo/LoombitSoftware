@@ -1,0 +1,7 @@
+{
+  "id": "20260614T231606_3e8723dc",
+  "ts": "2026-06-14T23:16:06.340677+00:00",
+  "shell": "powershell",
+  "cmd": "Invoke-RestMethod http://127.0.0.1:8787/health | ConvertTo-Json -Compress",
+  "cwd": ""
+}
