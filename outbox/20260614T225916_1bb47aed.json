@@ -1,0 +1,9 @@
+{
+  "id": "20260614T225916_1bb47aed",
+  "ts": "2026-06-14T22:59:18.995363+00:00",
+  "cmd": "try { $h=Invoke-RestMethod http://127.0.0.1:8787/health -TimeoutSec 5; 'LOOMBIT_UP: '+($h|ConvertTo-Json -Compress) } catch { 'LOOMBIT_DOWN' }; try { $m=Invoke-RestMethod http://127.0.0.1:1234/v1/models -TimeoutSec 5; 'LM_UP: '+(($m.data.id) -join ',') } catch { 'LM_DOWN' }",
+  "exit": 126,
+  "stdout": "",
+  "stderr": "rechazado por el gate humano/allowlist",
+  "approved": false
+}
