@@ -1354,4 +1354,24 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   fake-injected en CI) hasta el recibo del piloto en vivo; ahí pasa a **🟢**. La presentación AEAT sigue fuera.
 - *Recibo:* gate normal VERDE local; promesa registrada con su check verde; MIN_TESTS subido.
 - *Reversible:* sí; `git revert` (aditivo: 1 setting + `via` en el endpoint + tests/doc).
+**D-104 — FASE LARGA «Libro VeriFactu persistente + intake encadenado» (de cálculo en memoria a libro en disco).**
+- *Contexto:* D-88 calculaba la huella encadenada **en memoria**; el sentido de VeriFactu es lo contrario —
+  un libro **inalterable en disco**. Esta fase lo persiste y lo cablea al producto (intake → libro), todo
+  aditivo sobre D-83 (intake) y D-88 (VeriFactu).
+- *Pieza store:* `skill_d_fiscal/verifactu_store.py` — `RegistroVerifactuStore`: libro **append-only**
+  (`.jsonl`, una línea por registro); cada alta encadena la huella del ÚLTIMO guardado; **idempotente** por
+  número; **verifica la cadena ANTES de escribir** y lanza `CadenaCorrupta` si el libro está manipulado (no
+  apila sobre algo roto). Golden `tests/test_verifactu_store.py` (5) + 1 mutación al encadenamiento. En
+  `_MYPY_TARGETS`.
+- *Pieza intake:* `intake_batch.py` — `intake_carpeta(..., store_vf=None, nif_emisor="")`: una factura
+  EMITIDA legible se da de alta en el libro encadenado (cifras por código). `ResumenIntake.registros_verifactu`.
+  Retrocompatible: sin `store_vf` no cambia nada. Golden ampliado en `tests/test_intake_batch.py` (2 nuevos).
+- *Pieza API:* `routers/verifactu.py` montado en `main.py` — `GET /verifactu/registros` (lista + íntegro) +
+  `GET /verifactu/verificar` (detecta manipulación). Solo LECTURA. Golden `tests/test_verifactu_router.py` (2).
+- *Frontera DECLARADA (honesta):* la **PRESENTACIÓN a la Sede AEAT** (certificado/firma) sigue **FUERA** —
+  esto guarda el registro conforme inalterable, no lo presenta. Promesa `verifactu-persistente` queda **🟡**
+  (contrato/fake-tested) hasta el piloto en vivo. Sin LLM en ningún efecto.
+- *Recibo:* gate normal VERDE local; promesa registrada con su check verde; mutación (25 cazadas, 0
+  sobreviven); MIN_TESTS subido.
+- *Reversible:* sí; `git revert` (aditivo: módulos nuevos + 1 línea de router + 1 param opcional en intake).
 *(se irán añadiendo entradas según avance el bloque)*

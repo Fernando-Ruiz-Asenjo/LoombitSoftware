@@ -14,6 +14,7 @@ import pytest
 from loombit_operator.cuentas_cobrar import CuentasCobrarStore
 from loombit_operator.expedientes import ExpedienteStore
 from loombit_operator.skill_d_fiscal.intake_batch import intake_carpeta
+from loombit_operator.skill_d_fiscal.verifactu_store import RegistroVerifactuStore
 
 FACTURA_1 = """Cliente Uno SL
 NIF: B12345678
@@ -117,6 +118,29 @@ def test_idempotente(tmp_path, stores):
     r2 = intake_carpeta(carpeta, exp, cc)  # segunda pasada
     assert r2.leidas == 0 and r2.duplicadas == 2
     assert len(cc.list()) == 2  # no se duplican las cuentas
+
+
+# ── VeriFactu: las facturas EMITIDAS entran al libro encadenado ───────────────
+
+
+def test_intake_alimenta_el_libro_verifactu(tmp_path, stores):
+    exp, cc = stores
+    vf = RegistroVerifactuStore(path=tmp_path / "vf.jsonl")
+    carpeta = _carpeta(tmp_path, **{"f1.txt": FACTURA_1, "f2.txt": FACTURA_2})
+    r = intake_carpeta(carpeta, exp, cc, store_vf=vf, nif_emisor="B12345678")
+    assert r.registros_verifactu == 2
+    regs = vf.list()
+    assert regs[1].huella_anterior == regs[0].huella  # encadenados en el libro
+    assert vf.verificar() == []  # íntegro
+    # idempotente también en VeriFactu: re-procesar no duplica registros.
+    intake_carpeta(carpeta, exp, cc, store_vf=vf, nif_emisor="B12345678")
+    assert len(vf.list()) == 2
+
+
+def test_sin_store_vf_no_registra_pero_sigue_el_intake(tmp_path, stores):
+    exp, cc = stores
+    r = intake_carpeta(_carpeta(tmp_path, **{"f1.txt": FACTURA_1}), exp, cc)
+    assert r.registros_verifactu == 0 and r.leidas == 1  # opcional: sin store_vf no rompe nada
 
 
 # ── Extra: lo no-factura se ignora ────────────────────────────────────────────
