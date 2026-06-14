@@ -44,9 +44,17 @@ acción; comprende lo que la persona tiene entre manos y se lo resuelve o se lo 
 y reutilizable**: el mismo runtime sirve cualquier dominio y cualquier dispositivo según las **skills** y el
 hardware instalados (la arquitectura ya lo permite — ver `CLAUDE.md` "Qué es Loombit").
 
+**LA CAJA — cómo se usa (D-100).** Loombit es **una caja donde escribes cualquier tarea y la hace**. Si la tarea
+cae *dentro* (skill conocida) → **vía rápida determinista**; si cae *fuera* → un **agente autónomo de
+computer-use LOCAL** la resuelve (fallthrough). La caja es **ADAPTATIVA**: materializa la interfaz/pantalla que
+cada tarea necesita, sin menús fijos. **Reconciliación autonomía↔gate:** el agente es autónomo en lo **local, la
+lectura y el cómputo**; el **gate humano salta SOLO en el efecto externo consecuente** (enviar, pagar, presentar,
+borrar). *(Síntesis de la investigación V2-V5; ver `docs/DESTILADO_STUFF_CAJA_AGENTE_LOOMBIT_2026-06-14.md` y el
+método en `docs/METODO_DEEP_RESEARCH_VUELTAS.md`.)*
+
 **FOSO (innegociable, vale para cualquier actividad).** **LOCAL** (los datos no salen de la máquina) ·
-**comprensión profunda del trabajo real** (cognición, no extracción) · **adaptativo** (genera lo que la
-persona necesita ver en cada momento). Igual o mejor que los grandes; que sean más grandes no es excusa.
+**comprensión profunda del trabajo real** (cognición, no extracción) · **adaptativo** (genera la interfaz/pantalla que la
+persona necesita ver en cada momento — capa de *propuesta*, nunca el camino de control; ver §SEG-8 y D-101). Igual o mejor que los grandes; que sean más grandes no es excusa.
 
 **CUÑA ACTIVA (la estrategia para llegar, NO el límite; redefinida D-86).** Se ejecuta **por cuñas**,
 cerrando una al 100 % antes de abrir la siguiente — visión sin dispersión. La cuña 1 es el **compañero de
@@ -115,6 +123,16 @@ cuña nueva exige cerrar la anterior al 100 % (criterio de cierre en el roadmap)
 
 ## PARTE II — EL GOBIERNO (los mecanismos que hacen cumplir la Parte I)
 
+> **EL MURO — el equipo que hace cumplir esta Parte (D-102).** El gobierno no es un proceso suelto: es **un
+> equipo** llamado **El Muro**, de agentes monitores individuales que actúan como uno — el gate canónico
+> (`scripts/verify.py`) y sus 8 auditorías, la mutación, el test en vivo, los candados anti-debilitamiento, el CI
+> de GitHub, CODEOWNERS/branch-protection, la cadena de gobierno, los recibos de conducta y el **centinela
+> continuo** (Routine always-on, 🟠 por construir — §3d del aterrizaje). **El Muro NO es la ley ni el destino:
+> los *defiende y hace cumplir*** (Separación de Autoridades aplicada al propio gobierno — la ley y quien la
+> aplica no se mezclan). Integra la *vigilancia* del NORTE (`auditoria_foso_local`), de la Brújula
+> (`auditoria_brujula`) y del gobierno (cadena/candados/recibos), **no su contenido**. Lema: **el LLM propone,
+> El Muro dispone.** Carta del equipo: `docs/EL_MURO.md`.
+
 ### §GOB-1 — Capability Policy Plane *(superficie única de autoridad)*
 Middleware único entre LLM y tools: `tool(intención_llm, datos_input, política) → permitido | rechazado`.
 Una sola superficie donde vive "quién puede decidir qué". El gate de efecto, CaMeL, "cifras por código" y
@@ -168,6 +186,14 @@ externo (es atacable por inyección).
   operador vivo y reporta al scorecard.
 - **§SEG-7 Honestidad de límite:** seguridad = `defensa en profundidad MEDIDA + residuo declarado`, nunca "es
   local, luego es seguro". El gate humano es socialmente atacable; se mitiga, no se elimina (Tier 3).
+- **§SEG-8 La UI generada NO es camino de confianza (V5, D-101).** El operador puede *generar/adaptar* su
+  interfaz (UI generativa/adaptativa): el LLM propone la pantalla como **intents estructurados sobre un
+  vocabulario CERRADO de componentes**; **código determinista valida y renderiza** (patrón tldraw, verificado
+  3-0). Pero la UI generada es **capa de presentación/propuesta, jamás el camino de control**: ningún efecto
+  consecuente (€/IBAN/fechas/enviar/presentar) se dispara desde el markup del modelo — pasa por código + gate.
+  **Prohibido markup/JS libre del modelo** (sería inyección; gemelo de §SEG-1). *Local-first:* transporte SSE
+  servible desde FastAPI+Qwen sin nube (Vercel AI SDK *Data Stream Protocol*); GenUI cloud-only (Thesys C1)
+  descartado por el foso LOCAL.
 
 ### §DATOS — Gobierno de datos *(causó info falsa real)*
 Entidad de pruebas **separada por diseño**; `LOOMBIT_HOME` debe **aislar entities** (hoy NO lo hace — gotcha
@@ -257,6 +283,7 @@ psicología humana — se gestionan con honestidad, no se "resuelven".
 | Un veredicto exige recibo de lectura (D-58) | bloque "leído íntegro vs solo búsqueda" en todo doc de investigación | revisión humana del recibo; futuro: sensor §META-1 marca veredicto sin fuente leída | recibo manual hoy → automatizar en sensor |
 | Mejora lo que se te pide (Ley 0) | sensor + deuda normativa (§META-1) | el agente lee deuda primero | **falta el sensor** |
 | Mantenla viva | disparador+dueño+procedimiento (§META-3) | PR + DECISIONES + sync | ya con disparador |
+| UI generada no es camino de confianza (§SEG-8, D-101) | vocabulario CERRADO de componentes + render determinista; el efecto pasa por el gate | revisión del verificador hoy; futuro golden de UI generada | golden de UI por construir |
 
 ---
 
