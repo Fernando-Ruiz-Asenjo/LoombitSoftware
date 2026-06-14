@@ -17,15 +17,47 @@
 - **🧱 HALLAZGO IMPORTANTE — el ratchet de tamaño ha CONGELADO los ficheros núcleo.** `auditoria_brujula.py`
   pone el muro ROJO si TOCAS cualquier `loombit_operator/*.py` **> 400 líneas** (sin excepción de deuda). Como
   `loop.py`=**1433** y `memory.py`=**964**, **no se pueden editar hasta decomponerlos a <400**. Por tanto:
-  - **D-96 (cuarentena CaMeL EN VIVO)** 🔴 **bloqueado detrás de decomponer `loop.py`**. El cableado en sí es
-    1 línea (`loop.py:706`, pasar `contenido_no_confiable` a `autorizar`), pero no se puede tocar el fichero:
-    es un **refactor grande del núcleo del agente** (se funde con OK de Fernando · arnés antes de tocar).
+  - **D-96 (cuarentena CaMeL EN VIVO)** 🟢 **HECHO (PR #58 · D-99)**: `loop.py` decompuesto **1433→178** en 5
+    módulos (<400) y CaMeL cableado en vivo (`contenido_no_confiable` → `autorizar`). **167 goldens del loop
+    verdes = cero regresión**. CI verde; pendiente tu merge de codeowner. *(Antes lo bloqueaba el ratchet.)*
   - **Grafo temporal de memoria (#1, «la joya»)** 🔴 bloqueado igual detrás de **decomponer `memory.py`**.
   - **Navegador (D-93/D-94)** 🟠 — núcleo gobernado + driving 🟡; **registrar la tool + verificar EN VIVO**
     sigue bloqueado en TUS recursos (`pip install playwright` + web real) y en no-mentir (no se expone al 14B
     sin recibo en vivo).
 - **deep-research** — la barrida amplia (Google/OpenAI-Operator/Cursor internals) sigue pendiente; se atascó
   a ~2h20 el 13-jun (reanudable).
+
+## 🗺️ Roadmap integrado de plataforma + reclasificación de skills (2026-06-14)
+
+> Integra el diseño de plataforma del hilo de la nube (**PR #57**: LoomBit-SO sobre Qwen, ~80 skills, upgrades
+> de núcleo K1-K11, tesis de soberanía personal) con el estado real. El **catálogo completo** vive en
+> `docs/ROADMAP_INTEGRACION_PLATAFORMA.md` (#57); aquí se FIJA la **reclasificación cuña/visión** y el orden.
+
+**Seguridad P0** (precondición de toda skill que lea contenido no confiable):
+- **K1 — CaMeL** ✅ HECHO (PR #58).
+- **K2 — valla de autoprotección** (que `write_file`/`run_shell` no toquen `loombit_operator/**`, `.env`,
+  token store) ▶ **SIGUIENTE** — cierra la 2ª vía 🔴 del red team (el agente no puede reescribir sus gates).
+- **K3 — spotlighting** (delimitadores aleatorios anti-inyección) ⬜.
+
+**Reclasificación cuña/visión** (criterio NORTE/D-86: la cuña son las ACTIVIDADES ANCHAS del MISMO usuario —
+autónomo/PYME español— en su oficina, no solo lo fiscal):
+- **MOVIDAS a la cuña 1** (eran «no adyacentes» en #57, pero son trabajo de oficina del autónomo): Cazador de
+  Ayudas/Kit Digital · Buzón Unificado (correo) · Traductor de Burocracia · Ejecutor de Trámites ·
+  Legal/Contratos de negocio · Memoria de Relaciones · Segundo Cerebro/documental · Investigador (deep
+  research) · Radar de Renovaciones. → la cuña pasa de ~28 a **~37 skills**.
+- **SE QUEDAN en VISIÓN** (personal/hogar/otro usuario, D-86): salud/mayores · estudio/tutor · finanzas
+  personales del hogar · búsqueda de empleo · smart home · visión ambiental · duelo · legado · cápsula del
+  tiempo · coach de vida · director de la casa · diario de vida · pre-mortem personal · investigador
+  científico · apoderado digital.
+- **Dudosas** (en VISIÓN por anti-dispersión, revisables): defensor del consumidor · negociador personal ·
+  CISO personal.
+- **Transversales** (features/kernel, no skills de cuña): voz local · accesibilidad · gemelo de procedimiento ·
+  abogado del diablo · caja negra.
+
+**Orden de ataque:** P0 (K1✅ → K2 → K3) → núcleo de la cuña (K4 cognición→contexto, K5 ledger encadenado,
+K6 candado numérico 303) → skills de la cuña 1 (cobros e2e → fiscal → oficina general) → robustez (K7
+constrained decoding, K8 router Jetson, K11 sandbox) → VISIÓN post-cuña. **D-86: no abrir VISIÓN hasta cerrar
+la cuña 1 al 100%.**
 
 ## Foto global
 - **Repo**: limpio y profesional, historial sano, LICENSE propietaria. `origin/main` con el **gobierno
