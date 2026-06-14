@@ -54,6 +54,13 @@ def _read_file(path: str, max_chars: int = 8000) -> str:
 
 
 def _write_file(path: str, content: str) -> str:
+    from ..sandbox.policy import verificar_escritura
+
+    # K2 — valla de autoprotección: write_file AUTO-ejecuta (sin gate humano), así que un destino
+    # protegido (código/gate/constitución/.env/token store) se DENIEGA por construcción.
+    bloqueo = verificar_escritura(path)
+    if bloqueo:
+        return bloqueo
     p = Path(path).expanduser()
     try:
         p.parent.mkdir(parents=True, exist_ok=True)
@@ -107,6 +114,13 @@ def _web_fetch(url: str, max_chars: int = 6000) -> str:
 
 def _run_shell(command: str, timeout: int = 30) -> str:
     """Ejecuta un comando de shell. SIEMPRE requiere aprobación humana."""
+    from ..sandbox.policy import comando_peligroso
+
+    # K2 — defensa en profundidad: aunque run_shell está gated, no ejecuto un comando que ESCRIBA
+    # sobre una ruta del sistema (código/gate/credenciales).
+    peligro, motivo = comando_peligroso(command)
+    if peligro:
+        return f"🛡️ BLOQUEADO (autoprotección): {motivo}. No ejecuto escrituras sobre el sistema."
     try:
         result = subprocess.run(
             command,
