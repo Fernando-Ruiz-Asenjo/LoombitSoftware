@@ -1,7 +1,0 @@
-{
-  "id": "20260614T084457_7a7a63ab",
-  "ts": "2026-06-14T08:44:57.737488+00:00",
-  "shell": "bash",
-  "cmd": "echo HOLA-DESDE-EL-PC && uname -s",
-  "cwd": ""
-}
