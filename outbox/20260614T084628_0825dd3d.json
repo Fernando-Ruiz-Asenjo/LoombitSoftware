@@ -1,0 +1,9 @@
+{
+  "id": "20260614T084628_0825dd3d",
+  "ts": "2026-06-14T08:46:36.005983+00:00",
+  "cmd": "echo HOLA-DESDE-EL-PC && uname -s && whoami",
+  "exit": 0,
+  "stdout": "HOLA-DESDE-EL-PC\nLinux\nroot\n",
+  "stderr": "",
+  "approved": true
+}
