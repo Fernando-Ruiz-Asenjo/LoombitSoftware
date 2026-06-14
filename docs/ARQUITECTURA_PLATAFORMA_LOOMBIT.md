@@ -602,6 +602,39 @@ para la cuña 2. No desvían el ataque; lo blindan.
 
 ---
 
+## 23. Ronda 6 (10 ciclos) — más skills NO adyacentes + mejoras (radar real)
+
+> 10 vueltas: mejoras a las skills no adyacentes (salud, voz, segundo cerebro, visión) + nuevas de
+> dominios lejanos. Señales reales en `docs/RADAR.jsonl` (2026-06-14, 45 señales). Tesis: los mismos 6
+> primitivos del kernel cubren ~10 dominios SIN tocar el núcleo, y el local-first es el argumento de
+> venta en CADA uno.
+
+### 23.1 Skills/ mejoras propuestas → primitiva reusada → fuente
+
+| # | Skill (no adyacente) | Tipo | Reusa del kernel | Fuente |
+|---|---|---|---|---|
+| V26 | Voz local (Whisper.cpp + LLM local) | mejora Skill X | ASR/TTS local + loop | Home Assistant |
+| V27 | Salud → Cuidado de Mayores | mejora Skill D | expedientes multi-tenant + gate | insightace (56B→387B) |
+| V28 | Estudio/Tutor (repetición espaciada) | nueva Skill D | `rag.py` + `scheduler.py` + plazos | mystudylife |
+| V29 | Finanzas Personales (hogar) | nueva Skill D | conciliación + RAG + Decimal | senticmoney (local-first) |
+| V30 | Búsqueda de Empleo (Kanban) | nueva Skill D | `expedientes` (CaseFile=Kanban) + plazos | skillscouter |
+| V31 | Smart Home (local) | nueva Skill A | Adapter (Pilot) + Voz | home-assistant |
+| V32 | Accesibilidad (verbosidad adaptativa) | nueva Skill D/A | Pilot + Voz + visión | Nature AURA |
+| V33 | Visión Ambiental | mejora Skill A (Visión Doc) | conector Qwen-VL (V11) | Seeing AI / Ray-Ban Meta |
+| V34 | Segundo Cerebro → acciones | mejora Skill W/D | RAG + routines + plazos | taskade |
+
+### 23.2 Los 6 primitivos del kernel que lo cubren todo
+loop+gate · `expedientes`/CaseFile (multi-tenant, cadena) · `rag.py` · `scheduler`/plazos ·
+Adapter/Pilot · visión local (Qwen-VL). **~10 dominios no adyacentes, 0 cambios de núcleo.**
+
+### 23.3 El foso ESCALA con la no-adyacencia
+En salud, finanzas personales, hogar y datos de menores el dato es MÁS sensible que una factura y los
+líderes son cloud que entrenan con él (SenticMoney, Home Assistant y la advertencia de salud lo
+confirman). El local-first de LoomBit vale MÁS cuanto más lejos del fiscal. Anti-dispersión (D-86):
+VISIÓN/radar, no roadmap — la cuña 1 se cierra primero.
+
+---
+
 ## 17. Resumen ejecutivo
 
 - Qwen = motor. LoomBit = SO. El modelo **propone**; el código **dispone**; el humano **aprueba**.
