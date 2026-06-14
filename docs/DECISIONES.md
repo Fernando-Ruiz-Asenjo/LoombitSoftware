@@ -1268,4 +1268,27 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   puede engordar — se hará al partir ese fichero, sin engordarlo. El muestreo ESTOCÁSTICO ponderado de GEPA
   necesita RNG (semilla) → `pesos_de_frontera` lo deja servido; `elegir_de_frontera` da la variante seedless.
 - *Reversible:* sí; aditivo (1 módulo + tests). No toca `gepa.py` ni el bucle del agente.
+
+**D-98 — FÁBRICA/GEPA: CABLEADO de la frontera de Pareto en `optimizar_prompt` (completa D-97).**
+- *Contexto:* D-97 dejó la primitiva (`gepa_pareto.py`) construida y testeada pero **🟠 sin cablear**:
+  `optimizar_prompt` seguía guardando un único «mejor» por media, y `gepa.py` estaba en deuda de tamaño
+  (416 > 400) y no podía engordar para enchufarla.
+- *El ratchet mandó (igual que D-95/D-97):* primero adelgazar. Se extrajo el eval de comportamiento
+  (escenarios + 5 checkers) a `fabrica/gepa_escenarios.py` (módulo nuevo, 124 líneas, con su golden
+  `tests/test_gepa_escenarios.py`); `gepa.py` baja **416 → 278** y SALE de la lista de deuda
+  (`tests/test_brujula_cumplimiento.py`, ratchet a la baja).
+- *Elegido (cableado):* `optimizar_prompt` mantiene un POOL de candidatos con su vector de score por
+  instancia (`vector_de`); el PADRE a expandir cada ronda y la PROPUESTA final salen de la FRONTERA
+  (`elegir_de_frontera`/`frontera_pareto`), no del mejor por media — la búsqueda conserva estrategias
+  complementarias en vez de colapsar a un óptimo local. Contrato de seguridad INTACTO: solo se propone algo
+  que MEJORA la media SIN regresión (no rompe ningún escenario que la base pasaba) y conserva los anclajes.
+- *Frontera honesta:* la propiedad discriminante de Pareto (preservar complementarios) la garantizan los
+  golden de `gepa_pareto.py` (D-97); el golden nuevo
+  (`test_optimizar_prompt_busqueda_por_frontera_elige_mayor_cobertura`) EJERCITA el camino
+  pool→frontera→elección end-to-end (2 rondas), no lo discrimina vs el código viejo (que en el caso
+  monótono coincide). GEPA sigue SIN escribir el prompt: propone un diff para aplicar en rama.
+- *Recibo:* gate canónico (normal) VERDE en rama `feat/d97-gepa-pareto-cableado` (black+ruff+mypy+
+  pytest+cobertura 79 % + 8 auditorías + fuzz); 24 goldens de gepa/pareto/escenarios verdes.
+- *Reversible:* sí; aditivo + extracción (1 módulo nuevo + cableado + 2 tests + baja de deuda). No toca el
+  bucle del agente.
 *(se irán añadiendo entradas según avance el bloque)*

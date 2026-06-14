@@ -38,7 +38,6 @@ _DEUDA_TAMANO = {
     "loombit_operator/tools/registry.py": 477,
     "loombit_operator/conciliacion.py": 445,
     "loombit_operator/tools/connectors.py": 443,
-    "loombit_operator/fabrica/gepa.py": 416,
     "loombit_operator/comprension.py": 415,
 }
 
