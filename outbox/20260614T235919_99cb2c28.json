@@ -1,0 +1,9 @@
+{
+  "id": "20260614T235919_99cb2c28",
+  "ts": "2026-06-14T23:59:26.091460+00:00",
+  "cmd": "Write-Output GATEOFF_OK_7421",
+  "exit": 126,
+  "stdout": "",
+  "stderr": "rechazado por el gate humano/allowlist",
+  "approved": false
+}
