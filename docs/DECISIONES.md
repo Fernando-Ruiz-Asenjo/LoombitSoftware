@@ -1291,4 +1291,31 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   pytest+cobertura 79 % + 8 auditorías + fuzz); 24 goldens de gepa/pareto/escenarios verdes.
 - *Reversible:* sí; aditivo + extracción (1 módulo nuevo + cableado + 2 tests + baja de deuda). No toca el
   bucle del agente.
+
+**D-99 — INGENIERÍA: descomposición de `loop.py` (1433→178) → CABLEA D-96 (cuarentena CaMeL EN VIVO).**
+- *Contexto:* D-96 dejó la primitiva CaMeL en el Policy Plane (`valor_de_cuarentena`, param
+  `contenido_no_confiable`) pero **🟠 SIN cablear**: el cableado es 1 línea en `loop.py` (la llamada a
+  `autorizar`), pero `auditoria_brujula` pone ROJO cualquier `loombit_operator/*.py` TOCADO > 400 líneas
+  (límite DURO, sin excepción de deuda) y `loop.py` tenía **1433** → congelado. Para tocarlo, bajarlo <400.
+- *Elegido (descomposición que PRESERVA comportamiento):* `loop.py` **1433 → 178** repartido en 5 módulos
+  nuevos (<400 cada uno): `salida.py` (sentinels + relay fiel + DoD + errores), `seguridad.py`
+  (datos≠órdenes + manipulación + destinatario + el helper D-96 `_contenido_no_confiable`),
+  `correctores.py` (cifras/fechas por código), `motor_loop.py` (cuerpo del bucle ReAct `_execute`) y
+  `motor_tools.py` (`_execute_tool_call` + resume + anti-flailing). `AgentLoop` deja **wrappers finos** que
+  delegan; los símbolos privados que importan `policy.authority_plane`, `fabrica.gepa*` y ~10 tests se
+  **re-exportan** desde `loop.py` (idiom `X as X`), sin tocar esos importadores.
+- *Cableado D-96 (lo que desbloquea):* `motor_tools.ejecutar_tool_call` pasa
+  `contenido_no_confiable=_contenido_no_confiable(run)` a `autorizar` → un argumento consecuente
+  (to/iban/importe…) lifteado LITERAL de un correo/web/documento leído va a CUARENTENA (CORREGIR), no se
+  ejecuta. `contacts_find` se EXCLUYE (fuente legítima del destinatario; si entrara, envenenaría el
+  auto-envío). Robusto a un run sin `.steps`.
+- *Recibo:* gate canónico (normal) VERDE en `feat/d96-decomponer-loop`; **167 goldens del loop**
+  (cerebro/fiabilidad/seg-inyección/gob1/cuarentena/email/output/cobro/chat) verdes = CERO regresión; golden
+  nuevo `tests/test_cuarentena_camel_loop.py` (3: lift→cuarentena · valor del usuario→pasa · contacts_find
+  no envenena). `loop.py` sale de la deuda de tamaño; los 5 módulos nuevos <400.
+- *Frontera honesta:* la detección es LITERAL (≥6 chars), no semántica — un valor PARAFRASEADO del correo no
+  se caza (declarado; lo cubriría embeddings, futuro). Se pasó `get_memory` a llamadas cualificadas
+  (`memory.get_memory()`) y los 2 tests que lo parcheaban ahora parchean la fuente (`agent.memory`).
+- *Reversible:* sí; extracción mecánica (5 módulos + wrappers + re-exports + 1 línea de cableado + golden);
+  el comportamiento del bucle es idéntico (mismo arnés verde).
 *(se irán añadiendo entradas según avance el bloque)*
