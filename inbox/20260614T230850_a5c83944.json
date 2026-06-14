@@ -1,0 +1,7 @@
+{
+  "id": "20260614T230850_a5c83944",
+  "ts": "2026-06-14T23:08:50.230607+00:00",
+  "shell": "powershell",
+  "cmd": "try { 'LOOMBIT:'+(Invoke-RestMethod http://127.0.0.1:8787/health).status } catch { 'LOOMBIT_DOWN' }",
+  "cwd": ""
+}
