@@ -1338,4 +1338,40 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
   (`test_gate_integridad.py`). Miembros dormidos despertados: `core.hooksPath`→`.githooks` y mypy instalado.
   🟢 propuesto · gate local verde · espera CI.
 
+**D-103 — PILOTO: envío real del recordatorio por Gmail con DESTINO SEGURO forzado (§SEG-4).**
+- *Contexto:* el lazo de cobros envía al outbox local (🟡); para el primer **🟢 externo** (un correo real)
+  hay que cablear el adaptador Gmail al endpoint. Es un EFECTO EXTERNO → la brújula es máxima.
+- *Decisión de Fernando (efecto externo, registrada):* durante el piloto **TODO** envío por Gmail va a un
+  **destino seguro = `admin@construiaapp.com`**, NUNCA al cliente. El destino vive en `.env`
+  (`LOOMBIT_OPERATOR_COBROS_PILOTO_DESTINO_SEGURO`), **no hardcodeado** en el núcleo blanco (Skill W).
+- *Elegido:* `POST /cobros/aprobar` gana `via` (`outbox`|`gmail`). Con `gmail`: el destinatario se **fuerza**
+  al destino seguro (se ignora cualquier `to`), se inyecta `skill_blanca_gmail.send_email`, y el cuerpo
+  sigue siendo el de CÓDIGO (cifras §14B). Sin destino seguro configurado → **422** (no envía a ciegas).
+  Golden `tests/test_cobros_router.py` (2 nuevos) + 1 mutación al guardia del destino. Runbook:
+  `docs/PILOTO_ENVIO_COBRO.md`.
+- *Frontera honesta:* el envío Gmail real (OAuth + token) se cierra **en el equipo de Fernando** (el agente,
+  desde la nube, no llega a su navegador/cuenta). La promesa `cobros-envio-gmail` queda **🟡** (contrato,
+  fake-injected en CI) hasta el recibo del piloto en vivo; ahí pasa a **🟢**. La presentación AEAT sigue fuera.
+- *Recibo:* gate normal VERDE local; promesa registrada con su check verde; MIN_TESTS subido.
+- *Reversible:* sí; `git revert` (aditivo: 1 setting + `via` en el endpoint + tests/doc).
+**D-104 — FASE LARGA «Libro VeriFactu persistente + intake encadenado» (de cálculo en memoria a libro en disco).**
+- *Contexto:* D-88 calculaba la huella encadenada **en memoria**; el sentido de VeriFactu es lo contrario —
+  un libro **inalterable en disco**. Esta fase lo persiste y lo cablea al producto (intake → libro), todo
+  aditivo sobre D-83 (intake) y D-88 (VeriFactu).
+- *Pieza store:* `skill_d_fiscal/verifactu_store.py` — `RegistroVerifactuStore`: libro **append-only**
+  (`.jsonl`, una línea por registro); cada alta encadena la huella del ÚLTIMO guardado; **idempotente** por
+  número; **verifica la cadena ANTES de escribir** y lanza `CadenaCorrupta` si el libro está manipulado (no
+  apila sobre algo roto). Golden `tests/test_verifactu_store.py` (5) + 1 mutación al encadenamiento. En
+  `_MYPY_TARGETS`.
+- *Pieza intake:* `intake_batch.py` — `intake_carpeta(..., store_vf=None, nif_emisor="")`: una factura
+  EMITIDA legible se da de alta en el libro encadenado (cifras por código). `ResumenIntake.registros_verifactu`.
+  Retrocompatible: sin `store_vf` no cambia nada. Golden ampliado en `tests/test_intake_batch.py` (2 nuevos).
+- *Pieza API:* `routers/verifactu.py` montado en `main.py` — `GET /verifactu/registros` (lista + íntegro) +
+  `GET /verifactu/verificar` (detecta manipulación). Solo LECTURA. Golden `tests/test_verifactu_router.py` (2).
+- *Frontera DECLARADA (honesta):* la **PRESENTACIÓN a la Sede AEAT** (certificado/firma) sigue **FUERA** —
+  esto guarda el registro conforme inalterable, no lo presenta. Promesa `verifactu-persistente` queda **🟡**
+  (contrato/fake-tested) hasta el piloto en vivo. Sin LLM en ningún efecto.
+- *Recibo:* gate normal VERDE local; promesa registrada con su check verde; mutación (25 cazadas, 0
+  sobreviven); MIN_TESTS subido.
+- *Reversible:* sí; `git revert` (aditivo: módulos nuevos + 1 línea de router + 1 param opcional en intake).
 *(se irán añadiendo entradas según avance el bloque)*

@@ -36,6 +36,7 @@ _MYPY_TARGETS = [
     "loombit_operator/decisions_cobros.py",
     "loombit_operator/policy/authority_plane.py",
     "loombit_operator/agent/cifra_parser.py",
+    "loombit_operator/skill_d_fiscal/verifactu_store.py",
 ]
 
 # black/ruff sobre TODO el repo, EXACTAMENTE como CI (§GOB-2, evita el drift que arregló PR #15).

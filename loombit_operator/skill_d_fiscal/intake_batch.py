@@ -20,6 +20,7 @@ from ..cuentas_cobrar import CuentasCobrarStore, cuenta_desde_factura
 from ..docs_intel import extract_invoice_fields, extract_text_from_pdf
 from ..expedientes import ExpedienteStore
 from .intake import linea_desde_factura, liquidar_303_periodo, registrar_factura
+from .verifactu_store import RegistroVerifactuStore
 
 _EXT_TEXTO = {".txt", ".text"}
 _EXT_FACTURA = _EXT_TEXTO | {".pdf"}
@@ -33,6 +34,7 @@ class ResumenIntake:
     duplicadas: int = 0
     cuentas_creadas: int = 0
     lineas_303: int = 0
+    registros_verifactu: int = 0
     abstenidas: list[dict[str, str]] = field(default_factory=list)
     avisos: list[str] = field(default_factory=list)
 
@@ -42,6 +44,7 @@ class ResumenIntake:
             "duplicadas": self.duplicadas,
             "cuentas_creadas": self.cuentas_creadas,
             "lineas_303": self.lineas_303,
+            "registros_verifactu": self.registros_verifactu,
             "abstenidas": self.abstenidas,
             "avisos": self.avisos,
         }
@@ -78,11 +81,14 @@ def intake_carpeta(
     store_cc: CuentasCobrarStore,
     sentido: str = "devengado",
     plazo_dias: int = 30,
+    store_vf: RegistroVerifactuStore | None = None,
+    nif_emisor: str = "",
 ) -> ResumenIntake:
     """Procesa TODA la carpeta de facturas (ventas por defecto: `sentido='devengado'`). Por cada factura
-    legible: la registra (trazabilidad), saca su línea de 303 y su cuenta a cobrar. Las ilegibles o
-    escaneadas se listan en `abstenidas` con su motivo — NUNCA se inventan. Idempotente por nº de factura.
-    Las cifras vienen de `docs_intel` (regex determinista), no del LLM (Ley Fundacional / §14B-1).
+    legible: la registra (trazabilidad), saca su línea de 303 y su cuenta a cobrar. Si se da `store_vf` y
+    es una factura EMITIDA (`sentido='devengado'`), la da de alta en el libro VeriFactu encadenado.
+    Las ilegibles o escaneadas se listan en `abstenidas` con su motivo — NUNCA se inventan. Idempotente
+    por nº de factura. Las cifras vienen de `docs_intel` (regex determinista), no del LLM (§14B-1).
     """
     r = ResumenIntake()
     ya = _numeros_registrados(store_exp)
@@ -117,6 +123,12 @@ def intake_carpeta(
         r.avisos.extend(avisos)
         if linea is not None:
             r.lineas_303 += 1
+        # Factura EMITIDA → al libro VeriFactu encadenado (registro inalterable). Cifras por código.
+        if store_vf is not None and sentido == "devengado" and nif_emisor:
+            reg, vf_avisos = store_vf.registrar(inv, nif_emisor)
+            r.avisos.extend(vf_avisos)
+            if reg is not None:
+                r.registros_verifactu += 1
         cuenta = cuenta_desde_factura(
             proveedor=inv.proveedor,
             total=inv.total,

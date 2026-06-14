@@ -202,6 +202,22 @@ MUTACIONES = [
         _pytest("test_", "tests/test_verifactu.py"),
         "verifactu: no detectar un registro alterado (huella)",
     ),
+    # ── Piloto Gmail (D-103): que el guardia del DESTINO SEGURO (§SEG-4) tiene dientes ──
+    (
+        "loombit_operator/routers/cobros.py",
+        "if not destino:",
+        "if destino:",
+        _pytest("test_", "tests/test_cobros_router.py"),
+        "cobros: invertir el guardia del destino seguro (enviar por Gmail sin destino)",
+    ),
+    # ── Libro VeriFactu persistente (D-104): que el ENCADENAMIENTO al último guardado tiene dientes ──
+    (
+        "loombit_operator/skill_d_fiscal/verifactu_store.py",
+        "return self._items[-1].huella if self._items else GENESIS",
+        "return GENESIS",
+        _pytest("test_", "tests/test_verifactu_store.py"),
+        "verifactu_store: no encadenar (cada alta arranca en GENESIS)",
+    ),
 ]
 
 

@@ -1,0 +1,33 @@
+name: Piloto envío cobro (vivo, runner local)
+
+# Dispara el envío REAL de un recordatorio de cobro contra el Loombit que corre en TU equipo.
+# Corre en un runner self-hosted (tu ordenador), así el token de Google NO sale de tu máquina:
+# GitHub solo orquesta y guarda el registro; la ejecución y las credenciales son locales.
+#
+# Requisitos en tu equipo (una vez): runner self-hosted dado de alta (ver docs/RUNNER_SELFHOSTED_SETUP.md)
+# y Loombit encendido con OAuth conectado.
+
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: "URL del Loombit local"
+        default: "http://127.0.0.1:8787"
+      importe:
+        description: "Importe de la factura de prueba (€)"
+        default: "1210"
+      dias:
+        description: "Días que lleva vencida la factura"
+        default: "42"
+
+jobs:
+  enviar:
+    runs-on: [self-hosted]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Envío real contra el Loombit local
+        run: >
+          python scripts/piloto_cobro_vivo.py
+          --base "${{ inputs.base }}"
+          --importe "${{ inputs.importe }}"
+          --dias "${{ inputs.dias }}"
