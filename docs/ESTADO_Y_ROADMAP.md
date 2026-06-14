@@ -5,6 +5,36 @@
 > real); 🟠 = parcial; ⬜ = pendiente; 🔴 = bloqueado.
 > Actualizado: 2026-06-14.
 
+## ⏱️ 2026-06-14 (tarde) — Aterrizaje del NORTE (caja+agente local+adaptativo) + EL MURO (equipo de defensa)
+
+> Investigación de innovación (5 vueltas del harness `deep-research`, verificación adversarial a 3 votos)
+> aterrizada en la constitución. PR de integración: **#61** (rebasado sobre `main`, que ya trae #58 + #60).
+
+- **🟢 NORTE ampliado — "LA CAJA" (D-100):** Loombit = caja donde escribes cualquier tarea → *dentro* =
+  skill rápida determinista, *fuera* = **agente autónomo de computer-use LOCAL** (fallthrough); interfaz
+  **ADAPTATIVA**. Autonomía en local/lectura/cómputo; gate humano SOLO en el efecto externo. En `CLAUDE.md`
+  + `BRUJULA.md` §NORTE. Investigación destilada en `DESTILADO_STUFF_CAJA_AGENTE_LOOMBIT_2026-06-14.md`.
+- **🟢 Ley §SEG-8 — la UI generada NO es camino de confianza (D-101):** Vuelta 5 (UI generativa/adaptativa
+  2026) verificada 3-0 (patrón tldraw). El LLM propone la pantalla como intents sobre un **vocabulario
+  CERRADO de componentes**; código determinista valida/renderiza; el efecto pasa por el gate. Blindada en
+  `BRUJULA.md` §SEG-8 + tabla Parte IV + el prompt del operador local (`agent/prompts.py`).
+- **🟢 EL MURO — los auditores/gates ahora son UN EQUIPO (D-102):** carta en `docs/EL_MURO.md`. Capas
+  separadas: El Muro defiende el NORTE y la Brújula sin *ser* ninguno (Separación de Autoridades). Lema:
+  *el LLM propone, El Muro dispone*. Miembros: gate `verify.py` + 8 auditorías + mutación + test en vivo +
+  candados + CI + CODEOWNERS + cadena + recibos + **K2** (valla FS, #60) + el **centinela**.
+- **🟢 Centinela always-on (`el_muro_centinela.py`):** Routine PASSIVE 24/7 que vigila la salud de El Muro
+  (radar fresco ≤45 d + cadena íntegra) y deja recibo; `salud_muro()` pura, arnés `test_el_muro_centinela.py`.
+  Candados endurecidos. Gate local verde (cobertura 79.4%).
+- **🟢 Miembros dormidos despertados:** `core.hooksPath`→`.githooks` (el gate local vuelve a correr en cada
+  commit) + `mypy` instalado (faltaba y degradaba el type-check en silencio).
+- **🟢 Método guardado:** `docs/METODO_DEEP_RESEARCH_VUELTAS.md` (harness 3-votos + filtro duro + plantilla
+  reutilizable) + recibos de conducta D-70.
+- **Ya en `main` esta sesión:** **#58** descompuso `loop.py` (1433→178) + D-96 cuarentena CaMeL EN VIVO
+  (D-99) → **D-96 ya NO está bloqueado**; **#60 = K2** valla de autoprotección del sistema de ficheros.
+- **Pendiente:** V1 (GTM fiscal-España, sin cifras verificadas — *pendiente*) · V6 (malleable software +
+  render server-driven sin JS: AG-UI / MCP-UI / shadcn-registry) · grafo temporal de memoria 🔴 aún detrás
+  de **decomponer `memory.py`** (964 líneas, congelado por el ratchet).
+
 ## ⏱️ 2026-06-14 — Cable de sesiones · GEPA Pareto cableado · el ratchet CONGELÓ el núcleo
 
 - **🟢 EL CABLE (PR #54)** — puente git nube↔PC (`scripts/bridge_*.py` + `docs/CABLE_SESIONES.md`),
@@ -17,9 +47,8 @@
 - **🧱 HALLAZGO IMPORTANTE — el ratchet de tamaño ha CONGELADO los ficheros núcleo.** `auditoria_brujula.py`
   pone el muro ROJO si TOCAS cualquier `loombit_operator/*.py` **> 400 líneas** (sin excepción de deuda). Como
   `loop.py`=**1433** y `memory.py`=**964**, **no se pueden editar hasta decomponerlos a <400**. Por tanto:
-  - **D-96 (cuarentena CaMeL EN VIVO)** 🔴 **bloqueado detrás de decomponer `loop.py`**. El cableado en sí es
-    1 línea (`loop.py:706`, pasar `contenido_no_confiable` a `autorizar`), pero no se puede tocar el fichero:
-    es un **refactor grande del núcleo del agente** (se funde con OK de Fernando · arnés antes de tocar).
+  - **D-96 (cuarentena CaMeL EN VIVO)** ✅ **RESUELTO por #58** (2026-06-14): `loop.py` descompuesto
+    (1433→178) y la cuarentena cableada en vivo. *(Esta nota queda como histórico; ya no está bloqueado.)*
   - **Grafo temporal de memoria (#1, «la joya»)** 🔴 bloqueado igual detrás de **decomponer `memory.py`**.
   - **Navegador (D-93/D-94)** 🟠 — núcleo gobernado + driving 🟡; **registrar la tool + verificar EN VIVO**
     sigue bloqueado en TUS recursos (`pip install playwright` + web real) y en no-mentir (no se expone al 14B
@@ -48,6 +77,9 @@
 | § | Mecanismo | Estado | Recibo | Fallos abiertos |
 |---|---|---|---|---|
 | §META-4 | Estado fuera de la constitución | ✅ | `CLAUDE.md` saneado → `ESTADO_Y_ROADMAP.md` (PR #12) | 0 |
+| El Muro | equipo único de defensa (centinela always-on + K2 valla FS + candados) | 🟢 propuesto (#61) | `docs/EL_MURO.md` + `el_muro_centinela.py` + `test_el_muro_centinela.py`; gate local verde | residuo: centinela espera CI; render server-driven (V6) pendiente |
+| §SEG-8 | la UI generada NO es camino de confianza | 🟢 norma | `BRUJULA.md` §SEG-8 + tabla Parte IV + `agent/prompts.py` + golden `test_agent_prompts.py` | golden de UI generada (runtime) por construir |
+| K2 | valla de autoprotección del sistema de ficheros | 🟢 (#60) | `sandbox/policy.py` + golden `test_valla_autoproteccion.py` | hardening en contenedor (futuro) |
 | §SEG-2 | datos≠órdenes (neutraliza inyección en lo leído) | 🟢 | golden `test_seg_inyeccion.py` 7 (rojo→verde) + live [2] del plano (PR #13) | 0 en corpus; **residuo:** lenguaje natural sin marcadores (lo frenan gate de efecto + `_recipiente_resuelto`); `resume` no blindado |
 | §GOB-1 | Capability Policy Plane (autoridad única) | 🟢 | golden `test_gob1_authority_plane.py` 10 + ~717 tests A TRAVÉS del plano + **live 3/3** `live_gob1_receipt.py` (PR #14) | 0 en corpus; **residuo:** predicados aún en `loop.py` (migración pendiente) |
 | §GOB-2 | gate canónico + compila la tabla + prohibir `--no-verify` | 🟠→🟢 parcial | **gate canónico único `verify.py --strict` = hook ⊆ CI, sin drift** (D-65) | falta `validate_brujula.py` (compilar tabla Parte IV) + prohibición efectiva de `--no-verify` |

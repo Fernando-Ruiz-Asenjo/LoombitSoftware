@@ -1329,8 +1329,8 @@ del 14B (prompt grande + tools + memoria) → **85 s** medidos para responder «
 - *Permanencia (pedida: TODO):* este aterrizaje deja la **identidad + carta**; el **centinela continuo
   always-on** (Routine 24/7 que vigila la salud de El Muro) y el **endurecimiento de candados** son **§3d:
   código nuevo con arnés, 🟠 declarado pendiente** — se construye tras el OK de Fernando.
-- *Nota K2:* "K2" es **alias de un mecanismo ya existente** (pendiente de que Fernando concrete cuál); ese
-  mecanismo ya es miembro de El Muro → solo faltará ponerle la etiqueta.
+- *Nota K2 (resuelta):* K2 = la **valla de autoprotección del sistema de ficheros** (`sandbox/policy.py`,
+  #60), ya en main; miembro de seguridad de El Muro (golden `test_valla_autoproteccion.py`).
 - *Reversible:* sí; la identidad es docs. El centinela (3d) será aditivo (módulo + tests).
 - *Actualización (3d, 2026-06-14):* centinela CONSTRUIDO en `loombit_operator/el_muro_centinela.py` (Routine
   PASSIVE always-on; envuelve el scheduler vía `build_scheduler_con_centinela()` sin tocar

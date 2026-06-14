@@ -48,6 +48,7 @@ la Brújula se aplique y que el gobierno no se manipule — sin *ser* ninguno.
 | Recibos de conducta | `loombit_operator/conducta.py` | conducta cuantificable (D-58/D-70) | `tests/test_conducta.py` | gate-time |
 | El muro de GitHub (CI) | `.github/workflows/ci.yml` | `--strict --live` obligatorio antes de merge | push/PR a `main` | always-on |
 | Auditor independiente | `.github/CODEOWNERS` + `branch-protection.yml` | constructor ≠ auditor; protección de `main` | PR + cron | always-on |
+| **K2 — valla de autoprotección FS** | `loombit_operator/sandbox/policy.py` | el agente no escribe/borra fuera de su zona permitida (autoprotección del sistema de ficheros, #60) | frontera de las tools de FS | gate-time + runtime |
 | **Centinela continuo** | `loombit_operator/el_muro_centinela.py` | salud de El Muro 24/7 (radar fresco, cadena íntegra) | Routine cron PASSIVE | **always-on** (🟢 propuesto · espera CI) |
 
 ---
@@ -75,8 +76,9 @@ Estado (3d, 2026-06-14 · 🟢 propuesto · gate local verde · espera CI): la p
 3. **Miembros dormidos despertados.** `core.hooksPath` reapuntado a `.githooks` (el gate local vuelve a
    dispararse en cada commit) y `mypy` instalado (faltaba y degradaba el type-check en silencio).
 
-> **K2:** Fernando lo definió como **alias de un mecanismo ya existente**; ese mecanismo ya es miembro de El
-> Muro (arriba). Cuando concrete cuál, se le añade la etiqueta "K2" — sin cambiar nada más.
+> **K2 = la valla de autoprotección del sistema de ficheros** (`loombit_operator/sandbox/policy.py`, #60),
+> ya en `main`: el agente no escribe ni borra fuera de su zona permitida. Es un miembro de seguridad de El
+> Muro (golden `tests/test_valla_autoproteccion.py`).
 
 ---
 
