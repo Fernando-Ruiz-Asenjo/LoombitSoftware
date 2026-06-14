@@ -1,0 +1,7 @@
+{
+  "id": "20260614T084628_0825dd3d",
+  "ts": "2026-06-14T08:46:28.650765+00:00",
+  "shell": "bash",
+  "cmd": "echo HOLA-DESDE-EL-PC && uname -s && whoami",
+  "cwd": ""
+}
