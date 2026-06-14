@@ -635,6 +635,32 @@ VISIÓN/radar, no roadmap — la cuña 1 se cierra primero.
 
 ---
 
+## 24. Ronda 7 (10 ciclos) — skills CREATIVAS que emergen del kernel
+
+> Criterio de encaje: la skill solo es posible por un primitivo ÚNICO del kernel (gate, ledger
+> encadenado, comprensión, Pilot-observer, cálculo determinista) → ventaja que un cloud no puede copiar.
+> Señales reales en `docs/RADAR.jsonl` (2026-06-14, 51 señales).
+
+| # | Skill | Tipo | Primitivo que la hace posible | Fuente |
+|---|---|---|---|---|
+| V36 | Gemelo de Procedimiento (aprende viéndote 1 vez → Routine) | `Skill X` | Pilot-observer local + fábrica | arXiv 2511.04137 |
+| V37 | Cazador de Ayudas (Kit Digital IA, Ticket Innova) | `Skill D` | perfil local + RAG + plazos | upliora |
+| V38 | Radar de Morosidad Predictivo (score de pago) | `Skill D` | histórico en `expedientes` (ML sin salir) | chatfin |
+| V39 | Abogado del Diablo (pre-mortem antes del gate) | `Skill C/X` | gate + `agent/reflexion.py` | arXiv 2405.16334 |
+| V40 | Buzón Unificado (un hilo por persona, no por canal) | `Skill A` | `comprension.py` | edesk |
+| V41 | Simulador Fiscal What-if (¿y si facturo X más?) | `Skill D` | candado numérico determinista (`modelo_303`) | Altruist Hazel |
+| V42 | Caja Negra / Máquina del Tiempo (reconstruye un hilo) | `Skill X` | cadena de hashes `verify_chain` | (kernel) |
+| V43 | Auditoría Inversa (simulacro de inspección AEAT) | `Skill X` | `guardas_fiscales` + ledger | (kernel) |
+| V44 | Profesor / Explicador (por qué salió así el 303) | `Skill X` | separación narración(LLM)/cifra(código) | (kernel) |
+
+**La idea creativa central:** las skills más valiosas de LoomBit no son verticales nuevas, son
+**superpoderes que emergen de sus primitivos únicos**, y casi todos dependen de ser **local-first**
+(ledger criptográfico local, observador, cognición de hilos, gate). Un cloud no puede ofrecer "máquina
+del tiempo con procedencia de TODO lo que el agente hizo en tu equipo, sin que nada salga". **El foso
+fabrica las skills.** Anti-dispersión (D-86): VISIÓN/radar, no roadmap — la cuña 1 se cierra primero.
+
+---
+
 ## 17. Resumen ejecutivo
 
 - Qwen = motor. LoomBit = SO. El modelo **propone**; el código **dispone**; el humano **aprueba**.
