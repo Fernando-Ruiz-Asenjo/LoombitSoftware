@@ -1,0 +1,9 @@
+{
+  "id": "20260614T225538_83a4d9e7",
+  "ts": "2026-06-14T22:55:45.274189+00:00",
+  "cmd": "python scripts/prueba_en_vivo.py --only hola --timeout 60",
+  "exit": 126,
+  "stdout": "",
+  "stderr": "rechazado por el gate humano/allowlist",
+  "approved": false
+}
