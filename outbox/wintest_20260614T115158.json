@@ -1,0 +1,9 @@
+{
+  "id": "wintest_20260614T115158",
+  "ts": "2026-06-14T09:52:05.967597+00:00",
+  "cmd": "Get-Date",
+  "exit": 0,
+  "stdout": "\ndomingo, 14 de junio de 2026 11:52:05\n\n\n",
+  "stderr": "",
+  "approved": true
+}
