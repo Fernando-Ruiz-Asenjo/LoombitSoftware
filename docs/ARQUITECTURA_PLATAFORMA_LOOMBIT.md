@@ -526,6 +526,48 @@ no confiable (Visión, Open Banking) son inyectables sin él.
 
 ---
 
+## 21. Ronda 4 (5 ciclos) — familia Skill D fiscal + mejoras de núcleo (radar real)
+
+> Profundiza los 4 hilos de la ronda 3 con fuentes reales (señales 2026-06-14 en `docs/RADAR.jsonl`).
+> Corrige el alcance: la cuña son **3 obligaciones + morosidad**, no solo VeriFactu.
+
+### 21.1 La cuña regulatoria es TRIPLE (hallazgo que corrige el plan)
+VeriFactu ≠ Facturae ≠ SII, y son **complementarias**:
+- **VeriFactu** — integridad del software (Ley Antifraude); autónomos jul-2026/2027.
+- **Facturae** — formato XML B2B obligatorio (Crea y Crece, **RD 238/2026**, reglamento 1-oct-2026;
+  jul-2027 >8M€, jul-2028 resto; público vía FACe). El software VeriFactu **genera** Facturae.
+- **SII** — libros de IVA → alimenta el 303.
+
+### 21.2 Familia Skill D fiscal (sobre `expedientes` cadena + candado numérico + gate)
+
+| Skill D | Obligación | Cálculo determinista | Deadline | Fuente radar |
+|---|---|---|---|---|
+| VeriFactu | integridad + registro AEAT | hash chain (existe) | autónomos jul-2026/2027 | b2brouter |
+| **Facturae** | XML B2B + FACe | — | RD 238/2026 (1-oct-2026) | marimón / sage |
+| **SII** | libros IVA | agregación | régimen IVA | sage |
+| **Morosidad** | Ley 3/2004 | interés 10,15% + 40€ + días | continuo | BOE 3/2004 |
+| 303 | liquidación IVA | `calcular_303` (existe) | trimestral | — |
+
+`Skill D Morosidad`: el cálculo (interés 10,15% = BCE 2,15%+8, 40€ fijos, día 61) es DETERMINISTA;
+`Skill A WhatsApp/email` NARRA la cifra **citando la ley** → cobro fundado y más efectivo.
+
+### 21.3 Mejoras de NÚCLEO (Skill W) que sostienen todas las skills
+- **Constrained decoding (V18):** `llm.py` usa gramática de llama.cpp/XGrammar para extracción crítica
+  → 100% schema-válido (vs 95-99% del function-calling). "Cero fallos" en formato, no por suerte.
+  Fuente: structured output 2026 (pockit).
+- **Spotlighting + RAG con procedencia (V19):** 2ª capa sobre CaMeL — delimitadores aleatorios que
+  marcan el contenido leído como DATO opaco; `rag.py` puntúa confianza por documento (anti RAG
+  poisoning: 5 docs → 90%). Fuente: OWASP LLM01 / zylos / Gemini defenses.
+
+### 21.4 Secuencia actualizada (valor × deadline)
+1. **R1·P0 + Spotlighting** — base de seguridad antes de todo (las skills leen contenido no confiable).
+2. `Skill A WhatsApp Cobros` + `Skill D Morosidad` — máximo ROI, con base legal.
+3. `Skill D Facturae` (RD 238/2026 oct-2026) + `Skill D VeriFactu` emitiendo Facturae.
+4. `Skill A Visión Documental` + constrained decoding (V18) — intake fiable.
+5. `Skill A Open Banking` + `Skill D SII` → conciliación + libros; `Skill G Del cobro al 303` los une.
+
+---
+
 ## 17. Resumen ejecutivo
 
 - Qwen = motor. LoomBit = SO. El modelo **propone**; el código **dispone**; el humano **aprueba**.
