@@ -136,6 +136,8 @@ def _log_conversation_event(run: "AgentRun", event_type: str, content: str) -> N
         with open(conv_dir / filename, "a", encoding="utf-8") as f:
             f.write(event + "\n")
     except Exception:
+        # logging de conversación best-effort: nunca debe romper el run (disco lleno, permisos,
+        # serialización). Se traga el fallo a propósito; la traza del run es la fuente de verdad.
         pass
 
 
@@ -320,6 +322,8 @@ def _update_memory(run: "AgentRun") -> None:
             mem.add_history(task=run.task, result=run.result, tools_used=tools_used, run_id=run.id)
         mem.extract_procedure_from_run(run)
     except Exception:
+        # consolidación de memoria best-effort: si falla (disco/serialización/import), el run NO se
+        # rompe — la memoria es una mejora, no parte del camino crítico. Se traga el fallo a propósito.
         pass
 
 

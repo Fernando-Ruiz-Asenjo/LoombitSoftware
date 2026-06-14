@@ -164,6 +164,8 @@ def ejecutar_tool_call(loop, tc: ToolCall, step_num: int, run: AgentRun) -> tupl
                 )
                 return hint, False
         except (json.JSONDecodeError, AttributeError):
+            # el resultado no es JSON (o no es dict): no es el caso "0 resultados" → se sigue con
+            # el result_text original tal cual (sin añadir la pista). Tolerable, no rompe el flujo.
             pass
 
     return result_text, False
