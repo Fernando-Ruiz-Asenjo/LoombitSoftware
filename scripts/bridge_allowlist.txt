@@ -1,11 +1,28 @@
 # Allowlist del CABLE (scripts/bridge_local.py --gate allowlist).
-# Una expresión regular por línea. Un comando recibido de la nube SOLO se ejecuta
+# Una expresión regular por línea (re.search). Un comando recibido de la nube SOLO se ejecuta
 # si CASA con alguna de estas líneas. Líneas vacías y con '#' se ignoran.
 #
-# Empieza restrictivo: descomenta/añade solo lo que quieras permitir sin confirmar.
-# Ejemplos seguros de lectura:
-# ^git (status|log|fetch|diff|branch)\b
-# ^python -m pytest\b
-# ^python -m loombit_operator\.launcher\b
-# ^(Get-Date|whoami|pwd|ls|dir)\b
-# ^Invoke-RestMethod http://127\.0\.0\.1:8787/
+# SCOPED A LA TAREA "pruebas en vivo" (2026-06-14): lectura + driving de la API LOCAL de Loombit
+# + tests. NADA destructivo. El efecto consecuente real (enviar un correo) lo sigue gateando Loombit
+# en su propia UI (PENDING_APPROVAL), no este cable. Para ampliar, añade líneas conscientemente.
+# Tras editar este fichero hay que REINICIAR bridge_local.py (la allowlist se carga al arrancar).
+
+# Lecturas inocuas del sistema
+^Get-Date\b
+^whoami\b
+^(Get-ChildItem|ls|dir)\b
+# Git de SOLO LECTURA
+^git (status|log|fetch|diff|branch|show|rev-parse|remote)\b
+# Tests y gate del propio repo
+^python -m pytest\b
+^python scripts/verify\.py\b
+# El arnés de pruebas en vivo (conduce la API local de Loombit; no envía nada por sí mismo)
+^python scripts/prueba_en_vivo\.py\b
+# Driving de la API LOCAL de Loombit (host local fijado; el gate de envíos sigue dentro de Loombit)
+^Invoke-RestMethod\b[^;|&`]*\bhttp://(127\.0\.0\.1|localhost):8787/
+^Invoke-WebRequest\b[^;|&`]*\bhttp://(127\.0\.0\.1|localhost):8787/
+^curl(\.exe)?\b[^;|&`]*\bhttp://(127\.0\.0\.1|localhost):8787/
+# Salud del LLM local (solo lectura)
+^Invoke-RestMethod\b[^;|&`]*\bhttp://(127\.0\.0\.1|localhost):1234/
+# Leer recibos locales que deja el arnés
+^Get-Content\b[^;|&`]*runtime[\\/]local[\\/]
