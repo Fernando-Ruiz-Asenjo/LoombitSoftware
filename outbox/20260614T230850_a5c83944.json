@@ -1,0 +1,9 @@
+{
+  "id": "20260614T230850_a5c83944",
+  "ts": "2026-06-14T23:08:55.531476+00:00",
+  "cmd": "try { 'LOOMBIT:'+(Invoke-RestMethod http://127.0.0.1:8787/health).status } catch { 'LOOMBIT_DOWN' }",
+  "exit": 126,
+  "stdout": "",
+  "stderr": "rechazado por el gate humano/allowlist",
+  "approved": false
+}
