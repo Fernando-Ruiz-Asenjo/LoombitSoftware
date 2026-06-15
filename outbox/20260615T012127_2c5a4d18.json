@@ -1,0 +1,9 @@
+{
+  "id": "20260615T012127_2c5a4d18",
+  "ts": "2026-06-15T01:21:37.641570+00:00",
+  "cmd": "Invoke-RestMethod http://127.0.0.1:8787/health | ConvertTo-Json -Compress",
+  "exit": 1,
+  "stdout": "",
+  "stderr": "Invoke-RestMethod : No es posible conectar con el servidor remoto\nEn l¡nea: 1 Car cter: 1\n+ Invoke-RestMethod http://127.0.0.1:8787/health | ConvertTo-Json -Comp ...\n+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n    + CategoryInfo          : InvalidOperation: (System.Net.HttpWebRequest:HttpWebRequest) [Invoke-RestMethod], WebExc \n   eption\n    + FullyQualifiedErrorId : WebCmdletWebResponseException,Microsoft.PowerShell.Commands.InvokeRestMethodCommand\n \n",
+  "approved": true
+}
